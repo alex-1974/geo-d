@@ -406,8 +406,575 @@ if (isIntersectionScalar!T)
 }
 
 
+version(unittest)
+{
+    /*
+     * Independent one-dimensional oracle for closed intervals.
+     *
+     * The segment classifier uses lexicographic ordering of geometric
+     * endpoints. This oracle instead works on the independent line
+     * parameter used to construct the test geometry.
+     */
+    private SegmentIntersectionKind intervalIntersectionOracle(
+        int firstA,
+        int firstB,
+        int secondA,
+        int secondB
+    )
+        pure nothrow @safe @nogc
+    {
+        int firstLower = firstA;
+        int firstUpper = firstB;
+
+        if (firstUpper < firstLower)
+        {
+            firstLower = firstB;
+            firstUpper = firstA;
+        }
+
+        int secondLower = secondA;
+        int secondUpper = secondB;
+
+        if (secondUpper < secondLower)
+        {
+            secondLower = secondB;
+            secondUpper = secondA;
+        }
+
+        const int lower =
+            firstLower > secondLower
+                ? firstLower
+                : secondLower;
+
+        const int upper =
+            firstUpper < secondUpper
+                ? firstUpper
+                : secondUpper;
+
+        if (upper < lower)
+            return SegmentIntersectionKind.none;
+
+        if (upper == lower)
+            return SegmentIntersectionKind.point;
+
+        return SegmentIntersectionKind.overlap;
+    }
+
+
+    /*
+     * Four independent embeddings of the same integer line parameter.
+     *
+     * These exercise horizontal, vertical, positive-slope and
+     * negative-slope collinear geometry.
+     */
+    private Point2!int collinearOraclePoint(
+        size_t family,
+        int parameter
+    )
+        pure nothrow @safe @nogc
+    {
+        final switch (family)
+        {
+            case 0:
+                return Point2!int(
+                    parameter,
+                    7
+                );
+
+            case 1:
+                return Point2!int(
+                    -3,
+                    parameter
+                );
+
+            case 2:
+                return Point2!int(
+                    parameter,
+                    2 * parameter + 1
+                );
+
+            case 3:
+                return Point2!int(
+                    parameter,
+                    -3 * parameter + 5
+                );
+        }
+    }
+
+
+    /*
+     * Small deterministic PRNG for reproducible invariant sweeps.
+     */
+    private ulong nextIntersectionRandom(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        assert(state != 0);
+
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+
+        return state;
+    }
+
+
+    private int randomIntersectionCoordinate(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        return
+            cast(int)(
+                nextIntersectionRandom(state) %
+                2001UL
+            ) -
+            1000;
+    }
+}
+
+
 @safe unittest
 {
+    /*
+     * Independent exhaustive collinear oracle.
+     *
+     * The expected result is computed solely from one-dimensional
+     * parameter intervals. Geometry is then embedded into four
+     * differently oriented supporting lines.
+     *
+     * The parameter range includes degenerate segments, disjoint
+     * intervals, endpoint contact, containment and positive-length
+     * overlap.
+     */
+    {
+        enum int[] parameters = [
+            -4, -3, -2, -1, 0,
+             1,  2,  3,  4
+        ];
+
+        foreach (family; 0 .. 4)
+        {
+            foreach (firstA; parameters)
+            foreach (firstB; parameters)
+            foreach (secondA; parameters)
+            foreach (secondB; parameters)
+            {
+                const auto expected =
+                    intervalIntersectionOracle(
+                        firstA,
+                        firstB,
+                        secondA,
+                        secondB
+                    );
+
+                const Segment2!int first =
+                    Segment2!int(
+                        collinearOraclePoint(
+                            family,
+                            firstA
+                        ),
+                        collinearOraclePoint(
+                            family,
+                            firstB
+                        )
+                    );
+
+                const Segment2!int second =
+                    Segment2!int(
+                        collinearOraclePoint(
+                            family,
+                            secondA
+                        ),
+                        collinearOraclePoint(
+                            family,
+                            secondB
+                        )
+                    );
+
+                assert(
+                    segmentIntersectionKind(
+                        first,
+                        second
+                    ) == expected
+                );
+            }
+        }
+    }
+
+
+    /*
+     * Deterministic general-geometry invariant sweep.
+     *
+     * This does not assume an expected classification. Instead it tests
+     * semantic invariants that must hold for every pair of segments:
+     *
+     * - argument symmetry;
+     * - endpoint-order invariance;
+     * - self-intersection semantics.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+        alias K = SegmentIntersectionKind;
+
+        ulong state =
+            0x8f3f_73b5_cf1c_9adeUL;
+
+        foreach (_; 0 .. 512)
+        {
+            const S first =
+                S(
+                    P(
+                        randomIntersectionCoordinate(
+                            state
+                        ),
+                        randomIntersectionCoordinate(
+                            state
+                        )
+                    ),
+                    P(
+                        randomIntersectionCoordinate(
+                            state
+                        ),
+                        randomIntersectionCoordinate(
+                            state
+                        )
+                    )
+                );
+
+            const S second =
+                S(
+                    P(
+                        randomIntersectionCoordinate(
+                            state
+                        ),
+                        randomIntersectionCoordinate(
+                            state
+                        )
+                    ),
+                    P(
+                        randomIntersectionCoordinate(
+                            state
+                        ),
+                        randomIntersectionCoordinate(
+                            state
+                        )
+                    )
+                );
+
+            const S reverseFirst =
+                S(
+                    first.b,
+                    first.a
+                );
+
+            const S reverseSecond =
+                S(
+                    second.b,
+                    second.a
+                );
+
+            const K expected =
+                segmentIntersectionKind(
+                    first,
+                    second
+                );
+
+            assert(
+                segmentIntersectionKind(
+                    second,
+                    first
+                ) == expected
+            );
+
+            assert(
+                segmentIntersectionKind(
+                    reverseFirst,
+                    second
+                ) == expected
+            );
+
+            assert(
+                segmentIntersectionKind(
+                    first,
+                    reverseSecond
+                ) == expected
+            );
+
+            assert(
+                segmentIntersectionKind(
+                    reverseFirst,
+                    reverseSecond
+                ) == expected
+            );
+
+            assert(
+                segmentIntersectionKind(
+                    second,
+                    reverseFirst
+                ) == expected
+            );
+
+            const K selfExpected =
+                first.a == first.b
+                    ? K.point
+                    : K.overlap;
+
+            assert(
+                segmentIntersectionKind(
+                    first,
+                    first
+                ) == selfExpected
+            );
+
+            assert(
+                segmentIntersectionKind(
+                    first,
+                    reverseFirst
+                ) == selfExpected
+            );
+        }
+    }
+
+
+    /*
+     * Near-collinear binary64 proper crossing.
+     *
+     * The two endpoints of the vertical segment lie one binary64 step
+     * on opposite sides of the diagonal at x = 5.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+        alias K = SegmentIntersectionKind;
+
+        enum double below =
+            0x1.3ffffffffffffp+2;
+
+        enum double above =
+            0x1.4000000000001p+2;
+
+        const S diagonal =
+            S(
+                P(0.0, 0.0),
+                P(10.0, 10.0)
+            );
+
+        const S needle =
+            S(
+                P(5.0, below),
+                P(5.0, above)
+            );
+
+        assert(
+            segmentIntersectionKind(
+                diagonal,
+                needle
+            ) == K.point
+        );
+
+        assert(
+            segmentIntersectionKind(
+                needle,
+                diagonal
+            ) == K.point
+        );
+    }
+
+
+    /*
+     * Near-collinear binary32 proper crossing.
+     *
+     * Promotion to the binary64 predicate backend must preserve the
+     * two binary32 values exactly.
+     */
+    {
+        alias P = Point2!float;
+        alias S = Segment2!float;
+        alias K = SegmentIntersectionKind;
+
+        enum float below =
+            0x1.fffffep-1f;
+
+        enum float above =
+            0x1.000002p+0f;
+
+        const S diagonal =
+            S(
+                P(0.0f, 0.0f),
+                P(2.0f, 2.0f)
+            );
+
+        const S needle =
+            S(
+                P(1.0f, below),
+                P(1.0f, above)
+            );
+
+        assert(
+            segmentIntersectionKind(
+                diagonal,
+                needle
+            ) == K.point
+        );
+    }
+
+
+    /*
+     * Full-range binary64 near-collinear crossing.
+     *
+     * This configuration lies well outside the conservative expansion
+     * backend working range and therefore exercises the complete robust
+     * orientation pipeline, including the full-range exact fallback.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+        alias K = SegmentIntersectionKind;
+
+        enum double large =
+            0x1p+500;
+
+        enum double half =
+            0x1p+499;
+
+        enum double below =
+            0x1.fffffffffffffp+498;
+
+        enum double above =
+            0x1.0000000000001p+499;
+
+        const S diagonal =
+            S(
+                P(0.0, 0.0),
+                P(large, large)
+            );
+
+        const S needle =
+            S(
+                P(half, below),
+                P(half, above)
+            );
+
+        assert(
+            segmentIntersectionKind(
+                diagonal,
+                needle
+            ) == K.point
+        );
+
+        const S reverseDiagonal =
+            S(
+                diagonal.b,
+                diagonal.a
+            );
+
+        const S reverseNeedle =
+            S(
+                needle.b,
+                needle.a
+            );
+
+        assert(
+            segmentIntersectionKind(
+                reverseDiagonal,
+                reverseNeedle
+            ) == K.point
+        );
+    }
+
+
+    /*
+     * Subnormal collinear overlap.
+     *
+     * All coordinates are exact binary64 subnormals. The mathematical
+     * orientation determinants underflow ordinary binary64 arithmetic,
+     * but topological classification must remain exact.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+        alias K = SegmentIntersectionKind;
+
+        enum double one =
+            0x0.0000000000001p-1022;
+
+        enum double two =
+            0x0.0000000000002p-1022;
+
+        enum double four =
+            0x0.0000000000004p-1022;
+
+        enum double six =
+            0x0.0000000000006p-1022;
+
+        const S first =
+            S(
+                P(0.0, 0.0),
+                P(four, four)
+            );
+
+        const S second =
+            S(
+                P(two, two),
+                P(six, six)
+            );
+
+        assert(one > 0.0);
+
+        assert(
+            segmentIntersectionKind(
+                first,
+                second
+            ) == K.overlap
+        );
+    }
+
+
+    /*
+     * Extreme finite binary64 collinear containment.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+        alias K = SegmentIntersectionKind;
+
+        const S outer =
+            S(
+                P(
+                    -double.max,
+                    -double.max
+                ),
+                P(
+                    double.max,
+                    double.max
+                )
+            );
+
+        const S inner =
+            S(
+                P(-1.0, -1.0),
+                P( 1.0,  1.0)
+            );
+
+        assert(
+            segmentIntersectionKind(
+                outer,
+                inner
+            ) == K.overlap
+        );
+
+        assert(
+            segmentIntersectionKind(
+                inner,
+                outer
+            ) == K.overlap
+        );
+    }
+
+
     alias P = Point2!int;
     alias S = Segment2!int;
     alias K = SegmentIntersectionKind;

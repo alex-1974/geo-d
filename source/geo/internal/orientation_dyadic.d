@@ -1,14 +1,12 @@
 module geo.internal.orientation_dyadic;
 
-import geo.internal.fixed_uint :
-    compareUnsigned;
-
 import geo.internal.dyadic :
     SignedDyadicProduct,
     decodeBinary64Coordinate,
     dyadicCoordinateLimbs,
     multiplyDyadicDifferences,
-    subtractDyadicCoordinates;
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
 
 import std.math.traits : isFinite;
 
@@ -67,27 +65,13 @@ private int productDifferenceSign(
 )
     pure nothrow @safe @nogc
 {
-    if (p.sign == 0)
-        return -q.sign;
-
-    if (q.sign == 0)
-        return p.sign;
-
-    if (p.sign != q.sign)
-        return p.sign;
-
-    const int comparison =
-        compareUnsigned(
-            p.magnitude,
-            q.magnitude
+    const auto difference =
+        subtractDyadicProducts(
+            p,
+            q
         );
 
-    if (comparison == 0)
-        return 0;
-
-    return p.sign > 0
-        ? comparison
-        : -comparison;
+    return difference.sign;
 }
 
 

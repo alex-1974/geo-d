@@ -1501,6 +1501,610 @@ if (
 }
 
 
+@safe unittest
+{
+    import std.bitmanip :
+        DoubleRep;
+
+
+    /*
+     * Exact binary64 comparison, including the sign of zero.
+     *
+     * Construction symmetry is stronger than ordinary floating-point
+     * equality: equivalent segment representations should produce the
+     * same binary64 result bits.
+     */
+    bool sameDoubleBits(
+        double lhs,
+        double rhs
+    )
+    {
+        DoubleRep left;
+        DoubleRep right;
+
+        left.value = lhs;
+        right.value = rhs;
+
+        return
+            left.sign == right.sign &&
+            left.exponent == right.exponent &&
+            left.fraction == right.fraction;
+    }
+
+
+    bool samePointBits(
+        Point2!double lhs,
+        Point2!double rhs
+    )
+    {
+        return
+            sameDoubleBits(
+                lhs.x,
+                rhs.x
+            ) &&
+            sameDoubleBits(
+                lhs.y,
+                rhs.y
+            );
+    }
+
+
+    /*
+     * Deterministic broad verification over small integer geometry.
+     *
+     * The classifier remains authoritative:
+     *
+     *     kind == point
+     *
+     * iff
+     *
+     *     unique-point construction succeeds.
+     *
+     * For every successful construction, argument order and endpoint
+     * reversal must produce bit-identical Point2!double results.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+        alias K = SegmentIntersectionKind;
+
+        int coordinate(
+            size_t index,
+            uint salt
+        )
+            pure nothrow @safe @nogc
+        {
+            const ulong value =
+                cast(ulong)(index + 1) *
+                    (37UL + 17UL * salt) +
+                cast(ulong)(index * index + 3) *
+                    (11UL + 5UL * salt) +
+                53UL * salt;
+
+            return
+                cast(int)(
+                    value % 97UL
+                ) -
+                48;
+        }
+
+        foreach (index; 0 .. 256)
+        {
+            const S first =
+                S(
+                    P(
+                        coordinate(index, 1),
+                        coordinate(index, 2)
+                    ),
+                    P(
+                        coordinate(index, 3),
+                        coordinate(index, 4)
+                    )
+                );
+
+            const S second =
+                S(
+                    P(
+                        coordinate(index, 5),
+                        coordinate(index, 6)
+                    ),
+                    P(
+                        coordinate(index, 7),
+                        coordinate(index, 8)
+                    )
+                );
+
+            const S reverseFirst =
+                S(
+                    first.b,
+                    first.a
+                );
+
+            const S reverseSecond =
+                S(
+                    second.b,
+                    second.a
+                );
+
+            const K kind =
+                segmentIntersectionKind(
+                    first,
+                    second
+                );
+
+            Point2!double normal =
+                Point2!double(
+                    123.0,
+                    456.0
+                );
+
+            const bool success =
+                trySegmentIntersectionPoint(
+                    first,
+                    second,
+                    normal
+                );
+
+            assert(
+                success ==
+                (
+                    kind ==
+                    K.point
+                )
+            );
+
+            if (!success)
+            {
+                /*
+                 * `out` semantics reset the result even when
+                 * construction fails.
+                 */
+                assert(
+                    normal ==
+                    Point2!double.init
+                );
+
+                continue;
+            }
+
+            Point2!double swapped;
+            Point2!double reversedFirst;
+            Point2!double reversedSecond;
+            Point2!double reversedBoth;
+
+            assert(
+                trySegmentIntersectionPoint(
+                    second,
+                    first,
+                    swapped
+                )
+            );
+
+            assert(
+                trySegmentIntersectionPoint(
+                    reverseFirst,
+                    second,
+                    reversedFirst
+                )
+            );
+
+            assert(
+                trySegmentIntersectionPoint(
+                    first,
+                    reverseSecond,
+                    reversedSecond
+                )
+            );
+
+            assert(
+                trySegmentIntersectionPoint(
+                    reverseFirst,
+                    reverseSecond,
+                    reversedBoth
+                )
+            );
+
+            assert(
+                samePointBits(
+                    normal,
+                    swapped
+                )
+            );
+
+            assert(
+                samePointBits(
+                    normal,
+                    reversedFirst
+                )
+            );
+
+            assert(
+                samePointBits(
+                    normal,
+                    reversedSecond
+                )
+            );
+
+            assert(
+                samePointBits(
+                    normal,
+                    reversedBoth
+                )
+            );
+        }
+    }
+
+
+    /*
+     * Non-dyadic rational proper crossing.
+     *
+     * AB:
+     *
+     *     (0,0) -> (1,0)
+     *
+     * CD:
+     *
+     *     (0,1) -> (1,-2)
+     *
+     * intersects at exactly:
+     *
+     *     x = 1/3
+     *     y = 0
+     *
+     * The expected binary64 value is written directly as its correctly
+     * rounded hexadecimal representation.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(0, 0),
+                P(1, 0)
+            );
+
+        const S second =
+            S(
+                P(0, 1),
+                P(1, -2)
+            );
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                point.x,
+                0x1.5555555555555p-2
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                point.y,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * A case that specifically defeats construction through a rounded
+     * binary64 segment parameter.
+     *
+     * The proper crossing lies at:
+     *
+     *     (2^-977, 2^-977)
+     *
+     * on the segment:
+     *
+     *     (0,0) -> (2^1023, 2^1023)
+     *
+     * Its segment parameter is:
+     *
+     *     t = 2^-2000
+     *
+     * which underflows to zero in binary64 even though:
+     *
+     *     t * 2^1023 = 2^-977
+     *
+     * is a normal, exactly representable binary64 value.
+     *
+     * This is the motivating failure mode for carrying the exact
+     * barycentric ratio through multiplication before rounding.
+     */
+    {
+        enum double huge =
+            0x1p+1023;
+
+        enum double expected =
+            0x1p-977;
+
+        /*
+         * Demonstrate why a conventional binary64 segment parameter
+         * is insufficient.
+         *
+         * Constant expressions may otherwise retain excess precision,
+         * so force the intermediate result to binary64 explicitly.
+         */
+        import core.math : toPrec;
+
+        const double roundedParameter =
+            toPrec!double(
+                expected / huge
+            );
+
+        assert(
+            roundedParameter ==
+            0.0
+        );
+
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S first =
+            S(
+                P(0.0, 0.0),
+                P(huge, huge)
+            );
+
+        const S second =
+            S(
+                P(expected, -1.0),
+                P(expected,  1.0)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double normal;
+        Point2!double swapped;
+        Point2!double reversed;
+
+        assert(
+            segmentIntersectionKind(
+                first,
+                second
+            ) ==
+            SegmentIntersectionKind.point
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                normal
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                swapped
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                reversed
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                normal.x,
+                expected
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                normal.y,
+                expected
+            )
+        );
+
+        assert(
+            samePointBits(
+                normal,
+                swapped
+            )
+        );
+
+        assert(
+            samePointBits(
+                normal,
+                reversed
+            )
+        );
+    }
+
+
+    /*
+     * Full-range long construction remains invariant under every basic
+     * representation symmetry.
+     */
+    {
+        alias P = Point2!long;
+        alias S = Segment2!long;
+
+        const S first =
+            S(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        const S second =
+            S(
+                P(0, long.min),
+                P(0, long.max)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double a;
+        Point2!double b;
+        Point2!double c;
+        Point2!double d;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                a
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                b
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                second,
+                c
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                d
+            )
+        );
+
+        assert(samePointBits(a, b));
+        assert(samePointBits(a, c));
+        assert(samePointBits(a, d));
+
+        assert(
+            sameDoubleBits(
+                a.x,
+                0.0
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                a.y,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * Full-range binary64 construction receives the same symmetry
+     * verification.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S first =
+            S(
+                P(-double.max, 0.0),
+                P( double.max, 0.0)
+            );
+
+        const S second =
+            S(
+                P(0.0, -double.max),
+                P(0.0,  double.max)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double a;
+        Point2!double b;
+        Point2!double c;
+        Point2!double d;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                a
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                b
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                second,
+                c
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                d
+            )
+        );
+
+        assert(samePointBits(a, b));
+        assert(samePointBits(a, c));
+        assert(samePointBits(a, d));
+    }
+}
+
+
 /**
  * Constructs the positive-length collinear overlap of two closed
  * segments.

@@ -11,3 +11,5 @@ public import geo.convert :
 public import geo.point : Point2;
 public import geo.scalar : isGeoScalar;
 public import geo.vector : Vector2;
+
+public import geo.segment : Segment2;

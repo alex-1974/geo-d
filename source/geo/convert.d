@@ -2,6 +2,7 @@ module geo.convert;
 
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
+import geo.segment : Segment2;
 import geo.vector : Vector2;
 
 import std.math.rounding : ceil, floor;
@@ -213,6 +214,33 @@ if (isGeoScalar!To && isGeoScalar!From)
 
 
 /**
+ * Checked component-wise conversion of a segment.
+ *
+ * Both endpoints must convert successfully. On failure, result remains
+ * Segment2!To.init.
+ */
+bool tryConvert(To, From)(
+    Segment2!From source,
+    out Segment2!To result
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!To && isGeoScalar!From)
+{
+    Point2!To a;
+    Point2!To b;
+
+    if (!tryConvert!To(source.a, a))
+        return false;
+
+    if (!tryConvert!To(source.b, b))
+        return false;
+
+    result = Segment2!To(a, b);
+    return true;
+}
+
+
+/**
  * Returns a point whose coordinates are rounded to the nearest
  * integral-valued floating-point values.
  *
@@ -413,6 +441,27 @@ if (isFloatingPoint!T)
     assert(vi == Vector2!int(4, -7));
 
     assert(!Vector2!double(4.25, -7.0).tryConvert(vi));
+
+    // Segment conversion reuses the Point2 scalar rules.
+    Segment2!int si;
+
+    assert(Segment2!double(
+        Point2!double(1.0, -2.0),
+        Point2!double(3.0, 4.0)
+    ).tryConvert(si));
+
+    assert(si == Segment2!int(
+        Point2!int(1, -2),
+        Point2!int(3, 4)
+    ));
+
+    assert(!Segment2!double(
+        Point2!double(1.5, -2.0),
+        Point2!double(3.0, 4.0)
+    ).tryConvert(si));
+
+    assert(si == Segment2!int.init);
+
 
     // Quantisation functions exist only for floating-point geometry.
     static assert(!__traits(compiles, Point2!int(1, 2).rounded));

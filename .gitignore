@@ -11,3 +11,6 @@ dub.selections.json
 docs.json
 __dummy.html
 patch/
+
+# DUB test executables
+geo-d-test-*

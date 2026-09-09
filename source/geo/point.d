@@ -114,6 +114,11 @@ public:
 
 @safe unittest
 {
+    static assert(!__traits(compiles, Point2!byte));
+    static assert(!__traits(compiles, Point2!short));
+    static assert(!__traits(compiles, Point2!uint));
+    static assert(!__traits(compiles, Point2!ulong));
+
     static foreach (T; AliasSeq!(int, long, float, double, real))
     {
         static assert(Point2!T.init.x == T(0));
@@ -168,6 +173,7 @@ public:
 
     auto nanPoint = P(double.nan, 0.0);
     assert(!nanPoint.isFinite);
+    assert(nanPoint != nanPoint);
 
     auto infinitePoint = P(double.infinity, 0.0);
     assert(!infinitePoint.isFinite);

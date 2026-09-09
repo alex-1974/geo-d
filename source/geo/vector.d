@@ -186,6 +186,11 @@ public:
 
 @safe unittest
 {
+    static assert(!__traits(compiles, Vector2!byte));
+    static assert(!__traits(compiles, Vector2!short));
+    static assert(!__traits(compiles, Vector2!uint));
+    static assert(!__traits(compiles, Vector2!ulong));
+
     static foreach (T; AliasSeq!(int, long, float, double, real))
     {
         static assert(Vector2!T.init.x == T(0));
@@ -238,6 +243,7 @@ public:
 
     auto nanVector = V(double.nan, 0.0);
     assert(!nanVector.isFinite);
+    assert(nanVector != nanVector);
 
     auto infiniteVector = V(double.infinity, 0.0);
     assert(!infiniteVector.isFinite);

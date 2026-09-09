@@ -559,8 +559,815 @@ Orientation orientation(
 }
 
 
+version(unittest)
+{
+    import std.bigint : BigInt;
+    import std.bitmanip : DoubleRep, FloatRep;
+    import std.math.traits : isFinite;
+
+
+    /*
+     * Independent arbitrary-precision oracle.
+     *
+     * Production predicates deliberately do not depend on BigInt.
+     * These helpers exist only in unittest builds.
+     */
+
+
+    private Orientation oracleOrientationFromDeterminant(
+        ref const BigInt determinant
+    )
+        @safe
+    {
+        if (determinant > 0)
+            return Orientation.left;
+
+        if (determinant < 0)
+            return Orientation.right;
+
+        return Orientation.collinear;
+    }
+
+
+    private Orientation oppositeOrientation(
+        Orientation value
+    )
+        pure nothrow @safe @nogc
+    {
+        final switch (value)
+        {
+            case Orientation.left:
+                return Orientation.right;
+
+            case Orientation.collinear:
+                return Orientation.collinear;
+
+            case Orientation.right:
+                return Orientation.left;
+        }
+    }
+
+
+    /*
+     * Exact oracle for integral Point2 coordinates.
+     *
+     * All subtraction and multiplication happens in BigInt, so this
+     * does not share geo-d's fixed-width integer orientation machinery.
+     */
+    private Orientation oracleIntegerOrientation(T)(
+        Point2!T a,
+        Point2!T b,
+        Point2!T c
+    )
+        @safe
+    if (is(T == int) || is(T == long))
+    {
+        const BigInt bax =
+            BigInt(b.x) - BigInt(a.x);
+
+        const BigInt bay =
+            BigInt(b.y) - BigInt(a.y);
+
+        const BigInt cax =
+            BigInt(c.x) - BigInt(a.x);
+
+        const BigInt cay =
+            BigInt(c.y) - BigInt(a.y);
+
+        const BigInt determinant =
+            bax * cay -
+            bay * cax;
+
+        return oracleOrientationFromDeterminant(
+            determinant
+        );
+    }
+
+
+    /*
+     * Decode one finite binary64 value exactly as an integer multiple
+     * of 2^-1074.
+     *
+     * This shares only the IEEE-754 representation theorem with the
+     * production dyadic fallback. All subsequent arithmetic is handled
+     * independently by std.bigint.BigInt.
+     */
+    private BigInt oracleBinary64Integer(
+        double value
+    )
+        @safe
+    {
+        assert(isFinite(value));
+
+        DoubleRep representation;
+
+        representation.value =
+            value;
+
+        const ulong fraction =
+            representation.fraction;
+
+        const uint rawExponent =
+            representation.exponent;
+
+        ulong mantissa;
+        uint shift;
+
+        if (rawExponent == 0)
+        {
+            /*
+             * Zero or subnormal:
+             *
+             *     value =
+             *         fraction * 2^-1074
+             */
+            mantissa =
+                fraction;
+
+            shift = 0;
+        }
+        else
+        {
+            /*
+             * Normal:
+             *
+             *     value =
+             *       (2^52 + fraction)
+             *       * 2^(rawExponent - 1075)
+             *
+             * In units of 2^-1074:
+             *
+             *     integer =
+             *       mantissa << (rawExponent - 1)
+             */
+            mantissa =
+                (1UL << 52) |
+                fraction;
+
+            shift =
+                rawExponent - 1;
+        }
+
+        if (mantissa == 0)
+            return BigInt(0);
+
+        BigInt result =
+            BigInt(mantissa);
+
+        if (shift != 0)
+            result <<= shift;
+
+        if (representation.sign)
+            result = -result;
+
+        return result;
+    }
+
+
+    private Orientation oracleDoubleOrientation(
+        Point2!double a,
+        Point2!double b,
+        Point2!double c
+    )
+        @safe
+    {
+        assert(a.isFinite);
+        assert(b.isFinite);
+        assert(c.isFinite);
+
+        const BigInt ax =
+            oracleBinary64Integer(a.x);
+
+        const BigInt ay =
+            oracleBinary64Integer(a.y);
+
+        const BigInt bx =
+            oracleBinary64Integer(b.x);
+
+        const BigInt by =
+            oracleBinary64Integer(b.y);
+
+        const BigInt cx =
+            oracleBinary64Integer(c.x);
+
+        const BigInt cy =
+            oracleBinary64Integer(c.y);
+
+        const BigInt bax =
+            bx - ax;
+
+        const BigInt bay =
+            by - ay;
+
+        const BigInt cax =
+            cx - ax;
+
+        const BigInt cay =
+            cy - ay;
+
+        const BigInt determinant =
+            bax * cay -
+            bay * cax;
+
+        return oracleOrientationFromDeterminant(
+            determinant
+        );
+    }
+
+
+    /*
+     * binary32 -> binary64 is exact, so the binary64 BigInt oracle is
+     * also an independent exact oracle for Point2!float.
+     */
+    private Orientation oracleFloatOrientation(
+        Point2!float a,
+        Point2!float b,
+        Point2!float c
+    )
+        @safe
+    {
+        return oracleDoubleOrientation(
+            Point2!double(
+                cast(double) a.x,
+                cast(double) a.y
+            ),
+            Point2!double(
+                cast(double) b.x,
+                cast(double) b.y
+            ),
+            Point2!double(
+                cast(double) c.x,
+                cast(double) c.y
+            )
+        );
+    }
+
+
+    /*
+     * Small deterministic PRNG used only to generate reproducible test
+     * vectors. It is not part of the library API and is not intended
+     * for cryptographic/statistical use.
+     */
+    private ulong nextOracleRandom(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        assert(state != 0);
+
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+
+        return state;
+    }
+
+
+    private int randomOracleInt(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        const ulong bits =
+            nextOracleRandom(state);
+
+        const int magnitude =
+            cast(int)(
+                bits &
+                0x7fff_ffffUL
+            );
+
+        return (bits & (1UL << 63))
+            ? -magnitude
+            : magnitude;
+    }
+
+
+    private long randomOracleLong(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        const ulong bits =
+            nextOracleRandom(state);
+
+        const long magnitude =
+            cast(long)(
+                bits &
+                0x7fff_ffff_ffff_ffffUL
+            );
+
+        return (bits & (1UL << 63))
+            ? -magnitude
+            : magnitude;
+    }
+
+
+    /*
+     * Generate arbitrary finite binary64 bit patterns.
+     *
+     * Raw exponent 2047 would mean infinity/NaN and is remapped to the
+     * largest finite exponent.
+     */
+    private double randomFiniteDouble(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        const ulong bits =
+            nextOracleRandom(state);
+
+        DoubleRep representation;
+
+        representation.value =
+            0.0;
+
+        representation.fraction =
+            bits &
+            ((1UL << 52) - 1);
+
+        ushort exponent =
+            cast(ushort)(
+                (bits >> 52) &
+                0x7ffUL
+            );
+
+        if (exponent == 0x7ff)
+            exponent = 0x7fe;
+
+        representation.exponent =
+            exponent;
+
+        representation.sign =
+            (bits & (1UL << 63)) != 0;
+
+        return representation.value;
+    }
+
+
+    /*
+     * Same idea for arbitrary finite binary32 values.
+     */
+    private float randomFiniteFloat(
+        ref ulong state
+    )
+        pure nothrow @safe @nogc
+    {
+        const uint bits =
+            cast(uint)(
+                nextOracleRandom(state)
+            );
+
+        FloatRep representation;
+
+        representation.value =
+            0.0f;
+
+        representation.fraction =
+            bits &
+            ((1U << 23) - 1);
+
+        ubyte exponent =
+            cast(ubyte)(
+                (bits >> 23) &
+                0xffU
+            );
+
+        if (exponent == 0xff)
+            exponent = 0xfe;
+
+        representation.exponent =
+            exponent;
+
+        representation.sign =
+            (bits & (1U << 31)) != 0;
+
+        return representation.value;
+    }
+}
+
+
 @safe unittest
 {
+    /*
+     * BigInt oracle: full integral coordinate extremes.
+     *
+     * These cases force differences outside the source scalar range.
+     */
+    {
+        alias PI = Point2!int;
+
+        const PI a =
+            PI(int.min, int.min);
+
+        const PI b =
+            PI(int.max, int.min);
+
+        const PI c =
+            PI(int.min, int.max);
+
+        assert(
+            orientation(a, b, c) ==
+            oracleIntegerOrientation(a, b, c)
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.left
+        );
+    }
+
+
+    {
+        alias PL = Point2!long;
+
+        const PL a =
+            PL(long.min, long.min);
+
+        const PL b =
+            PL(long.max, long.min);
+
+        const PL c =
+            PL(long.min, long.max);
+
+        assert(
+            orientation(a, b, c) ==
+            oracleIntegerOrientation(a, b, c)
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.left
+        );
+    }
+
+
+    /*
+     * Deterministic property sweep for int.
+     */
+    {
+        alias P = Point2!int;
+
+        ulong state =
+            0x9e37_79b9_7f4a_7c15UL;
+
+        foreach (_; 0 .. 256)
+        {
+            const P a =
+                P(
+                    randomOracleInt(state),
+                    randomOracleInt(state)
+                );
+
+            const P b =
+                P(
+                    randomOracleInt(state),
+                    randomOracleInt(state)
+                );
+
+            const P c =
+                P(
+                    randomOracleInt(state),
+                    randomOracleInt(state)
+                );
+
+            const Orientation expected =
+                oracleIntegerOrientation(
+                    a,
+                    b,
+                    c
+                );
+
+            assert(
+                orientation(a, b, c) ==
+                expected
+            );
+
+            /*
+             * Cyclic permutation preserves orientation.
+             */
+            assert(
+                orientation(b, c, a) ==
+                expected
+            );
+
+            /*
+             * Swapping two vertices reverses orientation.
+             */
+            assert(
+                orientation(a, c, b) ==
+                oppositeOrientation(expected)
+            );
+        }
+    }
+
+
+    /*
+     * Deterministic property sweep for long.
+     *
+     * The oracle uses arbitrary precision for both full-width
+     * subtraction and multiplication.
+     */
+    {
+        alias P = Point2!long;
+
+        ulong state =
+            0xd1b5_4a32_d192_ed03UL;
+
+        foreach (_; 0 .. 256)
+        {
+            const P a =
+                P(
+                    randomOracleLong(state),
+                    randomOracleLong(state)
+                );
+
+            const P b =
+                P(
+                    randomOracleLong(state),
+                    randomOracleLong(state)
+                );
+
+            const P c =
+                P(
+                    randomOracleLong(state),
+                    randomOracleLong(state)
+                );
+
+            const Orientation expected =
+                oracleIntegerOrientation(
+                    a,
+                    b,
+                    c
+                );
+
+            assert(
+                orientation(a, b, c) ==
+                expected
+            );
+
+            assert(
+                orientation(b, c, a) ==
+                expected
+            );
+
+            assert(
+                orientation(a, c, b) ==
+                oppositeOrientation(expected)
+            );
+        }
+    }
+
+
+    /*
+     * BigInt binary64 oracle: explicitly exercise difficult exponent
+     * ranges before the generated property sweep.
+     */
+    {
+        alias P = Point2!double;
+
+        enum double minSubnormal =
+            0x0.0000000000001p-1022;
+
+        const P a =
+            P(0.0, 0.0);
+
+        const P b =
+            P(
+                minSubnormal,
+                0.0
+            );
+
+        const P c =
+            P(
+                0.0,
+                minSubnormal
+            );
+
+        assert(
+            orientation(a, b, c) ==
+            oracleDoubleOrientation(a, b, c)
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.left
+        );
+    }
+
+
+    {
+        alias P = Point2!double;
+
+        const P a =
+            P(-double.max, 0.0);
+
+        const P b =
+            P( double.max, 0.0);
+
+        const P c =
+            P(0.0, 1.0);
+
+        assert(
+            orientation(a, b, c) ==
+            oracleDoubleOrientation(a, b, c)
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.left
+        );
+    }
+
+
+    /*
+     * Exact full-range diagonal collinearity.
+     */
+    {
+        alias P = Point2!double;
+
+        const P a =
+            P(
+                -double.max,
+                -double.max
+            );
+
+        const P b =
+            P(
+                double.max,
+                double.max
+            );
+
+        const P c =
+            P(0.0, 0.0);
+
+        assert(
+            oracleDoubleOrientation(
+                a,
+                b,
+                c
+            ) == Orientation.collinear
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.collinear
+        );
+    }
+
+
+    /*
+     * Near-degenerate binary64 case: one ulp above the diagonal.
+     */
+    {
+        alias P = Point2!double;
+
+        const P a =
+            P(0.0, 0.0);
+
+        const P b =
+            P(10.0, 10.0);
+
+        const P c =
+            P(
+                5.0,
+                0x1.4000000000001p+2
+            );
+
+        assert(
+            orientation(a, b, c) ==
+            oracleDoubleOrientation(a, b, c)
+        );
+
+        assert(
+            orientation(a, b, c) ==
+            Orientation.left
+        );
+    }
+
+
+    /*
+     * Deterministic binary64 bit-pattern sweep.
+     *
+     * Exponents are sampled across the complete finite binary64 range,
+     * including zero/subnormal exponent encodings.
+     */
+    {
+        alias P = Point2!double;
+
+        ulong state =
+            0xa076_1d64_78bd_642fUL;
+
+        foreach (_; 0 .. 128)
+        {
+            const P a =
+                P(
+                    randomFiniteDouble(state),
+                    randomFiniteDouble(state)
+                );
+
+            const P b =
+                P(
+                    randomFiniteDouble(state),
+                    randomFiniteDouble(state)
+                );
+
+            const P c =
+                P(
+                    randomFiniteDouble(state),
+                    randomFiniteDouble(state)
+                );
+
+            assert(a.isFinite);
+            assert(b.isFinite);
+            assert(c.isFinite);
+
+            const Orientation expected =
+                oracleDoubleOrientation(
+                    a,
+                    b,
+                    c
+                );
+
+            assert(
+                orientation(a, b, c) ==
+                expected
+            );
+
+            assert(
+                orientation(b, c, a) ==
+                expected
+            );
+
+            assert(
+                orientation(a, c, b) ==
+                oppositeOrientation(expected)
+            );
+        }
+    }
+
+
+    /*
+     * Deterministic binary32 bit-pattern sweep.
+     *
+     * The independent oracle promotes each binary32 coordinate exactly
+     * to binary64 before converting it to BigInt.
+     */
+    {
+        alias P = Point2!float;
+
+        ulong state =
+            0xe703_7ed1_a0b4_28dbUL;
+
+        foreach (_; 0 .. 128)
+        {
+            const P a =
+                P(
+                    randomFiniteFloat(state),
+                    randomFiniteFloat(state)
+                );
+
+            const P b =
+                P(
+                    randomFiniteFloat(state),
+                    randomFiniteFloat(state)
+                );
+
+            const P c =
+                P(
+                    randomFiniteFloat(state),
+                    randomFiniteFloat(state)
+                );
+
+            assert(a.isFinite);
+            assert(b.isFinite);
+            assert(c.isFinite);
+
+            const Orientation expected =
+                oracleFloatOrientation(
+                    a,
+                    b,
+                    c
+                );
+
+            assert(
+                orientation(a, b, c) ==
+                expected
+            );
+
+            assert(
+                orientation(b, c, a) ==
+                expected
+            );
+
+            assert(
+                orientation(a, c, b) ==
+                oppositeOrientation(expected)
+            );
+        }
+    }
+
+
     /*
      * Public robust binary32 orientation.
      */

@@ -273,7 +273,8 @@ simplification
 
 ### Current implementation status
 
-The first fixed-size geometry foundation is substantially implemented.
+The fixed-size 2D geometry foundation is substantially implemented and
+verified.
 
 Completed:
 
@@ -289,17 +290,29 @@ Completed:
 - [x] robust orientation for `float`
 - [x] robust orientation for `double`
 - [x] independent `BigInt` oracle and property verification
+- [x] exact segment-intersection classification
+- [x] exact positive-length segment-overlap construction
+- [x] correctly rounded unique-point segment-intersection construction
+
+Segment intersection keeps exact topology separate from geometric
+construction. Proper crossings use bounded exact arithmetic internally
+and are rounded to binary64 only for the final point coordinates.
 
 Deliberately deferred:
 
 - [ ] robust orientation for `real` — requires a platform-aware backend
+- [ ] segment-intersection support for `real` — follows the future robust
+      `real` predicate backend
 
-Next algorithmic slice:
+Next structural slice:
 
-- [ ] robust segment-segment intersection
+- [ ] define ownership and view semantics for variable-size linear geometry
+- [ ] `Polyline` / `PolylineView`
+- [ ] `LinearRing`
+- [ ] signed area
 
-Before implementation, segment-intersection semantics must define proper
-crossings, endpoint touches, degenerate segments and collinear overlap.
+`Polygon` should follow the variable-size ownership/view decision rather
+than precede it.
 
 ### Quality gates
 

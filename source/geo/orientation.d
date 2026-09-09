@@ -6,6 +6,9 @@ import geo.internal.orientation_filter :
     OrientationFilterResult,
     orientationFilter;
 
+import geo.internal.orientation_robust :
+    tryOrientationRobustDouble;
+
 /**
  * Orientation of a point relative to the directed line a -> b.
  */
@@ -468,20 +471,132 @@ Orientation orientation(
 }
 
 
+/**
+ * Robust orientation predicate for Point2!double.
+ *
+ * Preconditions:
+ *
+ *     all coordinates are finite.
+ *
+ * Returns the mathematically exact orientation of c relative to the
+ * directed line a -> b.
+ *
+ * Internally the implementation uses:
+ *
+ * - a certified floating-point filter;
+ * - exact expansion arithmetic for uncertain ordinary cases;
+ * - an exact full-range dyadic fallback for extreme finite inputs.
+ */
+Orientation orientation(
+    Point2!double a,
+    Point2!double b,
+    Point2!double c
+)
+    pure nothrow @safe @nogc
+{
+    assert(a.isFinite);
+    assert(b.isFinite);
+    assert(c.isFinite);
+
+    int sign;
+
+    const bool success =
+        tryOrientationRobustDouble(
+            a.x, a.y,
+            b.x, b.y,
+            c.x, c.y,
+            sign
+        );
+
+    /*
+     * Finite binary64 inputs are completely covered by the robust
+     * backend.
+     */
+    assert(success);
+
+    return fromDeterminantSign(sign);
+}
+
+
 @safe unittest
 {
     /*
-     * The floating filter is internal only. Robust public floating
-     * orientation is not enabled until the adaptive/exact fallback
-     * exists.
+     * Public robust binary64 orientation.
      */
-    static assert(!__traits(compiles,
-        orientation(
-            Point2!double.init,
-            Point2!double.init,
-            Point2!double.init
-        )
-    ));
+    {
+        alias P = Point2!double;
+
+        assert(
+            orientation(
+                P(0.0, 0.0),
+                P(10.0, 0.0),
+                P(5.0, 1.0)
+            ) == Orientation.left
+        );
+
+        assert(
+            orientation(
+                P(0.0, 0.0),
+                P(10.0, 0.0),
+                P(5.0, -1.0)
+            ) == Orientation.right
+        );
+
+        assert(
+            orientation(
+                P(0.0, 0.0),
+                P(10.0, 10.0),
+                P(5.0, 5.0)
+            ) == Orientation.collinear
+        );
+    }
+
+
+    /*
+     * Near-degenerate binary64 input is decided exactly.
+     */
+    {
+        alias P = Point2!double;
+
+        assert(
+            orientation(
+                P(0.0, 0.0),
+                P(10.0, 10.0),
+                P(
+                    5.0,
+                    0x1.4000000000001p+2
+                )
+            ) == Orientation.left
+        );
+    }
+
+
+    /*
+     * Full finite binary64 range remains supported.
+     */
+    {
+        alias P = Point2!double;
+
+        assert(
+            orientation(
+                P(-double.max, 0.0),
+                P( double.max, 0.0),
+                P(0.0, 1.0)
+            ) == Orientation.left
+        );
+
+        enum double minSubnormal =
+            0x0.0000000000001p-1022;
+
+        assert(
+            orientation(
+                P(0.0, 0.0),
+                P(minSubnormal, 0.0),
+                P(0.0, minSubnormal)
+            ) == Orientation.left
+        );
+    }
+
 
     /*
      * Exact 64 x 64 -> 128 multiplication.

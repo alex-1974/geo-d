@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-09
+- Implementation status: Implemented and verified
+- Implementation verified: 2026-09-10
 
 ## Context
 
@@ -72,16 +74,20 @@ segments.
 
 ## 2. Point construction and overlap construction are separate
 
-The initial construction API will not introduce one heterogeneous
+The implemented construction API does not introduce one heterogeneous
 result object containing all possible intersection geometry.
 
-Instead, two focused operations are intended:
+Instead, two focused operations are provided:
 
 ~~~d
-bool trySegmentIntersectionPoint(T)(
+bool trySegmentIntersectionPoint(T, R)(
     Segment2!T first,
     Segment2!T second,
-    out Point2!(IntersectionScalar!T) point
+    out Point2!R point
+)
+if (
+    isIntersectionScalar!T &&
+    is(R == IntersectionScalar!T)
 );
 ~~~
 
@@ -95,9 +101,16 @@ bool trySegmentIntersectionOverlap(T)(
 );
 ~~~
 
-The exact spelling may be adjusted to normal `geo-d` template
-conventions during implementation, but the semantic separation is
-fixed by this ADR.
+The separately deduced result scalar `R` is an implementation detail
+required by D template argument deduction. The constraint enforces the
+semantic API decided here:
+
+~~~text
+R == IntersectionScalar!T
+~~~
+
+The semantic separation between unique-point construction and overlap
+construction is unchanged.
 
 ---
 
@@ -281,34 +294,60 @@ conversion.
 
 ## 10. Proper crossing construction
 
-A proper crossing requires numerical construction of the intersection
-of the two supporting lines.
+A proper crossing is constructed without evaluating a rounded
+floating-point line parameter or a naive unscaled floating-point
+determinant.
 
-The implementation must not use a numerically naive formula whose
-intermediate values can overflow or underflow for otherwise valid
-finite input segments.
-
-In particular, direct evaluation of large unscaled determinants such as:
+For segment `AB` intersecting `CD`, the implementation computes the
+exact dyadic orientation determinants:
 
 ~~~text
-x1*y2 - y1*x2
+dA = orient(C, D, A)
+dB = orient(C, D, B)
 ~~~
 
-is not an acceptable implementation strategy by itself.
+For a proper crossing their signs are opposite. Their exact magnitudes
+define barycentric weights on `AB`:
 
-The implementation should use a translated and scaled formulation or
-another method that:
+~~~text
+wA = |dB|
+wB = |dA|
+~~~
 
-- avoids avoidable intermediate overflow;
-- avoids avoidable intermediate underflow;
-- preserves useful relative precision;
-- returns a finite point for finite segment inputs;
-- is invariant under reversal of segment endpoint order to the extent
-  permitted by floating-point rounding.
+and therefore:
 
-The exact internal construction algorithm is not fixed by this ADR.
+~~~text
+P =
+    wA * A + wB * B
+    ----------------
+        wA + wB
+~~~
 
-It must be validated independently before becoming public API.
+All coordinates, differences, products, determinant magnitudes,
+weighted numerators and the common denominator are represented with
+bounded fixed-width exact integer arithmetic.
+
+The common dyadic scale cancels algebraically. No rounded
+floating-point segment parameter is formed.
+
+Each final coordinate is represented internally as:
+
+~~~text
+signed exact numerator
+---------------------- * 2^-1074
+positive denominator
+~~~
+
+and converted to binary64 using an explicit integer-arithmetic
+round-to-nearest, ties-to-even algorithm.
+
+This construction therefore avoids intermediate floating-point
+overflow and underflow throughout the supported finite binary64 input
+domain.
+
+The implementation specifically verifies the motivating case where a
+binary64 segment parameter would underflow to zero although the final
+intersection coordinate remains normally representable.
 
 ---
 
@@ -532,7 +571,7 @@ demonstrate that it improves usability.
 
 ---
 
-## 19. Symmetry expectations
+## 19. Symmetry and determinism
 
 Topology remains exactly symmetric:
 
@@ -540,23 +579,26 @@ Topology remains exactly symmetric:
 kind(a, b) == kind(b, a)
 ~~~
 
-Overlap construction is also exactly symmetric because the result is
+Overlap construction is exactly symmetric because the result is
 canonicalized.
 
-For proper crossing point construction, swapping the two input segments
-should produce the same mathematical result.
+Proper-crossing construction first derives the exact mathematical
+intersection as rational fixed-width data and only then performs one
+defined binary64 rounding operation per coordinate.
 
-Because the result is rounded floating point, implementations should
-aim for bit-identical symmetry where practical.
+Equivalent representations of the same proper crossing therefore
+produce the same correctly rounded binary64 point.
 
-If bit-identical symmetry cannot be guaranteed without substantially
-worsening the algorithm, the numerical error must remain within the
-documented construction accuracy contract.
+The verification suite checks bit-identical point construction under:
 
-Endpoint reversal should likewise not materially change the
-constructed point.
+- argument order reversal;
+- endpoint reversal of the first segment;
+- endpoint reversal of the second segment;
+- reversal of both segments.
 
-These properties require explicit tests.
+Endpoint-based unique intersections are likewise deterministic because
+the known geometric endpoint is converted directly to
+`IntersectionScalar!T`.
 
 ---
 
@@ -596,10 +638,10 @@ but its storage remains bounded for the supported scalar domains.
 
 ---
 
-## 22. Verification requirements for point construction
+## 22. Verification status for point construction
 
-Before `trySegmentIntersectionPoint()` is considered complete, tests
-must cover at least:
+`trySegmentIntersectionPoint()` is implemented and its verification
+suite covers at least:
 
 - proper crossing at exactly representable coordinates;
 - proper crossing at non-integral coordinates;
@@ -618,8 +660,21 @@ must cover at least:
 - argument-order symmetry;
 - endpoint-reversal invariance.
 
-Where possible, numerical results should be compared against an
-independent high-precision or exact rational oracle in unittest builds.
+Additional construction-specific verification covers:
+
+- exact non-dyadic rational intersections such as `1/3`;
+- correct binary64 round-to-nearest, ties-to-even behavior;
+- the subnormal/normal boundary;
+- signed zero behavior;
+- the largest finite binary64 value;
+- a segment parameter that underflows to zero although the final
+  intersection coordinate remains normally representable;
+- bit-identical construction under argument and endpoint reversal;
+- classifier/construction consistency over deterministic geometry
+  sweeps.
+
+The exact construction backend itself supplies the rational reference
+value before the final independently specified binary64 rounding step.
 
 ---
 
@@ -671,33 +726,65 @@ These trade-offs are intentional.
 
 ---
 
-## 25. Implementation order
+## 25. Implementation structure
 
-The implementation should proceed in two independent slices.
+The implementation followed the intended independent construction
+slices.
 
 ### Slice A — exact overlap construction
 
-Implement:
+`trySegmentIntersectionOverlap()` selects overlap endpoints directly
+from the represented input geometry.
 
-~~~text
-trySegmentIntersectionOverlap
-~~~
-
-first.
-
-This requires no new floating arithmetic and can reuse the exact
-collinear endpoint ordering already established for classification.
+No new coordinate is constructed and the result remains exact in the
+input scalar type.
 
 ### Slice B — rounded unique-point construction
 
-Only after Slice A is complete and tested, design and implement:
+`trySegmentIntersectionPoint()` uses two paths:
 
 ~~~text
-trySegmentIntersectionPoint
+unique endpoint-based contact
+    -> convert known endpoint to IntersectionScalar!T
+
+proper interior/interior crossing
+    -> exact dyadic determinants
+    -> exact barycentric weights
+    -> exact weighted rational coordinates
+    -> correctly rounded binary64 coordinates
 ~~~
 
-The proper-crossing numerical algorithm should be reviewed separately
-before code is committed.
+The main internal layers are:
 
-This preserves the project's incremental design and validation
-strategy.
+~~~text
+fixed_uint.d
+    bounded fixed-width unsigned arithmetic
+
+dyadic.d
+    exact scalar decoding
+    exact signed differences
+    exact signed products
+    exact product differences
+
+orientation_dyadic.d
+    exact orient2d determinant
+
+intersection_exact.d
+    exact proper-crossing rational construction
+
+intersection_round.d
+    correctly rounded rational-to-binary64 conversion
+~~~
+
+All production construction paths use bounded local storage and retain
+the intended:
+
+~~~text
+pure
+nothrow
+@safe
+@nogc
+~~~
+
+contracts.
+

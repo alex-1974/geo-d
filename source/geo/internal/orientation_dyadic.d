@@ -7,7 +7,12 @@ import geo.internal.fixed_uint :
     multiplyUnsigned,
     subtractUnsigned;
 
-import std.bitmanip : DoubleRep;
+import geo.internal.dyadic :
+    DyadicCoordinateMagnitude,
+    SignedDyadicCoordinate,
+    decodeBinary64Coordinate,
+    dyadicCoordinateLimbs;
+
 import std.math.traits : isFinite;
 
 
@@ -44,7 +49,6 @@ import std.math.traits : isFinite;
  *
  * 66 x 32 = 2112 bits, therefore 66 uint limbs are sufficient.
  */
-private enum size_t coordinateLimbs = 66;
 
 
 /*
@@ -55,11 +59,11 @@ private enum size_t coordinateLimbs = 66;
  * 132 x 32 = 4224 bits.
  */
 private enum size_t productLimbs =
-    2 * coordinateLimbs;
+    2 * dyadicCoordinateLimbs;
 
 
-private alias CoordinateMagnitude =
-    UIntFixed!coordinateLimbs;
+private alias DyadicCoordinateMagnitude =
+    UIntFixed!dyadicCoordinateLimbs;
 
 private alias ProductMagnitude =
     UIntFixed!productLimbs;
@@ -68,17 +72,17 @@ private alias ProductMagnitude =
 /*
  * Exact signed integer represented as sign + unsigned magnitude.
  */
-private struct SignedCoordinate
+private struct SignedDyadicCoordinate
 {
     int sign;
-    CoordinateMagnitude magnitude;
+    DyadicCoordinateMagnitude magnitude;
 }
 
 
 private struct SignedDifference
 {
     int sign;
-    CoordinateMagnitude magnitude;
+    DyadicCoordinateMagnitude magnitude;
 }
 
 
@@ -90,167 +94,13 @@ private struct SignedProduct
 
 
 /*
- * Places one binary64 mantissa at the requested bit position.
- *
- * mantissa uses at most 53 bits.
- *
- * The destination is initially zero, so bitwise OR is sufficient.
- */
-private void setShiftedMantissa(
-    ref CoordinateMagnitude result,
-    ulong mantissa,
-    uint shift
-)
-    pure nothrow @safe @nogc
-{
-    assert(mantissa != 0);
-    assert(shift <= 2045);
-
-    const size_t base =
-        shift / 32;
-
-    const uint offset =
-        shift % 32;
-
-    const uint lower =
-        cast(uint) mantissa;
-
-    const uint upper =
-        cast(uint)(mantissa >> 32);
-
-    const ulong shiftedLower =
-        cast(ulong) lower << offset;
-
-    result.limb[base] |=
-        cast(uint) shiftedLower;
-
-    if (base + 1 < coordinateLimbs)
-    {
-        result.limb[base + 1] |=
-            cast(uint)(
-                shiftedLower >> 32
-            );
-    }
-
-    if (upper != 0)
-    {
-        const ulong shiftedUpper =
-            cast(ulong) upper << offset;
-
-        assert(base + 1 < coordinateLimbs);
-
-        result.limb[base + 1] |=
-            cast(uint) shiftedUpper;
-
-        if (base + 2 < coordinateLimbs)
-        {
-            result.limb[base + 2] |=
-                cast(uint)(
-                    shiftedUpper >> 32
-                );
-        }
-        else
-        {
-            assert(
-                (shiftedUpper >> 32) == 0
-            );
-        }
-    }
-}
-
-
-/*
- * Exact finite binary64 -> signed integer conversion in units of
- * 2^-1074.
- *
- * For subnormals:
- *
- *     value = fraction * 2^-1074
- *
- * For normals:
- *
- *     value =
- *         (2^52 + fraction)
- *         * 2^(rawExponent - 1075)
- *
- * Therefore after division by 2^-1074:
- *
- *     integer =
- *         mantissa
- *         << (rawExponent - 1)
- */
-private SignedCoordinate decodeCoordinate(
-    double value
-)
-    pure nothrow @safe @nogc
-{
-    assert(isFinite(value));
-
-    DoubleRep representation;
-
-    representation.value = value;
-
-    const ulong fraction =
-        representation.fraction;
-
-    const uint rawExponent =
-        representation.exponent;
-
-    ulong mantissa;
-    uint shift;
-
-    if (rawExponent == 0)
-    {
-        /*
-         * Zero or subnormal.
-         */
-        mantissa = fraction;
-        shift = 0;
-    }
-    else
-    {
-        mantissa =
-            (1UL << 52) |
-            fraction;
-
-        shift =
-            rawExponent - 1;
-    }
-
-    SignedCoordinate result;
-
-    if (mantissa == 0)
-    {
-        /*
-         * +0 and -0 represent the same mathematical coordinate.
-         */
-        result.sign = 0;
-        return result;
-    }
-
-    result.sign =
-        representation.sign
-            ? -1
-            : 1;
-
-    setShiftedMantissa(
-        result.magnitude,
-        mantissa,
-        shift
-    );
-
-    return result;
-}
-
-
-/*
  * Exact signed difference:
  *
  *     lhs - rhs
  */
 private SignedDifference subtractCoordinates(
-    ref const SignedCoordinate lhs,
-    ref const SignedCoordinate rhs
+    ref const SignedDyadicCoordinate lhs,
+    ref const SignedDyadicCoordinate rhs
 )
     pure nothrow @safe @nogc
 {
@@ -437,22 +287,22 @@ int orientationDyadicExact(
     assert(isFinite(cy));
 
     const auto aX =
-        decodeCoordinate(ax);
+        decodeBinary64Coordinate(ax);
 
     const auto aY =
-        decodeCoordinate(ay);
+        decodeBinary64Coordinate(ay);
 
     const auto bX =
-        decodeCoordinate(bx);
+        decodeBinary64Coordinate(bx);
 
     const auto bY =
-        decodeCoordinate(by);
+        decodeBinary64Coordinate(by);
 
     const auto cX =
-        decodeCoordinate(cx);
+        decodeBinary64Coordinate(cx);
 
     const auto cY =
-        decodeCoordinate(cy);
+        decodeBinary64Coordinate(cy);
 
     const auto bAx =
         subtractCoordinates(
@@ -664,16 +514,16 @@ int orientationDyadicExact(
      */
     {
         const auto zero =
-            decodeCoordinate(0.0);
+            decodeBinary64Coordinate(0.0);
 
         const auto negativeZero =
-            decodeCoordinate(-0.0);
+            decodeBinary64Coordinate(-0.0);
 
         assert(zero.sign == 0);
         assert(negativeZero.sign == 0);
 
         const auto smallest =
-            decodeCoordinate(
+            decodeBinary64Coordinate(
                 minSubnormal
             );
 
@@ -682,7 +532,7 @@ int orientationDyadicExact(
 
         foreach (
             index;
-            1 .. coordinateLimbs
+            1 .. dyadicCoordinateLimbs
         )
         {
             assert(

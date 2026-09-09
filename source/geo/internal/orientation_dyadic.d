@@ -2,16 +2,14 @@ module geo.internal.orientation_dyadic;
 
 import geo.internal.fixed_uint :
     UIntFixed,
-    addUnsigned,
     compareUnsigned,
-    multiplyUnsigned,
-    subtractUnsigned;
+    multiplyUnsigned;
 
 import geo.internal.dyadic :
-    DyadicCoordinateMagnitude,
-    SignedDyadicCoordinate,
+    SignedDyadicDifference,
     decodeBinary64Coordinate,
-    dyadicCoordinateLimbs;
+    dyadicCoordinateLimbs,
+    subtractDyadicCoordinates;
 
 import std.math.traits : isFinite;
 
@@ -79,13 +77,6 @@ private struct SignedDyadicCoordinate
 }
 
 
-private struct SignedDifference
-{
-    int sign;
-    DyadicCoordinateMagnitude magnitude;
-}
-
-
 private struct SignedProduct
 {
     int sign;
@@ -93,103 +84,9 @@ private struct SignedProduct
 }
 
 
-/*
- * Exact signed difference:
- *
- *     lhs - rhs
- */
-private SignedDifference subtractCoordinates(
-    ref const SignedDyadicCoordinate lhs,
-    ref const SignedDyadicCoordinate rhs
-)
-    pure nothrow @safe @nogc
-{
-    SignedDifference result;
-
-    if (lhs.sign == 0)
-    {
-        result.sign =
-            -rhs.sign;
-
-        result.magnitude =
-            rhs.magnitude;
-
-        return result;
-    }
-
-    if (rhs.sign == 0)
-    {
-        result.sign =
-            lhs.sign;
-
-        result.magnitude =
-            lhs.magnitude;
-
-        return result;
-    }
-
-    if (lhs.sign != rhs.sign)
-    {
-        /*
-         * Examples:
-         *
-         *     (+A) - (-B) = +(A+B)
-         *     (-A) - (+B) = -(A+B)
-         */
-        result.sign =
-            lhs.sign;
-
-        result.magnitude =
-            addUnsigned(
-                lhs.magnitude,
-                rhs.magnitude
-            );
-
-        return result;
-    }
-
-    const int comparison =
-        compareUnsigned(
-            lhs.magnitude,
-            rhs.magnitude
-        );
-
-    if (comparison == 0)
-    {
-        result.sign = 0;
-        return result;
-    }
-
-    if (comparison > 0)
-    {
-        result.sign =
-            lhs.sign;
-
-        result.magnitude =
-            subtractUnsigned(
-                lhs.magnitude,
-                rhs.magnitude
-            );
-    }
-    else
-    {
-        result.sign =
-            -lhs.sign;
-
-        result.magnitude =
-            subtractUnsigned(
-                rhs.magnitude,
-                lhs.magnitude
-            );
-    }
-
-    return result;
-}
-
-
 private SignedProduct multiplyDifferences(
-    ref const SignedDifference lhs,
-    ref const SignedDifference rhs
+    ref const SignedDyadicDifference lhs,
+    ref const SignedDyadicDifference rhs
 )
     pure nothrow @safe @nogc
 {
@@ -305,25 +202,25 @@ int orientationDyadicExact(
         decodeBinary64Coordinate(cy);
 
     const auto bAx =
-        subtractCoordinates(
+        subtractDyadicCoordinates(
             bX,
             aX
         );
 
     const auto bAy =
-        subtractCoordinates(
+        subtractDyadicCoordinates(
             bY,
             aY
         );
 
     const auto cAx =
-        subtractCoordinates(
+        subtractDyadicCoordinates(
             cX,
             aX
         );
 
     const auto cAy =
-        subtractCoordinates(
+        subtractDyadicCoordinates(
             cY,
             aY
         );

@@ -1,7 +1,10 @@
 module geo.internal.dyadic;
 
 import geo.internal.fixed_uint :
-    UIntFixed;
+    UIntFixed,
+    addUnsigned,
+    compareUnsigned,
+    subtractUnsigned;
 
 import std.bitmanip :
     DoubleRep;
@@ -373,8 +376,367 @@ if (
 }
 
 
+/**
+ * Exact signed difference between two dyadic coordinates.
+ *
+ * The magnitude uses the same fixed width as the source coordinates.
+ * This is sufficient for the complete supported coordinate domain:
+ * subtraction of two signed binary64 coordinates may require one bit
+ * more than a single coordinate, but still fits in 66 32-bit limbs.
+ */
+struct SignedDyadicDifference
+{
+    int sign;
+    DyadicCoordinateMagnitude magnitude;
+}
+
+
+/**
+ * Computes the exact mathematical difference:
+ *
+ *     lhs - rhs
+ *
+ * without signed overflow or floating-point arithmetic.
+ *
+ * The result remains expressed in units of 2^-1074.
+ */
+SignedDyadicDifference subtractDyadicCoordinates(
+    ref const SignedDyadicCoordinate lhs,
+    ref const SignedDyadicCoordinate rhs
+)
+    pure nothrow @safe @nogc
+{
+    SignedDyadicDifference result;
+
+    if (lhs.sign == 0)
+    {
+        result.sign =
+            -rhs.sign;
+
+        result.magnitude =
+            rhs.magnitude;
+
+        return result;
+    }
+
+    if (rhs.sign == 0)
+    {
+        result.sign =
+            lhs.sign;
+
+        result.magnitude =
+            lhs.magnitude;
+
+        return result;
+    }
+
+    if (lhs.sign != rhs.sign)
+    {
+        /*
+         * Opposite signs turn subtraction into magnitude addition:
+         *
+         *     (+A) - (-B) = +(A + B)
+         *     (-A) - (+B) = -(A + B)
+         */
+        result.sign =
+            lhs.sign;
+
+        result.magnitude =
+            addUnsigned(
+                lhs.magnitude,
+                rhs.magnitude
+            );
+
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            lhs.magnitude,
+            rhs.magnitude
+        );
+
+    if (comparison == 0)
+    {
+        result.sign = 0;
+        return result;
+    }
+
+    if (comparison > 0)
+    {
+        result.sign =
+            lhs.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                lhs.magnitude,
+                rhs.magnitude
+            );
+    }
+    else
+    {
+        result.sign =
+            -lhs.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                rhs.magnitude,
+                lhs.magnitude
+            );
+    }
+
+    return result;
+}
+
+
 @safe unittest
 {
+    /*
+     * Ordinary signed subtraction.
+     */
+    {
+        const auto one =
+            decodeDyadicCoordinate(1);
+
+        const auto negativeOne =
+            decodeDyadicCoordinate(-1);
+
+        const auto expectedTwo =
+            decodeDyadicCoordinate(2);
+
+        const auto positive =
+            subtractDyadicCoordinates(
+                one,
+                negativeOne
+            );
+
+        assert(positive.sign == 1);
+
+        assert(
+            positive.magnitude.limb ==
+            expectedTwo.magnitude.limb
+        );
+
+        const auto negative =
+            subtractDyadicCoordinates(
+                negativeOne,
+                one
+            );
+
+        assert(negative.sign == -1);
+
+        assert(
+            negative.magnitude.limb ==
+            expectedTwo.magnitude.limb
+        );
+    }
+
+
+    /*
+     * Equal values produce canonical exact zero.
+     */
+    {
+        const auto value =
+            decodeDyadicCoordinate(
+                long.max
+            );
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                value,
+                value
+            );
+
+        assert(difference.sign == 0);
+        assert(difference.magnitude.isZero);
+    }
+
+
+    /*
+     * Signed zero participates normally.
+     */
+    {
+        const auto zero =
+            decodeDyadicCoordinate(0);
+
+        const auto value =
+            decodeDyadicCoordinate(17);
+
+        const auto left =
+            subtractDyadicCoordinates(
+                zero,
+                value
+            );
+
+        assert(left.sign == -1);
+
+        assert(
+            left.magnitude.limb ==
+            value.magnitude.limb
+        );
+
+        const auto right =
+            subtractDyadicCoordinates(
+                value,
+                zero
+            );
+
+        assert(right.sign == 1);
+
+        assert(
+            right.magnitude.limb ==
+            value.magnitude.limb
+        );
+    }
+
+
+    /*
+     * Difference may exceed the range of the original integral scalar.
+     *
+     * This exercises long.min / long.max without signed overflow.
+     */
+    {
+        const auto minimum =
+            decodeDyadicCoordinate(
+                long.min
+            );
+
+        const auto maximum =
+            decodeDyadicCoordinate(
+                long.max
+            );
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                maximum,
+                minimum
+            );
+
+        assert(difference.sign == 1);
+
+        /*
+         * long.max - long.min = 2^64 - 1.
+         *
+         * In the common dyadic scale, bits 1074 through 1137 are all
+         * set.
+         */
+        foreach (
+            bit;
+            dyadicScaleShift ..
+            dyadicScaleShift + 64
+        )
+        {
+            assert(
+                (
+                    difference.magnitude.limb[
+                        bit / 32
+                    ] &
+                    (1U << (bit % 32))
+                ) != 0
+            );
+        }
+    }
+
+
+    /*
+     * Difference of opposite maximum binary64 coordinates needs one
+     * more significant bit than a single coordinate and still fits the
+     * shared fixed-width representation.
+     */
+    {
+        const auto positive =
+            decodeDyadicCoordinate(
+                double.max
+            );
+
+        const auto negative =
+            decodeDyadicCoordinate(
+                -double.max
+            );
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                positive,
+                negative
+            );
+
+        assert(difference.sign == 1);
+        assert(!difference.magnitude.isZero);
+
+        /*
+         * double.max has highest scaled-integer bit 2097.
+         * Doubling it produces a result whose highest set bit is 2098.
+         */
+        enum uint highestBit = 2098;
+
+        assert(
+            (
+                difference.magnitude.limb[
+                    highestBit / 32
+                ] &
+                (1U << (highestBit % 32))
+            ) != 0
+        );
+    }
+
+
+    /*
+     * Subnormal differences remain exact.
+     */
+    {
+        enum double tiny =
+            0x0.0000000000001p-1022;
+
+        enum double twiceTiny =
+            0x0.0000000000002p-1022;
+
+        const auto one =
+            decodeDyadicCoordinate(
+                tiny
+            );
+
+        const auto two =
+            decodeDyadicCoordinate(
+                twiceTiny
+            );
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                two,
+                one
+            );
+
+        assert(difference.sign == 1);
+
+        assert(
+            difference.magnitude.limb ==
+            one.magnitude.limb
+        );
+    }
+
+
+    /*
+     * Coordinates originating from different supported scalar types
+     * share exactly the same dyadic number line.
+     */
+    {
+        const auto integer =
+            decodeDyadicCoordinate(1L);
+
+        const auto floating =
+            decodeDyadicCoordinate(1.0);
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                integer,
+                floating
+            );
+
+        assert(difference.sign == 0);
+        assert(difference.magnitude.isZero);
+    }
+
+
     /*
      * Integral unit coordinates occupy bit 1074 in the common scale.
      */

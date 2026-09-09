@@ -466,8 +466,562 @@ double estimate(size_t Capacity)(
 }
 
 
+/*
+ * TwoProduct variant that reuses an already computed split of b.
+ *
+ * This is the primitive required by scaleExpansionZeroElim().
+ */
+private TwoComponent twoProductPresplit(
+    double a,
+    double b,
+    SplitComponent bSplit
+)
+    pure nothrow @safe @nogc
+{
+    assert(isFinite(a));
+    assert(isFinite(b));
+
+    const double x =
+        roundedMul(a, b);
+
+    assert(isFinite(x));
+
+    const auto aSplit =
+        split(a);
+
+    const double highProduct =
+        roundedMul(
+            aSplit.high,
+            bSplit.high
+        );
+
+    const double err1 =
+        roundedSub(
+            x,
+            highProduct
+        );
+
+    const double lowHighProduct =
+        roundedMul(
+            aSplit.low,
+            bSplit.high
+        );
+
+    const double err2 =
+        roundedSub(
+            err1,
+            lowHighProduct
+        );
+
+    const double highLowProduct =
+        roundedMul(
+            aSplit.high,
+            bSplit.low
+        );
+
+    const double err3 =
+        roundedSub(
+            err2,
+            highLowProduct
+        );
+
+    const double lowProduct =
+        roundedMul(
+            aSplit.low,
+            bSplit.low
+        );
+
+    const double y =
+        roundedSub(
+            lowProduct,
+            err3
+        );
+
+    return TwoComponent(x, y);
+}
+
+
+/*
+ * Copies active non-zero components.
+ *
+ * A numerically zero expansion is canonicalized as one zero component.
+ */
+private void copyExpansionZeroElim(
+    size_t SourceCapacity,
+    size_t ResultCapacity
+)(
+    ref const ExpansionBuffer!SourceCapacity source,
+    ref ExpansionBuffer!ResultCapacity result
+)
+    pure nothrow @safe @nogc
+if (ResultCapacity >= SourceCapacity)
+{
+    result.clear();
+
+    foreach (index; 0 .. source.length)
+    {
+        const double component =
+            source[index];
+
+        if (component != 0.0)
+            result.append(component);
+    }
+
+    if (result.empty)
+        result.append(0.0);
+}
+
+
+/**
+ * Adds two non-overlapping expansions and eliminates zero components.
+ *
+ * Input components must be ordered from least significant to most
+ * significant.
+ *
+ * The result is likewise ordered from least significant to most
+ * significant and contains no zero components unless the exact result
+ * is zero, in which case the canonical result is:
+ *
+ *     [0.0]
+ *
+ * The output buffer must not alias either input buffer.
+ *
+ * Maximum output length:
+ *
+ *     e.length + f.length
+ */
+void fastExpansionSumZeroElim(
+    size_t ECapacity,
+    size_t FCapacity,
+    size_t HCapacity
+)(
+    ref const ExpansionBuffer!ECapacity e,
+    ref const ExpansionBuffer!FCapacity f,
+    ref ExpansionBuffer!HCapacity h
+)
+    pure nothrow @safe @nogc
+if (HCapacity >= ECapacity + FCapacity)
+{
+    if (e.empty)
+    {
+        copyExpansionZeroElim(f, h);
+        return;
+    }
+
+    if (f.empty)
+    {
+        copyExpansionZeroElim(e, h);
+        return;
+    }
+
+    h.clear();
+
+    size_t eIndex = 0;
+    size_t fIndex = 0;
+
+    double eNow = e[eIndex];
+    double fNow = f[fIndex];
+
+    double q;
+
+    /*
+     * Merge the components by increasing magnitude.
+     */
+    if (finiteMagnitude(eNow) <=
+        finiteMagnitude(fNow))
+    {
+        q = eNow;
+        ++eIndex;
+    }
+    else
+    {
+        q = fNow;
+        ++fIndex;
+    }
+
+    /*
+     * The second component is guaranteed to have magnitude >= |q|,
+     * hence FastTwoSum is valid.
+     */
+    if (eIndex < e.length &&
+        fIndex < f.length)
+    {
+        double next;
+
+        if (finiteMagnitude(e[eIndex]) <=
+            finiteMagnitude(f[fIndex]))
+        {
+            next = e[eIndex];
+            ++eIndex;
+        }
+        else
+        {
+            next = f[fIndex];
+            ++fIndex;
+        }
+
+        const auto initial =
+            fastTwoSum(next, q);
+
+        if (initial.low != 0.0)
+            h.append(initial.low);
+
+        q = initial.high;
+
+        /*
+         * Once Q has accumulated several components, the general
+         * TwoSum transform is required.
+         */
+        while (eIndex < e.length &&
+               fIndex < f.length)
+        {
+            if (finiteMagnitude(e[eIndex]) <=
+                finiteMagnitude(f[fIndex]))
+            {
+                next = e[eIndex];
+                ++eIndex;
+            }
+            else
+            {
+                next = f[fIndex];
+                ++fIndex;
+            }
+
+            const auto sum =
+                twoSum(q, next);
+
+            if (sum.low != 0.0)
+                h.append(sum.low);
+
+            q = sum.high;
+        }
+    }
+
+    while (eIndex < e.length)
+    {
+        const auto sum =
+            twoSum(
+                q,
+                e[eIndex]
+            );
+
+        if (sum.low != 0.0)
+            h.append(sum.low);
+
+        q = sum.high;
+        ++eIndex;
+    }
+
+    while (fIndex < f.length)
+    {
+        const auto sum =
+            twoSum(
+                q,
+                f[fIndex]
+            );
+
+        if (sum.low != 0.0)
+            h.append(sum.low);
+
+        q = sum.high;
+        ++fIndex;
+    }
+
+    if (q != 0.0 || h.empty)
+        h.append(q);
+}
+
+
+/**
+ * Multiplies an expansion by one binary64 scalar and eliminates zero
+ * components.
+ *
+ * Input components must be ordered from least significant to most
+ * significant and form a valid non-overlapping expansion.
+ *
+ * The result preserves expansion order and contains no zero components
+ * unless the exact result is zero, in which case the canonical result
+ * is:
+ *
+ *     [0.0]
+ *
+ * The output buffer must not alias the input buffer.
+ *
+ * Maximum output length:
+ *
+ *     2 * expansion.length
+ *
+ * This initial implementation inherits the current split()/TwoProduct
+ * working-range preconditions. Exponent scaling for extreme values
+ * belongs to the later predicate layer.
+ */
+void scaleExpansionZeroElim(
+    size_t ECapacity,
+    size_t HCapacity
+)(
+    ref const ExpansionBuffer!ECapacity expansion,
+    double scalar,
+    ref ExpansionBuffer!HCapacity result
+)
+    pure nothrow @safe @nogc
+if (HCapacity >= 2 * ECapacity)
+{
+    assert(isFinite(scalar));
+
+    if (expansion.empty)
+    {
+        result.clear();
+        result.append(0.0);
+        return;
+    }
+
+    result.clear();
+
+    const auto scalarSplit =
+        split(scalar);
+
+    auto product =
+        twoProductPresplit(
+            expansion[0],
+            scalar,
+            scalarSplit
+        );
+
+    double q =
+        product.high;
+
+    if (product.low != 0.0)
+        result.append(product.low);
+
+    foreach (index; 1 .. expansion.length)
+    {
+        product =
+            twoProductPresplit(
+                expansion[index],
+                scalar,
+                scalarSplit
+            );
+
+        const auto sum =
+            twoSum(
+                q,
+                product.low
+            );
+
+        if (sum.low != 0.0)
+            result.append(sum.low);
+
+        /*
+         * Expansion ordering guarantees the magnitude relation required
+         * by FastTwoSum here.
+         */
+        const auto accumulated =
+            fastTwoSum(
+                product.high,
+                sum.high
+            );
+
+        if (accumulated.low != 0.0)
+            result.append(accumulated.low);
+
+        q = accumulated.high;
+    }
+
+    if (q != 0.0 || result.empty)
+        result.append(q);
+}
+
+
 @safe unittest
 {
+    /*
+     * Fast expansion sum: exact cancellation removes zero components.
+     */
+    {
+        ExpansionBuffer!2 e;
+        ExpansionBuffer!2 f;
+        ExpansionBuffer!4 h;
+
+        e.append(0x1p-104);
+        e.append(1.0);
+
+        f.append(-0x1p-104);
+        f.append(2.0);
+
+        fastExpansionSumZeroElim(
+            e,
+            f,
+            h
+        );
+
+        assert(h.length == 1);
+        assert(h[0] == 3.0);
+        assert(estimate(h) == 3.0);
+    }
+
+
+    /*
+     * Fast expansion sum preserves a genuine low-order component.
+     *
+     * Exact value:
+     *
+     *     1 + 2 + 2^-104 + 2^-103
+     *   = 3 + 3 * 2^-104
+     */
+    {
+        ExpansionBuffer!2 e;
+        ExpansionBuffer!2 f;
+        ExpansionBuffer!4 h;
+
+        e.append(0x1p-104);
+        e.append(1.0);
+
+        f.append(0x1p-103);
+        f.append(2.0);
+
+        fastExpansionSumZeroElim(
+            e,
+            f,
+            h
+        );
+
+        assert(h.length == 2);
+
+        assert(
+            h[0] ==
+            0x1.8p-103
+        );
+
+        assert(h[1] == 3.0);
+    }
+
+
+    /*
+     * Empty inputs are supported internally and canonicalize exact zero
+     * to one zero component.
+     */
+    {
+        ExpansionBuffer!1 e;
+        ExpansionBuffer!1 f;
+        ExpansionBuffer!2 h;
+
+        fastExpansionSumZeroElim(
+            e,
+            f,
+            h
+        );
+
+        assert(h.length == 1);
+        assert(h[0] == 0.0);
+    }
+
+
+    /*
+     * Adding an empty expansion copies the non-zero expansion.
+     */
+    {
+        ExpansionBuffer!2 e;
+        ExpansionBuffer!2 emptyExpansion;
+        ExpansionBuffer!4 h;
+
+        e.append(0x1p-100);
+        e.append(1.0);
+
+        fastExpansionSumZeroElim(
+            e,
+            emptyExpansion,
+            h
+        );
+
+        assert(h.length == 2);
+        assert(h[0] == 0x1p-100);
+        assert(h[1] == 1.0);
+    }
+
+
+    /*
+     * Scaling by an exact power of two preserves the expansion shape.
+     */
+    {
+        ExpansionBuffer!2 e;
+        ExpansionBuffer!4 h;
+
+        e.append(0x1p-104);
+        e.append(1.0);
+
+        scaleExpansionZeroElim(
+            e,
+            2.0,
+            h
+        );
+
+        assert(h.length == 2);
+        assert(h[0] == 0x1p-103);
+        assert(h[1] == 2.0);
+    }
+
+
+    /*
+     * Scaling one component exercises the exact TwoProduct tail.
+     *
+     * Let:
+     *
+     *     a = 1 + 2^-52
+     *
+     * Then:
+     *
+     *     a² = 1 + 2^-51 + 2^-104
+     */
+    {
+        enum double a =
+            0x1.0000000000001p+0;
+
+        ExpansionBuffer!1 e;
+        ExpansionBuffer!2 h;
+
+        e.append(a);
+
+        scaleExpansionZeroElim(
+            e,
+            a,
+            h
+        );
+
+        assert(h.length == 2);
+
+        assert(
+            h[0] ==
+            0x1p-104
+        );
+
+        assert(
+            h[1] ==
+            0x1.0000000000002p+0
+        );
+    }
+
+
+    /*
+     * Scaling by zero produces the canonical zero expansion.
+     */
+    {
+        ExpansionBuffer!2 e;
+        ExpansionBuffer!4 h;
+
+        e.append(0x1p-104);
+        e.append(1.0);
+
+        scaleExpansionZeroElim(
+            e,
+            0.0,
+            h
+        );
+
+        assert(h.length == 1);
+        assert(h[0] == 0.0);
+    }
+
+
     /*
      * ExpansionBuffer owns fixed inline storage and begins empty.
      */

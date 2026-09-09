@@ -2,6 +2,7 @@ module geo.metric;
 
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
+import geo.segment : Segment2;
 
 import std.math.algebraic : hypot;
 
@@ -171,6 +172,26 @@ if (isGeoScalar!T)
 }
 
 
+/**
+ * Euclidean length of a segment.
+ *
+ * Uses the same metric computation policy as point-to-point distance.
+ *
+ * In particular:
+ *
+ * - integer coordinate differences are obtained without signed overflow;
+ * - int, long and float geometry compute in double;
+ * - real geometry computes in real;
+ * - hypot is used indirectly through distance().
+ */
+MetricScalar!T segmentLength(T)(Segment2!T segment)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    return distance(segment.a, segment.b);
+}
+
+
 @safe unittest
 {
     /*
@@ -285,4 +306,48 @@ if (isGeoScalar!T)
     assert(distance(a, nanPoint) != distance(a, nanPoint));
     assert(squaredDistance(a, nanPoint) !=
            squaredDistance(a, nanPoint));
+
+    /*
+     * Segment length is point distance between the stored endpoints.
+     */
+    {
+        import geo.segment : Segment2;
+
+        auto segment = Segment2!double(
+            Point2!double(0.0, 0.0),
+            Point2!double(3.0, 4.0)
+        );
+
+        assert(segmentLength(segment) == 5.0);
+
+        auto degenerate = Segment2!int(
+            Point2!int(7, -3),
+            Point2!int(7, -3)
+        );
+
+        assert(segmentLength(degenerate) == 0.0);
+
+        /*
+         * Integer differences retain the same protection as distance().
+         */
+        auto large = Segment2!long(
+            Point2!long(long.max, 0),
+            Point2!long(long.max - 1, 0)
+        );
+
+        assert(segmentLength(large) == 1.0);
+
+        static assert(
+            is(typeof(segmentLength(
+                Segment2!float.init
+            )) == double)
+        );
+
+        static assert(
+            is(typeof(segmentLength(
+                Segment2!real.init
+            )) == real)
+        );
+    }
+
 }

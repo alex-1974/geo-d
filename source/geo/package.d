@@ -17,4 +17,5 @@ public import geo.segment : Segment2;
 public import geo.metric :
     MetricScalar,
     distance,
+    segmentLength,
     squaredDistance;

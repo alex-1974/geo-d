@@ -1,0 +1,8 @@
+name "geo-d"
+description "Small, reusable Euclidean geometry primitives for D."
+authors "Alexander Bernardi"
+copyright "Copyright © 2026 Alexander Bernardi"
+license "MIT"
+
+targetType "library"
+sourcePaths "source"

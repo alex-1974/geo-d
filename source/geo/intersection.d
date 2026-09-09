@@ -406,6 +406,136 @@ if (isIntersectionScalar!T)
 }
 
 
+/**
+ * Constructs the positive-length collinear overlap of two closed
+ * segments.
+ *
+ * Returns true exactly when:
+ *
+ *     segmentIntersectionKind(first, second)
+ *         == SegmentIntersectionKind.overlap
+ *
+ * On success, `overlap` contains the exact common segment in the
+ * original scalar type. Its endpoints are selected from the input
+ * endpoints and returned in canonical lexicographic order.
+ *
+ * Returns false for:
+ *
+ * - disjoint segments;
+ * - unique-point intersections.
+ *
+ * No numerical intersection coordinate is constructed.
+ *
+ * For floating-point coordinates all endpoints must be finite.
+ *
+ * Complexity:
+ *
+ *     time  O(1)
+ *     space O(1)
+ */
+bool trySegmentIntersectionOverlap(T)(
+    Segment2!T first,
+    Segment2!T second,
+    out Segment2!T overlap
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    static if (
+        is(T == float) ||
+        is(T == double)
+    )
+    {
+        assert(first.isFinite);
+        assert(second.isFinite);
+    }
+
+    if (
+        segmentIntersectionKind(
+            first,
+            second
+        ) != SegmentIntersectionKind.overlap
+    )
+    {
+        return false;
+    }
+
+    Point2!T firstLower =
+        first.a;
+
+    Point2!T firstUpper =
+        first.b;
+
+    if (
+        comparePoints(
+            firstLower,
+            firstUpper
+        ) > 0
+    )
+    {
+        firstLower =
+            first.b;
+
+        firstUpper =
+            first.a;
+    }
+
+    Point2!T secondLower =
+        second.a;
+
+    Point2!T secondUpper =
+        second.b;
+
+    if (
+        comparePoints(
+            secondLower,
+            secondUpper
+        ) > 0
+    )
+    {
+        secondLower =
+            second.b;
+
+        secondUpper =
+            second.a;
+    }
+
+    const Point2!T lower =
+        comparePoints(
+            firstLower,
+            secondLower
+        ) >= 0
+            ? firstLower
+            : secondLower;
+
+    const Point2!T upper =
+        comparePoints(
+            firstUpper,
+            secondUpper
+        ) <= 0
+            ? firstUpper
+            : secondUpper;
+
+    /*
+     * The classifier established positive-length overlap.
+     */
+    assert(
+        comparePoints(
+            lower,
+            upper
+        ) < 0
+    );
+
+    overlap =
+        Segment2!T(
+            lower,
+            upper
+        );
+
+    return true;
+}
+
+
 version(unittest)
 {
     /*
@@ -537,6 +667,657 @@ version(unittest)
 
 @safe unittest
 {
+    /*
+     * Exact horizontal partial overlap.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(0, 2),
+                P(8, 2)
+            );
+
+        const S second =
+            S(
+                P(5, 2),
+                P(12, 2)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S(
+                P(5, 2),
+                P(8, 2)
+            )
+        );
+    }
+
+
+    /*
+     * Vertical overlap uses canonical y ordering when x is equal.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(4, 10),
+                P(4, -10)
+            );
+
+        const S second =
+            S(
+                P(4, 20),
+                P(4, 5)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S(
+                P(4, 5),
+                P(4, 10)
+            )
+        );
+    }
+
+
+    /*
+     * Positive-slope containment.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S outer =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        const S inner =
+            S(
+                P(3, 3),
+                P(7, 7)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                outer,
+                inner,
+                overlap
+            )
+        );
+
+        assert(overlap == inner);
+    }
+
+
+    /*
+     * Negative-slope overlap is still canonicalized lexicographically.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(10, 0),
+                P(0, 10)
+            );
+
+        const S second =
+            S(
+                P(3, 7),
+                P(20, -10)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S(
+                P(3, 7),
+                P(10, 0)
+            )
+        );
+    }
+
+
+    /*
+     * Identical and reversed-identical segments return the same
+     * canonical result.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S canonical =
+            S(
+                P(-4, -1),
+                P(9, 12)
+            );
+
+        const S reversed =
+            S(
+                canonical.b,
+                canonical.a
+            );
+
+        S firstResult;
+        S secondResult;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                canonical,
+                canonical,
+                firstResult
+            )
+        );
+
+        assert(
+            trySegmentIntersectionOverlap(
+                reversed,
+                canonical,
+                secondResult
+            )
+        );
+
+        assert(
+            firstResult ==
+            canonical
+        );
+
+        assert(
+            secondResult ==
+            canonical
+        );
+    }
+
+
+    /*
+     * Argument order and both endpoint orders produce an exactly
+     * identical canonical overlap segment.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(-10, -10),
+                P(10, 10)
+            );
+
+        const S second =
+            S(
+                P(-3, -3),
+                P(20, 20)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        const S expected =
+            S(
+                P(-3, -3),
+                P(10, 10)
+            );
+
+        S a;
+        S b;
+        S c;
+        S d;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                a
+            )
+        );
+
+        assert(
+            trySegmentIntersectionOverlap(
+                second,
+                first,
+                b
+            )
+        );
+
+        assert(
+            trySegmentIntersectionOverlap(
+                reverseFirst,
+                second,
+                c
+            )
+        );
+
+        assert(
+            trySegmentIntersectionOverlap(
+                reverseFirst,
+                reverseSecond,
+                d
+            )
+        );
+
+        assert(a == expected);
+        assert(b == expected);
+        assert(c == expected);
+        assert(d == expected);
+    }
+
+
+    /*
+     * A unique-point intersection does not produce overlap geometry.
+     *
+     * Because the result parameter is `out`, false leaves it at
+     * Segment2.init.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        const S second =
+            S(
+                P(0, 10),
+                P(10, 0)
+            );
+
+        S overlap =
+            S(
+                P(99, 99),
+                P(100, 100)
+            );
+
+        assert(
+            !trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S.init
+        );
+    }
+
+
+    /*
+     * Collinear one-point contact is still not positive-length overlap.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(0, 0),
+                P(5, 0)
+            );
+
+        const S second =
+            S(
+                P(5, 0),
+                P(10, 0)
+            );
+
+        S overlap;
+
+        assert(
+            !trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+    }
+
+
+    /*
+     * Disjoint segments return false.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        S overlap;
+
+        assert(
+            !trySegmentIntersectionOverlap(
+                S(
+                    P(0, 0),
+                    P(4, 0)
+                ),
+                S(
+                    P(5, 0),
+                    P(10, 0)
+                ),
+                overlap
+            )
+        );
+    }
+
+
+    /*
+     * Degenerate segments can never produce positive-length overlap.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S point =
+            S(
+                P(5, 5),
+                P(5, 5)
+            );
+
+        const S line =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        S overlap;
+
+        assert(
+            !trySegmentIntersectionOverlap(
+                point,
+                line,
+                overlap
+            )
+        );
+
+        assert(
+            !trySegmentIntersectionOverlap(
+                point,
+                point,
+                overlap
+            )
+        );
+    }
+
+
+    /*
+     * Full-range long coordinates are preserved exactly because overlap
+     * endpoints are selected directly from the inputs.
+     */
+    {
+        alias P = Point2!long;
+        alias S = Segment2!long;
+
+        const S first =
+            S(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        const S second =
+            S(
+                P(-1, 0),
+                P(long.max, 0)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S(
+                P(-1, 0),
+                P(long.max, 0)
+            )
+        );
+    }
+
+
+    /*
+     * Floating endpoint bit patterns are preserved exactly.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        enum double lower =
+            0x1.0000000000001p+0;
+
+        enum double upper =
+            0x1.0000000000003p+0;
+
+        enum double beyond =
+            0x1.0000000000004p+0;
+
+        const S first =
+            S(
+                P(1.0, 0.0),
+                P(upper, 0.0)
+            );
+
+        const S second =
+            S(
+                P(lower, 0.0),
+                P(beyond, 0.0)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap.a.x ==
+            lower
+        );
+
+        assert(
+            overlap.b.x ==
+            upper
+        );
+
+        assert(
+            overlap.a.y == 0.0
+        );
+
+        assert(
+            overlap.b.y == 0.0
+        );
+    }
+
+
+    /*
+     * Smallest subnormal binary64 endpoints are preserved.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        enum double one =
+            0x0.0000000000001p-1022;
+
+        enum double two =
+            0x0.0000000000002p-1022;
+
+        enum double four =
+            0x0.0000000000004p-1022;
+
+        enum double six =
+            0x0.0000000000006p-1022;
+
+        const S first =
+            S(
+                P(0.0, 0.0),
+                P(four, four)
+            );
+
+        const S second =
+            S(
+                P(two, two),
+                P(six, six)
+            );
+
+        S overlap;
+
+        assert(
+            trySegmentIntersectionOverlap(
+                first,
+                second,
+                overlap
+            )
+        );
+
+        assert(
+            overlap ==
+            S(
+                P(two, two),
+                P(four, four)
+            )
+        );
+
+        assert(one > 0.0);
+    }
+
+
+    /*
+     * Scalar-domain compile contract follows segment classification.
+     */
+    static assert(
+        __traits(
+            compiles,
+            {
+                Segment2!int result;
+
+                trySegmentIntersectionOverlap(
+                    Segment2!int.init,
+                    Segment2!int.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Segment2!long result;
+
+                trySegmentIntersectionOverlap(
+                    Segment2!long.init,
+                    Segment2!long.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Segment2!float result;
+
+                trySegmentIntersectionOverlap(
+                    Segment2!float.init,
+                    Segment2!float.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Segment2!double result;
+
+                trySegmentIntersectionOverlap(
+                    Segment2!double.init,
+                    Segment2!double.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            {
+                Segment2!real result;
+
+                trySegmentIntersectionOverlap(
+                    Segment2!real.init,
+                    Segment2!real.init,
+                    result
+                );
+            }
+        )
+    );
+
+
     /*
      * Independent exhaustive collinear oracle.
      *

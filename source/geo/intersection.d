@@ -1,5 +1,12 @@
 module geo.intersection;
 
+import geo.internal.intersection_exact :
+    ExactProperIntersection,
+    tryProperIntersectionExact;
+
+import geo.internal.intersection_round :
+    roundIntersectionCoordinate;
+
 import geo.orientation :
     Orientation,
     orientation;
@@ -760,6 +767,737 @@ if (isIntersectionScalar!T)
     }
 
     return SegmentIntersectionKind.none;
+}
+
+
+/**
+ * Constructs the unique intersection point of two closed segments.
+ *
+ * Returns true exactly when:
+ *
+ *     segmentIntersectionKind(first, second)
+ *         == SegmentIntersectionKind.point
+ *
+ * Supported input scalar types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
+ * The constructed point uses IntersectionScalar!T, which is currently
+ * double for every supported input scalar.
+ *
+ * Topology and construction deliberately remain separate:
+ *
+ * - segmentIntersectionKind() determines the exact topology;
+ * - endpoint contacts reuse the known input endpoint;
+ * - proper interior/interior crossings are constructed from exact
+ *   dyadic determinant weights and correctly rounded to binary64.
+ *
+ * For floating-point coordinates all endpoints must be finite.
+ *
+ * Returns false for:
+ *
+ * - disjoint segments;
+ * - positive-length overlaps.
+ *
+ * Because `point` is an `out` parameter, false leaves it at
+ * Point2!R.init.
+ *
+ * The returned rounded point is construction data. It must not be fed
+ * back into exact predicates as evidence of the already established
+ * topology.
+ *
+ * Complexity:
+ *
+ *     time  O(1)
+ *     space O(1)
+ */
+bool trySegmentIntersectionPoint(T, R)(
+    Segment2!T first,
+    Segment2!T second,
+    out Point2!R point
+)
+    pure nothrow @safe @nogc
+if (
+    isIntersectionScalar!T &&
+    is(R == IntersectionScalar!T)
+)
+{
+    static if (
+        is(T == float) ||
+        is(T == double)
+    )
+    {
+        assert(first.isFinite);
+        assert(second.isFinite);
+    }
+
+    const SegmentIntersectionKind kind =
+        segmentIntersectionKind(
+            first,
+            second
+        );
+
+    if (kind != SegmentIntersectionKind.point)
+        return false;
+
+
+    /*
+     * Degenerate contacts, shared endpoints and T-junctions already
+     * have an exact input endpoint representing the unique
+     * intersection.
+     */
+    if (
+        tryIntersectionEndpointPoint(
+            first,
+            second,
+            kind,
+            point
+        )
+    )
+    {
+        return true;
+    }
+
+
+    /*
+     * A unique intersection with no endpoint on the opposite segment
+     * is necessarily a strict interior/interior crossing.
+     */
+    ExactProperIntersection exact;
+
+    const bool proper =
+        tryProperIntersectionExact(
+            first,
+            second,
+            exact
+        );
+
+    assert(proper);
+
+    /*
+     * Keep a defensive release-build path in case the exact
+     * construction backend and the authoritative classifier ever
+     * disagree.
+     */
+    if (!proper)
+        return false;
+
+    point =
+        Point2!R(
+            roundIntersectionCoordinate(
+                exact.xNumerator,
+                exact.denominator
+            ),
+            roundIntersectionCoordinate(
+                exact.yNumerator,
+                exact.denominator
+            )
+        );
+
+    return true;
+}
+
+
+@safe unittest
+{
+    /*
+     * Ordinary proper crossing.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        const S second =
+            S(
+                P(0, 10),
+                P(10, 0)
+            );
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                5.0,
+                5.0
+            )
+        );
+    }
+
+
+    /*
+     * Shared endpoint construction.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                S(
+                    P(0, 0),
+                    P(10, 0)
+                ),
+                S(
+                    P(10, 0),
+                    P(10, 10)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                10.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * T-junction construction.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                S(
+                    P(0, 0),
+                    P(10, 0)
+                ),
+                S(
+                    P(5, 0),
+                    P(5, 10)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                5.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * Degenerate point-segment construction.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                S(
+                    P(3, 3),
+                    P(3, 3)
+                ),
+                S(
+                    P(0, 0),
+                    P(10, 10)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                3.0,
+                3.0
+            )
+        );
+    }
+
+
+    /*
+     * Disjoint geometry returns false and the out parameter is reset.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        Point2!double point =
+            Point2!double(
+                99.0,
+                100.0
+            );
+
+        assert(
+            !trySegmentIntersectionPoint(
+                S(
+                    P(0, 0),
+                    P(2, 0)
+                ),
+                S(
+                    P(0, 2),
+                    P(2, 2)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double.init
+        );
+    }
+
+
+    /*
+     * Positive-length overlap is not a unique point.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        Point2!double point;
+
+        assert(
+            !trySegmentIntersectionPoint(
+                S(
+                    P(0, 0),
+                    P(10, 0)
+                ),
+                S(
+                    P(5, 0),
+                    P(15, 0)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double.init
+        );
+    }
+
+
+    /*
+     * Full-range signed integer geometry.
+     *
+     * The exact crossing is the origin even though ordinary signed
+     * arithmetic cannot represent the endpoint differences.
+     */
+    {
+        alias P = Point2!long;
+        alias S = Segment2!long;
+
+        const S horizontal =
+            S(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        const S vertical =
+            S(
+                P(0, long.min),
+                P(0, long.max)
+            );
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                horizontal,
+                vertical,
+                point
+            )
+        );
+
+        assert(point.x == 0.0);
+        assert(point.y == 0.0);
+    }
+
+
+    /*
+     * Full-range finite binary64 geometry.
+     *
+     * Naive determinant construction would overflow, while the exact
+     * dyadic path constructs the origin.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S horizontal =
+            S(
+                P(-double.max, 0.0),
+                P( double.max, 0.0)
+            );
+
+        const S vertical =
+            S(
+                P(0.0, -double.max),
+                P(0.0,  double.max)
+            );
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                horizontal,
+                vertical,
+                point
+            )
+        );
+
+        assert(point.x == 0.0);
+        assert(point.y == 0.0);
+    }
+
+
+    /*
+     * Subnormal proper crossing.
+     *
+     * The exact coordinate is half of the smallest positive binary64
+     * subnormal in both dimensions. Round-to-nearest, ties-to-even
+     * therefore produces +0.0.
+     */
+    {
+        enum double tiny =
+            0x0.0000000000001p-1022;
+
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S first =
+            S(
+                P(0.0, 0.0),
+                P(tiny, tiny)
+            );
+
+        const S second =
+            S(
+                P(0.0, tiny),
+                P(tiny, 0.0)
+            );
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(point.x == 0.0);
+        assert(point.y == 0.0);
+    }
+
+
+    /*
+     * Proper-crossing construction must be invariant under argument
+     * order and endpoint reversal.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const S first =
+            S(
+                P(-7, 2),
+                P(11, 13)
+            );
+
+        const S second =
+            S(
+                P(-3, 15),
+                P(9, -5)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double a;
+        Point2!double b;
+        Point2!double c;
+        Point2!double d;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                a
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                b
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                second,
+                c
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                d
+            )
+        );
+
+        assert(a == b);
+        assert(a == c);
+        assert(a == d);
+    }
+
+
+    /*
+     * Endpoint construction follows the same invariance contract.
+     */
+    {
+        alias P = Point2!long;
+        alias S = Segment2!long;
+
+        const S first =
+            S(
+                P(long.max, 7),
+                P(0, 0)
+            );
+
+        const S second =
+            S(
+                P(long.max, 7),
+                P(long.max, -20)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double a;
+        Point2!double b;
+        Point2!double c;
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                a
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                b
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                c
+            )
+        );
+
+        assert(a == b);
+        assert(a == c);
+
+        /*
+         * long.max is not exactly representable in binary64. Endpoint
+         * construction deliberately returns its rounded double value.
+         */
+        assert(
+            a.x ==
+            cast(double) long.max
+        );
+
+        assert(a.y == 7.0);
+    }
+
+
+    /*
+     * Runtime coverage of float input.
+     */
+    {
+        alias P = Point2!float;
+        alias S = Segment2!float;
+
+        Point2!double point;
+
+        assert(
+            trySegmentIntersectionPoint(
+                S(
+                    P(0.0f, 0.0f),
+                    P(4.0f, 4.0f)
+                ),
+                S(
+                    P(0.0f, 4.0f),
+                    P(4.0f, 0.0f)
+                ),
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                2.0,
+                2.0
+            )
+        );
+    }
+
+
+    /*
+     * Public scalar/result contract.
+     *
+     * The separately deduced R parameter avoids D template deduction
+     * through the transformed IntersectionScalar!T alias.
+     */
+    static assert(
+        __traits(
+            compiles,
+            {
+                Point2!double result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!int.init,
+                    Segment2!int.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Point2!double result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!long.init,
+                    Segment2!long.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Point2!double result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!float.init,
+                    Segment2!float.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            {
+                Point2!double result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!double.init,
+                    Segment2!double.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            {
+                Point2!float result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!int.init,
+                    Segment2!int.init,
+                    result
+                );
+            }
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            {
+                Point2!double result;
+
+                trySegmentIntersectionPoint(
+                    Segment2!real.init,
+                    Segment2!real.init,
+                    result
+                );
+            }
+        )
+    );
 }
 
 

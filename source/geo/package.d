@@ -24,4 +24,9 @@ public import geo.metric :
 public import geo.orientation :
     Orientation,
     orientation;
-public import geo.intersection : SegmentIntersectionKind, segmentIntersectionKind, trySegmentIntersectionOverlap;
+public import geo.intersection :
+    IntersectionScalar,
+    SegmentIntersectionKind,
+    segmentIntersectionKind,
+    trySegmentIntersectionOverlap,
+    trySegmentIntersectionPoint;

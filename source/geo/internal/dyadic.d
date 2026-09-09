@@ -31,6 +31,16 @@ import std.math.traits :
 enum size_t dyadicCoordinateLimbs = 66;
 
 
+/*
+ * Every exact coordinate is represented in units of 2^-1074.
+ *
+ * Therefore an integral coordinate n is embedded as:
+ *
+ *     n << 1074
+ */
+enum uint dyadicScaleShift = 1074;
+
+
 alias DyadicCoordinateMagnitude =
     UIntFixed!dyadicCoordinateLimbs;
 
@@ -52,13 +62,16 @@ struct SignedDyadicCoordinate
 
 
 /*
- * Places one binary64 mantissa at the requested bit position.
- *
- * The mantissa uses at most 53 bits.
+ * Places one non-zero unsigned 64-bit value at the requested bit
+ * position.
  *
  * The destination is initially zero, so bitwise OR is sufficient.
+ *
+ * The caller is responsible for choosing a shift for which the value
+ * fits in DyadicCoordinateMagnitude. Boundary assertions below guard
+ * the final limbs.
  */
-private void setShiftedMantissa(
+private void setShiftedUnsigned64(
     ref DyadicCoordinateMagnitude result,
     ulong mantissa,
     uint shift
@@ -205,7 +218,7 @@ SignedDyadicCoordinate decodeBinary64Coordinate(
             ? -1
             : 1;
 
-    setShiftedMantissa(
+    setShiftedUnsigned64(
         result.magnitude,
         mantissa,
         shift
@@ -215,8 +228,441 @@ SignedDyadicCoordinate decodeBinary64Coordinate(
 }
 
 
+/*
+ * Exact unsigned magnitude without overflowing the signed source type.
+ */
+private ulong integralMagnitude(T)(
+    T value
+)
+    pure nothrow @safe @nogc
+if (is(T == int) || is(T == long))
+{
+    if (value >= 0)
+        return cast(ulong) value;
+
+    static if (is(T == int))
+    {
+        /*
+         * int fits completely in long, so negation after widening is
+         * safe even for int.min.
+         */
+        return cast(ulong)(
+            -cast(long) value
+        );
+    }
+    else
+    {
+        /*
+         * Negating long.min directly would overflow.
+         *
+         * For every negative long:
+         *
+         *     |value| = -(value + 1) + 1
+         *
+         * The signed negation is now representable and the final +1 is
+         * performed as ulong.
+         */
+        return
+            cast(ulong)(
+                -(value + 1)
+            ) +
+            1UL;
+    }
+}
+
+
+/*
+ * Exact integral coordinate embedding into the common 2^-1074 scale.
+ */
+private SignedDyadicCoordinate decodeIntegralCoordinate(T)(
+    T value
+)
+    pure nothrow @safe @nogc
+if (is(T == int) || is(T == long))
+{
+    SignedDyadicCoordinate result;
+
+    if (value == 0)
+    {
+        result.sign = 0;
+        return result;
+    }
+
+    result.sign =
+        value < 0
+            ? -1
+            : 1;
+
+    const ulong magnitude =
+        integralMagnitude(value);
+
+    assert(magnitude != 0);
+
+    setShiftedUnsigned64(
+        result.magnitude,
+        magnitude,
+        dyadicScaleShift
+    );
+
+    return result;
+}
+
+
+/**
+ * Exact conversion of a supported geo-d scalar coordinate into the
+ * common dyadic coordinate representation.
+ *
+ * All returned values use the same scale:
+ *
+ *     integer * 2^-1074
+ *
+ * Supported source types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
+ * Integral inputs are embedded directly and never pass through a
+ * floating-point representation.
+ *
+ * Every finite binary32 value is exactly representable as binary64, so
+ * float conversion may safely reuse the binary64 decoder.
+ *
+ * Floating inputs must be finite.
+ */
+SignedDyadicCoordinate decodeDyadicCoordinate(T)(
+    T value
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    static if (
+        is(T == int) ||
+        is(T == long)
+    )
+    {
+        return decodeIntegralCoordinate(
+            value
+        );
+    }
+    else static if (is(T == float))
+    {
+        assert(isFinite(value));
+
+        /*
+         * binary32 -> binary64 is exact.
+         */
+        return decodeBinary64Coordinate(
+            cast(double) value
+        );
+    }
+    else
+    {
+        assert(isFinite(value));
+
+        return decodeBinary64Coordinate(
+            value
+        );
+    }
+}
+
+
 @safe unittest
 {
+    /*
+     * Integral unit coordinates occupy bit 1074 in the common scale.
+     */
+    {
+        const auto positive =
+            decodeDyadicCoordinate(1);
+
+        const auto negative =
+            decodeDyadicCoordinate(-1);
+
+        assert(positive.sign == 1);
+        assert(negative.sign == -1);
+
+        enum size_t limbIndex =
+            dyadicScaleShift / 32;
+
+        enum uint bitIndex =
+            dyadicScaleShift % 32;
+
+        assert(
+            positive.magnitude
+                .limb[limbIndex] ==
+            (1U << bitIndex)
+        );
+
+        assert(
+            positive.magnitude.limb ==
+            negative.magnitude.limb
+        );
+    }
+
+
+    /*
+     * int.min is converted without signed overflow.
+     *
+     *     |int.min| = 2^31
+     */
+    {
+        const auto value =
+            decodeDyadicCoordinate(
+                int.min
+            );
+
+        assert(value.sign == -1);
+
+        enum uint bit =
+            dyadicScaleShift + 31;
+
+        enum size_t limbIndex =
+            bit / 32;
+
+        enum uint bitIndex =
+            bit % 32;
+
+        assert(
+            value.magnitude
+                .limb[limbIndex] ==
+            (1U << bitIndex)
+        );
+    }
+
+
+    /*
+     * long.min is converted without ever evaluating -long.min.
+     *
+     *     |long.min| = 2^63
+     */
+    {
+        const auto value =
+            decodeDyadicCoordinate(
+                long.min
+            );
+
+        assert(value.sign == -1);
+
+        enum uint bit =
+            dyadicScaleShift + 63;
+
+        enum size_t limbIndex =
+            bit / 32;
+
+        enum uint bitIndex =
+            bit % 32;
+
+        assert(
+            value.magnitude
+                .limb[limbIndex] ==
+            (1U << bitIndex)
+        );
+    }
+
+
+    /*
+     * long.max remains exact as well.
+     */
+    {
+        const auto value =
+            decodeDyadicCoordinate(
+                long.max
+            );
+
+        assert(value.sign == 1);
+
+        /*
+         * long.max contains bits 0 .. 62. After embedding, bit 1074 is
+         * the least significant set bit and bit 1136 the greatest.
+         */
+        enum uint lowest =
+            dyadicScaleShift;
+
+        enum uint highest =
+            dyadicScaleShift + 62;
+
+        assert(
+            (
+                value.magnitude.limb[
+                    lowest / 32
+                ] &
+                (1U << (lowest % 32))
+            ) != 0
+        );
+
+        assert(
+            (
+                value.magnitude.limb[
+                    highest / 32
+                ] &
+                (1U << (highest % 32))
+            ) != 0
+        );
+    }
+
+
+    /*
+     * Integral zero normalizes to the same signed-zero representation
+     * as floating zero.
+     */
+    {
+        const auto integerZero =
+            decodeDyadicCoordinate(0);
+
+        const auto longZero =
+            decodeDyadicCoordinate(0L);
+
+        const auto doubleZero =
+            decodeDyadicCoordinate(0.0);
+
+        assert(integerZero.sign == 0);
+        assert(longZero.sign == 0);
+        assert(doubleZero.sign == 0);
+
+        assert(
+            integerZero.magnitude.isZero
+        );
+
+        assert(
+            longZero.magnitude.isZero
+        );
+
+        assert(
+            doubleZero.magnitude.isZero
+        );
+    }
+
+
+    /*
+     * binary32 conversion is exactly equivalent to exact promotion to
+     * binary64 followed by binary64 decoding.
+     */
+    {
+        enum float[] values = [
+            1.0f,
+            -1.0f,
+            0x1.000002p+0f,
+            float.max,
+            -float.max,
+            0x1p-149f
+        ];
+
+        static foreach (value; values)
+        {{
+            const auto fromFloat =
+                decodeDyadicCoordinate(
+                    value
+                );
+
+            const auto fromDouble =
+                decodeBinary64Coordinate(
+                    cast(double) value
+                );
+
+            assert(
+                fromFloat.sign ==
+                fromDouble.sign
+            );
+
+            assert(
+                fromFloat.magnitude.limb ==
+                fromDouble.magnitude.limb
+            );
+        }}
+    }
+
+
+    /*
+     * The smallest positive binary32 subnormal corresponds exactly to:
+     *
+     *     2^-149
+     *
+     * In the 2^-1074 common scale this is bit:
+     *
+     *     1074 - 149 = 925
+     */
+    {
+        enum float smallest =
+            0x1p-149f;
+
+        const auto value =
+            decodeDyadicCoordinate(
+                smallest
+            );
+
+        assert(value.sign == 1);
+
+        enum uint bit =
+            dyadicScaleShift - 149;
+
+        assert(
+            value.magnitude.limb[
+                bit / 32
+            ] ==
+            (1U << (bit % 32))
+        );
+    }
+
+
+    /*
+     * Generic binary64 conversion is exactly the existing decoder.
+     */
+    {
+        enum double[] values = [
+            1.0,
+            -1.0,
+            0x1.0000000000001p+0,
+            double.max,
+            -double.max,
+            0x0.0000000000001p-1022
+        ];
+
+        static foreach (value; values)
+        {{
+            const auto generic =
+                decodeDyadicCoordinate(
+                    value
+                );
+
+            const auto direct =
+                decodeBinary64Coordinate(
+                    value
+                );
+
+            assert(
+                generic.sign ==
+                direct.sign
+            );
+
+            assert(
+                generic.magnitude.limb ==
+                direct.magnitude.limb
+            );
+        }}
+    }
+
+
+    /*
+     * The common converter intentionally excludes real until a
+     * platform-aware backend is designed.
+     */
+    static assert(
+        !__traits(
+            compiles,
+            decodeDyadicCoordinate(
+                cast(real) 1
+            )
+        )
+    );
+
+
     /*
      * Both signed zeros normalize to exact dyadic zero.
      */

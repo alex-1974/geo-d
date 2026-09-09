@@ -518,8 +518,160 @@ Orientation orientation(
 }
 
 
+/**
+ * Robust orientation predicate for Point2!float.
+ *
+ * Preconditions:
+ *
+ *     all coordinates are finite.
+ *
+ * Every finite IEEE binary32 value is exactly representable as binary64.
+ * The coordinates are therefore promoted exactly to double and evaluated
+ * by the complete robust binary64 orientation backend.
+ *
+ * No predicate information is lost by this promotion.
+ */
+Orientation orientation(
+    Point2!float a,
+    Point2!float b,
+    Point2!float c
+)
+    pure nothrow @safe @nogc
+{
+    assert(a.isFinite);
+    assert(b.isFinite);
+    assert(c.isFinite);
+
+    return orientation(
+        Point2!double(
+            cast(double) a.x,
+            cast(double) a.y
+        ),
+        Point2!double(
+            cast(double) b.x,
+            cast(double) b.y
+        ),
+        Point2!double(
+            cast(double) c.x,
+            cast(double) c.y
+        )
+    );
+}
+
+
 @safe unittest
 {
+    /*
+     * Public robust binary32 orientation.
+     */
+    {
+        alias P = Point2!float;
+
+        assert(
+            orientation(
+                P(0.0f, 0.0f),
+                P(10.0f, 0.0f),
+                P(5.0f, 1.0f)
+            ) == Orientation.left
+        );
+
+        assert(
+            orientation(
+                P(0.0f, 0.0f),
+                P(10.0f, 0.0f),
+                P(5.0f, -1.0f)
+            ) == Orientation.right
+        );
+
+        assert(
+            orientation(
+                P(0.0f, 0.0f),
+                P(10.0f, 10.0f),
+                P(5.0f, 5.0f)
+            ) == Orientation.collinear
+        );
+    }
+
+
+    /*
+     * The next binary32 value above 1.0 is preserved exactly by the
+     * promotion to binary64, so a near-degenerate determinant keeps its
+     * correct sign.
+     */
+    {
+        alias P = Point2!float;
+
+        enum float aboveOne =
+            0x1.000002p+0f;
+
+        assert(
+            orientation(
+                P(0.0f, 0.0f),
+                P(2.0f, 2.0f),
+                P(1.0f, aboveOne)
+            ) == Orientation.left
+        );
+    }
+
+
+    /*
+     * Extreme finite binary32 coordinates are still exact after
+     * promotion.
+     */
+    {
+        alias P = Point2!float;
+
+        assert(
+            orientation(
+                P(-float.max, 0.0f),
+                P( float.max, 0.0f),
+                P(0.0f, 1.0f)
+            ) == Orientation.left
+        );
+    }
+
+
+    /*
+     * The smallest positive binary32 subnormal is exactly representable
+     * as binary64 as well.
+     */
+    {
+        alias P = Point2!float;
+
+        enum float minSubnormal =
+            float.min_normal *
+            float.epsilon;
+
+        assert(minSubnormal > 0.0f);
+
+        assert(
+            orientation(
+                P(0.0f, 0.0f),
+                P(minSubnormal, 0.0f),
+                P(0.0f, minSubnormal)
+            ) == Orientation.left
+        );
+    }
+
+
+    /*
+     * real remains deliberately unsupported.
+     *
+     * ADR-0004 requires a platform-aware robust backend rather than
+     * demotion to binary64.
+     */
+    static assert(
+        !__traits(
+            compiles,
+            orientation(
+                Point2!real.init,
+                Point2!real.init,
+                Point2!real.init
+            )
+        )
+    );
+
+
     /*
      * Public robust binary64 orientation.
      */

@@ -5,6 +5,8 @@ import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
 
 import std.math.algebraic : hypot;
+import std.math.exponential : ilogb, scalbn;
+import std.math.traits : isFinite;
 
 
 /**
@@ -126,6 +128,87 @@ if (isGeoScalar!T)
 }
 
 
+/*
+ * Projection parameter of r onto d.
+ *
+ * Computes
+ *
+ *     t = dot(r, d) / dot(d, d)
+ *
+ * without directly forming potentially overflowing dot products.
+ *
+ * d and r are scaled independently by powers of two. Because binary
+ * scaling is exact, the projection ratio can then be reconstructed
+ * with scalbn().
+ *
+ * Preconditions:
+ *
+ *     dx, dy, rx and ry are finite;
+ *     d is non-zero.
+ */
+private MetricScalar!T projectionParameter(T)(
+    MetricScalar!T dx,
+    MetricScalar!T dy,
+    MetricScalar!T rx,
+    MetricScalar!T ry
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    const M absDx = dx < M(0) ? -dx : dx;
+    const M absDy = dy < M(0) ? -dy : dy;
+    const M absRx = rx < M(0) ? -rx : rx;
+    const M absRy = ry < M(0) ? -ry : ry;
+
+    const M maxD = absDx > absDy ? absDx : absDy;
+    const M maxR = absRx > absRy ? absRx : absRy;
+
+    assert(maxD > M(0));
+
+    if (maxR == M(0))
+        return M(0);
+
+    const int expD = ilogb(maxD);
+    const int expR = ilogb(maxR);
+
+    /*
+     * After this scaling, the largest absolute component in each
+     * vector lies in [1, 2), so products and sums cannot overflow.
+     */
+    const M ndx = scalbn(dx, -expD);
+    const M ndy = scalbn(dy, -expD);
+
+    const M nrx = scalbn(rx, -expR);
+    const M nry = scalbn(ry, -expR);
+
+    const M numerator =
+        nrx * ndx + nry * ndy;
+
+    const M denominator =
+        ndx * ndx + ndy * ndy;
+
+    const M normalizedRatio =
+        numerator / denominator;
+
+    /*
+     * Restore the relative scale:
+     *
+     *     r = nr * 2^expR
+     *     d = nd * 2^expD
+     *
+     * therefore
+     *
+     *     t = normalizedRatio * 2^(expR-expD)
+     */
+    return scalbn(
+        normalizedRatio,
+        expR - expD
+    );
+}
+
+
 /**
  * Squared Euclidean distance between two points.
  *
@@ -187,6 +270,119 @@ if (isGeoScalar!T)
     const M dy = signedMetricDifference(a.y, b.y);
 
     return hypot(dx, dy);
+}
+
+
+/**
+ * Finds the nearest point on a segment to a point.
+ *
+ * The result uses MetricScalar!T because the nearest point of an
+ * integral segment is not generally representable with integral
+ * coordinates.
+ *
+ * Returns false when:
+ *
+ * - an input coordinate is NaN or infinite; or
+ * - a required metric difference overflows the floating computation
+ *   type.
+ *
+ * On failure, result remains Point2!(MetricScalar!T).init.
+ *
+ * A degenerate segment returns its single endpoint.
+ */
+bool tryNearestPoint(T, R)(
+    Segment2!T segment,
+    Point2!T point,
+    out Point2!R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    alias M = MetricScalar!T;
+
+    if (!segment.isFinite || !point.isFinite)
+        return false;
+
+    const M ax = cast(M) segment.a.x;
+    const M ay = cast(M) segment.a.y;
+
+    const M bx = cast(M) segment.b.x;
+    const M by = cast(M) segment.b.y;
+
+    const M dx =
+        signedMetricDifference(segment.b.x, segment.a.x);
+
+    const M dy =
+        signedMetricDifference(segment.b.y, segment.a.y);
+
+    if (!isFinite(dx) || !isFinite(dy))
+        return false;
+
+    /*
+     * Degenerate segment.
+     */
+    if (dx == M(0) && dy == M(0))
+    {
+        result = Point2!M(ax, ay);
+        return true;
+    }
+
+    const M rx =
+        signedMetricDifference(point.x, segment.a.x);
+
+    const M ry =
+        signedMetricDifference(point.y, segment.a.y);
+
+    if (!isFinite(rx) || !isFinite(ry))
+        return false;
+
+    const M t =
+        projectionParameter!T(dx, dy, rx, ry);
+
+    /*
+     * Positive overflow of t simply means the projection lies beyond b.
+     * Negative overflow means it lies before a.
+     */
+    if (t <= M(0))
+    {
+        result = Point2!M(ax, ay);
+        return true;
+    }
+
+    if (t >= M(1))
+    {
+        result = Point2!M(bx, by);
+        return true;
+    }
+
+    if (!isFinite(t))
+        return false;
+
+    /*
+     * Interpolate from the nearer endpoint. This reduces avoidable
+     * cancellation when t is very close to 0 or 1.
+     */
+    if (t <= M(0.5))
+    {
+        result = Point2!M(
+            ax + t * dx,
+            ay + t * dy
+        );
+    }
+    else
+    {
+        const M fromB = t - M(1);
+
+        result = Point2!M(
+            bx + fromB * dx,
+            by + fromB * dy
+        );
+    }
+
+    return result.isFinite;
 }
 
 
@@ -386,6 +582,188 @@ if (isGeoScalar!T)
     assert(distance(a, nanPoint) != distance(a, nanPoint));
     assert(squaredDistance(a, nanPoint) !=
            squaredDistance(a, nanPoint));
+
+    /*
+     * Nearest point on a segment.
+     */
+    {
+        alias S = Segment2!double;
+
+        auto horizontal = S(
+            Point2!double(0.0, 0.0),
+            Point2!double(10.0, 0.0)
+        );
+
+        Point2!double nearest;
+
+        assert(tryNearestPoint(
+            horizontal,
+            Point2!double(3.0, 4.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double(3.0, 0.0));
+
+
+        /*
+         * Projection before and after the segment clamps to endpoints.
+         */
+        assert(tryNearestPoint(
+            horizontal,
+            Point2!double(-5.0, 2.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double(0.0, 0.0));
+
+        assert(tryNearestPoint(
+            horizontal,
+            Point2!double(15.0, 2.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double(10.0, 0.0));
+
+
+        /*
+         * Degenerate segment.
+         */
+        auto degenerate = S(
+            Point2!double(7.0, -3.0),
+            Point2!double(7.0, -3.0)
+        );
+
+        assert(tryNearestPoint(
+            degenerate,
+            Point2!double(100.0, 100.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double(7.0, -3.0));
+
+
+        /*
+         * Integral geometry returns floating metric geometry.
+         */
+        Point2!double integerNearest;
+
+        assert(tryNearestPoint(
+            Segment2!int(
+                Point2!int(0, 0),
+                Point2!int(10, 0)
+            ),
+            Point2!int(3, 4),
+            integerNearest
+        ));
+
+        assert(integerNearest == Point2!double(3.0, 0.0));
+
+        static assert(is(typeof(integerNearest) == Point2!double));
+
+
+        /*
+         * Large dot products that would overflow in the naive formula
+         *
+         *     dot(r, d) / dot(d, d)
+         *
+         * remain usable after exponent scaling.
+         */
+        auto huge = S(
+            Point2!double(0.0, 0.0),
+            Point2!double(1.0e300, 1.0e300)
+        );
+
+        assert(tryNearestPoint(
+            huge,
+            Point2!double(5.0e299, 6.0e299),
+            nearest
+        ));
+
+        assert(nearest.x > 5.49e299);
+        assert(nearest.x < 5.51e299);
+        assert(nearest.y > 5.49e299);
+        assert(nearest.y < 5.51e299);
+
+
+        /*
+         * Very different vector scales may make the unclamped
+         * projection parameter overflow, but endpoint clamping remains
+         * well-defined.
+         */
+        auto tiny = S(
+            Point2!double(0.0, 0.0),
+            Point2!double(1.0e-300, 0.0)
+        );
+
+        assert(tryNearestPoint(
+            tiny,
+            Point2!double(1.0e300, 0.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double(1.0e-300, 0.0));
+
+
+        /*
+         * Large long coordinates retain exact component differences
+         * before conversion to double.
+         *
+         * The spacing is chosen large enough to remain distinguishable
+         * in the resulting double coordinates.
+         */
+        const long base = long.max - 8192;
+
+        assert(tryNearestPoint(
+            Segment2!long(
+                Point2!long(base, 0),
+                Point2!long(base + 8192, 0)
+            ),
+            Point2!long(base + 4096, 100),
+            integerNearest
+        ));
+
+        assert(integerNearest.y == 0.0);
+
+
+        /*
+         * Non-finite input is outside the operation's domain.
+         */
+        assert(!tryNearestPoint(
+            horizontal,
+            Point2!double(double.nan, 0.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double.init);
+
+        assert(!tryNearestPoint(
+            S(
+                Point2!double(0.0, 0.0),
+                Point2!double(double.infinity, 0.0)
+            ),
+            Point2!double(1.0, 1.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double.init);
+
+
+        /*
+         * Finite endpoints whose component difference itself exceeds
+         * the MetricScalar range are conservatively rejected.
+         */
+        assert(!tryNearestPoint(
+            S(
+                Point2!double(-double.max, 0.0),
+                Point2!double(double.max, 0.0)
+            ),
+            Point2!double(0.0, 1.0),
+            nearest
+        ));
+
+        assert(nearest == Point2!double.init);
+    }
+
 
     /*
      * Segment length is point distance between the stored endpoints.

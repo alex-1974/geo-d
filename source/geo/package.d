@@ -18,4 +18,5 @@ public import geo.metric :
     MetricScalar,
     distance,
     segmentLength,
-    squaredDistance;
+    squaredDistance,
+    tryNearestPoint;

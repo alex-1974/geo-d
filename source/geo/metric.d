@@ -1,0 +1,288 @@
+module geo.metric;
+
+import geo.point : Point2;
+import geo.scalar : isGeoScalar;
+
+import std.math.algebraic : hypot;
+
+
+/**
+ * Floating-point computation type used by elementary metric operations.
+ *
+ * Storage precision and metric computation precision are deliberately
+ * separate:
+ *
+ *     int     -> double
+ *     long    -> double
+ *     float   -> double
+ *     double  -> double
+ *     real    -> real
+ */
+template MetricScalar(T)
+if (isGeoScalar!T)
+{
+    static if (is(T == real))
+        alias MetricScalar = real;
+    else
+        alias MetricScalar = double;
+}
+
+
+private enum bool isMetricIntegral(T) =
+       is(T == int)
+    || is(T == long);
+
+
+private template UnsignedMetricIntegral(T)
+if (isMetricIntegral!T)
+{
+    static if (is(T == int))
+        alias UnsignedMetricIntegral = uint;
+    else
+        alias UnsignedMetricIntegral = ulong;
+}
+
+
+/*
+ * Exact unsigned magnitude of a signed integral value.
+ *
+ * The -(value + 1) formulation avoids overflow for T.min.
+ */
+private UnsignedMetricIntegral!T unsignedMagnitude(T)(T value)
+    pure nothrow @safe @nogc
+if (isMetricIntegral!T)
+{
+    alias U = UnsignedMetricIntegral!T;
+
+    if (value >= 0)
+        return cast(U) value;
+
+    return cast(U)(-(value + 1)) + U(1);
+}
+
+
+/*
+ * Exact absolute difference between two supported signed integer values.
+ *
+ * The result can span the complete corresponding unsigned type:
+ *
+ *     int  -> uint
+ *     long -> ulong
+ *
+ * No signed subtraction overflow occurs.
+ */
+private UnsignedMetricIntegral!T unsignedDifference(T)(T a, T b)
+    pure nothrow @safe @nogc
+if (isMetricIntegral!T)
+{
+    alias U = UnsignedMetricIntegral!T;
+
+    if ((a < 0) != (b < 0))
+        return unsignedMagnitude(a) + unsignedMagnitude(b);
+
+    if (a >= b)
+        return cast(U)(a - b);
+
+    return cast(U)(b - a);
+}
+
+
+/*
+ * Component difference in the metric computation type.
+ *
+ * Integer differences are formed exactly before conversion to the
+ * floating metric representation. This avoids losing small differences
+ * between large integer coordinates.
+ */
+private MetricScalar!T metricDifference(T)(T a, T b)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    static if (isMetricIntegral!T)
+        return cast(M) unsignedDifference(a, b);
+    else
+        return cast(M) a - cast(M) b;
+}
+
+
+/**
+ * Squared Euclidean distance between two points.
+ *
+ * Returns:
+ *     The squared distance in MetricScalar!T.
+ *
+ * Integer coordinate geometry is converted to floating-point metric
+ * arithmetic after each component difference has been obtained without
+ * signed overflow.
+ *
+ * This operation does not promise exact integral arithmetic. In
+ * particular, long-coordinate results may lose precision after
+ * conversion to double.
+ *
+ * Very large floating-point results may overflow to infinity according
+ * to normal IEEE floating-point semantics.
+ *
+ * This function is a metric computation, not a robust exact distance
+ * comparison predicate.
+ */
+MetricScalar!T squaredDistance(T)(
+    Point2!T a,
+    Point2!T b
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    const M dx = metricDifference(a.x, b.x);
+    const M dy = metricDifference(a.y, b.y);
+
+    return dx * dx + dy * dy;
+}
+
+
+/**
+ * Euclidean distance between two points.
+ *
+ * The component differences use the same overflow-safe integer handling
+ * as squaredDistance().
+ *
+ * Distance is calculated directly with hypot rather than as
+ *
+ *     sqrt(squaredDistance(a, b))
+ *
+ * so avoidable intermediate square overflow is not introduced.
+ */
+MetricScalar!T distance(T)(
+    Point2!T a,
+    Point2!T b
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    const M dx = metricDifference(a.x, b.x);
+    const M dy = metricDifference(a.y, b.y);
+
+    return hypot(dx, dy);
+}
+
+
+@safe unittest
+{
+    /*
+     * Metric result policy.
+     */
+    static assert(is(MetricScalar!int == double));
+    static assert(is(MetricScalar!long == double));
+    static assert(is(MetricScalar!float == double));
+    static assert(is(MetricScalar!double == double));
+    static assert(is(MetricScalar!real == real));
+
+
+    /*
+     * Basic metric behaviour.
+     */
+    alias P = Point2!double;
+
+    auto a = P(0.0, 0.0);
+    auto b = P(3.0, 4.0);
+
+    assert(squaredDistance(a, b) == 25.0);
+    assert(squaredDistance(b, a) == 25.0);
+
+    assert(distance(a, b) == 5.0);
+    assert(distance(b, a) == 5.0);
+
+    assert(distance(a, a) == 0.0);
+
+
+    /*
+     * float storage deliberately computes in double.
+     */
+    static assert(
+        is(typeof(distance(
+            Point2!float.init,
+            Point2!float.init
+        )) == double)
+    );
+
+    static assert(
+        is(typeof(squaredDistance(
+            Point2!float.init,
+            Point2!float.init
+        )) == double)
+    );
+
+
+    /*
+     * real storage retains real metric computation.
+     */
+    static assert(
+        is(typeof(distance(
+            Point2!real.init,
+            Point2!real.init
+        )) == real)
+    );
+
+
+    /*
+     * Integer extremes must not overflow during component subtraction.
+     */
+    alias PI = Point2!int;
+
+    auto intLo = PI(int.min, int.min);
+    auto intHi = PI(int.max, int.max);
+
+    assert(distance(intLo, intHi) > 0.0);
+    assert(squaredDistance(intLo, intHi) > 0.0);
+
+
+    /*
+     * Most importantly, integer subtraction occurs before conversion
+     * without destroying small differences between very large values.
+     *
+     * Casting both long coordinates to double before subtraction would
+     * incorrectly turn this distance into zero.
+     */
+    alias PL = Point2!long;
+
+    auto largeA = PL(long.max, 0);
+    auto largeB = PL(long.max - 1, 0);
+
+    assert(distance(largeA, largeB) == 1.0);
+    assert(squaredDistance(largeA, largeB) == 1.0);
+
+
+    /*
+     * Complete signed-long span is handled without signed overflow.
+     *
+     * Precision after conversion to double is intentionally not claimed
+     * to be exact.
+     */
+    auto longLo = PL(long.min, 0);
+    auto longHi = PL(long.max, 0);
+
+    auto extremeDistance = distance(longLo, longHi);
+
+    assert(extremeDistance > 0.0);
+    assert(extremeDistance != double.infinity);
+
+
+    /*
+     * Non-finite floating values follow IEEE/Phobos metric semantics.
+     */
+    auto infPoint = P(double.infinity, 0.0);
+
+    assert(distance(a, infPoint) == double.infinity);
+    assert(squaredDistance(a, infPoint) == double.infinity);
+
+    auto nanPoint = P(double.nan, 0.0);
+
+    assert(distance(a, nanPoint) != distance(a, nanPoint));
+    assert(squaredDistance(a, nanPoint) !=
+           squaredDistance(a, nanPoint));
+}

@@ -1,5 +1,12 @@
 module geo.internal.orientation_dyadic;
 
+import geo.internal.fixed_uint :
+    UIntFixed,
+    addUnsigned,
+    compareUnsigned,
+    multiplyUnsigned,
+    subtractUnsigned;
+
 import std.bitmanip : DoubleRep;
 import std.math.traits : isFinite;
 
@@ -51,31 +58,6 @@ private enum size_t productLimbs =
     2 * coordinateLimbs;
 
 
-/*
- * Fixed-width unsigned integer using little-endian base-2^32 limbs.
- *
- * This is intentionally local to orient2d. It is not a general-purpose
- * arbitrary-precision integer abstraction.
- */
-private struct UIntFixed(size_t Limbs)
-{
-    uint[Limbs] limb;
-
-
-    @property bool isZero() const
-        pure nothrow @safe @nogc
-    {
-        foreach (value; limb)
-        {
-            if (value != 0)
-                return false;
-        }
-
-        return true;
-    }
-}
-
-
 private alias CoordinateMagnitude =
     UIntFixed!coordinateLimbs;
 
@@ -104,142 +86,6 @@ private struct SignedProduct
 {
     int sign;
     ProductMagnitude magnitude;
-}
-
-
-/*
- * Unsigned fixed-width comparison.
- *
- * Returns:
- *
- *     -1 lhs < rhs
- *      0 lhs == rhs
- *      1 lhs > rhs
- */
-private int compareUnsigned(size_t Limbs)(
-    ref const UIntFixed!Limbs lhs,
-    ref const UIntFixed!Limbs rhs
-)
-    pure nothrow @safe @nogc
-{
-    size_t index = Limbs;
-
-    while (index > 0)
-    {
-        --index;
-
-        if (lhs.limb[index] < rhs.limb[index])
-            return -1;
-
-        if (lhs.limb[index] > rhs.limb[index])
-            return 1;
-    }
-
-    return 0;
-}
-
-
-/*
- * Exact fixed-width unsigned addition.
- *
- * The caller guarantees that the mathematical result fits.
- */
-private UIntFixed!Limbs addUnsigned(size_t Limbs)(
-    ref const UIntFixed!Limbs lhs,
-    ref const UIntFixed!Limbs rhs
-)
-    pure nothrow @safe @nogc
-{
-    UIntFixed!Limbs result;
-
-    ulong carry = 0;
-
-    foreach (index; 0 .. Limbs)
-    {
-        const ulong sum =
-            cast(ulong) lhs.limb[index] +
-            cast(ulong) rhs.limb[index] +
-            carry;
-
-        result.limb[index] =
-            cast(uint) sum;
-
-        carry =
-            sum >> 32;
-    }
-
-    /*
-     * The chosen coordinate width is sufficient for every possible
-     * signed binary64 coordinate difference.
-     */
-    assert(carry == 0);
-
-    return result;
-}
-
-
-/*
- * Exact fixed-width unsigned subtraction.
- *
- * Precondition:
- *
- *     lhs >= rhs
- */
-private UIntFixed!Limbs subtractUnsigned(size_t Limbs)(
-    ref const UIntFixed!Limbs lhs,
-    ref const UIntFixed!Limbs rhs
-)
-    pure nothrow @safe @nogc
-{
-    assert(
-        compareUnsigned(lhs, rhs) >= 0
-    );
-
-    UIntFixed!Limbs result;
-
-    ulong borrow = 0;
-
-    foreach (index; 0 .. Limbs)
-    {
-        const ulong lhsValue =
-            cast(ulong) lhs.limb[index];
-
-        const ulong rhsValue =
-            cast(ulong) rhs.limb[index] +
-            borrow;
-
-        if (lhsValue >= rhsValue)
-        {
-            result.limb[index] =
-                cast(uint)(
-                    lhsValue - rhsValue
-                );
-
-            borrow = 0;
-        }
-        else
-        {
-            /*
-             * Compute:
-             *
-             *     lhs + 2^32 - rhs
-             *
-             * without constructing 2^32 as uint.
-             */
-            result.limb[index] =
-                cast(uint)(
-                    (0x1_0000_0000UL +
-                     lhsValue) -
-                    rhsValue
-                );
-
-            borrow = 1;
-        }
-    }
-
-    assert(borrow == 0);
-
-    return result;
 }
 
 
@@ -485,70 +331,6 @@ private SignedDifference subtractCoordinates(
                 rhs.magnitude,
                 lhs.magnitude
             );
-    }
-
-    return result;
-}
-
-
-/*
- * Exact 66-limb x 66-limb multiplication using base-2^32 arithmetic.
- *
- * Each inner accumulator is bounded by:
- *
- *     (2^32 - 1)^2
- *   + (2^32 - 1)
- *   + (2^32 - 1)
- *
- * = 2^64 - 1
- *
- * so ulong is exactly sufficient.
- */
-private ProductMagnitude multiplyUnsigned(
-    ref const CoordinateMagnitude lhs,
-    ref const CoordinateMagnitude rhs
-)
-    pure nothrow @safe @nogc
-{
-    ProductMagnitude result;
-
-    foreach (i; 0 .. coordinateLimbs)
-    {
-        ulong carry = 0;
-
-        foreach (j; 0 .. coordinateLimbs)
-        {
-            const size_t index =
-                i + j;
-
-            const ulong accumulated =
-                cast(ulong) lhs.limb[i] *
-                    cast(ulong) rhs.limb[j]
-                + cast(ulong)
-                    result.limb[index]
-                + carry;
-
-            result.limb[index] =
-                cast(uint) accumulated;
-
-            carry =
-                accumulated >> 32;
-        }
-
-        const size_t carryIndex =
-            i + coordinateLimbs;
-
-        assert(
-            carryIndex <
-            productLimbs
-        );
-
-        /*
-         * This position has not yet received a final carry from the
-         * current outer iteration.
-         */
-        result.limb[carryIndex] =
-            cast(uint) carry;
     }
 
     return result;

@@ -40,6 +40,48 @@ private enum bool isIntersectionScalar(T) =
     is(T == double);
 
 
+/**
+ * Scalar used for constructed unique segment-intersection points.
+ *
+ * Initial geo-d policy:
+ *
+ *     int     -> double
+ *     long    -> double
+ *     float   -> double
+ *     double  -> double
+ *
+ * Topological classification remains exact in the input scalar domain.
+ * Construction is deliberately a separate, rounded operation.
+ */
+template IntersectionScalar(T)
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    alias IntersectionScalar = double;
+}
+
+
+static assert(
+    is(IntersectionScalar!int == double)
+);
+
+static assert(
+    is(IntersectionScalar!long == double)
+);
+
+static assert(
+    is(IntersectionScalar!float == double)
+);
+
+static assert(
+    is(IntersectionScalar!double == double)
+);
+
+
 /*
  * Exact lexicographic point comparison.
  *
@@ -139,6 +181,321 @@ if (isIntersectionScalar!T)
         segment.a,
         segment.b
     );
+}
+
+
+/*
+ * Converts an exact input endpoint to the construction scalar.
+ *
+ * For integer inputs this conversion may round when the coordinate is
+ * not exactly representable as binary64. That is construction
+ * semantics, not predicate semantics.
+ */
+private Point2!(IntersectionScalar!T)
+intersectionEndpoint(T)(
+    Point2!T point
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    return Point2!(IntersectionScalar!T)(
+        cast(IntersectionScalar!T) point.x,
+        cast(IntersectionScalar!T) point.y
+    );
+}
+
+
+/*
+ * Attempts to construct a unique intersection that is already one of
+ * the input endpoints.
+ *
+ * `kind` must be the authoritative result of
+ * segmentIntersectionKind(first, second).
+ *
+ * The helper returns false for:
+ *
+ *     none
+ *     overlap
+ *     proper interior/interior crossings
+ *
+ * It covers:
+ *
+ *     degenerate point-segments
+ *     shared endpoints
+ *     T-junctions
+ *
+ * For kind == point, every endpoint lying on the opposite segment must
+ * denote the same unique geometric intersection, so endpoint and
+ * argument order cannot change the mathematical result.
+ */
+private bool tryIntersectionEndpointPoint(T, R)(
+    Segment2!T first,
+    Segment2!T second,
+    SegmentIntersectionKind kind,
+    out Point2!R point
+)
+    pure nothrow @safe @nogc
+if (
+    isIntersectionScalar!T &&
+    is(R == IntersectionScalar!T)
+)
+{
+    if (kind != SegmentIntersectionKind.point)
+        return false;
+
+    if (pointOnSegment(first.a, second))
+    {
+        point =
+            intersectionEndpoint(first.a);
+
+        return true;
+    }
+
+    if (pointOnSegment(first.b, second))
+    {
+        point =
+            intersectionEndpoint(first.b);
+
+        return true;
+    }
+
+    if (pointOnSegment(second.a, first))
+    {
+        point =
+            intersectionEndpoint(second.a);
+
+        return true;
+    }
+
+    if (pointOnSegment(second.b, first))
+    {
+        point =
+            intersectionEndpoint(second.b);
+
+        return true;
+    }
+
+    /*
+     * A point intersection with no endpoint on the opposite segment is
+     * a proper interior/interior crossing. Its construction belongs to
+     * the later exact-weight/rational-rounding path.
+     */
+    return false;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    /*
+     * Shared endpoint.
+     */
+    {
+        const first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const second =
+            S(
+                P(10, 0),
+                P(10, 10)
+            );
+
+        const kind =
+            segmentIntersectionKind(
+                first,
+                second
+            );
+
+        Point2!double point;
+
+        assert(
+            tryIntersectionEndpointPoint(
+                first,
+                second,
+                kind,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                10.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * T-junction.
+     */
+    {
+        const first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const second =
+            S(
+                P(5, 0),
+                P(5, 10)
+            );
+
+        const kind =
+            segmentIntersectionKind(
+                first,
+                second
+            );
+
+        Point2!double point;
+
+        assert(
+            tryIntersectionEndpointPoint(
+                first,
+                second,
+                kind,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                5.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * Degenerate point-segment.
+     */
+    {
+        const first =
+            S(
+                P(5, 0),
+                P(5, 0)
+            );
+
+        const second =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const kind =
+            segmentIntersectionKind(
+                first,
+                second
+            );
+
+        Point2!double point;
+
+        assert(
+            tryIntersectionEndpointPoint(
+                first,
+                second,
+                kind,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                5.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * Proper crossing is deliberately not constructed by this helper.
+     */
+    {
+        const first =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        const second =
+            S(
+                P(0, 10),
+                P(10, 0)
+            );
+
+        const kind =
+            segmentIntersectionKind(
+                first,
+                second
+            );
+
+        assert(
+            kind ==
+            SegmentIntersectionKind.point
+        );
+
+        Point2!double point;
+
+        assert(
+            !tryIntersectionEndpointPoint(
+                first,
+                second,
+                kind,
+                point
+            )
+        );
+    }
+
+
+    /*
+     * Positive-length overlap must never be reduced to one endpoint.
+     */
+    {
+        const first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const second =
+            S(
+                P(5, 0),
+                P(15, 0)
+            );
+
+        const kind =
+            segmentIntersectionKind(
+                first,
+                second
+            );
+
+        assert(
+            kind ==
+            SegmentIntersectionKind.overlap
+        );
+
+        Point2!double point;
+
+        assert(
+            !tryIntersectionEndpointPoint(
+                first,
+                second,
+                kind,
+                point
+            )
+        );
+    }
 }
 
 

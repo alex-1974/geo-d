@@ -89,22 +89,40 @@ if (isMetricIntegral!T)
 
 
 /*
- * Component difference in the metric computation type.
+ * Signed component difference in the metric computation type.
  *
- * Integer differences are formed exactly before conversion to the
- * floating metric representation. This avoids losing small differences
- * between large integer coordinates.
+ * Semantics:
+ *
+ *     a - b
+ *
+ * For integral geometry the magnitude is obtained exactly in the
+ * corresponding unsigned type before conversion to MetricScalar.
+ * The sign is applied only after that conversion.
+ *
+ * This avoids both signed integer overflow and the loss of small
+ * differences that would occur if large integer coordinates were
+ * converted to floating point before subtraction.
  */
-private MetricScalar!T metricDifference(T)(T a, T b)
+private MetricScalar!T signedMetricDifference(T)(T a, T b)
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
 
     static if (isMetricIntegral!T)
-        return cast(M) unsignedDifference(a, b);
+    {
+        if (a == b)
+            return M(0);
+
+        const M magnitude =
+            cast(M) unsignedDifference(a, b);
+
+        return a > b ? magnitude : -magnitude;
+    }
     else
+    {
         return cast(M) a - cast(M) b;
+    }
 }
 
 
@@ -137,8 +155,8 @@ if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
 
-    const M dx = metricDifference(a.x, b.x);
-    const M dy = metricDifference(a.y, b.y);
+    const M dx = signedMetricDifference(a.x, b.x);
+    const M dy = signedMetricDifference(a.y, b.y);
 
     return dx * dx + dy * dy;
 }
@@ -165,8 +183,8 @@ if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
 
-    const M dx = metricDifference(a.x, b.x);
-    const M dy = metricDifference(a.y, b.y);
+    const M dx = signedMetricDifference(a.x, b.x);
+    const M dy = signedMetricDifference(a.y, b.y);
 
     return hypot(dx, dy);
 }
@@ -202,6 +220,68 @@ if (isGeoScalar!T)
     static assert(is(MetricScalar!float == double));
     static assert(is(MetricScalar!double == double));
     static assert(is(MetricScalar!real == real));
+
+
+    /*
+     * Signed metric differences preserve direction without signed
+     * integer subtraction overflow.
+     */
+    assert(signedMetricDifference!int(5, 2) == 3.0);
+    assert(signedMetricDifference!int(2, 5) == -3.0);
+    assert(signedMetricDifference!int(5, 5) == 0.0);
+
+    assert(
+        signedMetricDifference!long(
+            long.max,
+            long.max - 1
+        ) == 1.0
+    );
+
+    assert(
+        signedMetricDifference!long(
+            long.max - 1,
+            long.max
+        ) == -1.0
+    );
+
+    assert(
+        signedMetricDifference!long(
+            long.min + 1,
+            long.min
+        ) == 1.0
+    );
+
+    assert(
+        signedMetricDifference!long(
+            long.min,
+            long.min + 1
+        ) == -1.0
+    );
+
+    /*
+     * Crossing zero also avoids signed overflow.
+     */
+    assert(
+        signedMetricDifference!long(1, -1) == 2.0
+    );
+
+    assert(
+        signedMetricDifference!long(-1, 1) == -2.0
+    );
+
+    assert(
+        signedMetricDifference!long(
+            long.max,
+            long.min
+        ) > 0.0
+    );
+
+    assert(
+        signedMetricDifference!long(
+            long.min,
+            long.max
+        ) < 0.0
+    );
 
 
     /*

@@ -300,8 +300,284 @@ TwoComponent twoProduct(double a, double b)
 }
 
 
+/**
+ * Fixed-capacity stack/value storage for a floating-point expansion.
+ *
+ * Components are stored from least significant to most significant.
+ *
+ * This type deliberately owns its storage inline:
+ *
+ * - no dynamic array allocation;
+ * - no GC dependency;
+ * - capacity is known at compile time.
+ *
+ * The type does not itself enforce expansion non-overlap or ordering.
+ * Those invariants are established by the algorithms that produce an
+ * expansion.
+ */
+struct ExpansionBuffer(size_t Capacity)
+if (Capacity > 0)
+{
+private:
+    double[Capacity] _data;
+    size_t _length;
+
+public:
+    enum size_t capacity = Capacity;
+
+
+    /// Number of active expansion components.
+    @property size_t length() const
+        pure nothrow @safe @nogc
+    {
+        return _length;
+    }
+
+
+    /// True when the expansion contains no active components.
+    @property bool empty() const
+        pure nothrow @safe @nogc
+    {
+        return _length == 0;
+    }
+
+
+    /**
+     * Removes all active components.
+     *
+     * Stored bytes need not be cleared because values beyond `length`
+     * are not part of the expansion.
+     */
+    void clear()
+        pure nothrow @safe @nogc
+    {
+        _length = 0;
+    }
+
+
+    /**
+     * Appends one component.
+     *
+     * Preconditions:
+     *
+     * - value is finite;
+     * - spare capacity is available.
+     */
+    void append(double value)
+        pure nothrow @safe @nogc
+    {
+        assert(isFinite(value));
+        assert(_length < Capacity);
+
+        _data[_length] = value;
+        ++_length;
+    }
+
+
+    /**
+     * Indexed access to active components.
+     */
+    double opIndex(size_t index) const
+        pure nothrow @safe @nogc
+    {
+        assert(index < _length);
+        return _data[index];
+    }
+}
+
+
+/*
+ * Absolute value for already finite binary64 inputs.
+ */
+private double finiteMagnitude(double value)
+    pure nothrow @safe @nogc
+{
+    assert(isFinite(value));
+
+    return value < 0.0
+        ? -value
+        : value;
+}
+
+
+/**
+ * Error-free transformation of a + b when |a| >= |b|.
+ *
+ * Compared with twoSum(), FastTwoSum needs fewer operations because its
+ * magnitude precondition guarantees the required rounding relation.
+ *
+ * Returns:
+ *
+ *     high + low == a + b
+ *
+ * mathematically, while `high` is the ordinary rounded binary64 sum.
+ */
+TwoComponent fastTwoSum(double a, double b)
+    pure nothrow @safe @nogc
+{
+    assert(isFinite(a));
+    assert(isFinite(b));
+
+    assert(
+        finiteMagnitude(a) >=
+        finiteMagnitude(b)
+    );
+
+    const double x =
+        roundedAdd(a, b);
+
+    assert(isFinite(x));
+
+    const double bVirtual =
+        roundedSub(x, a);
+
+    const double y =
+        roundedSub(b, bVirtual);
+
+    return TwoComponent(x, y);
+}
+
+
+/**
+ * Floating-point estimate of an expansion's numerical value.
+ *
+ * Expansion components are accumulated from least significant to most
+ * significant.
+ *
+ * This function is intentionally approximate. It must not be used as a
+ * replacement for an exact expansion sign test.
+ */
+double estimate(size_t Capacity)(
+    ref const ExpansionBuffer!Capacity expansion
+)
+    pure nothrow @safe @nogc
+{
+    double result = 0.0;
+
+    foreach (index; 0 .. expansion.length)
+    {
+        result = roundedAdd(
+            result,
+            expansion[index]
+        );
+    }
+
+    return result;
+}
+
+
 @safe unittest
 {
+    /*
+     * ExpansionBuffer owns fixed inline storage and begins empty.
+     */
+    {
+        ExpansionBuffer!4 expansion;
+
+        assert(expansion.empty);
+        assert(expansion.length == 0);
+        static assert(
+            ExpansionBuffer!4.capacity == 4
+        );
+
+        assert(estimate(expansion) == 0.0);
+
+        expansion.append(0x1p-104);
+        expansion.append(0x1p-52);
+        expansion.append(1.0);
+
+        assert(!expansion.empty);
+        assert(expansion.length == 3);
+
+        assert(expansion[0] == 0x1p-104);
+        assert(expansion[1] == 0x1p-52);
+        assert(expansion[2] == 1.0);
+
+        expansion.clear();
+
+        assert(expansion.empty);
+        assert(expansion.length == 0);
+        assert(estimate(expansion) == 0.0);
+    }
+
+
+    /*
+     * FastTwoSum recovers an addend lost from the rounded high
+     * component.
+     */
+    {
+        enum double halfUlpAtOne =
+            0x1p-53;
+
+        const auto r =
+            fastTwoSum(
+                1.0,
+                halfUlpAtOne
+            );
+
+        assert(r.high == 1.0);
+        assert(r.low == halfUlpAtOne);
+    }
+
+
+    /*
+     * FastTwoSum also handles exact additions naturally.
+     */
+    {
+        const auto r =
+            fastTwoSum(4.0, 2.0);
+
+        assert(r.high == 6.0);
+        assert(r.low == 0.0);
+    }
+
+
+    /*
+     * Sign handling for FastTwoSum.
+     */
+    {
+        const auto r =
+            fastTwoSum(
+                -1.0,
+                -0x1p-53
+            );
+
+        assert(r.high == -1.0);
+        assert(r.low == -0x1p-53);
+    }
+
+
+    /*
+     * Cancellation remains exact when the magnitude precondition holds.
+     */
+    {
+        const auto r =
+            fastTwoSum(
+                1.0,
+                -1.0
+            );
+
+        assert(r.high == 0.0);
+        assert(r.low == 0.0);
+    }
+
+
+    /*
+     * estimate() is deliberately a rounded approximation.
+     *
+     * Components here follow expansion order: least significant first.
+     */
+    {
+        ExpansionBuffer!4 expansion;
+
+        expansion.append(1.0);
+        expansion.append(2.0);
+        expansion.append(4.0);
+
+        assert(estimate(expansion) == 7.0);
+    }
+
+
     /*
      * TwoSum: small addend lost from the rounded main result is
      * recovered exactly in the tail.

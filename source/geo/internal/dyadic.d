@@ -4,6 +4,7 @@ import geo.internal.fixed_uint :
     UIntFixed,
     addUnsigned,
     compareUnsigned,
+    multiplyUnsigned,
     subtractUnsigned;
 
 import std.bitmanip :
@@ -489,8 +490,260 @@ SignedDyadicDifference subtractDyadicCoordinates(
 }
 
 
+/*
+ * A product of two coordinate differences needs at most twice the
+ * coordinate-difference width.
+ *
+ * The numerical scale is:
+ *
+ *     2^-1074 * 2^-1074
+ *   = 2^-2148
+ */
+enum size_t dyadicProductLimbs =
+    2 * dyadicCoordinateLimbs;
+
+
+alias DyadicProductMagnitude =
+    UIntFixed!dyadicProductLimbs;
+
+
+/**
+ * Exact signed product of two dyadic coordinate differences.
+ *
+ * The magnitude is represented in units of 2^-2148.
+ */
+struct SignedDyadicProduct
+{
+    int sign;
+    DyadicProductMagnitude magnitude;
+}
+
+
+/**
+ * Computes the exact mathematical product:
+ *
+ *     lhs * rhs
+ *
+ * without floating-point arithmetic.
+ */
+SignedDyadicProduct multiplyDyadicDifferences(
+    ref const SignedDyadicDifference lhs,
+    ref const SignedDyadicDifference rhs
+)
+    pure nothrow @safe @nogc
+{
+    SignedDyadicProduct result;
+
+    if (
+        lhs.sign == 0 ||
+        rhs.sign == 0
+    )
+    {
+        result.sign = 0;
+        return result;
+    }
+
+    result.sign =
+        lhs.sign == rhs.sign
+            ? 1
+            : -1;
+
+    result.magnitude =
+        multiplyUnsigned(
+            lhs.magnitude,
+            rhs.magnitude
+        );
+
+    return result;
+}
+
+
 @safe unittest
 {
+    /*
+     * Unit differences multiply exactly.
+     *
+     * Each integer coordinate is embedded at bit 1074, therefore
+     * 1 * 1 occupies bit 2148 in the product scale.
+     */
+    {
+        const auto zero =
+            decodeDyadicCoordinate(0);
+
+        const auto one =
+            decodeDyadicCoordinate(1);
+
+        const auto minusOne =
+            decodeDyadicCoordinate(-1);
+
+        const auto positiveDifference =
+            subtractDyadicCoordinates(
+                one,
+                zero
+            );
+
+        const auto negativeDifference =
+            subtractDyadicCoordinates(
+                minusOne,
+                zero
+            );
+
+        const auto positive =
+            multiplyDyadicDifferences(
+                positiveDifference,
+                positiveDifference
+            );
+
+        assert(positive.sign == 1);
+
+        enum uint bit =
+            2 * dyadicScaleShift;
+
+        assert(
+            (
+                positive.magnitude.limb[
+                    bit / 32
+                ] &
+                (1U << (bit % 32))
+            ) != 0
+        );
+
+        const auto negative =
+            multiplyDyadicDifferences(
+                positiveDifference,
+                negativeDifference
+            );
+
+        assert(negative.sign == -1);
+
+        assert(
+            negative.magnitude.limb ==
+            positive.magnitude.limb
+        );
+    }
+
+
+    /*
+     * Zero difference produces canonical zero product.
+     */
+    {
+        const auto value =
+            decodeDyadicCoordinate(
+                double.max
+            );
+
+        const auto zeroDifference =
+            subtractDyadicCoordinates(
+                value,
+                value
+            );
+
+        const auto zero =
+            decodeDyadicCoordinate(0.0);
+
+        const auto nonZeroDifference =
+            subtractDyadicCoordinates(
+                value,
+                zero
+            );
+
+        const auto product =
+            multiplyDyadicDifferences(
+                zeroDifference,
+                nonZeroDifference
+            );
+
+        assert(product.sign == 0);
+        assert(product.magnitude.isZero);
+    }
+
+
+    /*
+     * Sign multiplication follows ordinary arithmetic.
+     */
+    {
+        const auto zero =
+            decodeDyadicCoordinate(0);
+
+        const auto positiveCoordinate =
+            decodeDyadicCoordinate(7);
+
+        const auto negativeCoordinate =
+            decodeDyadicCoordinate(-11);
+
+        const auto positive =
+            subtractDyadicCoordinates(
+                positiveCoordinate,
+                zero
+            );
+
+        const auto negative =
+            subtractDyadicCoordinates(
+                negativeCoordinate,
+                zero
+            );
+
+        const auto pp =
+            multiplyDyadicDifferences(
+                positive,
+                positive
+            );
+
+        const auto pn =
+            multiplyDyadicDifferences(
+                positive,
+                negative
+            );
+
+        const auto nn =
+            multiplyDyadicDifferences(
+                negative,
+                negative
+            );
+
+        assert(pp.sign == 1);
+        assert(pn.sign == -1);
+        assert(nn.sign == 1);
+    }
+
+
+    /*
+     * Extreme binary64 differences remain inside the fixed product
+     * width.
+     */
+    {
+        const auto positive =
+            decodeDyadicCoordinate(
+                double.max
+            );
+
+        const auto negative =
+            decodeDyadicCoordinate(
+                -double.max
+            );
+
+        const auto difference =
+            subtractDyadicCoordinates(
+                positive,
+                negative
+            );
+
+        const auto product =
+            multiplyDyadicDifferences(
+                difference,
+                difference
+            );
+
+        assert(product.sign == 1);
+        assert(!product.magnitude.isZero);
+
+        static assert(
+            dyadicProductLimbs ==
+            132
+        );
+    }
+
+
     /*
      * Ordinary signed subtraction.
      */

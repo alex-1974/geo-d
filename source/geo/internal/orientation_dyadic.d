@@ -1,14 +1,13 @@
 module geo.internal.orientation_dyadic;
 
 import geo.internal.fixed_uint :
-    UIntFixed,
-    compareUnsigned,
-    multiplyUnsigned;
+    compareUnsigned;
 
 import geo.internal.dyadic :
-    SignedDyadicDifference,
+    SignedDyadicProduct,
     decodeBinary64Coordinate,
     dyadicCoordinateLimbs,
+    multiplyDyadicDifferences,
     subtractDyadicCoordinates;
 
 import std.math.traits : isFinite;
@@ -56,74 +55,15 @@ import std.math.traits : isFinite;
  *
  * 132 x 32 = 4224 bits.
  */
-private enum size_t productLimbs =
-    2 * dyadicCoordinateLimbs;
-
-
-private alias DyadicCoordinateMagnitude =
-    UIntFixed!dyadicCoordinateLimbs;
-
-private alias ProductMagnitude =
-    UIntFixed!productLimbs;
 
 
 /*
  * Exact signed integer represented as sign + unsigned magnitude.
  */
-private struct SignedDyadicCoordinate
-{
-    int sign;
-    DyadicCoordinateMagnitude magnitude;
-}
 
-
-private struct SignedProduct
-{
-    int sign;
-    ProductMagnitude magnitude;
-}
-
-
-private SignedProduct multiplyDifferences(
-    ref const SignedDyadicDifference lhs,
-    ref const SignedDyadicDifference rhs
-)
-    pure nothrow @safe @nogc
-{
-    SignedProduct result;
-
-    if (lhs.sign == 0 ||
-        rhs.sign == 0)
-    {
-        result.sign = 0;
-        return result;
-    }
-
-    result.sign =
-        lhs.sign == rhs.sign
-            ? 1
-            : -1;
-
-    result.magnitude =
-        multiplyUnsigned(
-            lhs.magnitude,
-            rhs.magnitude
-        );
-
-    return result;
-}
-
-
-/*
- * Exact sign of:
- *
- *     p - q
- *
- * without materializing the potentially one-bit-wider determinant.
- */
 private int productDifferenceSign(
-    ref const SignedProduct p,
-    ref const SignedProduct q
+    ref const SignedDyadicProduct p,
+    ref const SignedDyadicProduct q
 )
     pure nothrow @safe @nogc
 {
@@ -226,13 +166,13 @@ int orientationDyadicExact(
         );
 
     const auto p =
-        multiplyDifferences(
+        multiplyDyadicDifferences(
             bAx,
             cAy
         );
 
     const auto q =
-        multiplyDifferences(
+        multiplyDyadicDifferences(
             bAy,
             cAx
         );

@@ -832,8 +832,212 @@ if (HCapacity >= 2 * ECapacity)
 }
 
 
+/**
+ * Exact sign of a valid non-overlapping expansion.
+ *
+ * Components are stored from least significant to most significant.
+ * Therefore the highest-index non-zero component determines the exact
+ * sign of the represented value.
+ *
+ * Returns:
+ *
+ *     -1  negative
+ *      0  exact zero
+ *      1  positive
+ *
+ * Unlike estimate(), this function is suitable for robust predicate
+ * decisions.
+ */
+int expansionSign(size_t Capacity)(
+    ref const ExpansionBuffer!Capacity expansion
+)
+    pure nothrow @safe @nogc
+{
+    size_t index = expansion.length;
+
+    while (index > 0)
+    {
+        --index;
+
+        const double component =
+            expansion[index];
+
+        if (component > 0.0)
+            return 1;
+
+        if (component < 0.0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * Component-wise negation of an expansion.
+ *
+ * Expansion order and non-overlap are preserved because multiplication
+ * by -1 is exact in binary floating point.
+ *
+ * The output buffer must not alias the input buffer.
+ */
+void negateExpansion(
+    size_t SourceCapacity,
+    size_t ResultCapacity
+)(
+    ref const ExpansionBuffer!SourceCapacity source,
+    ref ExpansionBuffer!ResultCapacity result
+)
+    pure nothrow @safe @nogc
+if (ResultCapacity >= SourceCapacity)
+{
+    result.clear();
+
+    foreach (index; 0 .. source.length)
+    {
+        result.append(
+            -source[index]
+        );
+    }
+}
+
+
 @safe unittest
 {
+    /*
+     * Exact expansion sign is determined by the most significant
+     * non-zero component, not by a rounded estimate.
+     */
+    {
+        ExpansionBuffer!4 positive;
+
+        positive.append(-0x1p-104);
+        positive.append(0x1p-52);
+        positive.append(1.0);
+
+        assert(expansionSign(positive) == 1);
+
+        ExpansionBuffer!4 negative;
+
+        negative.append(0x1p-104);
+        negative.append(-0x1p-52);
+        negative.append(-1.0);
+
+        assert(expansionSign(negative) == -1);
+    }
+
+
+    /*
+     * Zero components are skipped defensively.
+     */
+    {
+        ExpansionBuffer!4 expansion;
+
+        expansion.append(1.0);
+        expansion.append(0.0);
+        expansion.append(0.0);
+
+        assert(expansionSign(expansion) == 1);
+    }
+
+
+    /*
+     * Empty and canonical-zero expansions both represent exact zero.
+     */
+    {
+        ExpansionBuffer!2 emptyExpansion;
+
+        assert(
+            expansionSign(emptyExpansion) == 0
+        );
+
+        ExpansionBuffer!2 zero;
+
+        zero.append(0.0);
+
+        assert(
+            expansionSign(zero) == 0
+        );
+    }
+
+
+    /*
+     * Negation preserves component order and reverses exact sign.
+     */
+    {
+        ExpansionBuffer!3 source;
+        ExpansionBuffer!3 negated;
+
+        source.append(0x1p-104);
+        source.append(-0x1p-52);
+        source.append(2.0);
+
+        negateExpansion(
+            source,
+            negated
+        );
+
+        assert(negated.length == 3);
+
+        assert(
+            negated[0] == -0x1p-104
+        );
+
+        assert(
+            negated[1] == 0x1p-52
+        );
+
+        assert(
+            negated[2] == -2.0
+        );
+
+        assert(
+            expansionSign(source) == 1
+        );
+
+        assert(
+            expansionSign(negated) == -1
+        );
+    }
+
+
+    /*
+     * Double negation reconstructs the original expansion exactly.
+     */
+    {
+        ExpansionBuffer!3 source;
+        ExpansionBuffer!3 first;
+        ExpansionBuffer!3 second;
+
+        source.append(-0x1p-104);
+        source.append(0x1p-52);
+        source.append(1.0);
+
+        negateExpansion(
+            source,
+            first
+        );
+
+        negateExpansion(
+            first,
+            second
+        );
+
+        assert(
+            second.length ==
+            source.length
+        );
+
+        foreach (index; 0 .. source.length)
+        {
+            assert(
+                second[index] ==
+                source[index]
+            );
+        }
+    }
+
+
     /*
      * Fast expansion sum: exact cancellation removes zero components.
      */

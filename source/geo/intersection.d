@@ -1941,6 +1941,177 @@ if (
 
 
     /*
+     * Two identical degenerate segments have exactly their common
+     * endpoint as the unique intersection.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S first =
+            S(
+                P(3.5, -7.25),
+                P(3.5, -7.25)
+            );
+
+        const S second =
+            S(
+                P(3.5, -7.25),
+                P(3.5, -7.25)
+            );
+
+        Point2!double point;
+
+        assert(
+            segmentIntersectionKind(
+                first,
+                second
+            ) ==
+            SegmentIntersectionKind.point
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                point.x,
+                3.5
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                point.y,
+                -7.25
+            )
+        );
+    }
+
+
+    /*
+     * Near-parallel binary64 proper crossing.
+     *
+     * First supporting line:
+     *
+     *     y = x
+     *
+     * Second supporting line:
+     *
+     *     y = (1 - 2^-52) x + 2^-53
+     *
+     * Their exact intersection is:
+     *
+     *     (1/2, 1/2)
+     *
+     * The slopes differ by only one binary64 ulp at 1.0.
+     */
+    {
+        enum double halfUlp =
+            0x1p-53;
+
+        enum double oneMinusHalfUlp =
+            0x1.fffffffffffffp-1;
+
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        const S first =
+            S(
+                P(0.0, 0.0),
+                P(1.0, 1.0)
+            );
+
+        const S second =
+            S(
+                P(0.0, halfUlp),
+                P(1.0, oneMinusHalfUlp)
+            );
+
+        const S reverseFirst =
+            S(
+                first.b,
+                first.a
+            );
+
+        const S reverseSecond =
+            S(
+                second.b,
+                second.a
+            );
+
+        Point2!double normal;
+        Point2!double swapped;
+        Point2!double reversed;
+
+        assert(
+            segmentIntersectionKind(
+                first,
+                second
+            ) ==
+            SegmentIntersectionKind.point
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                first,
+                second,
+                normal
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                second,
+                first,
+                swapped
+            )
+        );
+
+        assert(
+            trySegmentIntersectionPoint(
+                reverseFirst,
+                reverseSecond,
+                reversed
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                normal.x,
+                0.5
+            )
+        );
+
+        assert(
+            sameDoubleBits(
+                normal.y,
+                0.5
+            )
+        );
+
+        assert(
+            samePointBits(
+                normal,
+                swapped
+            )
+        );
+
+        assert(
+            samePointBits(
+                normal,
+                reversed
+            )
+        );
+    }
+
+
+    /*
      * Full-range long construction remains invariant under every basic
      * representation symmetry.
      */

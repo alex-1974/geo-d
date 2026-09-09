@@ -3,6 +3,7 @@ module geo.internal.orientation_dyadic;
 import geo.internal.dyadic :
     SignedDyadicProduct,
     decodeBinary64Coordinate,
+    decodeDyadicCoordinate,
     dyadicCoordinateLimbs,
     multiplyDyadicDifferences,
     subtractDyadicCoordinates,
@@ -59,71 +60,77 @@ import std.math.traits : isFinite;
  * Exact signed integer represented as sign + unsigned magnitude.
  */
 
-private int productDifferenceSign(
-    ref const SignedDyadicProduct p,
-    ref const SignedDyadicProduct q
-)
-    pure nothrow @safe @nogc
-{
-    const auto difference =
-        subtractDyadicProducts(
-            p,
-            q
-        );
-
-    return difference.sign;
-}
-
-
 /**
- * Exact orient2d sign for every finite binary64 input.
+ * Exact orient2d determinant for supported geo-d scalar coordinates.
  *
- * Returns:
+ * Computes:
  *
- *     sign < 0  -> right
- *     sign == 0 -> collinear
- *     sign > 0  -> left
+ *     (bx - ax) * (cy - ay)
+ *       -
+ *     (by - ay) * (cx - ax)
  *
- * Preconditions:
+ * The returned value is exact and represented as a signed fixed-width
+ * dyadic product in units of 2^-2148.
  *
- *     all six coordinates are finite.
+ * Supported scalar types:
  *
- * No floating-point arithmetic is used after decoding the inputs.
+ *     int
+ *     long
+ *     float
+ *     double
+ *
+ * Floating-point coordinates must be finite.
+ *
+ * This function intentionally returns the exact determinant rather
+ * than only its sign. Robust orientation consumes the sign; geometric
+ * construction may additionally consume the exact magnitude.
  */
-int orientationDyadicExact(
-    double ax,
-    double ay,
-    double bx,
-    double by,
-    double cx,
-    double cy
+SignedDyadicProduct orientationDeterminantDyadic(T)(
+    T ax,
+    T ay,
+    T bx,
+    T by,
+    T cx,
+    T cy
 )
     pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
 {
-    assert(isFinite(ax));
-    assert(isFinite(ay));
-    assert(isFinite(bx));
-    assert(isFinite(by));
-    assert(isFinite(cx));
-    assert(isFinite(cy));
+    static if (
+        is(T == float) ||
+        is(T == double)
+    )
+    {
+        assert(isFinite(ax));
+        assert(isFinite(ay));
+        assert(isFinite(bx));
+        assert(isFinite(by));
+        assert(isFinite(cx));
+        assert(isFinite(cy));
+    }
 
     const auto aX =
-        decodeBinary64Coordinate(ax);
+        decodeDyadicCoordinate(ax);
 
     const auto aY =
-        decodeBinary64Coordinate(ay);
+        decodeDyadicCoordinate(ay);
 
     const auto bX =
-        decodeBinary64Coordinate(bx);
+        decodeDyadicCoordinate(bx);
 
     const auto bY =
-        decodeBinary64Coordinate(by);
+        decodeDyadicCoordinate(by);
 
     const auto cX =
-        decodeBinary64Coordinate(cx);
+        decodeDyadicCoordinate(cx);
 
     const auto cY =
-        decodeBinary64Coordinate(cy);
+        decodeDyadicCoordinate(cy);
 
     const auto bAx =
         subtractDyadicCoordinates(
@@ -161,9 +168,155 @@ int orientationDyadicExact(
             cAx
         );
 
-    return productDifferenceSign(
+    return subtractDyadicProducts(
         p,
         q
+    );
+}
+
+
+/**
+ * Exact orient2d sign for every finite binary64 input.
+ *
+ * Returns:
+ *
+ *     sign < 0  -> right
+ *     sign == 0 -> collinear
+ *     sign > 0  -> left
+ *
+ * Preconditions:
+ *
+ *     all six coordinates are finite.
+ *
+ * No floating-point arithmetic is used after decoding the inputs.
+ */
+int orientationDyadicExact(
+    double ax,
+    double ay,
+    double bx,
+    double by,
+    double cx,
+    double cy
+)
+    pure nothrow @safe @nogc
+{
+    const auto determinant =
+        orientationDeterminantDyadic(
+            ax,
+            ay,
+            bx,
+            by,
+            cx,
+            cy
+        );
+
+    return determinant.sign;
+}
+
+
+@safe unittest
+{
+    /*
+     * The same exact unit-triangle determinant must be obtained from
+     * every currently supported scalar type.
+     */
+    const auto fromInt =
+        orientationDeterminantDyadic(
+            0, 0,
+            1, 0,
+            0, 1
+        );
+
+    const auto fromLong =
+        orientationDeterminantDyadic(
+            0L, 0L,
+            1L, 0L,
+            0L, 1L
+        );
+
+    const auto fromFloat =
+        orientationDeterminantDyadic(
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            0.0f, 1.0f
+        );
+
+    const auto fromDouble =
+        orientationDeterminantDyadic(
+            0.0, 0.0,
+            1.0, 0.0,
+            0.0, 1.0
+        );
+
+    assert(fromInt.sign == 1);
+    assert(fromLong.sign == 1);
+    assert(fromFloat.sign == 1);
+    assert(fromDouble.sign == 1);
+
+    assert(
+        fromInt.magnitude.limb ==
+        fromLong.magnitude.limb
+    );
+
+    assert(
+        fromInt.magnitude.limb ==
+        fromFloat.magnitude.limb
+    );
+
+    assert(
+        fromInt.magnitude.limb ==
+        fromDouble.magnitude.limb
+    );
+
+
+    /*
+     * Reversing two points negates the exact determinant while
+     * preserving its magnitude.
+     */
+    const auto reversed =
+        orientationDeterminantDyadic(
+            0.0, 0.0,
+            0.0, 1.0,
+            1.0, 0.0
+        );
+
+    assert(reversed.sign == -1);
+
+    assert(
+        reversed.magnitude.limb ==
+        fromDouble.magnitude.limb
+    );
+
+
+    /*
+     * Collinearity produces canonical exact zero.
+     */
+    const auto collinear =
+        orientationDeterminantDyadic(
+            long.min, long.min,
+            0L, 0L,
+            long.max, long.max
+        );
+
+    assert(collinear.sign == 0);
+    assert(collinear.magnitude.isZero);
+
+
+    /*
+     * real remains deliberately outside the current predicate backend.
+     */
+    static assert(
+        !__traits(
+            compiles,
+            orientationDeterminantDyadic(
+                cast(real) 0,
+                cast(real) 0,
+                cast(real) 1,
+                cast(real) 0,
+                cast(real) 0,
+                cast(real) 1
+            )
+        )
     );
 }
 

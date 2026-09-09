@@ -2,6 +2,10 @@ module geo.orientation;
 
 import geo.point : Point2;
 
+import geo.internal.orientation_filter :
+    OrientationFilterResult,
+    orientationFilter;
+
 /**
  * Orientation of a point relative to the directed line a -> b.
  */
@@ -466,6 +470,19 @@ Orientation orientation(
 
 @safe unittest
 {
+    /*
+     * The floating filter is internal only. Robust public floating
+     * orientation is not enabled until the adaptive/exact fallback
+     * exists.
+     */
+    static assert(!__traits(compiles,
+        orientation(
+            Point2!double.init,
+            Point2!double.init,
+            Point2!double.init
+        )
+    ));
+
     /*
      * Exact 64 x 64 -> 128 multiplication.
      */

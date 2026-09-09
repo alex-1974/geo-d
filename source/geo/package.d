@@ -20,3 +20,7 @@ public import geo.metric :
     segmentLength,
     squaredDistance,
     tryNearestPoint;
+
+public import geo.orientation :
+    Orientation,
+    orientation;

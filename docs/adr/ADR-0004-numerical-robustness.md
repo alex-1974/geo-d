@@ -787,3 +787,78 @@ It may still be useful as an intermediate filter.
 - GEOS / JTS robust orientation algorithms.
 - Boost.Geometry Cartesian orientation strategies.
 - D standard library and runtime numerical facilities.
+
+## Implementation status
+
+As of 2026-09-09, the orientation predicate described by this ADR is
+implemented for:
+
+~~~text
+int
+long
+float
+double
+~~~
+
+The implementation satisfies the following domain contracts.
+
+### Integral coordinates
+
+`int` and `long` orientation are exact over their complete respective
+coordinate domains.
+
+Signed coordinate differences are formed without signed overflow.
+Product magnitudes are represented exactly, and only the determinant
+sign is determined; the potentially one-bit-wider signed determinant
+does not need to be materialised.
+
+### `float`
+
+Every finite binary32 value is exactly representable as binary64.
+
+`Point2!float` orientation therefore promotes coordinates exactly to
+the binary64 robust backend. This promotion does not weaken predicate
+correctness.
+
+### `double`
+
+Finite binary64 inputs are handled by a staged robust backend:
+
+~~~text
+certified floating-point filter
+        ↓ uncertain
+exact expansion arithmetic
+        ↓ outside conservative expansion working range
+exact fixed-width dyadic fallback
+~~~
+
+The final fallback decodes each finite binary64 coordinate exactly as
+an integer multiple of `2^-1074` and evaluates the orientation sign
+using fixed-width integer arithmetic.
+
+This fixed-width dyadic representation is an internal implementation
+choice. The architectural contract remains exact sign correctness for
+the supported predicate domain.
+
+NaN and infinity remain outside the floating orientation predicate
+domain.
+
+### `real`
+
+A public `Point2!real` orientation overload remains deliberately
+unimplemented.
+
+`real` must not be demoted to `double`. A future implementation must
+provide a backend appropriate to the actual platform representation
+and must demonstrate the same sign-correctness contract.
+
+### Independent verification
+
+Production orientation implementations are checked in unittest builds
+against an independent `std.bigint.BigInt` determinant oracle.
+
+The oracle tests cover scalar extremes, arbitrary finite floating-point
+bit patterns, subnormal values, near-degenerate configurations and
+orientation permutation identities.
+
+`BigInt` is not a runtime dependency of `geo-d`.

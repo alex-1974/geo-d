@@ -1,1005 +1,369 @@
-# d-geospatial Roadmap
+# geo-d Roadmap
 
-**Status:** Foundation complete; `geodesy-d` architecture starting  
-**Scope:** Independent reusable D libraries only
+`geo-d` is a small, robust, coordinate-system-agnostic 2D Euclidean geometry library for D.
 
-## Objective
+The roadmap follows a depth-before-breadth principle: implemented functionality should have explicit semantics, strong numerical behaviour, tests, and documented ownership characteristics before the public API is expanded further.
 
-The goal of `d-geospatial` is to establish a small set of high-quality, independently useful D libraries for geometry, geodesy, spatial computing, raster processing and geospatial data.
+Features listed beyond the current release target are candidates rather than commitments. New API should be driven by concrete consumers.
 
-The roadmap deliberately favours **depth before breadth**.
+## v0.1.0 — Initial public foundation
 
-Libraries should not be created merely because a future application might need them.
+The first release establishes the core geometry, numerical, ownership, and topology model.
 
-A new package should appear only when:
-
-- its domain is sufficiently understood;
-- its boundaries can be stated clearly;
-- it provides independent value;
-- and there is enough real work to justify maintaining another repository.
-
-# Phase 0 — Shared foundation
-
-## Architecture and policy
-
-- [x] Define workspace purpose.
-- [x] Separate reusable libraries from applications.
-- [x] Define independent repository model.
-- [x] Define shared `DESIGN_PRINCIPLES.md`.
-- [x] Establish hardlink strategy for shared workspace documentation (`README.md`, `ROADMAP.md`, `DESIGN_PRINCIPLES.md`).
-- [x] Define repository naming policy.
-- [x] Define D module namespace policy.
-- [x] Define compiler policy.
-- [x] Define licence strategy.
-- [x] Define minimum CI/quality expectations.
-- [x] Define the `geo-d` / `geodesy-d` / `georef-d` / `proj-d` responsibility boundary.
-- [x] Finalise workspace `README.md`.
-- [x] Finalise workspace `ROADMAP.md`.
-
-## Agreed conventions
-
-### Licence
-
-```text
-MIT
-```
-
-Each independent library repository carries its own MIT `LICENSE`.
-
-### Naming
-
-```text
-Repository / DUB       Module root
-
-geodesy-d              geodesy
-geo-d                  geo
-georef-d               georef
-raster-d               raster
-spatial-d              spatial
-proj-d                  proj
-gdal-d                  gdal
-osm-d                   osm
-```
-
-### Compiler policy
-
-Required:
-
-```text
-DMD
-LDC
-```
-
-Best effort:
-
-```text
-GDC
-```
-
-CI normally follows current stable DMD and LDC releases.
-
-Initial shared language baseline:
-
-```text
-D frontend 2.112.1
-```
-
-The language baseline advances when the required compiler matrix permits it.
-
-### Minimum CI baseline
-
-Every active library must support:
-
-```text
-dub test
-```
-
-CI should at minimum verify:
-
-- DMD tests/build;
-- LDC tests/build;
-- LDC release build;
-- expected repository/documentation structure.
-
-Benchmarks, fuzzing, property tests and specialised interoperability tests are added according to the domain.
-
-## Remaining workspace tooling
-
-- [x] Implement `link-shared-docs.sh`.
-- [ ] Implement `check-workspace.sh`.
-- [ ] Implement `run-all-tests.sh`.
-- [ ] Implement `run-all-benchmarks.sh`.
-- [ ] Implement `show-status.sh`.
-
-`check-workspace.sh` should eventually verify, where relevant:
-
-- shared `README.md`, `ROADMAP.md` and `DESIGN_PRINCIPLES.md` hardlinks;
-- required repository files;
-- Git state;
-- DUB package health;
-- supported compiler availability;
-- package/module naming consistency.
-
-Phase 0 policy work is complete. Tooling may continue incrementally while library development begins.
-
-# Phase 1 — Fundamental libraries
-
-The first development wave should contain only libraries whose usefulness is broad and whose domain boundaries are reasonably clear.
-
-Initial candidates:
-
-```text
-geodesy-d
-geo-d
-raster-d
-spatial-d
-```
-
-They do not need to start simultaneously.
-
-The first library should be selected according to the first concrete implementation task.
-
-
-## `geodesy-d`
-
-### Initial goal
-
-Provide a small, dependency-light, pure-D foundation for geodetic mathematics without requiring the PROJ runtime for bounded mathematical operations.
-
-### Initial scope
-
-First vertical slice:
-
-```text
-Angle
-Latitude
-Longitude
-Ellipsoid
-GeodeticCoordinate
-GeocentricCoordinate / ECEF
-geodetic ↔ geocentric conversion
-```
-
-Subsequent scope, only after the core is verified:
-
-```text
-3-parameter geocentric translation
-7-parameter Helmert transformation
-Transverse Mercator
-UTM
-direct/inverse ellipsoidal geodesics
-```
-
-### Explicit boundary
-
-`geodesy-d` owns mathematical operations whose semantics depend on the Earth, a reference ellipsoid, geographic/geocentric coordinates or a map projection.
-
-It does **not** own:
-
-- general Euclidean geometry or polygon topology;
-- EPSG/authority databases;
-- WKT or PROJJSON parsing;
-- automatic CRS/transformation discovery;
-- transformation grid management;
-- MGRS, Geohash or Plus Code encodings.
-
-Those responsibilities belong respectively to `geo-d`, `proj-d` and `georef-d`.
-
-### Design questions
-
-- scalar policy and supported floating-point types;
-- angle storage and degree/radian construction semantics;
-- latitude/longitude normalisation versus validation;
-- canonical ellipsoid representation;
-- coordinate value types and ellipsoidal-height / shared linear-unit semantics;
-- error semantics for invalid/undefined inputs;
-- numerical accuracy and convergence policy;
-- `@safe`, `@nogc`, `nothrow` and CTFE expectations;
-- reference-source and cross-validation policy.
-
-### Reference hierarchy
-
-For geodetic algorithms, prefer authoritative specifications and primary numerical references. Typical validation sources include:
-
-1. IOGP / EPSG Guidance Note 7-2 and EPSG method definitions;
-2. primary algorithm publications such as Karney where applicable;
-3. GeographicLib as a trusted numerical reference for geodesics;
-4. PROJ as an independent interoperability and cross-validation implementation.
-
-### Architecture documentation
-
-- [x] `docs/README.md` — library scope and documentation map.
-- [x] ADR-0001 — scope and architectural boundaries.
-- [ ] ADR-0002 — core type, unit, scalar, and ellipsoid model (proposed; open items remain).
-- [x] `docs/REFERENCES.md` — reference and numerical-validation policy.
-
-### Quality gates
-
-Before a stable API:
-
-- authoritative reference vectors for each operation;
-- edge cases at poles, equator and longitude boundaries where applicable;
-- forward/inverse round-trip tests;
-- randomised cross-validation against trusted implementations where practical;
-- explicit accuracy/error documentation;
-- no broad `@fastmath` policy without algorithm-specific proof and benchmarks;
-- compiler coverage with DMD and LDC.
-
-## `geo-d`
-
-### Initial goal
-
-Provide a small, robust, coordinate-system-agnostic Euclidean geometry foundation suitable for GIS and non-GIS applications.
-
-### Initial scope
-
-Candidate types:
-
-```text
-Point2
-Vector2
-Bounds / Box
-Segment
-Polyline
-LinearRing
-Polygon
-```
-
-Candidate algorithms:
-
-```text
-distance
-squared distance
-nearest point
-segment intersection
-bounding box
-orientation
-signed area
-point in polygon
-polyline length
-simplification
-```
-
-### Current implementation status
-
-The fixed-size 2D geometry foundation is substantially implemented and
-verified.
-
-Implemented public representation and algorithms include:
-
-    Point2
-    Vector2
-    Bounds2
-    Segment2
-
-    orientation
-    distance / squared distance
-    nearest point
-    segment length
-    segment intersection classification
-    segment intersection point construction
-    segment overlap construction
-
-Robust orientation and segment-intersection topology use exact fallback
-arithmetic for int, long, float and double. Unique intersection points are
-constructed with correctly rounded binary64 results. Support for robust
-real arithmetic remains deferred pending a platform-aware backend.
-
-Variable-size linear and polygon geometry is now established around
-non-owning read-only views:
-
-    PolylineView
-    LinearRingView
-    PolygonView
-
-The view model uses explicit borrowing and DIP1000 lifetime checking.
-PolygonView is a view of LinearRingView descriptors; individual rings may
-use independent point-storage regions.
-
-Implemented variable-size algorithms include:
-
-    polylineLength
-    signedArea(LinearRingView)
-    polygonArea(PolygonView)
-
-Ring signed area uses exact determinant accumulation followed by one
-correctly rounded binary64 conversion.
-
-Polygon area is role-based rather than winding-based:
-
-    abs(exterior exact area)
-        - sum(abs(interior exact area))
-
-All ring contributions are combined exactly before one final binary64
-rounding. Polygon construction and area calculation deliberately do not
-perform topological validation or implicit normalization.
-
-Explicit topology validation is now implemented separately:
-
-    validateRing
-    validatePolygon
-
-Validation provides structured `RingValidationResult` and
-`PolygonValidationResult` diagnostics.
-
-Ring validation rejects insufficient cardinality, non-finite coordinates,
-zero-length edges, self-intersections and self-overlaps.
-
-Polygon validation additionally checks inter-ring crossings and overlaps,
-multiple distinct contacts between a ring pair, hole containment, nested
-holes, and connected polygon interior. Tangential point contacts are
-permitted where the resulting polygon topology remains valid.
-
-Topology validation uses exact predicates for int, long, float and double.
-Ring validation is `pure nothrow @safe @nogc`. Polygon validation is
-`pure nothrow @safe`; its connected-interior check deliberately uses
-temporary storage and therefore does not promise `@nogc`.
-
-Performance baselines exist for exact segment intersection and signed-area
-arithmetic. Signed-area exact-path optimisation retained exact numerical
-semantics while materially reducing per-vertex cost.
-
-Point-in-polygon classification is implemented with exact three-way
-outside, boundary and inside semantics. Boundary detection is exact, ring
-orientation is irrelevant, and finite invalid or self-intersecting ring
-representations retain deterministic even-odd classification semantics.
-
-The next geometry design block is explicit ring and polygon topology
-validation. Validation remains separate from representation and from
-algorithms such as area and point classification.
-
-### Current implementation status
-
-The fixed-size 2D geometry foundation is substantially implemented and
-verified.
-
-Implemented public representation and algorithms include:
-
-    Point2
-    Vector2
-    Bounds2
-    Segment2
-
-    orientation
-    distance
-    squaredDistance
-    tryNearestPoint
-    segmentLength
-    segmentIntersectionKind
-    trySegmentIntersectionPoint
-    trySegmentIntersectionOverlap
-
-Robust orientation and segment-intersection topology use exact fallback
-arithmetic for int, long, float and double.
-
-Unique segment-intersection points are constructed with correctly rounded
-binary64 results.
-
-Robust real arithmetic remains deferred pending a platform-aware backend.
-
-Variable-size geometry is established around non-owning read-only views:
-
-    PolylineView
-    LinearRingView
-    PolygonView
-
-The view model uses explicit borrowing and DIP1000 lifetime checking.
-
-PolygonView is a view of LinearRingView descriptors. Individual rings may
-use independent point-storage regions.
-
-Implemented variable-size algorithms include:
-
-    polylineLength
-    signedArea
-    polygonArea
-    tryClassifyPointInPolygon
-
-Linear-ring signed area uses exact determinant accumulation followed by one
-correctly rounded binary64 conversion.
-
-Polygon area is role-based rather than winding-based:
-
-    abs(exterior exact area)
-        - sum(abs(interior exact area))
-
-All ring contributions are combined exactly before one final binary64
-rounding.
-
-Polygon representation and polygon-area calculation deliberately do not
-perform topological validation or implicit normalization.
-
-Performance baselines exist for exact segment intersection and signed-area
-arithmetic. Exact signed-area optimisation retained the numerical semantics
-while materially reducing per-vertex cost.
-
-The next geometry design block is point-in-polygon classification,
-including explicit boundary semantics and behaviour for invalid or
-degenerate polygon representations.
-
-### Implemented foundation
-
-The current geometry foundation includes:
-
-- Point2, Vector2, Bounds, Segment and non-owning geometry views;
-- metric distance, squared distance, nearest-point and polyline-length operations;
-- robust orientation and segment-intersection predicates;
-- signed ring area and polygon area;
-- point-in-polygon classification;
-- ring and polygon topology validation;
-- caller-buffered Douglas-Peucker polyline simplification.
-
-Douglas-Peucker simplification is intentionally limited to PolylineView.
-Topology-preserving simplification of rings and polygons remains separate
-future work.
-
-### Design questions
-
-- coordinate and scalar genericity;
-- point/vector semantics versus primitive coordinate types;
-- geometry ownership versus geometry views;
-- polygon/ring representation;
-- numerical robustness;
-- allocation policy;
-- interoperability conventions.
-
-
-### Current implementation status
-
-The fixed-size 2D geometry foundation is substantially implemented and
-verified.
+### Core value types
 
 Completed:
 
-- [x] `Point2` and `Vector2`
-- [x] explicit scalar and conversion policy
+- [x] `Point2`
+- [x] `Vector2`
 - [x] `Bounds2`
 - [x] `Segment2`
-- [x] distance and squared distance
-- [x] segment length
-- [x] nearest point on a segment
-- [x] robust orientation for `int`
-- [x] robust orientation for `long`
-- [x] robust orientation for `float`
-- [x] robust orientation for `double`
-- [x] independent `BigInt` oracle and property verification
-- [x] exact segment-intersection classification
-- [x] exact positive-length segment-overlap construction
-- [x] correctly rounded unique-point segment-intersection construction
-
-Segment intersection keeps exact topology separate from geometric
-construction. Proper crossings use bounded exact arithmetic internally
-and are rounded to binary64 only for the final point coordinates.
-
-Deliberately deferred:
-
-- [ ] robust orientation for `real` — requires a platform-aware backend
-- [ ] segment-intersection support for `real` — follows the future robust
-      `real` predicate backend
-
-Next structural slice:
+- [x] explicit scalar policy
+- [x] affine point/vector algebra
+- [x] checked scalar conversion
+- [x] explicit floating-point-to-integer quantisation
+- [x] empty-bounds semantics
+- [x] explicit non-finite-value policy
 
-- [ ] define ownership and view semantics for variable-size linear geometry
-- [ ] `Polyline` / `PolylineView`
-- [ ] `LinearRing`
-- [ ] signed area
-
-`Polygon` should follow the variable-size ownership/view decision rather
-than precede it.
-
-### Quality gates
-
-Before a stable API:
-
-- extensive unit tests;
-- degenerate-geometry tests;
-- property tests where useful;
-- numerical reference cases;
-- performance baselines;
-- documented complexity;
-- memory/ownership documentation.
-
-## `raster-d`
-
-### Initial goal
-
-Provide a reusable raster abstraction and a focused set of efficient raster-processing algorithms.
-
-### Initial scope
-
-Candidate concepts:
-
-```text
-RasterBuffer
-RasterView
-shape
-strides
-ROI
-channel
-pixel/layout description
-```
+Supported core scalar types:
 
-Candidate operations:
+~~~text
+int
+long
+float
+double
+real
+~~~
 
-```text
-crop/view
-copy
-sampling
-resize
-normalisation
-convolution
-Gaussian blur
-Sobel
-Scharr
-gradient magnitude
-histogram
-threshold
-basic morphology
-```
-
-### Architecture questions
+### Variable-size geometry views
 
-- multidimensional view representation;
-- relationship to existing D numerical libraries;
-- contiguous versus strided representations;
-- channel-layout semantics;
-- colour-space responsibilities;
-- caller-provided output buffers;
-- SIMD/vectorisation strategy;
-- threading policy.
+Completed:
 
-A generic multidimensional-array implementation should not be invented merely for this package if a suitable existing D abstraction can be used.
+- [x] `PolylineView`
+- [x] `LinearRingView`
+- [x] `PolygonView`
+- [x] non-owning read-only representation
+- [x] caller-owned backing storage
+- [x] explicit borrowing and DIP1000 lifetime checking
 
-### Quality gates
+Owning variable-size containers are not required for the initial release.
 
-- allocation behaviour documented per major operation;
-- zero-copy operations tested as such;
-- contiguous/strided correctness tests;
-- benchmark suite for core kernels;
-- large-raster tests;
-- comparison against trusted numerical references.
+### Metric operations
 
-## `spatial-d`
+Completed:
 
-### Initial goal
+- [x] `distance`
+- [x] `squaredDistance`
+- [x] `segmentLength`
+- [x] `polylineLength`
+- [x] `tryNearestPoint`
+- [x] `tryPointSegmentDistance`
+- [x] explicit `MetricScalar` computation-type policy
 
-Provide reusable high-performance spatial indexes and queries independent of GIS-specific object models.
+Tracked numerical follow-up:
 
-### First step
+- [ ] evaluate compensated accumulation for long polylines
 
-Before writing a new index implementation:
+The existing sequential `polylineLength` accumulation remains valid API. Any change to the accumulation strategy must preserve the established result type and execution contracts.
 
-- survey existing D spatial-index packages;
-- audit their APIs and maintenance status;
-- test correctness;
-- benchmark representative workloads.
+### Robust orientation
 
-Reusing or improving an existing implementation is preferable when it meets the project standards.
+Completed for:
 
-### Possible scope
+- [x] `int`
+- [x] `long`
+- [x] `float`
+- [x] `double`
 
-```text
-Box
-RTree
-PackedRTree / STR tree
-SpatialHash
-nearest queries
-intersection queries
-bulk build
-mutable updates
-```
+The implementation uses exact or certified arithmetic as required rather than a global epsilon.
 
-### Representative workloads
+Verification includes an independent `BigInt` oracle in unittest builds.
 
-Benchmarks should include:
+Deferred:
 
-- 10³ objects;
-- 10⁵ objects;
-- 10⁶+ objects where practical;
-- random distributions;
-- clustered geographic distributions;
-- viewport queries;
-- nearest-object queries;
-- update-heavy workloads.
+- [ ] robust orientation for `real`
 
-# Phase 2 — Native geospatial integration
+Robust `real` support requires a platform-aware backend and is not a `v0.1.0` requirement.
 
-Only after the fundamental D-side abstractions are sufficiently understood should native integration packages solidify around them.
+### Segment intersection
 
-Candidates:
+Completed:
 
-```text
-proj-d
-gdal-d
-```
+- [x] exact intersection classification
+- [x] positive-length overlap construction
+- [x] unique intersection-point construction
+- [x] correctly rounded binary64 proper-crossing coordinates
+- [x] degenerate-segment handling
+- [x] argument-order and endpoint-order invariance tests
 
-## `proj-d`
+Topology and geometric construction remain separate operations.
 
-### Goal
+Supported robust scalar domains:
 
-Provide a small, idiomatic and safe D interface to PROJ.
+~~~text
+int
+long
+float
+double
+~~~
 
-### Candidate scope
+Deferred:
 
-```text
-CRS
-Transformation
-forward()
-inverse()
-transform()
-```
+- [ ] segment-intersection support for `real`
 
-### Principles
+### Ring and polygon area
 
-- deterministic native-resource lifetime;
-- raw C API available but isolated;
-- no requirement for the basic geometry library itself to depend on PROJ;
-- explicit coordinate semantics;
-- preserve useful native error information.
+Completed:
 
-### Exit criteria
+- [x] signed linear-ring area
+- [x] polygon area
+- [x] exact determinant accumulation
+- [x] one final binary64 rounding for supported non-`real` area computation
+- [x] orientation-independent polygon ring roles
+
+`PolygonView` assigns ring roles structurally:
+
+~~~text
+ring 0      exterior
+ring 1..n   holes
+~~~
+
+Area computation does not silently validate or normalise topology.
+
+### Point-in-polygon classification
+
+Completed:
+
+- [x] explicit outside / boundary / inside classification
+- [x] exact boundary detection
+- [x] even-odd classification
+- [x] orientation-independent behaviour
+- [x] deterministic behaviour for representable invalid geometry
+- [x] polygon-with-holes classification
 
-- common EPSG transformations tested;
-- round-trip numerical tests;
-- thread-safety behaviour documented;
-- native resource leaks tested.
+### Topology validation
 
-## `gdal-d`
+Completed:
 
-### Goal
+- [x] ring validation
+- [x] polygon validation
+- [x] structured validation results
+- [x] insufficient-cardinality detection
+- [x] non-finite-coordinate detection
+- [x] zero-length-edge detection
+- [x] self-intersection detection
+- [x] self-overlap detection
+- [x] inter-ring crossing and overlap detection
+- [x] ring-contact rules
+- [x] hole containment
+- [x] nested-hole detection
+- [x] connected-interior validation
 
-Provide a modern D interface to GDAL without mechanically reproducing the entire upstream API.
+Validation remains explicitly separate from representation and ordinary geometry algorithms.
 
-### Initial raster scope
+### Polyline simplification
 
-```text
-Dataset
-RasterBand
-DatasetInfo
-GeoTransform
-CRS metadata
-windowed reads
-resampling
-NoData
-overview access
-```
+Completed:
 
-Particular emphasis should be placed on efficient reading into caller-owned memory where GDAL permits it.
+- [x] Douglas-Peucker simplification
+- [x] iterative implementation
+- [x] caller-provided destination storage
+- [x] caller-provided workspace
+- [x] allocation-free simplification path
+- [x] no recursion
+- [x] deterministic tie-breaking
+- [x] ordered output subsequence
 
-### Later scope
+The current simplifier applies only to `PolylineView`.
 
-Vector support may be added if justified by real consumers.
+It deliberately does not claim topology preservation for rings or polygons.
 
-It should not be included merely for API completeness.
+## v0.1.0 release preparation
 
-### Quality gates
+Required before tagging the first public release:
 
-- deterministic handle ownership;
-- malformed/error-path tests;
-- GeoTIFF test fixtures;
-- windowed-I/O benchmarks;
-- large-raster tests;
-- no unnecessary intermediate copies in common workflows.
+### API and architecture
 
-# Phase 3 — Geospatial domain libraries
+- [x] ADR-0001 — scope and boundaries
+- [x] ADR-0002 — core type and scalar model
+- [x] ADR-0003 — variable-size geometry ownership and views
+- [x] ADR-0004 — numerical robustness
+- [x] ADR-0005 — segment intersection semantics
+- [x] ADR-0006 — segment intersection construction
+- [x] ADR-0007 — linear-ring representation and closure
+- [x] ADR-0008 — signed-area numerical semantics
+- [x] ADR-0009 — polygon representation and ring composition
+- [x] ADR-0010 — polygon-area semantics
+- [x] ADR-0011 — point-in-polygon semantics
+- [x] ADR-0012 — ring and polygon topology validation
+- [x] ADR-0013 — polyline simplification
 
-Once the lower layers have proven themselves in real use, higher-level geospatial packages may be added.
+### Repository documentation
 
-Primary candidates:
+- [ ] finalise repository-specific `README.md`
+- [ ] update technical documentation under `docs/`
+- [ ] finalise repository-specific `DESIGN_PRINCIPLES.md`
+- [ ] populate `CHANGELOG.md`
+- [ ] populate or deliberately remove empty `CONTRIBUTING.md`
+- [ ] document the actual minimum supported D frontend/compiler version
+- [ ] finalise DUB package metadata
 
-```text
-georef-d
-osm-d
-```
+### Release verification
 
+- [ ] verify minimum supported D frontend
+- [ ] encode the supported frontend requirement where appropriate
+- [ ] add minimum-version CI coverage if practical
+- [ ] pass current DMD tests
+- [ ] pass current LDC tests
+- [ ] pass LDC release build
+- [ ] pass external/public API compile probes
+- [ ] pass DIP1000 lifetime probes
+- [ ] run `git diff --check`
+- [ ] confirm clean repository state
+- [ ] run GitHub Actions successfully on the release commit
+- [ ] tag `v0.1.0`
 
-## `georef-d`
+## Post-v0.1 numerical work
 
-### Goal
+The following work is intentionally deferred unless it becomes necessary for the initial release.
 
-Provide compact and discrete geographic reference/coding systems without turning them into CRS or geometry abstractions.
+### Robust `real` topology
 
-### Initial candidates
+Investigate a platform-aware exact or certified arithmetic backend for:
 
-```text
-MGRS
-Geohash
-Open Location Code / Plus Codes
-```
+- orientation;
+- segment intersection;
+- other topology-sensitive predicates.
 
-MGRS may depend on the UTM implementation from `geodesy-d`. Geohash and Open Location Code should remain independent unless a real shared abstraction emerges.
+No public assumption may be made about the representation, precision, or layout of D `real`.
 
-### Important boundary
+### Polyline-length accumulation
 
-`georef-d` encodes or decodes geographic locations/references. It does not provide:
+Evaluate compensated accumulation techniques such as Neumaier or Kahan summation.
 
-- address geocoding;
-- a CRS/authority database;
-- map projection infrastructure beyond what is consumed from `geodesy-d`;
-- general Euclidean geometry.
+Evaluation should cover:
 
-No common `SpatialCode` interface should be introduced merely because several encodings live in the same package; common abstractions must be earned through real reuse.
+- long polylines;
+- heterogeneous segment lengths;
+- `double` metric results;
+- `real` metric results;
+- DMD performance;
+- LDC performance;
+- preservation of `pure`, `nothrow`, `@safe`, and `@nogc` where applicable.
 
-## `osm-d`
+A more complicated accumulation strategy should only replace sequential addition if measurements demonstrate a worthwhile numerical improvement.
 
-### Goal
+## Candidate future geometry
 
-Provide efficient reusable OpenStreetMap data and format support.
+These are possible future areas, not a committed version plan.
 
-### Initial scope
+### Bounds operations
 
-```text
-Node
-Way
-Relation
-Tag
-Member
-Object metadata
-```
+Potential additions include operations demonstrated by real consumers, such as:
 
-Formats:
+- bounds union;
+- bounds intersection;
+- extent and size queries;
+- geometry-to-bounds helpers.
 
-```text
-OSM XML
-OSM PBF
-```
+The API should preserve the established empty-bounds identities and NaN invariants.
 
-Later, if justified:
+### Clipping
 
-```text
-OSC
-OSM API interaction
-```
+Potential future work includes:
 
-### Performance objectives
+- segment clipping;
+- polyline clipping;
+- polygon clipping.
 
-Large OSM datasets should not require one independently heap-allocated class object per primitive.
+Polygon clipping should not be introduced without an explicit topology and robustness design.
 
-The design should investigate:
+### Topology-preserving simplification
 
-- compact storage;
-- streaming;
-- block-oriented processing;
-- dense-node decoding;
-- parallel decompression;
-- callback/sink APIs;
-- optional materialisation.
+Ring or polygon simplification requires semantics distinct from ordinary Douglas-Peucker polyline simplification.
 
-### Important boundary
+Any future API must define:
 
-`osm-d` must not become an editor framework.
+- validity preservation;
+- ring closure;
+- self-intersection prevention;
+- hole containment;
+- inter-ring relationships;
+- collapse behaviour;
+- degenerate output;
+- numerical predicate requirements.
 
-Excluded from the core library:
+It must not be presented as a trivial extension of the current polyline simplifier.
 
-- GUI;
-- rendering;
-- toolbars;
-- editing modes;
-- presets UI;
-- application state.
+### Additional geometric relationships
 
-Reusable OSM validation or editing primitives may become separate modules or libraries only when independent value has been demonstrated.
+Possible additions should be selected from concrete use cases and may include:
 
-# Phase 4 — Advanced reusable algorithms
+- point-to-ring relationships;
+- segment-to-polygon relationships;
+- geometry equality or equivalence operations;
+- other low-level Euclidean predicates.
 
-Some algorithms motivated by geospatial editing may eventually justify independent libraries.
+Approximate equality must not become a global replacement for exact value equality or robust topology predicates.
 
-Candidate:
+### Owning aggregate geometry
 
-```text
-smarttrace-d
-```
+Owning forms of polylines, rings, or polygons may be introduced if repeated consumers demonstrate that the library should provide them.
 
-This phase is intentionally conditional.
+Any owning type must preserve the current separation between:
 
-## `smarttrace-d`
+- storage ownership;
+- read-only views;
+- algorithms.
 
-### Admission requirement
+Views should remain usable independently of owning containers.
 
-The package should only be created if tracing functionality can be formulated as a genuinely reusable algorithmic library.
+## Performance and verification
 
-Possible general model:
+Performance work is expected where robust arithmetic or large geometry makes cost significant.
 
-```text
-cost field
-    +
-start
-    +
-target
-    +
-constraints
-        ↓
-candidate path
-        +
-confidence/evidence
-```
+Existing benchmark areas include:
 
-Potential components:
+- orientation and segment intersection;
+- exact intersection construction;
+- signed area;
+- exact-area arithmetic.
 
-```text
-A*
-Dijkstra
-Live Wire
-edge-derived cost fields
-curvature penalties
-multi-source cost fusion
-confidence estimation
-```
+Future optimisation must preserve numerical semantics unless a different contract is explicitly designed and documented.
 
-Raster-specific preprocessing may belong in `raster-d`.
+Useful verification techniques include:
 
-OSM-specific interpretation should remain outside the generic tracing core.
+- independent arithmetic oracles;
+- property testing;
+- permutation and reversal invariants;
+- degenerate-input tests;
+- full-range integral tests;
+- arbitrary finite floating-point bit patterns;
+- subnormal and extreme-value tests;
+- DMD/LDC cross-compiler verification.
 
-If the functionality remains specific to one editor, `smarttrace-d` should not be created.
+## Scope boundaries
 
-# Phase 5 — Maturity
+`geo-d` remains a Euclidean geometry library.
 
-Libraries approaching general public usefulness should graduate through explicit maturity levels.
+It does not own:
 
-Suggested informal states:
+- coordinate reference systems;
+- EPSG or other authority databases;
+- projection discovery;
+- map projections;
+- ellipsoidal geodesy;
+- geographic coordinate semantics;
+- raster processing;
+- spatial indexes;
+- geospatial file-format bindings.
 
-```text
-experimental
-development
-stable
-mature
-```
+Those concerns belong in separate libraries.
 
-These states are descriptive and independent of Semantic Versioning.
+## Development principle
 
-## Stable-library expectations
+The roadmap is intentionally conservative.
 
-A stable library should have:
+A smaller API with explicit semantics, robust numerical behaviour, predictable allocation, and strong verification is preferred over broad feature coverage.
 
-- documented public API;
-- clear ownership and error semantics;
-- Ddoc coverage;
-- realistic examples;
-- test suite;
-- regression tests;
-- representative benchmarks where performance matters;
-- CI for supported compilers;
-- changelog;
-- documented minimum compiler version;
-- semantic versioning;
-- migration notes for breaking releases.
-
-# Cross-library priorities
-
-## Safety
-
-Progressively increase useful:
-
-```text
-@safe
-const
-immutable
-scope
-return
-```
-
-coverage.
-
-Unsafe FFI and low-level memory code should remain small and reviewable.
-
-## Performance
-
-Maintain performance baselines before aggressive optimisation.
-
-Relevant metrics may include:
-
-```text
-latency
-throughput
-allocations
-memory usage
-scaling
-```
-
-## Fuzzing
-
-Prioritise fuzzing for:
-
-- file-format decoders;
-- binary parsers;
-- geometry edge cases;
-- raster dimensions and offsets;
-- native interoperability boundaries.
-
-## Documentation
-
-Architectural decisions should be recorded while the reasoning is still known.
-
-Do not rely on commit history to explain important design choices.
-
-## Real consumers
-
-Library APIs should be exercised by real programs.
-
-A demanding consuming application is valuable because it exposes:
-
-- awkward APIs;
-- hidden allocation;
-- ownership mistakes;
-- scaling problems;
-- missing abstractions.
-
-Application requirements may motivate libraries but must not dictate application-specific public APIs.
-
-# Things deliberately not planned
-
-`d-geospatial` currently does **not** aim to develop:
-
-- a GUI toolkit;
-- a general application framework;
-- a logging framework;
-- a dependency-injection system;
-- a new general-purpose multidimensional-array framework;
-- a replacement for GDAL;
-- a full replacement for PROJ's CRS/authority/grid infrastructure;
-- a general machine-learning framework;
-- a monolithic GIS SDK.
-
-If a mature external project solves the difficult part well, interoperability is preferred.
-
-# Near-term sequence
-
-The current intended sequence is:
-
-```text
-1. Shared foundation                         DONE
-       ↓
-2. geodesy-d architecture and core           CURRENT
-       ↓
-3. Verify geodetic core against references
-       ↓
-4. Extend geodesy-d only through validated operations
-       ↓
-5. Start geo-d / raster-d / spatial-d as concrete work justifies
-       ↓
-6. Add proj-d / gdal-d native integration
-       ↓
-7. Add georef-d and other domain libraries when their dependencies are stable
-```
-
-The first active library is therefore `geodesy-d`. Its first implementation milestone is deliberately limited to angle/coordinate/ellipsoid types and geodetic ↔ geocentric conversion.
-
-`geo-d`, `raster-d` and `spatial-d` remain first-wave libraries, but their exact order should be driven by concrete technical work rather than by this roadmap.
-
-# Success criterion
-
-`d-geospatial` succeeds if its libraries become useful **even to D developers who have no interest in the application that originally motivated them**.
-
-The intended result is not one large geospatial product.
-
-It is a set of independent D libraries that are individually worth using.
-
-### Helmert 7P architecture
-
-- [x] ADR-0003: explicit EPSG 1032/1033 rotation conventions
-- [x] EPSG 1033 Position Vector implementation
-- [x] EPSG 1032 Coordinate Frame implementation
-- [x] convention-equivalence reference tests
-- [x] initial PROJ differential validation harness
-
-
-### Validation expansion
-
-- [x] deterministic PROJ/cct cross-validation harness for EPSG 9602/1031/1032/1033
-- [x] broaden PROJ differential matrix with reproducible generated vectors
-- [ ] run validation in CI where PROJ is available
-- [ ] establish measured accuracy envelopes before v0.1
-
-
-### geodesy-d v0.1 baseline consolidation
-
-- [x] DMD/LDC GitHub Actions workflow defined
-- [x] separate PROJ extended-validation workflow defined
-- [x] explicit v0.1 readiness checklist
-- [x] resolve `Ellipsoid.init` semantics — invalid sentinel, ADR-0004
-- [x] public API audit — external compile contract + docs/API.md
-- [x] documentation audit — Ddoc + release-facing docs contract
-- [x] CHANGELOG.md and CONTRIBUTING.md added
-- [x] package minimum D frontend 2.111.0 declared in dub.sdl
-- [ ] observe remote CI green
-- [ ] tag v0.1.0
+After `v0.1.0`, the next feature should be selected by a concrete consumer requirement rather than simply by choosing the next conventional item from a geometry-library checklist.

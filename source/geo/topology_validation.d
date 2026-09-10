@@ -7,6 +7,10 @@ import geo.intersection :
     segmentIntersectionKind,
     trySegmentTouchPoint;
 
+import geo.internal.ring_point_classification :
+    RingPointLocation,
+    tryClassifyPointInRing;
+
 import geo.linear_ring_view :
     LinearRingView;
 
@@ -80,6 +84,8 @@ package(geo) enum PolygonValidationIssue : ubyte
     interRingCrossing,
     interRingOverlap,
     multipleRingContacts,
+    interiorRingOutsideExterior,
+    nestedInteriorRings,
 }
 
 
@@ -486,8 +492,10 @@ private struct RingPairContactResult
  * A proper crossing, positive-length overlap, or a second distinct touch
  * point is rejected.
  *
- * This helper does not yet decide whether one point contact is tangential
- * or locally crosses through a vertex.
+ * Because both inputs are already valid simple closed rings, a remaining
+ * single geometric point contact is topologically tangential. A side change
+ * through that point would require another boundary contact elsewhere on the
+ * closed ring.
  */
 private RingPairContactResult screenRingPairContacts(T)(
     scope LinearRingView!T firstRing,
@@ -602,9 +610,10 @@ if (isValidationScalar!T)
  *
  * This is still not the public polygon validator.
  *
- * A single inter-ring point contact remains only potentially valid.
- * Tangential-versus-crossing vertex topology, containment, and connected
- * interior are handled by later validation stages.
+ * A single inter-ring point contact is topologically tangential after the
+ * preceding simple-ring and pair-contact checks.
+ *
+ * Containment and connected interior are handled by later validation stages.
  */
 package(geo) PolygonValidationResult validatePolygonPairContacts(T)(
     scope PolygonView!T polygon
@@ -686,6 +695,224 @@ if (isValidationScalar!T)
             }
 
             return result;
+        }
+    }
+
+
+    return PolygonValidationResult.init;
+}
+
+
+/*
+ * Side of one already validated simple ring relative to another already
+ * validated simple ring.
+ *
+ * Preconditions:
+ *
+ * - both rings have passed validateRing();
+ * - their pair has passed screenRingPairContacts();
+ *
+ * Boundary vertices are skipped. With at most one geometric contact point,
+ * at least one stored vertex must remain strictly inside or outside the
+ * other ring.
+ *
+ * Because the boundaries do not cross, one such non-boundary vertex
+ * determines the side of the complete ring.
+ */
+private enum RingRelativeLocation : ubyte
+{
+    outside,
+    inside,
+}
+
+
+private RingRelativeLocation classifyRingRelativeToRing(T)(
+    scope LinearRingView!T subject,
+    scope LinearRingView!T reference
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    foreach (i; 0 .. subject.length)
+    {
+        RingPointLocation location;
+
+        const bool success =
+            tryClassifyPointInRing(
+                reference,
+                subject[i],
+                location
+            );
+
+        /*
+         * Both rings were already validated, so all coordinates are finite.
+         */
+        assert(success);
+
+        final switch (location)
+        {
+            case RingPointLocation.outside:
+                return RingRelativeLocation.outside;
+
+            case RingPointLocation.inside:
+                return RingRelativeLocation.inside;
+
+            case RingPointLocation.boundary:
+                break;
+        }
+    }
+
+    /*
+     * Valid simple rings that passed pair-contact screening cannot have
+     * every stored vertex on the other boundary.
+     */
+    assert(false);
+
+    return RingRelativeLocation.outside;
+}
+
+
+/*
+ * Validates ring topology, pairwise boundary contacts, and polygon ring
+ * containment.
+ *
+ * This is still package-internal. Connected-interior validation remains to
+ * be added before the public validatePolygon() API is exposed.
+ *
+ * Diagnostic index semantics added by this stage:
+ *
+ * interiorRingOutsideExterior:
+ *     ringIndex          = offending interior ring
+ *     secondaryRingIndex = exterior ring (0)
+ *
+ * nestedInteriorRings:
+ *     ringIndex          = contained interior ring
+ *     secondaryRingIndex = containing interior ring
+ */
+package(geo) PolygonValidationResult validatePolygonContainment(T)(
+    scope PolygonView!T polygon
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    const PolygonValidationResult contactResult =
+        validatePolygonPairContacts(
+            polygon
+        );
+
+    if (!contactResult.valid)
+        return contactResult;
+
+    if (polygon.empty)
+        return PolygonValidationResult.init;
+
+
+    auto exterior =
+        polygon.exterior;
+
+
+    /*
+     * Every interior ring must lie inside the exterior.
+     *
+     * A single boundary touch is permitted. classifyRingRelativeToRing()
+     * skips that boundary vertex and determines which side contains the
+     * remainder of the ring.
+     */
+    foreach (holeOffset; 0 .. polygon.holeCount)
+    {
+        const size_t holeIndex =
+            holeOffset + 1;
+
+        auto hole =
+            polygon[holeIndex];
+
+        if (
+            classifyRingRelativeToRing(
+                hole,
+                exterior
+            ) ==
+            RingRelativeLocation.outside
+        )
+        {
+            PolygonValidationResult result;
+
+            result.issue =
+                PolygonValidationIssue.interiorRingOutsideExterior;
+
+            result.ringIndex =
+                holeIndex;
+
+            result.secondaryRingIndex =
+                0;
+
+            return result;
+        }
+    }
+
+
+    /*
+     * Distinct interior rings may be disjoint or tangent at one point, but
+     * one interior ring may not contain another.
+     */
+    foreach (
+        firstHoleIndex;
+        1 .. polygon.length
+    )
+    {
+        auto firstHole =
+            polygon[firstHoleIndex];
+
+        foreach (
+            secondHoleIndex;
+            firstHoleIndex + 1 .. polygon.length
+        )
+        {
+            auto secondHole =
+                polygon[secondHoleIndex];
+
+            if (
+                classifyRingRelativeToRing(
+                    firstHole,
+                    secondHole
+                ) ==
+                RingRelativeLocation.inside
+            )
+            {
+                PolygonValidationResult result;
+
+                result.issue =
+                    PolygonValidationIssue.nestedInteriorRings;
+
+                result.ringIndex =
+                    firstHoleIndex;
+
+                result.secondaryRingIndex =
+                    secondHoleIndex;
+
+                return result;
+            }
+
+            if (
+                classifyRingRelativeToRing(
+                    secondHole,
+                    firstHole
+                ) ==
+                RingRelativeLocation.inside
+            )
+            {
+                PolygonValidationResult result;
+
+                result.issue =
+                    PolygonValidationIssue.nestedInteriorRings;
+
+                result.ringIndex =
+                    secondHoleIndex;
+
+                result.secondaryRingIndex =
+                    firstHoleIndex;
+
+                return result;
+            }
         }
     }
 
@@ -1513,6 +1740,364 @@ if (isValidationScalar!T)
         );
 
         assert(result.ringIndex == 0);
+        assert(result.secondaryRingIndex == 1);
+    }
+
+
+
+    /*
+     * A conventional contained interior ring passes containment.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[4] holePoints = [
+            CP(3.0, 3.0),
+            CP(7.0, 3.0),
+            CP(7.0, 7.0),
+            CP(3.0, 7.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR hole =
+            CR(holePoints[]);
+
+        CR[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        assert(
+            validatePolygonContainment(polygon).valid
+        );
+    }
+
+
+    /*
+     * A disjoint interior ring outside the exterior is invalid.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[4] outsidePoints = [
+            CP(20.0, 20.0),
+            CP(24.0, 20.0),
+            CP(24.0, 24.0),
+            CP(20.0, 24.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR outsideHole =
+            CR(outsidePoints[]);
+
+        CR[2] rings = [
+            exterior,
+            outsideHole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        const result =
+            validatePolygonContainment(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.interiorRingOutsideExterior
+        );
+
+        assert(result.ringIndex == 1);
+        assert(result.secondaryRingIndex == 0);
+    }
+
+
+    /*
+     * An interior ring may touch the exterior tangentially from the inside.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[3] holePoints = [
+            CP(0.0, 5.0),
+            CP(2.0, 4.0),
+            CP(2.0, 6.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR hole =
+            CR(holePoints[]);
+
+        CR[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        assert(
+            validatePolygonContainment(polygon).valid
+        );
+    }
+
+
+    /*
+     * Tangential contact from outside does not make an interior ring
+     * contained by the exterior.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[3] holePoints = [
+            CP(0.0, 5.0),
+            CP(-2.0, 4.0),
+            CP(-2.0, 6.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR hole =
+            CR(holePoints[]);
+
+        CR[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        const result =
+            validatePolygonContainment(polygon);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.interiorRingOutsideExterior
+        );
+
+        assert(result.ringIndex == 1);
+    }
+
+
+    /*
+     * Nested interior rings are invalid.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(20.0, 0.0),
+            CP(20.0, 20.0),
+            CP(0.0, 20.0)
+        ];
+
+        CP[4] outerHolePoints = [
+            CP(2.0, 2.0),
+            CP(8.0, 2.0),
+            CP(8.0, 8.0),
+            CP(2.0, 8.0)
+        ];
+
+        CP[4] innerHolePoints = [
+            CP(4.0, 4.0),
+            CP(6.0, 4.0),
+            CP(6.0, 6.0),
+            CP(4.0, 6.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR outerHole =
+            CR(outerHolePoints[]);
+
+        CR innerHole =
+            CR(innerHolePoints[]);
+
+        CR[3] rings = [
+            exterior,
+            outerHole,
+            innerHole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        const result =
+            validatePolygonContainment(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.nestedInteriorRings
+        );
+
+        assert(result.ringIndex == 2);
+        assert(result.secondaryRingIndex == 1);
+    }
+
+
+    /*
+     * Two interior rings may touch tangentially at one point when neither
+     * contains the other.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[4] firstHolePoints = [
+            CP(2.0, 2.0),
+            CP(4.0, 2.0),
+            CP(4.0, 4.0),
+            CP(2.0, 4.0)
+        ];
+
+        CP[4] secondHolePoints = [
+            CP(4.0, 4.0),
+            CP(6.0, 4.0),
+            CP(6.0, 6.0),
+            CP(4.0, 6.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR firstHole =
+            CR(firstHolePoints[]);
+
+        CR secondHole =
+            CR(secondHolePoints[]);
+
+        CR[3] rings = [
+            exterior,
+            firstHole,
+            secondHole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        assert(
+            validatePolygonContainment(polygon).valid
+        );
+    }
+
+
+    /*
+     * Tangentially nested interior rings remain invalid.
+     */
+    {
+        alias CP = Point2!double;
+        alias CR = LinearRingView!double;
+        alias CV = PolygonView!double;
+
+        CP[4] exteriorPoints = [
+            CP(0.0, 0.0),
+            CP(10.0, 0.0),
+            CP(10.0, 10.0),
+            CP(0.0, 10.0)
+        ];
+
+        CP[4] outerHolePoints = [
+            CP(2.0, 2.0),
+            CP(8.0, 2.0),
+            CP(8.0, 8.0),
+            CP(2.0, 8.0)
+        ];
+
+        CP[3] innerHolePoints = [
+            CP(2.0, 5.0),
+            CP(4.0, 4.0),
+            CP(4.0, 6.0)
+        ];
+
+        CR exterior =
+            CR(exteriorPoints[]);
+
+        CR outerHole =
+            CR(outerHolePoints[]);
+
+        CR innerHole =
+            CR(innerHolePoints[]);
+
+        CR[3] rings = [
+            exterior,
+            outerHole,
+            innerHole
+        ];
+
+        auto polygon =
+            CV(rings[]);
+
+        const result =
+            validatePolygonContainment(polygon);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.nestedInteriorRings
+        );
+
+        assert(result.ringIndex == 2);
         assert(result.secondaryRingIndex == 1);
     }
 

@@ -1,5 +1,9 @@
 module geo;
 
+public import geo.area :
+    AreaScalar,
+    signedArea;
+
 public import geo.bounds : Bounds2;
 public import geo.convert :
     ceiled,

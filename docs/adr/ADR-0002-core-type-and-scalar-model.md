@@ -1,6 +1,6 @@
 # ADR-0002 — Core type and scalar model
 
-**Status:** Proposed  
+**Status:** Accepted
 **Date:** 2026-09-09
 
 ## Context
@@ -397,8 +397,11 @@ When two geometry values have different scalar types, the caller chooses the com
 Conceptually:
 
 ```d
-auto p2 = p.to!double;
-auto v2 = v.to!double;
+Point2!double p2;
+Vector2!double v2;
+
+assert(p.tryConvert(p2));
+assert(v.tryConvert(v2));
 
 auto q = p2 + v2;
 ```
@@ -479,7 +482,7 @@ It allows natural accumulation:
 Bounds2!double bounds;
 
 foreach (p; points)
-    bounds.extend(p);
+    assert(bounds.tryExtend(p));
 ```
 
 with the conceptual transition:
@@ -522,8 +525,6 @@ empty extended by p     == Bounds2(p, p)
 empty extended by b     == b
 b extended by empty     == b
 
-union(empty, b)         == b
-union(b, empty)         == b
 ```
 
 All empty bounds of the same public type compare equal regardless of internal representation.
@@ -1086,9 +1087,9 @@ aggregate geometry storage
 
 The internal representation may evolve without changing the semantic contracts established here.
 
-## Follow-up
+## Implementation status
 
-After this ADR is accepted, implementation may begin for:
+The v0.1 core type model described by this ADR is implemented for:
 
 ```text
 Point2<T>
@@ -1097,7 +1098,7 @@ Bounds2<T>
 Segment2<T>
 ```
 
-and the minimal algebra required by this ADR.
+together with the algebra, checked conversion, bounds invariants, and scalar policies required by this ADR.
 
 Before topology-sensitive algorithms become stable API, ADR-0004 — Numerical robustness must be accepted.
 

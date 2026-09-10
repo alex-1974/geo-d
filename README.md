@@ -336,8 +336,15 @@ The package currently builds with DIP1000 enabled.
 
 DMD and LDC are the required compiler families.
 
-The exact minimum supported D frontend version will be verified and
-documented before the `v0.1.0` release.
+The minimum supported D frontend version is:
+
+~~~text
+2.111.0
+~~~
+
+This requirement applies to the D frontend used by supported compiler
+families. Newer frontend versions are covered by the current DMD and LDC CI
+targets.
 
 ## Installation
 

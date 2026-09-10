@@ -211,19 +211,19 @@ Required before tagging the first public release.
 
 ### Repository documentation
 
-- [ ] finalise repository-specific `README.md`
-- [ ] update technical documentation under `docs/`
+- [x] finalise repository-specific `README.md`
+- [x] update technical documentation under `docs/`
 - [ ] finalise repository-specific `DESIGN_PRINCIPLES.md`
-- [ ] populate `CHANGELOG.md`
-- [ ] populate or deliberately remove empty `CONTRIBUTING.md`
-- [ ] document the actual minimum supported D frontend/compiler version
-- [ ] finalise DUB package metadata
+- [x] populate `CHANGELOG.md`
+- [x] populate or deliberately remove empty `CONTRIBUTING.md`
+- [x] document the actual minimum supported D frontend/compiler version
+- [x] finalise DUB package metadata
 
 ### Release verification
 
-- [ ] verify minimum supported D frontend
-- [ ] encode the supported frontend requirement where appropriate
-- [ ] add minimum-version CI coverage if practical
+- [x] verify minimum supported D frontend
+- [x] encode the supported frontend requirement where appropriate
+- [x] add minimum-version CI coverage
 - [ ] pass current DMD tests
 - [ ] pass current LDC tests
 - [ ] pass LDC release build

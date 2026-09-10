@@ -100,6 +100,8 @@ Bug fixes should normally include a regression test.
 
 DMD and LDC are the required compiler families.
 
+The minimum supported D frontend version is `2.111.0`.
+
 Before submitting a change, run:
 
 ~~~sh

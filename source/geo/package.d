@@ -2,6 +2,7 @@ module geo;
 
 public import geo.area :
     AreaScalar,
+    polygonArea,
     signedArea;
 
 public import geo.bounds : Bounds2;

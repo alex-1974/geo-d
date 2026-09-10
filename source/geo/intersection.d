@@ -792,6 +792,77 @@ if (isIntersectionScalar!T)
 }
 
 
+/*
+ * Returns the exact contact point when two segments have SegmentContactKind.touch.
+ *
+ * A segment touch always occurs at at least one input endpoint:
+ *
+ * - shared endpoint;
+ * - T-junction;
+ * - collinear endpoint contact;
+ * - degenerate point-segment contact.
+ *
+ * The returned point therefore remains in the input scalar domain and no
+ * rounded construction is required.
+ */
+package(geo) bool trySegmentTouchPoint(T)(
+    Segment2!T first,
+    Segment2!T second,
+    out Point2!T point
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    static if (
+        is(T == float) ||
+        is(T == double)
+    )
+    {
+        assert(first.isFinite);
+        assert(second.isFinite);
+    }
+
+    if (
+        segmentContactKind(
+            first,
+            second
+        ) != SegmentContactKind.touch
+    )
+    {
+        return false;
+    }
+
+    if (pointOnSegment(first.a, second))
+    {
+        point = first.a;
+        return true;
+    }
+
+    if (pointOnSegment(first.b, second))
+    {
+        point = first.b;
+        return true;
+    }
+
+    if (pointOnSegment(second.a, first))
+    {
+        point = second.a;
+        return true;
+    }
+
+    if (pointOnSegment(second.b, first))
+    {
+        point = second.b;
+        return true;
+    }
+
+    /*
+     * Every touch classified by segmentContactKind is endpoint-based.
+     */
+    assert(false);
+}
+
+
 /**
  * Classifies the exact topological intersection of two closed segments.
  *
@@ -927,6 +998,119 @@ if (isIntersectionScalar!T)
         ) ==
         SegmentContactKind.touch
     );
+
+
+    /*
+     * Touch-point construction remains exact in the input scalar domain.
+     */
+    {
+        P point;
+
+        assert(
+            trySegmentTouchPoint(
+                S(P(0, 0), P(4, 0)),
+                S(P(4, 0), P(4, 4)),
+                point
+            )
+        );
+
+        assert(point == P(4, 0));
+    }
+
+
+    /*
+     * T-junction contact is an exact endpoint of one input segment.
+     */
+    {
+        P point;
+
+        assert(
+            trySegmentTouchPoint(
+                S(P(0, 0), P(4, 0)),
+                S(P(2, 0), P(2, 4)),
+                point
+            )
+        );
+
+        assert(point == P(2, 0));
+    }
+
+
+    /*
+     * Collinear endpoint contact remains exact.
+     */
+    {
+        P point;
+
+        assert(
+            trySegmentTouchPoint(
+                S(P(0, 0), P(4, 0)),
+                S(P(4, 0), P(8, 0)),
+                point
+            )
+        );
+
+        assert(point == P(4, 0));
+    }
+
+
+    /*
+     * Argument order does not change the geometric touch point.
+     */
+    {
+        P firstPoint;
+        P secondPoint;
+
+        assert(
+            trySegmentTouchPoint(
+                S(P(0, 0), P(4, 0)),
+                S(P(2, 0), P(2, 4)),
+                firstPoint
+            )
+        );
+
+        assert(
+            trySegmentTouchPoint(
+                S(P(2, 0), P(2, 4)),
+                S(P(0, 0), P(4, 0)),
+                secondPoint
+            )
+        );
+
+        assert(firstPoint == secondPoint);
+    }
+
+
+    /*
+     * Proper crossings deliberately have no input-domain touch point.
+     */
+    {
+        P point;
+
+        assert(
+            !trySegmentTouchPoint(
+                S(P(0, 0), P(4, 4)),
+                S(P(0, 4), P(4, 0)),
+                point
+            )
+        );
+    }
+
+
+    /*
+     * Positive-length overlaps are not single-point touches.
+     */
+    {
+        P point;
+
+        assert(
+            !trySegmentTouchPoint(
+                S(P(0, 0), P(4, 0)),
+                S(P(2, 0), P(6, 0)),
+                point
+            )
+        );
+    }
 
 
     /*

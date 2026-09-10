@@ -275,6 +275,210 @@ if (isGeoScalar!T)
 }
 
 
+/*
+ * Perpendicular distance from an offset vector r to the infinite line
+ * through the origin with direction d.
+ *
+ * Computes
+ *
+ *     |cross(d, r)| / |d|
+ *
+ * after scaling d and r independently by powers of two. This avoids
+ * directly forming potentially overflowing products.
+ *
+ * Preconditions:
+ *
+ *     dx, dy, rx and ry are finite;
+ *     d is non-zero.
+ */
+private MetricScalar!T perpendicularDistance(T)(
+    MetricScalar!T dx,
+    MetricScalar!T dy,
+    MetricScalar!T rx,
+    MetricScalar!T ry
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    const M absDx = dx < M(0) ? -dx : dx;
+    const M absDy = dy < M(0) ? -dy : dy;
+    const M absRx = rx < M(0) ? -rx : rx;
+    const M absRy = ry < M(0) ? -ry : ry;
+
+    const M maxD = absDx > absDy ? absDx : absDy;
+    const M maxR = absRx > absRy ? absRx : absRy;
+
+    assert(maxD > M(0));
+
+    if (maxR == M(0))
+        return M(0);
+
+    const int expD = ilogb(maxD);
+    const int expR = ilogb(maxR);
+
+    const M ndx = scalbn(dx, -expD);
+    const M ndy = scalbn(dy, -expD);
+
+    const M nrx = scalbn(rx, -expR);
+    const M nry = scalbn(ry, -expR);
+
+    const M cross =
+        ndx * nry - ndy * nrx;
+
+    const M absCross =
+        cross < M(0) ? -cross : cross;
+
+    const M normalizedDistance =
+        absCross / hypot(ndx, ndy);
+
+    return scalbn(
+        normalizedDistance,
+        expR
+    );
+}
+
+
+/**
+ * Computes the Euclidean distance from a point to a segment.
+ *
+ * Returns false when:
+ *
+ * - an input coordinate is NaN or infinite; or
+ * - a required metric difference cannot be represented finitely in
+ *   MetricScalar!T.
+ *
+ * On failure, result is zero.
+ *
+ * A degenerate segment is treated as its single endpoint.
+ *
+ * Integral coordinate differences are obtained before conversion to the
+ * metric computation type, avoiding signed overflow and preserving small
+ * differences between large integer coordinates.
+ *
+ * For an interior projection, the perpendicular distance is computed from
+ * scaled direction and offset vectors. No rounded nearest-point coordinate
+ * is constructed.
+ *
+ * This is a metric computation, not an exact topological predicate.
+ */
+bool tryPointSegmentDistance(T, R)(
+    Point2!T point,
+    Segment2!T segment,
+    out R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    alias M = MetricScalar!T;
+
+    result = M(0);
+
+    if (!point.isFinite || !segment.isFinite)
+        return false;
+
+    const M dx =
+        signedMetricDifference(
+            segment.b.x,
+            segment.a.x
+        );
+
+    const M dy =
+        signedMetricDifference(
+            segment.b.y,
+            segment.a.y
+        );
+
+    const M rx =
+        signedMetricDifference(
+            point.x,
+            segment.a.x
+        );
+
+    const M ry =
+        signedMetricDifference(
+            point.y,
+            segment.a.y
+        );
+
+    if (
+        !isFinite(dx) ||
+        !isFinite(dy) ||
+        !isFinite(rx) ||
+        !isFinite(ry)
+    )
+    {
+        return false;
+    }
+
+    /*
+     * Degenerate segment.
+     */
+    if (dx == M(0) && dy == M(0))
+    {
+        result = hypot(rx, ry);
+        return isFinite(result);
+    }
+
+    const M t =
+        projectionParameter!T(
+            dx,
+            dy,
+            rx,
+            ry
+        );
+
+    /*
+     * Infinite projection parameters still determine an endpoint.
+     * NaN reaches the explicit finite check below.
+     */
+    if (t <= M(0))
+    {
+        result = hypot(rx, ry);
+        return isFinite(result);
+    }
+
+    if (t >= M(1))
+    {
+        const M bx =
+            signedMetricDifference(
+                point.x,
+                segment.b.x
+            );
+
+        const M by =
+            signedMetricDifference(
+                point.y,
+                segment.b.y
+            );
+
+        if (!isFinite(bx) || !isFinite(by))
+            return false;
+
+        result = hypot(bx, by);
+        return isFinite(result);
+    }
+
+    if (!isFinite(t))
+        return false;
+
+    result =
+        perpendicularDistance!T(
+            dx,
+            dy,
+            rx,
+            ry
+        );
+
+    return isFinite(result);
+}
+
+
+
 /**
  * Finds the nearest point on a segment to a point.
  *
@@ -510,6 +714,169 @@ if (isGeoScalar!T)
             long.max
         ) < 0.0
     );
+
+
+    /*
+     * Point-to-segment distance.
+     */
+    {
+        alias PD = Point2!double;
+        alias SD = Segment2!double;
+
+        MetricScalar!double d;
+
+        assert(
+            tryPointSegmentDistance(
+                PD(5.0, 3.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(10.0, 0.0)
+                ),
+                d
+            )
+        );
+        assert(d == 3.0);
+
+        /*
+         * Projection before the first endpoint.
+         */
+        assert(
+            tryPointSegmentDistance(
+                PD(-3.0, 4.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(10.0, 0.0)
+                ),
+                d
+            )
+        );
+        assert(d == 5.0);
+
+        /*
+         * Projection beyond the second endpoint.
+         */
+        assert(
+            tryPointSegmentDistance(
+                PD(13.0, 4.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(10.0, 0.0)
+                ),
+                d
+            )
+        );
+        assert(d == 5.0);
+
+        /*
+         * Degenerate segment behaves as a point.
+         */
+        assert(
+            tryPointSegmentDistance(
+                PD(4.0, 6.0),
+                SD(
+                    PD(1.0, 2.0),
+                    PD(1.0, 2.0)
+                ),
+                d
+            )
+        );
+        assert(d == 5.0);
+    }
+
+
+    /*
+     * Large integral coordinates retain small geometric differences.
+     */
+    {
+        alias PL = Point2!long;
+        alias SL = Segment2!long;
+
+        double d;
+
+        assert(
+            tryPointSegmentDistance(
+                PL(long.max - 1, 1),
+                SL(
+                    PL(long.max - 2, 0),
+                    PL(long.max, 0)
+                ),
+                d
+            )
+        );
+        assert(d == 1.0);
+
+        /*
+         * The baseline spans almost the complete signed-long domain.
+         */
+        assert(
+            tryPointSegmentDistance(
+                PL(0, 1),
+                SL(
+                    PL(long.min, 0),
+                    PL(long.max, 0)
+                ),
+                d
+            )
+        );
+        assert(d == 1.0);
+    }
+
+
+    /*
+     * Non-finite geometry is rejected.
+     */
+    {
+        alias PD = Point2!double;
+        alias SD = Segment2!double;
+
+        double d = 123.0;
+
+        assert(
+            !tryPointSegmentDistance(
+                PD(double.nan, 0.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(1.0, 0.0)
+                ),
+                d
+            )
+        );
+
+        assert(d == 0.0);
+    }
+
+
+    /*
+     * Point-to-segment distance follows MetricScalar.
+     */
+    static assert(
+        is(
+            typeof({
+                double value;
+                tryPointSegmentDistance(
+                    Point2!int.init,
+                    Segment2!int.init,
+                    value
+                );
+                return value;
+            }()) == double
+        )
+    );
+
+    static assert(
+        is(
+            typeof({
+                real value;
+                tryPointSegmentDistance(
+                    Point2!real.init,
+                    Segment2!real.init,
+                    value
+                );
+                return value;
+            }()) == real
+        )
+    );
+
 
 
     /*

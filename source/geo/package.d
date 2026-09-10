@@ -32,7 +32,8 @@ public import geo.metric :
     polylineLength,
     segmentLength,
     squaredDistance,
-    tryNearestPoint;
+    tryNearestPoint,
+    tryPointSegmentDistance;
 
 public import geo.orientation :
     Orientation,

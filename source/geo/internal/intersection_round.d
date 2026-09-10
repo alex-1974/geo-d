@@ -2,8 +2,7 @@ module geo.internal.intersection_round;
 
 import geo.internal.fixed_uint :
     UIntFixed,
-    compareUnsigned,
-    subtractUnsigned;
+    compareUnsigned;
 
 import geo.internal.intersection_exact :
     IntersectionNumeratorMagnitude,
@@ -169,6 +168,260 @@ private IntersectionNumeratorMagnitude doubled(
 
 
 /*
+ * Returns the least-significant non-zero denominator limb.
+ *
+ * Returns dyadicProductLimbs for zero.
+ */
+private size_t firstNonZeroDenominatorLimb(
+    ref const DyadicProductMagnitude denominator
+)
+    pure nothrow @safe @nogc
+{
+    foreach (i; 0 .. dyadicProductLimbs)
+    {
+        if (denominator.limb[i] != 0)
+            return i;
+    }
+
+    return dyadicProductLimbs;
+}
+
+
+/*
+ * Returns one past the most-significant non-zero numerator limb.
+ *
+ * Returns zero for zero.
+ */
+private size_t pastLastNonZeroNumeratorLimb(
+    ref const IntersectionNumeratorMagnitude value
+)
+    pure nothrow @safe @nogc
+{
+    for (
+        size_t i = intersectionNumeratorLimbs;
+        i != 0;
+        --i
+    )
+    {
+        if (value.limb[i - 1] != 0)
+            return i;
+    }
+
+    return 0;
+}
+
+
+/*
+ * Reads one limb of:
+ *
+ *     denominator << shift
+ *
+ * without materialising the shifted integer.
+ */
+private uint shiftedDenominatorWord(
+    ref const DyadicProductMagnitude denominator,
+    size_t wordShift,
+    uint bitShift,
+    size_t target
+)
+    pure nothrow @safe @nogc
+{
+    if (target < wordShift)
+        return 0;
+
+    const size_t source =
+        target - wordShift;
+
+    uint result = 0;
+
+    if (source < dyadicProductLimbs)
+    {
+        result =
+            cast(uint)(
+                cast(ulong)
+                    denominator.limb[source]
+                << bitShift
+            );
+    }
+
+    if (
+        bitShift != 0 &&
+        source != 0 &&
+        source - 1 < dyadicProductLimbs
+    )
+    {
+        result |=
+            denominator.limb[source - 1] >>
+            (32 - bitShift);
+    }
+
+    return result;
+}
+
+
+/*
+ * Compares value with:
+ *
+ *     denominator << shift
+ *
+ * without materialising the shifted denominator.
+ */
+private int compareShiftedDenominator(
+    ref const IntersectionNumeratorMagnitude value,
+    size_t valueEnd,
+    ref const DyadicProductMagnitude denominator,
+    size_t denominatorBits,
+    size_t shift
+)
+    pure nothrow @safe @nogc
+{
+    const size_t shiftedBits =
+        denominatorBits + shift;
+
+    const size_t denominatorEnd =
+        (shiftedBits + 31) / 32;
+
+    if (valueEnd < denominatorEnd)
+        return -1;
+
+    if (valueEnd > denominatorEnd)
+        return 1;
+
+    const size_t wordShift =
+        shift / 32;
+
+    const uint bitShift =
+        cast(uint)(shift % 32);
+
+    for (size_t i = valueEnd; i != 0; --i)
+    {
+        const size_t index =
+            i - 1;
+
+        const uint lhs =
+            value.limb[index];
+
+        const uint rhs =
+            shiftedDenominatorWord(
+                denominator,
+                wordShift,
+                bitShift,
+                index
+            );
+
+        if (lhs < rhs)
+            return -1;
+
+        if (lhs > rhs)
+            return 1;
+    }
+
+    return 0;
+}
+
+
+/*
+ * Subtracts:
+ *
+ *     denominator << shift
+ *
+ * from value in place.
+ *
+ * The caller guarantees that value is not smaller than the shifted
+ * denominator. Returns the updated active upper limb bound.
+ */
+private size_t subtractShiftedDenominator(
+    ref IntersectionNumeratorMagnitude value,
+    size_t valueEnd,
+    ref const DyadicProductMagnitude denominator,
+    size_t denominatorFirst,
+    size_t denominatorBits,
+    size_t shift
+)
+    pure nothrow @safe @nogc
+{
+    const size_t wordShift =
+        shift / 32;
+
+    const uint bitShift =
+        cast(uint)(shift % 32);
+
+    const size_t shiftedBits =
+        denominatorBits + shift;
+
+    const size_t denominatorEnd =
+        (shiftedBits + 31) / 32;
+
+    size_t index =
+        denominatorFirst + wordShift;
+
+    uint borrow = 0;
+
+    for (; index < denominatorEnd; ++index)
+    {
+        const ulong lhs =
+            value.limb[index];
+
+        const ulong rhs =
+            cast(ulong)
+                shiftedDenominatorWord(
+                    denominator,
+                    wordShift,
+                    bitShift,
+                    index
+                )
+            + borrow;
+
+        if (lhs >= rhs)
+        {
+            value.limb[index] =
+                cast(uint)(lhs - rhs);
+
+            borrow = 0;
+        }
+        else
+        {
+            value.limb[index] =
+                cast(uint)(
+                    (1UL << 32) +
+                    lhs -
+                    rhs
+                );
+
+            borrow = 1;
+        }
+    }
+
+    while (borrow != 0)
+    {
+        assert(index < valueEnd);
+
+        if (value.limb[index] != 0)
+        {
+            --value.limb[index];
+            borrow = 0;
+        }
+        else
+        {
+            value.limb[index] =
+                uint.max;
+            ++index;
+        }
+    }
+
+    while (
+        valueEnd != 0 &&
+        value.limb[valueEnd - 1] == 0
+    )
+    {
+        --valueEnd;
+    }
+
+    return valueEnd;
+}
+
+
+/*
  * Computes:
  *
  *     round(
@@ -194,6 +447,28 @@ private ulong roundedQuotient(
 
     ulong quotient = 0;
 
+    size_t remainderEnd =
+        pastLastNonZeroNumeratorLimb(
+            remainder
+        );
+
+    const size_t denominatorFirst =
+        firstNonZeroDenominatorLimb(
+            denominator
+        );
+
+    const size_t denominatorBits =
+        bitLength(
+            denominator
+        );
+
+    assert(
+        denominatorFirst <
+        dyadicProductLimbs
+    );
+
+    assert(denominatorBits != 0);
+
 
     /*
      * Only the 53 binary64 significand bits can contribute to the
@@ -201,24 +476,28 @@ private ulong roundedQuotient(
      */
     for (int bit = 52; bit >= 0; --bit)
     {
-        const auto divisor =
-            shiftedDenominator(
-                denominator,
-                denominatorShift +
-                    cast(size_t) bit
-            );
+        const size_t shift =
+            denominatorShift +
+            cast(size_t) bit;
 
         if (
-            compareUnsigned(
+            compareShiftedDenominator(
                 remainder,
-                divisor
+                remainderEnd,
+                denominator,
+                denominatorBits,
+                shift
             ) >= 0
         )
         {
-            remainder =
-                subtractUnsigned(
+            remainderEnd =
+                subtractShiftedDenominator(
                     remainder,
-                    divisor
+                    remainderEnd,
+                    denominator,
+                    denominatorFirst,
+                    denominatorBits,
+                    shift
                 );
 
             quotient |=

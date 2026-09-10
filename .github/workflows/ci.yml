@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dmd:
+    name: DMD tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install DMD
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: dmd
+
+      - name: Run unit tests
+        run: dub test --compiler=dmd --force
+
+  ldc:
+    name: LDC tests and release build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install LDC
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc
+
+      - name: Run unit tests
+        run: dub test --compiler=ldc2 --force
+
+      - name: Build release configuration
+        run: dub build --build=release --compiler=ldc2 --force

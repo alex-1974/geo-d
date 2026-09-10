@@ -14,6 +14,7 @@ public import geo.convert :
 
 public import geo.linear_ring_view : LinearRingView;
 public import geo.point : Point2;
+public import geo.polygon_view : PolygonView;
 public import geo.polyline_view : PolylineView;
 public import geo.scalar : isGeoScalar;
 public import geo.vector : Vector2;

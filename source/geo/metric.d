@@ -1,5 +1,7 @@
 module geo.metric;
 
+import geo.polyline_view : PolylineView;
+
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
@@ -406,6 +408,36 @@ if (isGeoScalar!T)
 }
 
 
+/**
+ * Euclidean length of a polyline.
+ *
+ * The result is the sum of the lengths of all consecutive segments in
+ * stored point order.
+ *
+ * Empty and singleton polylines have length zero.
+ *
+ * Uses the same MetricScalar policy as segmentLength().
+ *
+ * No allocation or point copying is performed.
+ */
+MetricScalar!T polylineLength(T)(PolylineView!T polyline)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    MetricScalar!T result = 0;
+
+    foreach (i; 0 .. polyline.segmentCount)
+    {
+        result +=
+            segmentLength(
+                polyline.segment(i)
+            );
+    }
+
+    return result;
+}
+
+
 @safe unittest
 {
     /*
@@ -807,5 +839,88 @@ if (isGeoScalar!T)
             )) == real)
         );
     }
+
+
+    /*
+     * Polyline length is the sum of consecutive segment lengths.
+     */
+    {
+        import geo.polyline_view : PolylineView;
+
+        alias PP = Point2!double;
+
+        PP[3] points = [
+            PP(0.0, 0.0),
+            PP(3.0, 4.0),
+            PP(6.0, 8.0)
+        ];
+
+        auto polyline =
+            PolylineView!double(points[]);
+
+        assert(polyline.segmentCount == 2);
+        assert(polylineLength(polyline) == 10.0);
+    }
+
+
+    /*
+     * Empty and singleton polylines have zero length.
+     */
+    {
+        import geo.polyline_view : PolylineView;
+
+        Point2!int[] emptyPoints;
+
+        auto empty =
+            PolylineView!int(emptyPoints);
+
+        assert(polylineLength(empty) == 0.0);
+
+        Point2!int[1] singletonPoints = [
+            Point2!int(7, -3)
+        ];
+
+        auto singleton =
+            PolylineView!int(
+                singletonPoints[]
+            );
+
+        assert(polylineLength(singleton) == 0.0);
+    }
+
+
+    /*
+     * Polyline metric result types follow the existing MetricScalar
+     * policy.
+     */
+    static assert(
+        is(typeof(polylineLength(
+            PolylineView!int.init
+        )) == double)
+    );
+
+    static assert(
+        is(typeof(polylineLength(
+            PolylineView!long.init
+        )) == double)
+    );
+
+    static assert(
+        is(typeof(polylineLength(
+            PolylineView!float.init
+        )) == double)
+    );
+
+    static assert(
+        is(typeof(polylineLength(
+            PolylineView!double.init
+        )) == double)
+    );
+
+    static assert(
+        is(typeof(polylineLength(
+            PolylineView!real.init
+        )) == real)
+    );
 
 }

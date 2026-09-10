@@ -18,6 +18,7 @@ public import geo.segment : Segment2;
 public import geo.metric :
     MetricScalar,
     distance,
+    polylineLength,
     segmentLength,
     squaredDistance,
     tryNearestPoint;

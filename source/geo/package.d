@@ -45,6 +45,9 @@ public import geo.intersection :
     trySegmentIntersectionPoint;
 
 public import geo.topology_validation :
+    PolygonValidationIssue,
+    PolygonValidationResult,
     RingValidationIssue,
     RingValidationResult,
+    validatePolygon,
     validateRing;

@@ -73,13 +73,10 @@ struct RingValidationResult
 }
 
 
-/*
- * Package-internal polygon validation state.
- *
- * These types remain internal until full polygon topology validation is
- * implemented. They must not yet be exported through geo.package.
+/**
+ * Validation issue detected in a PolygonView.
  */
-package(geo) enum PolygonValidationIssue : ubyte
+enum PolygonValidationIssue : ubyte
 {
     none,
     invalidExteriorRing,
@@ -93,12 +90,33 @@ package(geo) enum PolygonValidationIssue : ubyte
 }
 
 
-package(geo) struct PolygonValidationResult
+/**
+ * Result of validating one PolygonView.
+ *
+ * Polygon ring index 0 denotes the exterior ring. Indices 1 and greater
+ * denote interior rings in their stored PolygonView order.
+ *
+ * size_t.max denotes an index that does not apply to the reported issue.
+ *
+ * For invalidExteriorRing and invalidInteriorRing, ringResult contains the
+ * corresponding detailed ring diagnostic.
+ *
+ * For inter-ring topology errors, primaryRingIndex and secondaryRingIndex
+ * identify the involved rings. primaryEdgeIndex and secondaryEdgeIndex are
+ * populated when a particular segment pair identifies the error.
+ *
+ * For interiorRingOutsideExterior, primaryRingIndex identifies the offending
+ * interior ring and secondaryRingIndex is 0.
+ *
+ * For nestedInteriorRings, primaryRingIndex identifies the contained interior
+ * ring and secondaryRingIndex identifies the containing interior ring.
+ */
+struct PolygonValidationResult
 {
     PolygonValidationIssue issue =
         PolygonValidationIssue.none;
 
-    size_t ringIndex =
+    size_t primaryRingIndex =
         size_t.max;
 
     RingValidationResult ringResult =
@@ -114,6 +132,9 @@ package(geo) struct PolygonValidationResult
         size_t.max;
 
 
+    /**
+     * True when no validation issue was detected.
+     */
     @property bool valid() const
         pure nothrow @safe @nogc
     {
@@ -664,7 +685,7 @@ if (isValidationScalar!T)
 
             PolygonValidationResult result;
 
-            result.ringIndex =
+            result.primaryRingIndex =
                 firstRingIndex;
 
             result.secondaryRingIndex =
@@ -786,11 +807,11 @@ if (isValidationScalar!T)
  * Diagnostic index semantics added by this stage:
  *
  * interiorRingOutsideExterior:
- *     ringIndex          = offending interior ring
+ *     primaryRingIndex   = offending interior ring
  *     secondaryRingIndex = exterior ring (0)
  *
  * nestedInteriorRings:
- *     ringIndex          = contained interior ring
+ *     primaryRingIndex   = contained interior ring
  *     secondaryRingIndex = containing interior ring
  */
 package(geo) PolygonValidationResult validatePolygonContainment(T)(
@@ -843,7 +864,7 @@ if (isValidationScalar!T)
             result.issue =
                 PolygonValidationIssue.interiorRingOutsideExterior;
 
-            result.ringIndex =
+            result.primaryRingIndex =
                 holeIndex;
 
             result.secondaryRingIndex =
@@ -887,7 +908,7 @@ if (isValidationScalar!T)
                 result.issue =
                     PolygonValidationIssue.nestedInteriorRings;
 
-                result.ringIndex =
+                result.primaryRingIndex =
                     firstHoleIndex;
 
                 result.secondaryRingIndex =
@@ -909,7 +930,7 @@ if (isValidationScalar!T)
                 result.issue =
                     PolygonValidationIssue.nestedInteriorRings;
 
-                result.ringIndex =
+                result.primaryRingIndex =
                     secondHoleIndex;
 
                 result.secondaryRingIndex =
@@ -1361,7 +1382,7 @@ if (isValidationScalar!T)
                     result.issue =
                         PolygonValidationIssue.disconnectedInterior;
 
-                    result.ringIndex =
+                    result.primaryRingIndex =
                         contact.firstRingIndex;
 
                     result.secondaryRingIndex =
@@ -1379,6 +1400,49 @@ if (isValidationScalar!T)
 
 
     return PolygonValidationResult.init;
+}
+
+
+/**
+ * Validates one PolygonView for polygon topology.
+ *
+ * A valid polygon:
+ *
+ * - is empty, or has a valid simple exterior ring;
+ * - contains only valid simple interior rings;
+ * - has no inter-ring crossing or positive-length boundary overlap;
+ * - allows at most one geometric contact point between each ring pair;
+ * - contains every interior ring within the exterior ring;
+ * - contains no nested interior rings;
+ * - has connected polygon interior.
+ *
+ * A single tangential contact between different rings is permitted when the
+ * remaining polygon topology is valid. Several rings may meet at the same
+ * geometric point when this does not disconnect the polygon interior.
+ *
+ * Ring orientation does not affect validity.
+ *
+ * Validation is exact for topology. No epsilon or rounded intersection
+ * coordinate is used.
+ *
+ * An empty PolygonView is valid.
+ *
+ * The first detected issue is returned deterministically.
+ *
+ * Supported scalar types are int, long, float, and double.
+ *
+ * This operation may allocate temporary storage while checking connected
+ * polygon interior and therefore does not promise @nogc.
+ */
+PolygonValidationResult validatePolygon(T)(
+    scope PolygonView!T polygon
+)
+    pure nothrow @safe
+if (isValidationScalar!T)
+{
+    return validatePolygonConnectedInterior(
+        polygon
+    );
 }
 
 
@@ -1802,7 +1866,7 @@ if (isValidationScalar!T)
         );
 
         assert(
-            result.ringIndex ==
+            result.primaryRingIndex ==
             size_t.max
         );
 
@@ -1880,7 +1944,7 @@ if (isValidationScalar!T)
         );
 
         assert(
-            result.ringIndex ==
+            result.primaryRingIndex ==
             0
         );
 
@@ -1945,7 +2009,7 @@ if (isValidationScalar!T)
         );
 
         assert(
-            result.ringIndex ==
+            result.primaryRingIndex ==
             2
         );
 
@@ -2051,7 +2115,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.interRingCrossing
         );
 
-        assert(result.ringIndex == 0);
+        assert(result.primaryRingIndex == 0);
         assert(result.secondaryRingIndex == 1);
 
         assert(result.primaryEdgeIndex != size_t.max);
@@ -2106,7 +2170,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.interRingOverlap
         );
 
-        assert(result.ringIndex == 0);
+        assert(result.primaryRingIndex == 0);
         assert(result.secondaryRingIndex == 1);
     }
 
@@ -2200,7 +2264,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.multipleRingContacts
         );
 
-        assert(result.ringIndex == 0);
+        assert(result.primaryRingIndex == 0);
         assert(result.secondaryRingIndex == 1);
     }
 
@@ -2294,7 +2358,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.interiorRingOutsideExterior
         );
 
-        assert(result.ringIndex == 1);
+        assert(result.primaryRingIndex == 1);
         assert(result.secondaryRingIndex == 0);
     }
 
@@ -2384,7 +2448,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.interiorRingOutsideExterior
         );
 
-        assert(result.ringIndex == 1);
+        assert(result.primaryRingIndex == 1);
     }
 
 
@@ -2445,7 +2509,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.nestedInteriorRings
         );
 
-        assert(result.ringIndex == 2);
+        assert(result.primaryRingIndex == 2);
         assert(result.secondaryRingIndex == 1);
     }
 
@@ -2558,7 +2622,7 @@ if (isValidationScalar!T)
             PolygonValidationIssue.nestedInteriorRings
         );
 
-        assert(result.ringIndex == 2);
+        assert(result.primaryRingIndex == 2);
         assert(result.secondaryRingIndex == 1);
     }
 
@@ -2800,5 +2864,190 @@ if (isValidationScalar!T)
             ).valid
         );
     }
+
+
+
+    /*
+     * Public polygon validation result initialization contains no applicable
+     * diagnostic indices.
+     */
+    {
+        const result =
+            PolygonValidationResult.init;
+
+        assert(result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.none
+        );
+
+        assert(
+            result.primaryRingIndex ==
+            size_t.max
+        );
+
+        assert(
+            result.secondaryRingIndex ==
+            size_t.max
+        );
+
+        assert(
+            result.primaryEdgeIndex ==
+            size_t.max
+        );
+
+        assert(
+            result.secondaryEdgeIndex ==
+            size_t.max
+        );
+
+        assert(result.ringResult.valid);
+    }
+
+
+    /*
+     * The public entry point propagates detailed exterior-ring diagnostics.
+     */
+    {
+        alias AP = Point2!double;
+        alias AR = LinearRingView!double;
+        alias AV = PolygonView!double;
+
+        AP[4] points = [
+            AP(0.0, 0.0),
+            AP(4.0, 4.0),
+            AP(0.0, 4.0),
+            AP(4.0, 0.0)
+        ];
+
+        AR exterior =
+            AR(points[]);
+
+        AR[1] rings = [
+            exterior
+        ];
+
+        auto polygon =
+            AV(rings[]);
+
+        const result =
+            validatePolygon(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.invalidExteriorRing
+        );
+
+        assert(result.primaryRingIndex == 0);
+
+        assert(
+            result.ringResult.issue ==
+            RingValidationIssue.selfIntersection
+        );
+
+        assert(result.ringResult.primaryIndex == 0);
+        assert(result.ringResult.secondaryIndex == 2);
+    }
+
+
+    /*
+     * The public entry point reaches connected-interior validation rather
+     * than stopping after ring and containment checks.
+     */
+    {
+        alias AP = Point2!double;
+        alias AR = LinearRingView!double;
+        alias AV = PolygonView!double;
+
+        AP[4] exteriorPoints = [
+            AP(0.0, 0.0),
+            AP(10.0, 0.0),
+            AP(10.0, 10.0),
+            AP(0.0, 10.0)
+        ];
+
+        AP[3] firstHolePoints = [
+            AP(0.0, 5.0),
+            AP(5.0, 5.0),
+            AP(2.0, 7.0)
+        ];
+
+        AP[3] secondHolePoints = [
+            AP(10.0, 5.0),
+            AP(8.0, 7.0),
+            AP(5.0, 5.0)
+        ];
+
+        AR exterior =
+            AR(exteriorPoints[]);
+
+        AR firstHole =
+            AR(firstHolePoints[]);
+
+        AR secondHole =
+            AR(secondHolePoints[]);
+
+        AR[3] rings = [
+            exterior,
+            firstHole,
+            secondHole
+        ];
+
+        auto polygon =
+            AV(rings[]);
+
+        const result =
+            validatePolygon(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.disconnectedInterior
+        );
+    }
+
+
+    /*
+     * Public polygon validation supports the deliberate scalar domain and
+     * continues to defer real.
+     */
+    static assert(
+        __traits(
+            compiles,
+            validatePolygon!int
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            validatePolygon!long
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            validatePolygon!float
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            validatePolygon!double
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            validatePolygon!real
+        )
+    );
 
 }

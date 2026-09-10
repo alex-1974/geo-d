@@ -1,6 +1,6 @@
 # ADR-0003: Variable-size geometry ownership and views
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-10
 
 ## Context
@@ -77,6 +77,14 @@ The caller retains ownership of that storage.
 D lifetime annotations such as scope and return shall be used where
 they correctly strengthen this contract and are supported by the
 required compilers.
+
+The geo-d build enables `-preview=dip1000` so that these escape
+relationships are compiler-enforced rather than merely documentary.
+
+The initial `PolylineView` lifetime model was verified with both DMD
+and LDC: a local backing array may be viewed within its lifetime, while
+returning a view that refers to local stack storage is rejected in
+`@safe` code.
 
 Such annotations must be verified with DMD and LDC before being treated
 as part of the public safety contract.

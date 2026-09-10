@@ -139,3 +139,20 @@ The next geometry primitive is intentionally not fixed by this status
 document. It should be selected from the remaining `geo-d` roadmap
 according to a concrete consumer need rather than by extending the
 geometry model speculatively.
+
+### Open numerical follow-up: polyline length accumulation
+
+`polylineLength()` currently accumulates consecutive segment lengths using
+ordinary sequential addition in `MetricScalar!T`.
+
+Before treating this accumulation strategy as final for long polylines,
+evaluate compensated summation, in particular Neumaier or Kahan
+summation, with respect to:
+
+- accumulated rounding error for long and heterogeneous segment sequences;
+- behaviour for `double` and `real` metric results;
+- runtime cost under DMD and LDC;
+- preservation of `pure`, `nothrow`, `@safe` and `@nogc`.
+
+The current implementation is intentionally simple; compensated summation
+is a tracked numerical follow-up rather than a forgotten optimisation.

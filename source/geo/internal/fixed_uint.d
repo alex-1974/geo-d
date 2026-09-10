@@ -85,14 +85,30 @@ UIntFixed!Limbs addUnsigned(size_t Limbs)(
 )
     pure nothrow @safe @nogc
 {
-    UIntFixed!Limbs result;
+    /*
+     * Begin with lhs verbatim and touch only the active span of rhs.
+     *
+     * This avoids traversing large zero ranges in fixed-width values such
+     * as exact dyadic products.
+     */
+    UIntFixed!Limbs result =
+        lhs;
+
+    const size_t rhsFirst =
+        firstNonZeroLimb(rhs);
+
+    if (rhsFirst == Limbs)
+        return result;
+
+    const size_t rhsEnd =
+        pastLastNonZeroLimb(rhs);
 
     ulong carry = 0;
 
-    foreach (index; 0 .. Limbs)
+    foreach (index; rhsFirst .. rhsEnd)
     {
         const ulong sum =
-            cast(ulong) lhs.limb[index] +
+            cast(ulong) result.limb[index] +
             cast(ulong) rhs.limb[index] +
             carry;
 
@@ -103,7 +119,25 @@ UIntFixed!Limbs addUnsigned(size_t Limbs)(
             sum >> 32;
     }
 
-    assert(carry == 0);
+    size_t index =
+        rhsEnd;
+
+    while (carry != 0)
+    {
+        assert(index < Limbs);
+
+        const ulong sum =
+            cast(ulong) result.limb[index] +
+            carry;
+
+        result.limb[index] =
+            cast(uint) sum;
+
+        carry =
+            sum >> 32;
+
+        ++index;
+    }
 
     return result;
 }
@@ -126,14 +160,30 @@ UIntFixed!Limbs subtractUnsigned(size_t Limbs)(
         compareUnsigned(lhs, rhs) >= 0
     );
 
-    UIntFixed!Limbs result;
+    /*
+     * Preserve every limb outside rhs's active range directly from lhs.
+     *
+     * Below the least-significant non-zero rhs limb no borrow can exist.
+     * Above the active range only a remaining borrow needs propagation.
+     */
+    UIntFixed!Limbs result =
+        lhs;
+
+    const size_t rhsFirst =
+        firstNonZeroLimb(rhs);
+
+    if (rhsFirst == Limbs)
+        return result;
+
+    const size_t rhsEnd =
+        pastLastNonZeroLimb(rhs);
 
     ulong borrow = 0;
 
-    foreach (index; 0 .. Limbs)
+    foreach (index; rhsFirst .. rhsEnd)
     {
         const ulong lhsValue =
-            cast(ulong) lhs.limb[index];
+            cast(ulong) result.limb[index];
 
         const ulong rhsValue =
             cast(ulong) rhs.limb[index] +
@@ -161,7 +211,26 @@ UIntFixed!Limbs subtractUnsigned(size_t Limbs)(
         }
     }
 
-    assert(borrow == 0);
+    size_t index =
+        rhsEnd;
+
+    while (borrow != 0)
+    {
+        assert(index < Limbs);
+
+        if (result.limb[index] != 0)
+        {
+            --result.limb[index];
+            borrow = 0;
+        }
+        else
+        {
+            result.limb[index] =
+                uint.max;
+
+            ++index;
+        }
+    }
 
     return result;
 }
@@ -580,5 +649,60 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
             product.limb[2] ==
             uint.max - 1
         );
+    }
+}
+
+
+@safe unittest
+{
+    /*
+     * Sparse addition must propagate carry beyond rhs's active span.
+     */
+    {
+        UIntFixed!6 lhs;
+        UIntFixed!6 rhs;
+
+        lhs.limb[2] = uint.max;
+        lhs.limb[3] = uint.max;
+
+        rhs.limb[2] = 1;
+
+        const auto result =
+            addUnsigned(
+                lhs,
+                rhs
+            );
+
+        assert(result.limb[0] == 0);
+        assert(result.limb[1] == 0);
+        assert(result.limb[2] == 0);
+        assert(result.limb[3] == 0);
+        assert(result.limb[4] == 1);
+        assert(result.limb[5] == 0);
+    }
+
+
+    /*
+     * Sparse subtraction must propagate borrow beyond rhs's active span.
+     */
+    {
+        UIntFixed!6 lhs;
+        UIntFixed!6 rhs;
+
+        lhs.limb[4] = 1;
+        rhs.limb[2] = 1;
+
+        const auto result =
+            subtractUnsigned(
+                lhs,
+                rhs
+            );
+
+        assert(result.limb[0] == 0);
+        assert(result.limb[1] == 0);
+        assert(result.limb[2] == uint.max);
+        assert(result.limb[3] == uint.max);
+        assert(result.limb[4] == 0);
+        assert(result.limb[5] == 0);
     }
 }

@@ -2,6 +2,7 @@ module geo.polyline_view;
 
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
+import geo.segment : Segment2;
 
 
 /**
@@ -63,6 +64,23 @@ public:
 
 
     /**
+     * Returns the segment beginning at point index.
+     *
+     * Valid indices are:
+     *
+     *     0 .. segmentCount
+     */
+    Segment2!T segment(size_t index) const
+        pure nothrow @safe @nogc
+    {
+        return Segment2!T(
+            _points[index],
+            _points[index + 1]
+        );
+    }
+
+
+    /**
      * Returns one point by value.
      *
      * Mutation of the backing storage is not exposed through the view.
@@ -104,6 +122,7 @@ public:
 
 
     alias P = Point2!double;
+    alias S = Segment2!double;
     alias V = PolylineView!double;
 
 
@@ -154,6 +173,22 @@ public:
     assert(view[0] == points[0]);
     assert(view[1] == points[1]);
     assert(view[2] == points[2]);
+
+    assert(
+        view.segment(0) ==
+        S(
+            P(1.0, 2.0),
+            P(3.0, 4.0)
+        )
+    );
+
+    assert(
+        view.segment(1) ==
+        S(
+            P(3.0, 4.0),
+            P(5.0, 6.0)
+        )
+    );
 
 
     /*

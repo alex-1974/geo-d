@@ -1,14 +1,20 @@
 # geo-d Roadmap
 
-`geo-d` is a small, robust, coordinate-system-agnostic 2D Euclidean geometry library for D.
+`geo-d` is a small, robust, coordinate-system-agnostic 2D Euclidean
+geometry library for D.
 
-The roadmap follows a depth-before-breadth principle: implemented functionality should have explicit semantics, strong numerical behaviour, tests, and documented ownership characteristics before the public API is expanded further.
+The roadmap follows a depth-before-breadth principle: implemented
+functionality should have explicit semantics, strong numerical behaviour,
+tests, and documented ownership characteristics before the public API is
+expanded further.
 
-Features listed beyond the current release target are candidates rather than commitments. New API should be driven by concrete consumers.
+Features listed beyond the current release target are candidates rather
+than commitments. New API should be driven by concrete consumers.
 
 ## v0.1.0 — Initial public foundation
 
-The first release establishes the core geometry, numerical, ownership, and topology model.
+The first release establishes the core geometry, numerical, ownership, and
+topology model.
 
 ### Core value types
 
@@ -64,7 +70,9 @@ Tracked numerical follow-up:
 
 - [ ] evaluate compensated accumulation for long polylines
 
-The existing sequential `polylineLength` accumulation remains valid API. Any change to the accumulation strategy must preserve the established result type and execution contracts.
+The existing sequential `polylineLength` accumulation remains valid API.
+Any change to the accumulation strategy must preserve the established result
+type and execution contracts.
 
 ### Robust orientation
 
@@ -75,7 +83,8 @@ Completed for:
 - [x] `float`
 - [x] `double`
 
-The implementation uses exact or certified arithmetic as required rather than a global epsilon.
+The implementation uses exact or certified arithmetic as required rather
+than a global epsilon.
 
 Verification includes an independent `BigInt` oracle in unittest builds.
 
@@ -83,7 +92,8 @@ Deferred:
 
 - [ ] robust orientation for `real`
 
-Robust `real` support requires a platform-aware backend and is not a `v0.1.0` requirement.
+Robust `real` support requires a platform-aware backend and is not a
+`v0.1.0` requirement.
 
 ### Segment intersection
 
@@ -159,7 +169,8 @@ Completed:
 - [x] nested-hole detection
 - [x] connected-interior validation
 
-Validation remains explicitly separate from representation and ordinary geometry algorithms.
+Validation remains explicitly separate from representation and ordinary
+geometry algorithms.
 
 ### Polyline simplification
 
@@ -180,7 +191,7 @@ It deliberately does not claim topology preservation for rings or polygons.
 
 ## v0.1.0 release preparation
 
-Required before tagging the first public release:
+Required before tagging the first public release.
 
 ### API and architecture
 
@@ -225,8 +236,6 @@ Required before tagging the first public release:
 
 ## Post-v0.1 numerical work
 
-The following work is intentionally deferred unless it becomes necessary for the initial release.
-
 ### Robust `real` topology
 
 Investigate a platform-aware exact or certified arithmetic backend for:
@@ -235,11 +244,13 @@ Investigate a platform-aware exact or certified arithmetic backend for:
 - segment intersection;
 - other topology-sensitive predicates.
 
-No public assumption may be made about the representation, precision, or layout of D `real`.
+No public assumption may be made about the representation, precision, or
+layout of D `real`.
 
 ### Polyline-length accumulation
 
-Evaluate compensated accumulation techniques such as Neumaier or Kahan summation.
+Evaluate compensated accumulation techniques such as Neumaier or Kahan
+summation.
 
 Evaluation should cover:
 
@@ -251,7 +262,8 @@ Evaluation should cover:
 - LDC performance;
 - preservation of `pure`, `nothrow`, `@safe`, and `@nogc` where applicable.
 
-A more complicated accumulation strategy should only replace sequential addition if measurements demonstrate a worthwhile numerical improvement.
+A more complicated accumulation strategy should only replace sequential
+addition if measurements demonstrate a worthwhile numerical improvement.
 
 ## Candidate future geometry
 
@@ -259,14 +271,16 @@ These are possible future areas, not a committed version plan.
 
 ### Bounds operations
 
-Potential additions include operations demonstrated by real consumers, such as:
+Potential additions include operations demonstrated by real consumers,
+such as:
 
 - bounds union;
 - bounds intersection;
 - extent and size queries;
 - geometry-to-bounds helpers.
 
-The API should preserve the established empty-bounds identities and NaN invariants.
+The API should preserve the established empty-bounds identities and NaN
+invariants.
 
 ### Clipping
 
@@ -276,11 +290,13 @@ Potential future work includes:
 - polyline clipping;
 - polygon clipping.
 
-Polygon clipping should not be introduced without an explicit topology and robustness design.
+Polygon clipping should not be introduced without an explicit topology and
+robustness design.
 
 ### Topology-preserving simplification
 
-Ring or polygon simplification requires semantics distinct from ordinary Douglas-Peucker polyline simplification.
+Ring or polygon simplification requires semantics distinct from ordinary
+Douglas-Peucker polyline simplification.
 
 Any future API must define:
 
@@ -293,22 +309,26 @@ Any future API must define:
 - degenerate output;
 - numerical predicate requirements.
 
-It must not be presented as a trivial extension of the current polyline simplifier.
+It must not be presented as a trivial extension of the current polyline
+simplifier.
 
 ### Additional geometric relationships
 
-Possible additions should be selected from concrete use cases and may include:
+Possible additions should be selected from concrete use cases and may
+include:
 
 - point-to-ring relationships;
 - segment-to-polygon relationships;
 - geometry equality or equivalence operations;
 - other low-level Euclidean predicates.
 
-Approximate equality must not become a global replacement for exact value equality or robust topology predicates.
+Approximate equality must not become a global replacement for exact value
+equality or robust topology predicates.
 
 ### Owning aggregate geometry
 
-Owning forms of polylines, rings, or polygons may be introduced if repeated consumers demonstrate that the library should provide them.
+Owning forms of polylines, rings, or polygons may be introduced if repeated
+consumers demonstrate that the library should provide them.
 
 Any owning type must preserve the current separation between:
 
@@ -320,16 +340,18 @@ Views should remain usable independently of owning containers.
 
 ## Performance and verification
 
-Performance work is expected where robust arithmetic or large geometry makes cost significant.
+Performance work is expected where robust arithmetic or large geometry
+makes cost significant.
 
 Existing benchmark areas include:
 
-- orientation and segment intersection;
+- segment intersection;
 - exact intersection construction;
 - signed area;
 - exact-area arithmetic.
 
-Future optimisation must preserve numerical semantics unless a different contract is explicitly designed and documented.
+Future optimisation must preserve numerical semantics unless a different
+contract is explicitly designed and documented.
 
 Useful verification techniques include:
 
@@ -364,6 +386,10 @@ Those concerns belong in separate libraries.
 
 The roadmap is intentionally conservative.
 
-A smaller API with explicit semantics, robust numerical behaviour, predictable allocation, and strong verification is preferred over broad feature coverage.
+A smaller API with explicit semantics, robust numerical behaviour,
+predictable allocation, and strong verification is preferred over broad
+feature coverage.
 
-After `v0.1.0`, the next feature should be selected by a concrete consumer requirement rather than simply by choosing the next conventional item from a geometry-library checklist.
+After `v0.1.0`, the next feature should be selected by a concrete consumer
+requirement rather than simply by choosing the next conventional item from
+a geometry-library checklist.

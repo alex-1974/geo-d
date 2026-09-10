@@ -23,6 +23,8 @@ enum size_t roundingIterations = 200_000;
 
 __gshared ulong sink;
 
+__gshared ExactProperIntersection[2] roundingCases;
+
 
 private ulong bits(double value)
 {
@@ -127,42 +129,50 @@ private ulong exactConstruction(size_t i)
 }
 
 
-pragma(inline, false)
-private ulong roundOnly(size_t i)
+private void prepareRoundingCases()
 {
     alias P = Point2!double;
     alias S = Segment2!double;
 
-    const double offset =
-        cast(double)(i & 1);
+    foreach (index; 0 .. roundingCases.length)
+    {
+        const double offset =
+            cast(double) index;
 
-    const S first =
-        S(
-            P(offset, 0.0),
-            P(offset + 1.0, 0.0)
-        );
+        const S first =
+            S(
+                P(offset, 0.0),
+                P(offset + 1.0, 0.0)
+            );
 
-    const S second =
-        S(
-            P(offset, 1.0),
-            P(offset + 1.0, -2.0)
-        );
+        const S second =
+            S(
+                P(offset, 1.0),
+                P(offset + 1.0, -2.0)
+            );
 
-    ExactProperIntersection exact;
+        const bool success =
+            tryProperIntersectionExact(
+                first,
+                second,
+                roundingCases[index]
+            );
 
-    const bool success =
-        tryProperIntersectionExact(
-            first,
-            second,
-            exact
-        );
+        assert(success);
+    }
+}
 
-    assert(success);
+
+pragma(inline, false)
+private ulong roundOnly(size_t i)
+{
+    const size_t index =
+        i & 1;
 
     return bits(
         roundIntersectionCoordinate(
-            exact.xNumerator,
-            exact.denominator
+            roundingCases[index].xNumerator,
+            roundingCases[index].denominator
         )
     );
 }
@@ -170,6 +180,8 @@ private ulong roundOnly(size_t i)
 
 void main()
 {
+    prepareRoundingCases();
+
     bench!determinant(
         "one exact determinant",
         determinantIterations
@@ -181,7 +193,7 @@ void main()
     );
 
     bench!roundOnly(
-        "exact construction + 1 round",
+        "one exact round",
         roundingIterations
     );
 

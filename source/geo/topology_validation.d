@@ -1,14 +1,20 @@
 module geo.topology_validation;
 
 import geo.intersection :
+    SegmentContactKind,
     SegmentIntersectionKind,
-    segmentIntersectionKind;
+    segmentContactKind,
+    segmentIntersectionKind,
+    trySegmentTouchPoint;
 
 import geo.linear_ring_view :
     LinearRingView;
 
 import geo.polygon_view :
     PolygonView;
+
+import geo.point :
+    Point2;
 
 import geo.segment :
     Segment2;
@@ -71,6 +77,9 @@ package(geo) enum PolygonValidationIssue : ubyte
     none,
     invalidExteriorRing,
     invalidInteriorRing,
+    interRingCrossing,
+    interRingOverlap,
+    multipleRingContacts,
 }
 
 
@@ -84,6 +93,15 @@ package(geo) struct PolygonValidationResult
 
     RingValidationResult ringResult =
         RingValidationResult.init;
+
+    size_t secondaryRingIndex =
+        size_t.max;
+
+    size_t primaryEdgeIndex =
+        size_t.max;
+
+    size_t secondaryEdgeIndex =
+        size_t.max;
 
 
     @property bool valid() const
@@ -417,6 +435,257 @@ if (isValidationScalar!T)
                 i + 1,
                 interiorResult
             );
+        }
+    }
+
+
+    return PolygonValidationResult.init;
+}
+
+
+/*
+ * Result of screening the boundary contacts between two already validated
+ * rings.
+ */
+private enum RingPairContactIssue : ubyte
+{
+    none,
+    properCrossing,
+    overlap,
+    multipleDistinctContacts,
+}
+
+
+private struct RingPairContactResult
+{
+    RingPairContactIssue issue =
+        RingPairContactIssue.none;
+
+    size_t firstEdgeIndex =
+        size_t.max;
+
+    size_t secondEdgeIndex =
+        size_t.max;
+}
+
+
+/*
+ * Screens all segment contacts between two valid rings.
+ *
+ * Preconditions:
+ *
+ * - both rings have already passed validateRing();
+ * - therefore every coordinate is finite;
+ * - therefore every edge is non-degenerate.
+ *
+ * A single geometric touch point is retained as potentially valid.
+ *
+ * Multiple segment-pair touches at that same point are also potentially
+ * valid because a vertex contact may involve several adjacent edges.
+ *
+ * A proper crossing, positive-length overlap, or a second distinct touch
+ * point is rejected.
+ *
+ * This helper does not yet decide whether one point contact is tangential
+ * or locally crosses through a vertex.
+ */
+private RingPairContactResult screenRingPairContacts(T)(
+    scope LinearRingView!T firstRing,
+    scope LinearRingView!T secondRing
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    bool haveTouchPoint = false;
+    Point2!T firstTouchPoint;
+
+    foreach (i; 0 .. firstRing.length)
+    {
+        const auto firstEdge =
+            ringEdge(
+                firstRing,
+                i
+            );
+
+        foreach (j; 0 .. secondRing.length)
+        {
+            const auto secondEdge =
+                ringEdge(
+                    secondRing,
+                    j
+                );
+
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    firstEdge,
+                    secondEdge
+                );
+
+            if (
+                contact ==
+                SegmentContactKind.none
+            )
+            {
+                continue;
+            }
+
+            if (
+                contact ==
+                SegmentContactKind.properCrossing
+            )
+            {
+                return RingPairContactResult(
+                    RingPairContactIssue.properCrossing,
+                    i,
+                    j
+                );
+            }
+
+            if (
+                contact ==
+                SegmentContactKind.overlap
+            )
+            {
+                return RingPairContactResult(
+                    RingPairContactIssue.overlap,
+                    i,
+                    j
+                );
+            }
+
+
+            /*
+             * Remaining contact kind is touch.
+             *
+             * Its exact point is an endpoint from the input scalar domain,
+             * so no rounded construction is required.
+             */
+            Point2!T touchPoint;
+
+            const bool havePoint =
+                trySegmentTouchPoint(
+                    firstEdge,
+                    secondEdge,
+                    touchPoint
+                );
+
+            assert(havePoint);
+
+            if (!haveTouchPoint)
+            {
+                firstTouchPoint =
+                    touchPoint;
+
+                haveTouchPoint =
+                    true;
+
+                continue;
+            }
+
+            if (touchPoint != firstTouchPoint)
+            {
+                return RingPairContactResult(
+                    RingPairContactIssue.multipleDistinctContacts,
+                    i,
+                    j
+                );
+            }
+        }
+    }
+
+    return RingPairContactResult.init;
+}
+
+
+/*
+ * Validates constituent rings and screens pairwise inter-ring contacts.
+ *
+ * This is still not the public polygon validator.
+ *
+ * A single inter-ring point contact remains only potentially valid.
+ * Tangential-versus-crossing vertex topology, containment, and connected
+ * interior are handled by later validation stages.
+ */
+package(geo) PolygonValidationResult validatePolygonPairContacts(T)(
+    scope PolygonView!T polygon
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    const PolygonValidationResult ringResult =
+        validatePolygonRings(
+            polygon
+        );
+
+    if (!ringResult.valid)
+        return ringResult;
+
+
+    foreach (firstRingIndex; 0 .. polygon.length)
+    {
+        auto firstRing =
+            polygon[firstRingIndex];
+
+        foreach (
+            secondRingIndex;
+            firstRingIndex + 1 .. polygon.length
+        )
+        {
+            auto secondRing =
+                polygon[secondRingIndex];
+
+            const RingPairContactResult contactResult =
+                screenRingPairContacts(
+                    firstRing,
+                    secondRing
+                );
+
+            if (
+                contactResult.issue ==
+                RingPairContactIssue.none
+            )
+            {
+                continue;
+            }
+
+
+            PolygonValidationResult result;
+
+            result.ringIndex =
+                firstRingIndex;
+
+            result.secondaryRingIndex =
+                secondRingIndex;
+
+            result.primaryEdgeIndex =
+                contactResult.firstEdgeIndex;
+
+            result.secondaryEdgeIndex =
+                contactResult.secondEdgeIndex;
+
+
+            final switch (contactResult.issue)
+            {
+                case RingPairContactIssue.none:
+                    assert(false);
+
+                case RingPairContactIssue.properCrossing:
+                    result.issue =
+                        PolygonValidationIssue.interRingCrossing;
+                    break;
+
+                case RingPairContactIssue.overlap:
+                    result.issue =
+                        PolygonValidationIssue.interRingOverlap;
+                    break;
+
+                case RingPairContactIssue.multipleDistinctContacts:
+                    result.issue =
+                        PolygonValidationIssue.multipleRingContacts;
+                    break;
+            }
+
+            return result;
         }
     }
 
@@ -1002,4 +1271,249 @@ if (isValidationScalar!T)
             1
         );
     }
+
+
+    /*
+     * Disjoint ring boundaries pass the pair-contact screen.
+     *
+     * Containment is deliberately not decided by this stage.
+     */
+    {
+        alias PP = Point2!double;
+        alias PR = LinearRingView!double;
+        alias PV = PolygonView!double;
+
+        PP[4] exteriorPoints = [
+            PP(0.0, 0.0),
+            PP(10.0, 0.0),
+            PP(10.0, 10.0),
+            PP(0.0, 10.0)
+        ];
+
+        PP[4] holePoints = [
+            PP(3.0, 3.0),
+            PP(7.0, 3.0),
+            PP(7.0, 7.0),
+            PP(3.0, 7.0)
+        ];
+
+        PR exterior =
+            PR(exteriorPoints[]);
+
+        PR hole =
+            PR(holePoints[]);
+
+        PR[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            PV(rings[]);
+
+        assert(
+            validatePolygonPairContacts(polygon).valid
+        );
+    }
+
+
+    /*
+     * A proper crossing between different rings is rejected.
+     */
+    {
+        alias PP = Point2!double;
+        alias PR = LinearRingView!double;
+        alias PV = PolygonView!double;
+
+        PP[4] exteriorPoints = [
+            PP(0.0, 0.0),
+            PP(10.0, 0.0),
+            PP(10.0, 10.0),
+            PP(0.0, 10.0)
+        ];
+
+        PP[4] crossingPoints = [
+            PP(8.0, -2.0),
+            PP(12.0, -2.0),
+            PP(12.0, 2.0),
+            PP(8.0, 2.0)
+        ];
+
+        PR exterior =
+            PR(exteriorPoints[]);
+
+        PR crossing =
+            PR(crossingPoints[]);
+
+        PR[2] rings = [
+            exterior,
+            crossing
+        ];
+
+        auto polygon =
+            PV(rings[]);
+
+        const result =
+            validatePolygonPairContacts(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.interRingCrossing
+        );
+
+        assert(result.ringIndex == 0);
+        assert(result.secondaryRingIndex == 1);
+
+        assert(result.primaryEdgeIndex != size_t.max);
+        assert(result.secondaryEdgeIndex != size_t.max);
+    }
+
+
+    /*
+     * Positive-length overlap between different ring boundaries is
+     * rejected.
+     */
+    {
+        alias PP = Point2!double;
+        alias PR = LinearRingView!double;
+        alias PV = PolygonView!double;
+
+        PP[4] exteriorPoints = [
+            PP(0.0, 0.0),
+            PP(10.0, 0.0),
+            PP(10.0, 10.0),
+            PP(0.0, 10.0)
+        ];
+
+        PP[4] overlapPoints = [
+            PP(2.0, 0.0),
+            PP(6.0, 0.0),
+            PP(6.0, 2.0),
+            PP(2.0, 2.0)
+        ];
+
+        PR exterior =
+            PR(exteriorPoints[]);
+
+        PR overlap =
+            PR(overlapPoints[]);
+
+        PR[2] rings = [
+            exterior,
+            overlap
+        ];
+
+        auto polygon =
+            PV(rings[]);
+
+        const result =
+            validatePolygonPairContacts(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.interRingOverlap
+        );
+
+        assert(result.ringIndex == 0);
+        assert(result.secondaryRingIndex == 1);
+    }
+
+
+    /*
+     * Several segment-pair touches at one identical geometric point still
+     * represent only one ring contact.
+     */
+    {
+        alias PP = Point2!double;
+        alias PR = LinearRingView!double;
+        alias PV = PolygonView!double;
+
+        PP[4] exteriorPoints = [
+            PP(0.0, 0.0),
+            PP(10.0, 0.0),
+            PP(10.0, 10.0),
+            PP(0.0, 10.0)
+        ];
+
+        PP[3] touchingPoints = [
+            PP(0.0, 5.0),
+            PP(2.0, 4.0),
+            PP(2.0, 6.0)
+        ];
+
+        PR exterior =
+            PR(exteriorPoints[]);
+
+        PR touching =
+            PR(touchingPoints[]);
+
+        PR[2] rings = [
+            exterior,
+            touching
+        ];
+
+        auto polygon =
+            PV(rings[]);
+
+        assert(
+            validatePolygonPairContacts(polygon).valid
+        );
+    }
+
+
+    /*
+     * Two distinct touch points between the same pair of rings are
+     * rejected even when no segment pair crosses or overlaps.
+     */
+    {
+        alias PP = Point2!double;
+        alias PR = LinearRingView!double;
+        alias PV = PolygonView!double;
+
+        PP[4] exteriorPoints = [
+            PP(0.0, 0.0),
+            PP(10.0, 0.0),
+            PP(10.0, 10.0),
+            PP(0.0, 10.0)
+        ];
+
+        PP[4] touchingPoints = [
+            PP(0.0, 2.0),
+            PP(2.0, 4.0),
+            PP(0.0, 6.0),
+            PP(1.0, 4.0)
+        ];
+
+        PR exterior =
+            PR(exteriorPoints[]);
+
+        PR touching =
+            PR(touchingPoints[]);
+
+        PR[2] rings = [
+            exterior,
+            touching
+        ];
+
+        auto polygon =
+            PV(rings[]);
+
+        const result =
+            validatePolygonPairContacts(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.multipleRingContacts
+        );
+
+        assert(result.ringIndex == 0);
+        assert(result.secondaryRingIndex == 1);
+    }
+
 }

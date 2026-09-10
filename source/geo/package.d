@@ -8,6 +8,7 @@ public import geo.convert :
     truncated,
     tryConvert;
 
+public import geo.linear_ring_view : LinearRingView;
 public import geo.point : Point2;
 public import geo.polyline_view : PolylineView;
 public import geo.scalar : isGeoScalar;

@@ -1,471 +1,389 @@
-# d-geospatial
+# geo-d
 
-`d-geospatial` is a workspace for **independent, reusable D libraries** covering geometry, geodesy, spatial data structures, raster processing, geospatial formats, algorithms, and related infrastructure.
+`geo-d` is a small, reusable 2D Euclidean geometry library for D.
 
-It is not a framework, not a monolithic SDK, and not a single versioned software stack.
+It provides coordinate-system-agnostic geometry value types, non-owning
+geometry views, metric operations, robust computational-geometry predicates,
+polygon operations, topology validation, and polyline simplification.
 
-Each library contained in this workspace is intended to:
+`geo-d` deliberately assigns no CRS, geographic, geodetic, unit, or
+Earth-model semantics to coordinates. It is intended to remain useful both
+inside and outside GIS software.
 
-- be useful on its own;
-- be published and versioned independently;
-- have its own Git repository and DUB package;
-- remain usable outside the application or project that originally motivated it;
-- follow the shared engineering principles in `DESIGN_PRINCIPLES.md`.
+## Status
 
-## Goals
+The initial public release of `geo-d` is `v0.1.0`.
 
-The workspace exists to encourage a small ecosystem of high-quality D libraries with a shared engineering philosophy.
+The initial API is intentionally small. New functionality is added when
+concrete use cases justify extending the geometry model.
 
-The main goals are:
+## Features
 
-- provide reusable geospatial and spatial infrastructure for D;
-- favour small, composable libraries over monolithic frameworks;
-- make ownership, memory layout, lifetime and allocation behaviour explicit;
-- provide efficient APIs suitable for large datasets;
-- integrate mature native infrastructure where appropriate while allowing bounded pure-D mathematical kernels when they provide independent value;
-- use modern D idioms and safety features;
-- maintain strong tests, benchmarks and documentation;
-- allow the libraries to work well together without coupling them unnecessarily.
+### Core geometry
 
-## What d-geospatial is not
+- `Point2!T`
+- `Vector2!T`
+- `Bounds2!T`
+- `Segment2!T`
 
-`d-geospatial` does not provide a common runtime.
+`Point2` and `Vector2` are distinct affine concepts. The public algebra
+therefore permits operations such as point-minus-point and point-plus-vector,
+while deliberately rejecting meaningless operations such as point-plus-point
+or point scaling.
 
-There is no:
+### Geometry views
 
-```d
-import d_geospatial;
-```
+Variable-size geometry is represented through non-owning, read-only views:
 
-and there is no requirement to install all libraries together.
+- `PolylineView!T`
+- `LinearRingView!T`
+- `PolygonView!T`
 
-Applications are not part of this workspace.
+Views do not allocate or copy their backing point storage. The caller retains
+ownership of that storage.
 
-Application-specific GUI code, editor logic, workflows and product features belong in separate repositories.
+### Scalar model
 
-Experimental code should remain outside `d-geospatial` until it has matured into a generally useful library with a clearly defined domain.
+The core geometry model supports exactly:
 
-## Workspace structure
+~~~d
+int
+long
+float
+double
+real
+~~~
 
-The local workspace is organised approximately as follows:
+Unsigned integers, small integer types, arbitrary numeric-like types, and
+qualified scalar template parameters are outside the `v0.1` scalar contract.
 
-```text
-d-geospatial/
-├── DESIGN_PRINCIPLES.md
-├── README.md
-├── ROADMAP.md
-│
-├── docs/
-│   └── adr/
-│
-├── libs/
-│   ├── geodesy-d/
-│   ├── geo-d/
-│   ├── georef-d/
-│   ├── raster-d/
-│   ├── spatial-d/
-│   └── ...
-│
-└── tools/
-    ├── link-design-principles.sh
-    ├── check-workspace.sh
-    ├── run-all-tests.sh
-    └── run-all-benchmarks.sh
-```
+There are no implicit conversions between different geometry scalar types.
 
-Every directory below `libs/` is an independent Git repository and DUB package.
+Checked explicit conversion is available through `tryConvert`.
 
-The workspace itself is not a DUB package and does not impose a common package version.
+Floating-point to integer quantisation is explicit through:
 
-# Workspace conventions
+- `rounded`
+- `floored`
+- `ceiled`
+- `truncated`
 
-## Licence
+### Metric operations
 
-Libraries developed as part of `d-geospatial` use the **MIT License** unless a compelling technical or legal reason requires otherwise.
+The metric API includes:
 
-Each independent library repository contains its own `LICENSE` file.
+- `distance`
+- `squaredDistance`
+- `segmentLength`
+- `polylineLength`
+- `tryNearestPoint`
+- `tryPointSegmentDistance`
 
-Dependencies retain their respective upstream licences.
+Metric computation precision is separate from storage precision:
 
-## Repository and package naming
+~~~text
+int     -> double
+long    -> double
+float   -> double
+double  -> double
+real    -> real
+~~~
 
-Repository and DUB package names use the `-d` suffix:
+This mapping is exposed as `MetricScalar!T`.
 
-```text
-geodesy-d
-geo-d
-georef-d
-raster-d
-spatial-d
-proj-d
-gdal-d
-osm-d
-```
+### Robust topology predicates
 
-The suffix identifies the project as a D package but is not part of the D module namespace.
+The topology-sensitive API includes:
 
-For example:
+- `orientation`
+- `segmentIntersectionKind`
+- `trySegmentIntersectionPoint`
+- `trySegmentIntersectionOverlap`
 
-```text
-repository:   geo-d
-DUB package:  geo-d
-module root:  geo
-```
+Robust topology is currently supported for:
 
-Typical imports therefore look like:
+~~~text
+int
+long
+float
+double
+~~~
 
-```d
-import geodesy;
-import geodesy.ellipsoid;
+`real` remains part of the core scalar model but robust topology support for
+it is deliberately deferred.
 
+Topology decisions do not use a global epsilon.
+
+### Area and polygon operations
+
+The library provides:
+
+- `signedArea`
+- `polygonArea`
+- `tryClassifyPointInPolygon`
+
+`PolygonView` uses structural ring order:
+
+~~~text
+ring 0      exterior
+ring 1..n   holes
+~~~
+
+Ring orientation is not used to infer exterior versus hole semantics.
+
+### Topology validation
+
+Representation and validation are separate concerns.
+
+Geometry views can represent malformed input without silently rewriting or
+rejecting it. Callers can explicitly validate topology through:
+
+- `validateRing`
+- `validatePolygon`
+- `RingValidationResult`
+- `PolygonValidationResult`
+
+Validation covers ring simplicity and polygon relationships including ring
+contact and hole containment rules.
+
+### Polyline simplification
+
+Douglas-Peucker simplification is available for `PolylineView` through:
+
+- `douglasPeuckerWorkspaceSize`
+- `trySimplifyDouglasPeuckerInto`
+
+The implementation is iterative and:
+
+- writes to caller-provided destination storage;
+- uses caller-provided workspace;
+- performs no allocation;
+- performs no recursion;
+- preserves input point order;
+- returns a subsequence of the original points;
+- uses deterministic tie-breaking.
+
+This is ordinary metric polyline simplification.
+
+It does **not** claim to preserve ring or polygon topology.
+Topology-preserving simplification is a separate problem and will require a
+separate API and semantic contract.
+
+## Basic usage
+
+~~~d
 import geo;
-import geo.geometry;
 
-import georef;
+alias P = Point2!double;
+alias S = Segment2!double;
 
-import raster;
-import raster.resize;
+auto a = P(0.0, 0.0);
+auto b = P(3.0, 4.0);
 
-import spatial;
-import spatial.rtree;
-```
+assert(distance(a, b) == 5.0);
 
-rather than:
+auto segment = S(a, b);
 
-```d
-import geod;
-import rasterd;
-```
+double d;
 
-Library-specific submodule naming is defined by the respective library.
+assert(
+    tryPointSegmentDistance(
+        P(0.0, 0.0),
+        segment,
+        d
+    )
+);
 
-## Compiler policy
+assert(d == 0.0);
 
-Primary supported compilers are:
+assert(
+    orientation(
+        P(0.0, 0.0),
+        P(1.0, 0.0),
+        P(0.0, 1.0)
+    ) == Orientation.left
+);
+~~~
 
-```text
-DMD
-LDC
-```
+The package-level module exports the intended public API:
 
-Both are required CI targets.
+~~~d
+import geo;
+~~~
 
-GDC support is maintained on a **best-effort** basis where practical.
+Individual modules may also be imported explicitly.
 
-CI should normally test against the current stable DMD and LDC releases.
+## Bounds
 
-The usable D language baseline is determined by the older common D frontend supported by those required compiler versions.
+`Bounds2.init` represents an empty bounds rather than an origin-sized bounds.
 
-Initial baseline:
+This permits natural incremental accumulation without accidentally including
+`(0, 0)`.
 
-```text
-D frontend 2.112.1
-```
+For floating-point bounds:
 
-The baseline may advance as compiler support advances. Libraries should not retain obsolete compiler compatibility indefinitely when it materially constrains API quality, correctness or use of modern D features.
+- NaN coordinates are rejected;
+- infinities are permitted when ordering remains valid;
+- empty and non-empty bounds are distinct states.
 
-Each library must document its actual minimum supported compiler/frontend version.
+## Non-finite values
 
-## Minimum quality baseline
+Floating-point `Point2`, `Vector2`, and `Segment2` values may represent NaN or
+infinity.
 
-Every active library must at minimum support:
+Representability does not imply that every algorithm accepts such values.
 
-```text
-dub test
-```
+Topology-sensitive algorithms impose their own numerical validity
+requirements.
 
-and CI must verify:
+## Ownership and allocation
 
-1. tests with DMD;
-2. tests/build with LDC;
-3. a release build with LDC;
-4. repository/documentation structure expected for that library.
+Small geometry primitives are value types.
 
-Where applicable, libraries should additionally maintain:
+Variable-size geometry is initially represented through non-owning views.
 
-- benchmarks;
-- fuzz tests;
-- property tests;
-- interoperability tests;
-- large-input tests;
-- cross-platform CI.
+The library follows these principles:
 
-Benchmarks and fuzzing are domain requirements, not ceremonial checkboxes. They should be added where they provide real value.
+- explicit ownership and lifetime;
+- views before copies;
+- no hidden deep copies;
+- no hidden allocation in low-level numerical operations;
+- caller-owned output and workspace where variable temporary storage is
+  required.
 
-# Candidate libraries
+Most low-level operations are designed to satisfy:
 
-The following libraries are currently considered useful candidates.
+~~~text
+pure
+nothrow
+@safe
+@nogc
+~~~
 
-Their presence here does not mean they must all be created immediately.
+where their semantics permit it.
 
-## `geodesy-d`
+Higher-level topology validation may allocate where variable-size bookkeeping
+is required.
 
-Pure-D geodetic mathematics for positions on or relative to the Earth.
+## Numerical model
 
-Initial scope includes:
+`geo-d` deliberately separates several numerical concerns.
 
-- angles, latitude and longitude;
-- reference ellipsoids;
-- geodetic coordinates;
-- geocentric/ECEF coordinates;
-- geodetic ↔ geocentric conversion.
+Ordinary value algebra follows the corresponding D scalar arithmetic.
 
-Later scope may include:
+Metric operations calculate numerical quantities such as lengths and
+distances.
 
-- Helmert and related frame transformations;
-- Transverse Mercator and UTM;
-- direct and inverse ellipsoidal geodesics;
-- additional well-defined geodetic operations when justified by real consumers.
+Topology-sensitive predicates use robust or exact techniques where necessary
+to determine the mathematical relationship represented by the input
+coordinates.
 
-`geodesy-d` is intentionally not a replacement for PROJ's CRS/authority infrastructure. It does not own an EPSG database, WKT/PROJJSON parsing, grid resources, or automatic transformation selection.
+There is no global epsilon controlling equality, orientation, intersection,
+or point-in-polygon classification.
 
-## `geo-d`
+Detailed numerical and semantic contracts are documented in the architecture
+decision records under `docs/adr/`.
 
-Coordinate-system-agnostic Euclidean geometry types and algorithms.
+## Scope
 
-Potential scope includes:
+`geo-d` does not provide:
 
-- points, vectors and bounds;
-- segments, polylines and polygons;
-- intersections;
-- distance and nearest-point operations;
-- clipping;
-- simplification;
-- area and orientation.
+- coordinate reference systems;
+- EPSG or other authority databases;
+- map projections;
+- ellipsoidal geodesy;
+- latitude/longitude semantics;
+- geometry file formats;
+- GDAL or PROJ bindings;
+- spatial indexes;
+- raster processing.
 
-`geo-d` assigns no geographic, geodetic, CRS, unit, or Earth-model semantics to coordinates. It should remain useful in GIS and non-GIS domains such as CAD, simulation, robotics and games.
+Those concerns belong in separate libraries.
 
-## `georef-d`
+Within the wider `d-geospatial` family, complementary projects may include
+libraries such as `geodesy-d`, `proj-d`, `spatial-d`, `raster-d`, and
+`georef-d`.
 
-Compact and discrete geographic reference/coding systems.
+`geo-d` remains independently usable and versioned.
 
-Potential scope includes:
+## Building
 
-- MGRS;
-- Geohash;
-- Open Location Code / Plus Codes;
-- other independent location-reference encodings when justified.
+Build the library with:
 
-`georef-d` may depend on `geodesy-d` where the reference system genuinely builds on geodetic mathematics, for example MGRS on UTM. It should not become a CRS database, address geocoder or general geometry library.
+~~~sh
+dub build
+~~~
 
-## `raster-d`
+Run tests with DMD:
 
-Generic raster representation and raster-processing algorithms.
+~~~sh
+dub test --compiler=dmd --force
+~~~
 
-Potential scope includes:
+Run tests with LDC:
 
-- owning raster buffers and non-owning views;
-- multidimensional raster access;
-- regions of interest;
-- sampling and interpolation;
-- resizing;
-- convolution;
-- Gaussian filtering;
-- Sobel and Scharr gradients;
-- histograms;
-- normalisation;
-- morphology;
-- raster pyramids.
+~~~sh
+dub test --compiler=ldc2 --force
+~~~
 
-The library should focus on raster semantics and algorithms rather than file-format or GIS-specific I/O.
+Build the release configuration with LDC:
 
-## `spatial-d`
+~~~sh
+dub build --build=release --compiler=ldc2 --force
+~~~
 
-Generic spatial indexing and spatial-query infrastructure.
+The package currently builds with DIP1000 enabled.
 
-Potential scope includes:
+DMD and LDC are the required compiler families.
 
-- bounding-box queries;
-- nearest-neighbour queries;
-- R-trees;
-- packed spatial indexes;
-- spatial hashes or grids;
-- efficient static and mutable index variants.
+The minimum supported D frontend version is:
 
-The library should remain useful outside GIS, for example in CAD, simulation, robotics or games.
+~~~text
+2.111.0
+~~~
 
-## `proj-d`
+This requirement applies to the D frontend used by supported compiler
+families. Newer frontend versions are covered by the current DMD and LDC CI
+targets.
 
-Idiomatic D integration for PROJ or equivalent coordinate-reference-system infrastructure.
+## Installation
 
-Its role is the complete CRS/authority side of the stack: CRS definitions, EPSG/authority metadata, operation selection, grids and other PROJ capabilities. It complements rather than replaces the bounded pure-D mathematics in `geodesy-d`.
+Once `geo-d` is published in the DUB registry:
 
-This should remain a focused interoperability library rather than becoming the geometry or geodesy library itself.
+~~~sh
+dub add geo-d
+~~~
 
-## `gdal-d`
+Then import the package:
 
-Idiomatic D integration for GDAL.
+~~~d
+import geo;
+~~~
 
-Potential scope includes:
+## Documentation
 
-- deterministic dataset lifetime;
-- raster bands;
-- windowed reads;
-- resampling;
-- geotransforms;
-- CRS access;
-- metadata;
-- efficient integration with D raster buffers.
+Architecture decisions are maintained under:
 
-## `osm-d`
+~~~text
+docs/adr/
+~~~
 
-Reusable OpenStreetMap data and format infrastructure.
+Additional implementation and numerical notes are available in:
 
-Potential scope includes:
+~~~text
+docs/README.md
+benchmarks/README.md
+~~~
 
-- nodes, ways and relations;
-- tags and object metadata;
-- OSM XML;
-- OSM PBF;
-- change files;
-- streaming and large-data processing.
+The repository-level `DESIGN_PRINCIPLES.md` documents the engineering
+principles adopted by this library.
 
-Rendering, GUI code and editor behaviour do not belong in this library.
+When developed inside the wider `d-geospatial` workspace, additional
+workspace context may be available locally under `.workspace/`. That
+directory is not part of the repository or published package.
 
-## `smarttrace-d`
+## License
 
-A possible generic tracing and path-assistance library if the underlying algorithms prove useful beyond one application.
+`geo-d` is licensed under the MIT License.
 
-Its public API must remain sufficiently domain-neutral to justify an independent library.
-
-It should not exist merely as a place to move application-specific code.
-
-# Library admission criteria
-
-A library belongs in `d-geospatial` when all of the following are reasonably true:
-
-1. It represents a coherent technical or domain concept.
-2. It is useful independently of one particular application.
-3. It can be distributed as an independent DUB package.
-4. Its public API does not expose application-specific concepts.
-5. It has a credible path toward tests, documentation and maintenance.
-6. Its functionality is substantial enough to justify a separate package.
-7. It fits naturally within geometry, spatial computing, raster processing, geospatial data or closely related infrastructure.
-
-A useful helper module is not automatically a useful library.
-
-# Independence
-
-Libraries may depend on one another when the dependency reflects a genuine conceptual relationship.
-
-They must not depend on one another merely to share small utility functions.
-
-There is intentionally no mandatory:
-
-```text
-common-d
-core-d
-foundation-d
-```
-
-package.
-
-Shared abstractions should only become libraries after repeated real-world use demonstrates that they deserve an independent existence.
-
-# Shared workspace documentation
-
-The canonical workspace copies are:
-
-```text
-d-geospatial/README.md
-d-geospatial/ROADMAP.md
-d-geospatial/DESIGN_PRINCIPLES.md
-```
-
-Each participating library repository also contains these three files at its repository root:
-
-```text
-<library>/README.md
-<library>/ROADMAP.md
-<library>/DESIGN_PRINCIPLES.md
-```
-
-Within the local `d-geospatial` workspace these files are hardlinked to the canonical root copies. This keeps the workspace documentation identical while allowing each independent Git repository to version the files in its own history.
-
-Git does not preserve hardlink relationships. Workspace tooling is therefore responsible for restoring the links after clone, checkout, or repository creation.
-
-# Library repository expectations
-
-A mature library should normally contain:
-
-```text
-library/
-├── source/
-├── tests/
-├── examples/
-├── benchmark/
-├── docs/
-│   └── adr/
-│
-├── DESIGN_PRINCIPLES.md
-├── README.md
-├── CHANGELOG.md
-├── ROADMAP.md
-├── CONTRIBUTING.md
-├── LICENSE
-└── dub.sdl
-```
-
-The exact structure may vary when the domain requires it.
-
-# Development philosophy
-
-The general preference is:
-
-```text
-small public API
-        +
-explicit ownership
-        +
-predictable memory behaviour
-        +
-appropriate algorithms
-        +
-tests
-        +
-benchmarks
-        +
-documentation
-```
-
-rather than:
-
-```text
-large feature surface
-        +
-hidden allocation
-        +
-deep dependency graph
-        +
-application-specific abstractions
-```
-
-Performance-sensitive code should be designed with data layout and algorithmic complexity in mind from the beginning, while low-level optimisation should follow measurement.
-
-# Native libraries
-
-D has strong C interoperability and should use it.
-
-Mature systems such as GDAL or PROJ should not be reimplemented simply to create a pure-D stack.
-
-The preferred pattern is:
-
-```text
-mature native library
-        ↓
-small binding layer
-        ↓
-idiomatic D API
-```
-
-Pure-D implementations are most valuable where D can provide a genuinely useful reusable abstraction or algorithm rather than duplicate an established specialist project.
-
-# Status
-
-`d-geospatial` is currently in the **foundation stage**.
-
-The workspace-wide architectural conventions have been established.
-
-The next step is to begin a small number of fundamental libraries and refine the shared conventions through real implementation experience.
-
-See `ROADMAP.md` for the planned sequence.
+See `LICENSE`.

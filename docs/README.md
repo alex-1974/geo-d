@@ -1,158 +1,420 @@
+# geo-d technical documentation
 
+This directory contains the architectural and numerical documentation for
+`geo-d`.
 
-## Current implementation status
+The repository `README.md` provides the public introduction and usage
+overview. `ROADMAP.md` tracks release preparation and possible future work.
+This document describes the current technical model in more detail.
 
-The initial fixed-size geometry foundation currently provides:
+## Documentation map
 
-- `Point2`
-- `Vector2`
-- `Bounds2`
-- `Segment2`
-- explicit checked scalar conversions
-- point distance and squared distance
-- segment length
-- nearest point on a segment
-- robust orientation predicates
-- exact segment-intersection classification
-- exact positive-length segment-overlap construction
-- correctly rounded unique segment-intersection point construction
+Architecture decisions are recorded under:
 
-### Robust orientation
+~~~text
+docs/adr/
+~~~
 
-`orientation(a, b, c)` is currently available for:
+The ADRs define the stable semantic contracts for:
 
-| Scalar | Status | Numerical strategy |
-|---|---|---|
-| `int` | complete | exact over the complete `int` domain |
-| `long` | complete | exact over the complete `long` domain |
-| `float` | complete | exact promotion to the binary64 backend |
-| `double` | complete | certified filter with exact fallbacks |
-| `real` | deferred | requires a platform-aware robust backend |
+- library scope and boundaries;
+- scalar and core geometry types;
+- ownership and non-owning views;
+- numerical robustness;
+- segment intersection;
+- ring and polygon representation;
+- area semantics;
+- point-in-polygon classification;
+- topology validation;
+- polyline simplification.
 
-For `double`, the implementation uses progressively more expensive
-internal stages:
+Performance-specific material is documented under:
+
+~~~text
+benchmarks/
+~~~
+
+## Core geometry model
+
+The foundational value types are:
+
+~~~text
+Point2
+Vector2
+Bounds2
+Segment2
+~~~
+
+Supported core scalar types are:
+
+~~~text
+int
+long
+float
+double
+real
+~~~
+
+`Point2` represents an affine point and `Vector2` represents displacement.
+They deliberately have different algebra.
+
+Geometry values with different scalar types do not implicitly convert.
+
+Explicit conversion is provided through checked conversion helpers and
+explicit floating-point quantisation operations.
+
+`Bounds2.init` is empty rather than a degenerate bounds at the origin.
+
+## Variable-size geometry
+
+Variable-size geometry is represented initially through non-owning,
+read-only views:
+
+~~~text
+PolylineView
+LinearRingView
+PolygonView
+~~~
+
+The caller owns the backing storage.
+
+The views do not copy point data and are designed around explicit borrowing
+and DIP1000 lifetime checking.
+
+`PolygonView` is a view over `LinearRingView` descriptors. Its rings need not
+share one contiguous point-storage region.
+
+Ring roles are structural:
+
+~~~text
+ring 0      exterior
+ring 1..n   holes
+~~~
+
+Winding direction does not assign polygon ring roles.
+
+## Metric operations
+
+The metric computation type is exposed as `MetricScalar!T`:
+
+~~~text
+int     -> double
+long    -> double
+float   -> double
+double  -> double
+real    -> real
+~~~
+
+Public metric operations include:
+
+- `distance`;
+- `squaredDistance`;
+- `segmentLength`;
+- `polylineLength`;
+- `tryNearestPoint`;
+- `tryPointSegmentDistance`.
+
+Metric calculations are deliberately separate from topology predicates.
+
+## Numerical robustness
+
+`geo-d` does not use one global epsilon for computational topology.
+
+Ordinary value algebra follows the normal arithmetic behaviour of the
+corresponding D scalar type.
+
+Topology-sensitive algorithms instead use exact or certified arithmetic
+where their semantic contract requires it.
+
+Robust topology support currently covers:
+
+~~~text
+int
+long
+float
+double
+~~~
+
+A platform-aware robust backend for `real` is deliberately deferred.
+
+Representability and algorithm validity are distinct concepts. Floating
+`Point2`, `Vector2`, and `Segment2` values may contain non-finite values even
+though a particular topology algorithm may reject them.
+
+## Robust orientation
+
+`orientation(a, b, c)` returns one of:
+
+~~~text
+Orientation.right
+Orientation.collinear
+Orientation.left
+~~~
+
+The numerical strategies are:
+
+| Scalar | Strategy |
+|---|---|
+| `int` | exact over the complete `int` domain |
+| `long` | exact over the complete `long` domain |
+| `float` | exact promotion into the binary64 robust backend |
+| `double` | certified binary64 filter with exact fallbacks |
+| `real` | deferred |
+
+For `double`, increasingly expensive internal stages are used only when
+necessary:
 
 ~~~text
 certified binary64 filter
-        ↓ uncertain
-exact floating-point expansions
-        ↓ unsupported exponent range
+        |
+        v uncertain
+exact floating-point expansion
+        |
+        v unsupported exponent range
 exact fixed-width dyadic fallback
 ~~~
 
-The final fallback represents finite binary64 coordinates exactly as
-dyadic integers. This is an internal implementation technique rather
-than part of the public API contract.
+The exact arithmetic implementation is internal and is not itself part of
+the public API contract.
 
-The predicate implementation is allocation-free and targets
-`pure nothrow @safe @nogc`.
+Verification includes an independent `std.bigint.BigInt` oracle in unittest
+builds.
 
-### Segment intersection
+## Segment intersection
 
-Segment-segment intersection is implemented for:
+Segment intersection deliberately separates topology from geometric
+construction.
 
-| Scalar | Classification | Overlap construction | Point construction |
-|---|---|---|---|
-| `int` | exact | exact `Segment2!int` | rounded `Point2!double` |
-| `long` | exact | exact `Segment2!long` | rounded `Point2!double` |
-| `float` | exact | exact `Segment2!float` | rounded `Point2!double` |
-| `double` | exact | exact `Segment2!double` | rounded `Point2!double` |
-| `real` | deferred | deferred | deferred |
+Public operations are:
 
-The public operations are:
-
-~~~d
-SegmentIntersectionKind segmentIntersectionKind(...);
-
-bool trySegmentIntersectionOverlap(...);
-
-bool trySegmentIntersectionPoint(...);
+~~~text
+segmentIntersectionKind
+trySegmentIntersectionOverlap
+trySegmentIntersectionPoint
 ~~~
 
-`segmentIntersectionKind()` remains the authoritative topological
-operation.
+`segmentIntersectionKind` is the authoritative topological classification.
 
-Overlap construction is exact because its endpoints are selected
-directly from the input geometry and returned in canonical
-lexicographic order.
+Positive-length overlap construction selects exact endpoints from the input
+geometry.
 
-Unique-point construction is deliberately separate from topology.
-Endpoint contacts and T-junctions reuse a known input endpoint. Proper
-crossings are constructed through exact bounded dyadic arithmetic:
+Unique intersection-point construction treats endpoint contacts and
+T-junctions separately from proper crossings.
+
+Proper crossings are constructed through exact bounded arithmetic and
+rounded only when the final binary64 point coordinates are produced.
+
+Conceptually:
 
 ~~~text
 exact orient2d determinants
-        ↓
+        |
+        v
 exact barycentric weights
-        ↓
+        |
+        v
 exact weighted rational coordinates
-        ↓
+        |
+        v
 round-to-nearest, ties-to-even
-        ↓
+        |
+        v
 Point2!double
 ~~~
 
-The construction path does not first form a rounded binary64 line or
-segment parameter.
+A rounded construction result must not be substituted for exact topology
+classification.
 
-Verification includes:
+## Signed area
 
-- classifier/construction consistency;
-- proper and non-dyadic rational crossings;
-- shared endpoints and T-junctions;
-- equal degenerate segments;
-- full-range `long`;
-- full-range finite binary64;
-- subnormal coordinates;
-- near-parallel binary64 crossings;
-- explicit binary64 rounding boundary cases;
-- parameter-underflow cases;
-- bit-identical argument-order and endpoint-reversal invariance.
+Linear-ring signed area is based on exact determinant accumulation for the
+supported non-`real` scalar domains.
 
-As with all construction results, a rounded intersection point must not
-be used as a replacement for the exact topology API.
+The accumulated exact result is converted to binary64 only once.
 
-### Predicate verification
+This avoids repeated floating-point rounding during vertex accumulation.
 
-The orientation implementation is tested against an independent
-`std.bigint.BigInt` oracle in unittest builds.
+Signed area remains algebraic. Ring orientation determines the sign but does
+not by itself determine polygon role.
 
-The verification suite includes:
+Self-intersecting rings therefore retain algebraic cancellation semantics;
+validity is handled separately by topology validation.
 
-- full-range `int` and `long` coordinates;
+## Polygon area
+
+Polygon area uses structural ring roles rather than winding direction.
+
+Conceptually:
+
+~~~text
+abs(exterior exact area)
+    - sum(abs(hole exact area))
+~~~
+
+Ring contributions are combined before the final rounding step.
+
+Area calculation does not implicitly:
+
+- validate topology;
+- normalise winding;
+- repair rings;
+- reinterpret ring roles.
+
+## Point-in-polygon classification
+
+Point classification uses explicit three-way semantics:
+
+~~~text
+outside
+boundary
+inside
+~~~
+
+Boundary detection is exact for the supported robust scalar domains.
+
+Interior classification uses even-odd semantics and does not depend on ring
+orientation.
+
+Polygon classification treats a point as inside when it is inside the
+exterior ring and not inside a hole, subject to explicit boundary handling.
+
+Representation and classification remain separate from topology validation.
+
+## Topology validation
+
+Validation is explicit rather than embedded into geometry construction.
+
+Public entry points are:
+
+~~~text
+validateRing
+validatePolygon
+~~~
+
+Ring validation detects conditions including:
+
+- insufficient cardinality;
+- non-finite coordinates;
+- zero-length edges;
+- self-intersections;
+- self-overlaps.
+
+Polygon validation additionally examines relationships between rings,
+including:
+
+- crossings;
+- overlaps;
+- distinct contact points;
+- hole containment;
+- nested holes;
+- connected polygon interior.
+
+Tangential contacts are permitted when the resulting topology satisfies the
+polygon validity contract.
+
+`validateRing` is designed for:
+
+~~~text
+pure
+nothrow
+@safe
+@nogc
+~~~
+
+`validatePolygon` requires variable-size temporary bookkeeping for its
+connected-interior analysis and therefore does not promise `@nogc`.
+
+## Douglas-Peucker simplification
+
+Plain metric Douglas-Peucker simplification is provided for `PolylineView`.
+
+Public operations are:
+
+~~~text
+douglasPeuckerWorkspaceSize
+trySimplifyDouglasPeuckerInto
+~~~
+
+The implementation:
+
+- is iterative;
+- does not recurse;
+- performs no allocation;
+- uses caller-provided destination storage;
+- uses caller-provided workspace;
+- returns an ordered subsequence of input points;
+- retains first and last points for ordinary multi-point input;
+- uses deterministic tie-breaking.
+
+It deliberately does not claim topology preservation.
+
+Ring and polygon simplification require a separate future design because
+they must preserve constraints such as closure, self-intersection rules,
+hole containment, and inter-ring relationships.
+
+## Execution properties
+
+Low-level numerical operations are designed to provide the strongest useful
+contracts permitted by their semantics, commonly:
+
+~~~text
+pure
+nothrow
+@safe
+@nogc
+~~~
+
+These attributes are API guarantees where declared, not merely stylistic
+goals.
+
+Higher-level algorithms may relax `@nogc` when variable-size temporary state
+is inherently useful and explicit.
+
+## Verification
+
+Numerical and topology verification includes, where applicable:
+
+- full-range signed integer coordinates;
 - arbitrary finite binary32 and binary64 bit patterns;
-- smallest subnormal values;
+- subnormal values;
 - maximum finite binary64 values;
-- coordinate differences exceeding ordinary binary64 range;
 - exact collinearity;
-- near-degenerate cases;
-- cyclic-permutation invariants;
-- sign reversal when two points are exchanged.
+- near-degenerate configurations;
+- permutation invariants;
+- endpoint-reversal invariants;
+- independent `BigInt` oracle comparison;
+- DMD and LDC execution.
 
-`BigInt` is test-only and is not a production dependency.
+Benchmarks are maintained for numerical paths where exact arithmetic may
+materially affect runtime cost.
 
-### Next geometry slice
+## Open numerical work
 
-Segment-segment intersection is complete and verified.
+Two numerical topics remain deliberately open without blocking `v0.1.0`.
 
-The next geometry primitive is intentionally not fixed by this status
-document. It should be selected from the remaining `geo-d` roadmap
-according to a concrete consumer need rather than by extending the
-geometry model speculatively.
+### Robust `real` topology
 
-### Open numerical follow-up: polyline length accumulation
+Supporting topology-sensitive operations for `real` requires an implementation
+that does not assume a particular representation, precision, size, or
+alignment for D `real`.
 
-`polylineLength()` currently accumulates consecutive segment lengths using
-ordinary sequential addition in `MetricScalar!T`.
+### Polyline-length accumulation
 
-Before treating this accumulation strategy as final for long polylines,
-evaluate compensated summation, in particular Neumaier or Kahan
-summation, with respect to:
+`polylineLength` currently uses sequential accumulation in
+`MetricScalar!T`.
 
-- accumulated rounding error for long and heterogeneous segment sequences;
-- behaviour for `double` and `real` metric results;
-- runtime cost under DMD and LDC;
-- preservation of `pure`, `nothrow`, `@safe` and `@nogc`.
+Compensated techniques such as Neumaier or Kahan summation should be
+evaluated for long or heterogeneous polylines before changing the current
+implementation.
 
-The current implementation is intentionally simple; compensated summation
-is a tracked numerical follow-up rather than a forgotten optimisation.
+Any replacement must be justified by measured numerical benefit and should
+preserve the existing execution contracts where practical.
+
+## Design rule
+
+Numerical construction, robust topology, geometry representation, validation,
+and ownership are separate concerns in `geo-d`.
+
+Keeping these concerns separate is intentional. It prevents convenience
+APIs from silently weakening topology guarantees, introducing hidden
+allocation, or changing geometry semantics.

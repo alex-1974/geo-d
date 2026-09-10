@@ -13,37 +13,38 @@ permissions:
   contents: read
 
 jobs:
-  dmd:
-    name: DMD tests
+  compiler-gate:
+    name: ${{ matrix.compiler }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - dmd-latest
+          - ldc-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Install DMD
+      - name: Install D compiler
         uses: dlang-community/setup-dlang@v2
         with:
-          compiler: dmd
+          compiler: ${{ matrix.compiler }}
+
+      - name: Compiler versions
+        shell: bash
+        run: |
+          echo "DC=$DC"
+          "$DC" --version
+          dub --version
 
       - name: Run unit tests
-        run: dub test --compiler=dmd --force
-
-  ldc:
-    name: LDC tests and release build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Install LDC
-        uses: dlang-community/setup-dlang@v2
-        with:
-          compiler: ldc
-
-      - name: Run unit tests
-        run: dub test --compiler=ldc2 --force
+        shell: bash
+        run: dub test --compiler="$DC" --force
 
       - name: Build release configuration
-        run: dub build --build=release --compiler=ldc2 --force
+        shell: bash
+        run: dub build --build=release --compiler="$DC" --force

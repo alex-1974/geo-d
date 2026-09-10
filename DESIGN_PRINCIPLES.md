@@ -1,1015 +1,520 @@
-# d-geospatial — Shared Design Principles
+# geo-d — Design Principles
 
-**Version:** 0.2  
-**Status:** Initial shared design contract
+This document defines the engineering and architectural principles specific to `geo-d`.
+
+The library may be developed inside the wider `d-geospatial` workspace, but it is an independent repository and DUB package.
+
+Workspace-wide context may be available locally under:
+
+~~~text
+.workspace/
+~~~
+
+That local workspace context is not part of the public `geo-d` package or repository contract.
 
 ## 1. Purpose
 
-`d-geospatial` is a workspace for a family of **independent D libraries** concerned with geometry, geodesy, spatial data, raster processing, geospatial formats, algorithms, and related infrastructure.
+`geo-d` provides small, reusable, coordinate-system-agnostic two-dimensional Euclidean geometry primitives and algorithms for D.
 
-It is **not a framework**, not a monolithic SDK, and not a single versioned software stack.
+Coordinates have no implicit:
 
-Each library:
+- coordinate reference system;
+- geographic meaning;
+- geodetic meaning;
+- unit;
+- Earth model.
 
-- is independently usable,
-- is independently versioned,
-- has its own Git repository,
-- has its own DUB package,
-- has its own tests and documentation,
-- may have its own release cadence,
-- and should remain useful outside the application or project that originally motivated it.
+The library must remain useful outside GIS applications.
 
-These principles define a shared engineering philosophy. They do not require a shared runtime or common base package.
+## 2. Scope boundaries
 
----
+`geo-d` owns general Euclidean geometry concepts such as:
 
-## 2. Normative language
+- points;
+- vectors;
+- bounds;
+- segments;
+- polylines;
+- rings;
+- polygons;
+- Euclidean metric operations;
+- computational-geometry predicates;
+- topology validation;
+- geometry algorithms whose semantics do not depend on a CRS or Earth model.
 
-The terms **MUST**, **SHOULD**, and **MAY** are used deliberately.
+It does not own:
 
-- **MUST**: required unless a documented exception exists.
-- **SHOULD**: expected default; deviations require a technical reason.
-- **MAY**: optional.
+- CRS definitions or authority databases;
+- EPSG lookup;
+- projection discovery;
+- map projections;
+- ellipsoidal geodesy;
+- latitude/longitude semantics;
+- raster processing;
+- spatial indexing;
+- GIS file-format bindings.
 
-A library MAY deviate from these principles when its domain requires it, but such deviations SHOULD be documented.
+Integration with other libraries should use ordinary value conversion or thin adapters rather than moving foreign semantics into `geo-d`.
 
----
+## 3. Small public API
 
-# 3. Library independence
+Public API surface is a long-term compatibility commitment.
 
-A library MUST represent a coherent domain of its own.
+New functions and types should be added only when:
 
-It MUST NOT depend on another `d-geospatial` library merely to share:
+- their semantics can be stated clearly;
+- a concrete use case demonstrates their value;
+- they belong inside the scope of `geo-d`;
+- their ownership and numerical behaviour are understood.
 
-- utility functions,
-- error helpers,
-- traits,
-- string helpers,
-- logging infrastructure,
-- or other incidental implementation details.
+Conventional presence in another geometry library is not sufficient justification.
 
-Dependencies are justified when they reflect a real conceptual layering.
+Depth is preferred over breadth.
 
-Good:
+## 4. Strong geometry semantics
 
-```text
-specialised library
-        ↓
-fundamental domain library
-```
+Geometry types should represent mathematical concepts rather than merely convenient groups of coordinates.
 
-Bad:
+In particular:
 
-```text
-library A ─┐
-library B ─┼─→ common-d
-library C ─┘
-```
+- `Point2` is an affine point;
+- `Vector2` is a displacement;
+- points and vectors remain distinct types;
+- invalid affine algebra should be rejected at compile time.
 
-solely because several libraries happen to need a few similar helpers.
+The API should not expose operations solely because the underlying scalar fields could technically perform them.
 
-There is deliberately no mandatory `common`, `core`, or `foundation` package.
+## 5. Explicit scalar model
 
-A repeated abstraction SHOULD only become an independent package after genuine reuse has demonstrated that it represents a domain of its own.
+The supported core scalar set is deliberately finite and explicit.
 
----
+For `v0.1`:
 
-# 4. Dependency discipline
+~~~text
+int
+long
+float
+double
+real
+~~~
 
-Dependencies SHOULD point from specialised functionality toward more fundamental functionality.
+Supporting a new scalar category requires understanding its effect on:
 
-Fundamental libraries SHOULD have the smallest practical dependency set.
+- geometry algebra;
+- promotion;
+- conversion;
+- overflow;
+- robust predicates;
+- metric computation;
+- API attributes.
 
-Large native runtimes MUST NOT become dependencies of lower-level libraries merely for convenience.
+Generic numeric support must not be introduced speculatively.
 
-For example, a generic geometry library should not require a GIS runtime solely to perform basic geometry operations.
+## 6. Explicit conversion
 
-Optional interoperability SHOULD normally be implemented in:
+Different geometry scalar types do not implicitly convert.
 
-- specialised libraries,
-- optional configurations,
-- or adapter modules.
+Potentially lossy operations must make their numerical semantics visible.
 
-Circular dependencies between libraries MUST be avoided.
+Floating-point-to-integer quantisation must explicitly distinguish operations such as:
 
----
+- round;
+- floor;
+- ceil;
+- truncate.
 
-# 5. Application independence
+Ordinary primitive casts must not silently define geometry conversion semantics.
 
-A reusable library MUST model its actual domain rather than the application that first required it.
+## 7. Exact equality is not approximate geometry
 
-Bad:
+The fundamental `==` operation means exact value equality.
 
-```d
-auto getCurrentEditorMap();
-```
+There is no library-wide epsilon redefining equality.
 
-Better:
+Approximate comparison, where useful, must be a separate operation with explicitly documented semantics.
 
-```d
-auto query(Bounds bounds);
-```
+## 8. No global epsilon for topology
 
-Bad:
+Topology-sensitive predicates must not determine mathematical relationships through one global floating-point tolerance.
 
-```d
-traceOsmRoad(...);
-```
+Operations such as:
 
-for an otherwise generic path-search library.
+- orientation;
+- segment intersection;
+- point-on-boundary classification;
+- point-in-polygon classification;
+- topology validation;
 
-Better:
+must use numerical methods appropriate to their required guarantees.
 
-```d
-trace(CostField field, Point start, Point target);
-```
+A tolerance may be part of an algorithm whose mathematical definition actually contains one, such as metric simplification.
 
-with OSM-specific behaviour implemented at a higher layer.
+That is distinct from using epsilon to guess topology.
 
-Applications are reference consumers of the libraries, not their specification.
+## 9. Robust topology and geometric construction are separate
 
----
+A topological answer and a constructed coordinate are not the same thing.
 
-# 6. Explicit ownership and lifetime
+For example:
 
-Ownership MUST be visible in API design.
+~~~text
+Does an intersection exist?
+        !=
+What floating-point coordinate should represent it?
+~~~
 
-Types that own resources or memory SHOULD be distinguishable from types that merely view or borrow them.
+Authoritative topology predicates must not be replaced by tests against rounded construction results.
 
-Preferred conceptual distinction:
+Construction may round a mathematically exact result to a documented output representation without weakening the corresponding topology operation.
 
-```text
-Buffer / Storage / Owner
+## 10. Representation and validation are separate
 
-          versus
+Geometry values and views may represent input that is not topologically valid.
 
-View / Span / Reference
-```
+Construction must not silently:
 
-A view MUST NOT imply ownership.
+- repair geometry;
+- reorder rings;
+- remove intersections;
+- normalise winding;
+- change polygon roles;
+- discard degenerate input.
 
-Copying a lightweight view SHOULD be cheap.
+Validation is an explicit operation.
 
-Deep copies MUST NOT occur unexpectedly.
+This separation is necessary for:
 
-Operations that allocate or materialise new storage SHOULD make this apparent through:
+- parsers;
+- editors;
+- diagnostics;
+- interchange;
+- repair tools;
+- inspection of malformed external data.
 
-- naming,
-- return type,
-- documentation,
-- or API structure.
+## 11. Polygon roles are structural
 
-Resource lifetime MUST be deterministic where required by the underlying resource.
+Polygon ring role must not be inferred implicitly from winding direction.
 
----
+For `PolygonView`:
 
-# 7. Views before copies
+~~~text
+ring 0      exterior
+ring 1..n   holes
+~~~
 
-Where the domain allows it, APIs SHOULD prefer views over unnecessary copying.
+Orientation remains a geometric property of a ring, not its polygon role.
 
-Typical examples include:
+Algorithms must document independently whether winding affects their result.
 
-- slices,
-- subregions,
-- crops,
-- subsets,
-- windows,
-- channels,
-- ranges,
-- transformed logical views.
+## 12. Explicit ownership and lifetime
 
-A zero-copy operation SHOULD remain zero-copy unless materialisation is explicitly requested.
+Ownership must be visible in the type and API design.
 
-Where repeated computation is expected, libraries SHOULD provide destination-oriented APIs when practical:
+A view does not own its backing storage.
 
-```d
-operationInto(source, destination);
-```
+Variable-size geometry should prefer non-owning views when an owning abstraction is not necessary.
 
-This allows callers to control allocation and reuse memory.
+The caller remains responsible for the lifetime of backing storage.
 
----
+DIP1000 should be used where it materially strengthens compiler-enforced borrowing guarantees.
 
-# 8. Memory layout is part of the contract
+## 13. Views before unnecessary copies
 
-Libraries dealing with structured numerical or binary data MUST distinguish between relevant memory-layout properties.
+Algorithms should normally accept views of existing geometry rather than require callers to duplicate data into library-owned containers.
+
+Copying a lightweight geometry view should remain cheap.
+
+Algorithms must not hide deep copies behind apparently lightweight operations.
+
+If future owning aggregate types are introduced, existing view-based algorithms should remain independently usable.
+
+## 14. Allocation must be explicit
+
+Low-level geometry and numerical algorithms should avoid hidden allocation.
+
+When variable-size temporary storage is needed and caller management is practical, prefer:
+
+- caller-provided destination buffers;
+- caller-provided workspaces;
+- explicit size-query functions.
+
+An algorithm may allocate when that is genuinely the clearest design, but allocation behaviour must be part of its documented contract.
+
+`@nogc` must reflect reality rather than aspiration.
+
+## 15. Preserve useful execution contracts
+
+Low-level operations should provide strong D attributes where their semantics permit:
+
+~~~text
+pure
+nothrow
+@safe
+@nogc
+~~~
+
+Existing guarantees must not be removed casually.
+
+An attribute is part of the API contract once consumers can rely on it.
+
+Do not distort an algorithm merely to obtain an attribute that its natural semantics do not support.
+
+## 16. Numerical representation and computation are different concerns
+
+Coordinate storage type does not automatically determine the best computation type.
+
+Metric operations may use a computation representation different from coordinate storage.
+
+Robust predicates may require:
+
+- wider intermediate values;
+- exact integer arithmetic;
+- floating-point expansions;
+- dyadic arithmetic;
+- adaptive or certified filters.
+
+These implementation strategies should remain internal unless callers genuinely need them.
+
+## 17. Ordinary algebra does not promise overflow-free mathematics
+
+Ordinary point and vector algebra follows the documented behaviour of the corresponding D scalar operations.
+
+Robust computational-geometry predicates may use stronger internal arithmetic when mathematical correctness requires it.
+
+Do not force every simple value operation through expensive exact arithmetic merely because topology algorithms require exactness.
+
+## 18. Deterministic behaviour matters
+
+Given the same geometry and scalar representation, algorithms should produce deterministic results where practical.
+
+This includes deterministic choices for:
+
+- tie-breaking;
+- canonical overlap endpoints;
+- simplification output;
+- validation diagnostics where ordering is defined.
+
+Determinism improves reproducibility, testing, debugging, and downstream processing.
+
+## 19. Degenerate geometry is part of the domain
+
+Degenerate cases must be designed rather than ignored.
 
 Examples include:
 
-- contiguous versus strided data,
-- owning versus borrowed storage,
-- aligned versus unaligned memory,
-- logical shape versus physical layout.
+- zero-length segments;
+- empty views;
+- singleton polylines;
+- collinear points;
+- touching rings;
+- geometrically collapsed results.
 
-A logical view MUST NOT be assumed to satisfy the layout requirements of an external API.
+A type should not use a legitimate degenerate geometry as an invalid sentinel when the two concepts need different semantics.
 
-Foreign-function boundaries MUST verify the required:
+## 20. Non-finite values require explicit policy
 
-- size,
-- alignment,
-- stride,
-- contiguity,
-- datatype,
-- and lifetime.
+Representability and algorithm validity are distinct.
 
-Unchecked layout assumptions are correctness bugs, not merely performance issues.
+Core floating-point value types may represent NaN and infinities when their value semantics permit it.
 
----
+Individual algorithms must define whether such inputs are accepted.
 
-# 9. Data-oriented design where appropriate
+Types with stronger invariants, such as `Bounds2`, may reject values that would invalidate their ordered representation.
 
-Large datasets and performance-sensitive algorithms SHOULD favour representations that improve:
+NaN must not silently acquire an unrelated geometric meaning such as "empty".
 
-- locality,
-- predictable memory access,
-- low allocation count,
-- vectorisation,
-- efficient iteration.
+## 21. Complexity and workspace requirements are API properties
 
-For suitable domains, representations such as
+For algorithms operating on variable-size geometry, document meaningful complexity characteristics.
 
-```text
-ids[]
-x[]
-y[]
-flags[]
-offsets[]
-```
+Where relevant, this includes:
 
-may be preferable to millions of separately heap-allocated objects.
+- time complexity;
+- destination size requirements;
+- workspace size requirements;
+- allocation behaviour;
+- recursion;
+- mutation or aliasing constraints.
 
-Object-oriented interfaces MAY still be provided where they improve usability.
+Do not hide unexpectedly expensive behaviour behind a trivial-looking API.
 
-Public API design and internal data representation do not have to be identical.
+## 22. Optimisation must preserve semantics
 
----
+Correctness comes before micro-optimisation.
 
-# 10. Allocation policy
+Performance-sensitive numerical paths should be benchmarked.
 
-Allocation is allowed.
+Optimisations must preserve established:
 
-**Hidden and unnecessary allocation is not.**
+- topology semantics;
+- rounding semantics;
+- determinism;
+- safety;
+- ownership behaviour.
 
-Performance-sensitive operations SHOULD document whether they:
+If an optimisation requires changing one of these contracts, that is an API/design change rather than merely an implementation optimisation.
 
-- allocate,
-- may allocate,
-- or do not allocate.
+## 23. Measure before claiming
 
-Hot paths SHOULD permit memory reuse where practical.
+Performance claims should be supported by measurement.
 
-`@nogc` SHOULD be used where it provides concrete value, particularly in:
+Benchmarks should focus on operations where implementation choices materially affect runtime.
 
-- numerical kernels,
-- spatial queries,
-- tight decoding loops,
-- geometry operations,
-- raster operations.
+Benchmark results should not be used to justify weaker numerical semantics unless such a trade-off is explicitly designed as a separate API.
 
-`@nogc` MUST NOT become a dogma that makes ordinary APIs significantly worse without measurable benefit.
+## 24. Independent verification for difficult numerical code
 
----
+Robust numerical algorithms should be tested independently of the implementation strategy whenever practical.
 
-# 11. Safety
+Useful techniques include:
 
-Public APIs SHOULD be `@safe` wherever reasonably possible.
+- `BigInt` or other independent exact oracles;
+- property tests;
+- argument permutation;
+- endpoint reversal;
+- full-range signed integer inputs;
+- arbitrary finite floating-point bit patterns;
+- subnormal values;
+- extreme exponents;
+- known rounding boundaries.
 
-Unsafe operations MUST be kept within small, reviewable boundaries.
+Tests that merely reproduce the production algorithm through similar arithmetic are insufficient for high-risk numerical code.
 
-Preferred structure:
+## 25. Compiler diversity is part of verification
 
-```text
-public @safe API
-       ↓
-small @trusted implementation boundary
-       ↓
-pointer arithmetic / C API / system operation
-```
+DMD and LDC are required compiler families.
 
-`@trusted` MUST only be used when the implementation establishes the invariants promised to `@safe` callers.
+The minimum supported D frontend is:
 
-Raw pointers and native handles SHOULD normally remain internal implementation details.
+~~~text
+2.111.0
+~~~
 
----
+CI should cover:
 
-# 12. Bounds and validation
+- the documented minimum;
+- current DMD;
+- current LDC.
 
-Ranges, offsets, slices, indices, and dimensions MUST be validated where invalid values can compromise correctness or memory safety.
+Cross-compiler testing is particularly important for floating-point and template-heavy numerical code.
 
-Libraries MUST NOT depend on unchecked pointer arithmetic when bounded representations are practical.
+GDC support is best effort unless explicitly promoted to a stronger contract.
 
-Malformed external input is not a programmer error.
+## 26. Architecture decisions precede semantic drift
 
-Assertions SHOULD be used for internal invariants.
+Significant public semantic decisions should be documented in ADRs.
 
-Malformed data, invalid user input, and external failures SHOULD use the library's normal error mechanism.
+An ADR is normally appropriate for changes involving:
 
----
+- geometry representation;
+- scalar policy;
+- ownership;
+- topology;
+- robustness;
+- rounding;
+- validation;
+- error semantics;
+- algorithm guarantees.
 
-# 13. Error semantics
+Implementation should not accidentally establish a permanent public contract before the underlying design question has been considered.
 
-Every library MUST have a deliberate and documented error model.
+## 27. Dependencies must justify themselves
 
-Equivalent classes of failure SHOULD be represented consistently.
+`geo-d` should remain dependency-light.
 
-Libraries SHOULD avoid arbitrary mixtures of:
+A dependency must provide enough value to justify:
 
-```text
-null
-false
--1
-errno
-exceptions
-```
+- maintenance cost;
+- build complexity;
+- supply-chain surface;
+- version constraints;
+- portability impact.
 
-for similar errors.
+Do not introduce a large GIS runtime for basic Euclidean geometry.
 
-The error model SHOULD distinguish, where relevant:
+Test-only dependencies or standard-library facilities used as independent verification tools do not imply production coupling.
 
-- malformed or invalid input,
-- unavailable data,
-- resource exhaustion,
-- I/O or operating-system errors,
-- foreign-library failures,
-- programmer invariant violations.
+## 28. Framework neutrality
 
-Foreign-library errors SHOULD be translated at the interoperability boundary while preserving useful diagnostic information.
+`geo-d` must not depend on:
 
-Error handling SHOULD be simple enough that callers can use it correctly.
+- GUI frameworks;
+- application data models;
+- editor state;
+- database schemas;
+- one particular geometry file format.
 
----
+Consumers should be able to use the library in command-line tools, servers, desktop software, numerical applications, or unrelated domains without adopting an application framework.
 
-# 14. Native interoperability
+## 29. Interoperability through simple boundaries
 
-D's C interoperability SHOULD be used as a strength.
+Interoperability should favour:
 
-Mature external libraries SHOULD be reused when they solve a complex problem well.
+- simple value conversion;
+- views;
+- lightweight adapters;
+- explicit foreign-memory handling.
 
-We SHOULD NOT reimplement major established systems merely to avoid a native dependency.
+A geometry algorithm should not care whether coordinates originally came from:
 
-At the same time, raw C interfaces SHOULD normally be separated from the idiomatic public D API.
+- GDAL;
+- PROJ;
+- OSM;
+- a database;
+- a simulation;
+- generated data;
+- an in-memory calculation.
 
-Preferred layering:
+Origin of data must not become an unnecessary dependency.
 
-```text
-native library
-     ↓
-raw binding
-     ↓
-idiomatic D wrapper
-     ↓
-application/library API
-```
+## 30. Future features must earn their place
 
-The wrapper SHOULD handle:
+Potential future work such as:
 
-- lifetime,
-- ownership,
-- cleanup,
-- common datatype conversion,
-- error translation,
-- safe common operations.
+- clipping;
+- owning aggregate geometry;
+- additional relationships;
+- topology-preserving simplification;
+- robust `real` predicates;
 
-Advanced callers MAY be given access to raw bindings where useful.
+should be added when requirements are concrete enough to define a sound API.
 
----
+Do not generalise merely to make the library appear complete.
 
-# 15. RAII for external resources
+## Guiding principle
 
-Resources requiring explicit release SHOULD use deterministic lifetime management.
+`geo-d` should prefer:
 
-Examples include:
+~~~text
+small API
+    +
+strong geometry semantics
+    +
+explicit ownership
+    +
+robust topology
+    +
+predictable numerical behaviour
+    +
+visible allocation
+    +
+independent verification
+~~~
 
-- file handles,
-- native datasets,
-- transformation contexts,
-- GPU resources,
-- inference sessions,
-- native buffers.
+over:
 
-Copying MUST be disabled when duplicate ownership would be invalid.
+~~~text
+large API
+    +
+implicit conversion
+    +
+hidden allocation
+    +
+epsilon-based topology
+    +
+silent geometry repair
+    +
+speculative abstraction
+~~~
 
-Garbage collection MUST NOT be the sole mechanism responsible for releasing scarce native resources.
-
----
-
-# 16. Avoid unnecessary abstraction
-
-Genericity is useful when it serves real reuse.
-
-It is not a goal in itself.
-
-D templates SHOULD be used when they produce a clearer or more reusable API.
-
-Libraries SHOULD avoid template complexity that causes:
-
-- excessive compile time,
-- unreadable diagnostics,
-- difficult documentation,
-- unnecessary code generation,
-
-without delivering practical value.
-
-Prefer the smallest abstraction that correctly models the problem.
-
----
-
-# 17. Strong domain semantics
-
-Types SHOULD make materially different concepts difficult to confuse.
-
-Where useful, distinguish concepts such as:
-
-```text
-geographic coordinates
-projected coordinates
-screen coordinates
-pixel coordinates
-tile coordinates
-array indices
-distances
-angles
-```
-
-Conversions between materially different domains SHOULD be explicit.
-
-Raw primitive types MAY be used internally where performance requires them.
-
-Public APIs SHOULD favour semantic correctness over accidental convenience.
-
-## 17.1 Geometry, geodesy, georeferencing and CRS boundaries
-
-The workspace deliberately separates four related but distinct domains:
-
-- **`geo-d`** provides coordinate-system-agnostic Euclidean geometry. Its coordinates carry no implicit geographic, geodetic, CRS, unit or Earth-model semantics.
-- **`geodesy-d`** provides pure-D mathematical types and algorithms whose meaning depends on the Earth, a reference ellipsoid, geographic/geocentric coordinates, frame transformations or map projections.
-- **`georef-d`** provides compact or discrete geographic reference/coding systems such as MGRS, Geohash and Open Location Code.
-- **`proj-d`** provides integration with PROJ for the broader CRS/authority ecosystem, including CRS definitions, operation selection, authority metadata, grids and related native infrastructure.
-
-Examples of intended ownership:
-
-```text
-Point2 / Vector2 / Polygon         → geo-d
-Latitude / Longitude / Ellipsoid   → geodesy-d
-ECEF / Helmert / UTM               → geodesy-d
-MGRS / Geohash / Plus Code         → georef-d
-EPSG database / WKT / grid shifts  → proj-d
-```
-
-A map projection result MAY be adapted to a `geo-d` point, but `geo-d` MUST NOT acquire Earth or CRS semantics merely to support that integration.
-
-`geodesy-d` MUST NOT grow into a second PROJ by accumulating authority databases, automatic CRS discovery, WKT parsing or transformation-grid management. Conversely, using PROJ for complete CRS infrastructure does not prohibit a bounded, independently useful pure-D implementation of well-specified geodetic mathematics.
-
-Dependencies between these libraries SHOULD remain optional or one-directional and MUST reflect genuine conceptual layering. Adapters are preferred where direct coupling is unnecessary.
-
----
-
-# 18. Numerical policy
-
-Precision SHOULD match the domain.
-
-Libraries MUST NOT silently reduce precision when doing so can materially affect correctness.
-
-Likewise, higher precision SHOULD NOT be used automatically where it creates substantial cost without benefit.
-
-The chosen numerical representation SHOULD be documented for important domain types.
-
-Conversions that may lose precision SHOULD be visible to the caller where practical.
-
----
-
-# 19. Performance is an API property
-
-Performance-sensitive libraries MUST be designed so important operations can be measured independently.
-
-Relevant APIs SHOULD make it possible to benchmark:
-
-- parsing,
-- queries,
-- transformations,
-- kernels,
-- allocation,
-- rendering preparation,
-- or other major operations
-
-without unrelated work being inseparably mixed into the same call.
-
-The cost of an operation SHOULD not be surprising from its API.
-
-An innocent-looking property access SHOULD NOT unexpectedly perform an expensive full-data transformation without clear documentation.
-
----
-
-# 20. Measure before claiming
-
-Performance claims MUST be supported by measurements.
-
-Performance-sensitive libraries SHOULD maintain reproducible benchmarks.
-
-Measurements MAY include:
-
-- throughput,
-- latency,
-- allocations,
-- peak memory,
-- scaling with dataset size,
-- build/compiler differences.
-
-Release-mode LDC builds SHOULD normally be part of performance evaluation.
-
-Optimisations SHOULD be motivated by profiling or known algorithmic behaviour.
-
----
-
-# 21. Complexity documentation
-
-Algorithms whose scaling materially affects usability SHOULD document their expected computational complexity.
-
-Examples:
-
-```text
-view creation                 O(1)
-linear raster operation       O(n)
-range query                   O(log n + k)
-materialisation               O(n)
-```
-
-Users should be able to understand whether an operation is intended for:
-
-```text
-10 elements
-10,000 elements
-10,000,000 elements
-```
-
-without reading its implementation.
-
----
-
-# 22. Correctness before micro-optimisation
-
-Priority order:
-
-1. correctness,
-2. clear invariants,
-3. appropriate data structures and algorithms,
-4. measurable performance,
-5. low-level optimisation.
-
-Fundamental architectural decisions that affect asymptotic complexity, ownership, and memory layout SHOULD be considered early.
-
-Micro-optimisations SHOULD follow evidence.
-
----
-
-# 23. Concurrency
-
-Threading behaviour MUST be documented.
-
-Libraries SHOULD NOT create hidden worker threads unless doing so is intrinsic to their domain.
-
-Applications SHOULD normally retain control over scheduling.
-
-Independent operations SHOULD be designed so callers can parallelise them where practical.
-
-Shared mutable global state SHOULD be avoided.
-
-Thread safety MUST NOT be implied when it is not provided.
-
----
-
-# 24. Determinism
-
-Algorithms SHOULD be deterministic for identical inputs unless nondeterminism is:
-
-- intrinsic,
-- beneficial,
-- or explicitly requested.
-
-This is particularly valuable for:
-
-- geometry,
-- spatial indexing,
-- parsing,
-- raster processing,
-- tests,
-- benchmarks.
-
-Parallel implementations SHOULD preserve deterministic externally visible behaviour where reasonably practical.
-
----
-
-# 25. Framework neutrality
-
-General libraries MUST NOT require a particular:
-
-- GUI toolkit,
-- application framework,
-- event loop,
-- logging system,
-- dependency injection framework.
-
-A raster-processing library must remain usable from a command-line application.
-
-A parser must remain usable on a headless server.
-
-A geometry library must not depend on a GUI representation.
-
----
-
-# 26. Logging
-
-Libraries SHOULD NOT write routine diagnostic output directly to stdout or stderr.
-
-Errors SHOULD be communicated through the documented error mechanism.
-
-When diagnostics are useful, libraries MAY expose:
-
-- structured diagnostic objects,
-- callbacks,
-- optional tracing hooks.
-
-The caller decides how and where diagnostics are displayed or logged.
-
----
-
-# 27. API surface
-
-Public APIs SHOULD be deliberately small.
-
-Implementation details MUST NOT become public merely because doing so is convenient during development.
-
-A smaller stable API gives more freedom to improve internal implementation later.
-
-Public types SHOULD represent domain concepts, not temporary implementation accidents.
-
----
-
-# 28. Versioning
-
-Each library has its own version.
-
-Semantic Versioning SHOULD be used for published packages.
-
-Before `1.0`, breaking API changes are acceptable when they materially improve the design.
-
-Such changes MUST be documented.
-
-After `1.0`:
-
-```text
-PATCH  compatible fixes
-MINOR  compatible functionality
-MAJOR  incompatible API change
-```
-
-Deprecation SHOULD be preferred to immediate removal when practical.
-
----
-
-# 29. Compiler support
-
-Libraries SHOULD target modern D rather than indefinitely preserving obsolete compiler compatibility.
-
-Primary compilers:
-
-```text
-DMD
-LDC
-```
-
-GDC support is desirable where practical.
-
-Each library MUST document its supported compiler/frontend range.
-
-CI SHOULD test the declared compiler matrix.
-
-Compiler compatibility requirements SHOULD NOT prevent worthwhile language or safety improvements indefinitely.
-
----
-
-# 30. BetterC
-
-BetterC compatibility is optional.
-
-A library MAY support BetterC where it follows naturally from its domain and implementation.
-
-BetterC MUST NOT distort an otherwise superior normal-D API unless BetterC is an explicit goal of that library.
-
-Low-level modules or numerical kernels MAY support BetterC independently of the rest of a package.
-
----
-
-# 31. Testing
-
-Tests are part of the deliverable.
-
-Every library MUST contain appropriate automated tests.
-
-At minimum:
-
-- normal behaviour,
-- boundary cases,
-- invalid input where relevant,
-- regression tests for fixed bugs.
-
-Depending on domain, libraries SHOULD additionally use:
-
-- property-based tests,
-- fuzzing,
-- numerical reference tests,
-- interoperability tests,
-- large-input tests,
-- cross-platform tests.
-
-A bug fix SHOULD normally add a test that would have caught the defect.
-
----
-
-# 32. Real-world fixtures
-
-Synthetic data is necessary but not always sufficient.
-
-Libraries dealing with real-world formats or data SHOULD include small representative fixtures where licensing permits.
-
-Examples may include:
-
-- geospatial files,
-- raster samples,
-- binary format fragments,
-- malformed inputs,
-- edge-case geometries.
-
-Large datasets SHOULD normally remain outside Git.
-
-Fixture provenance and licensing MUST be documented.
-
----
-
-# 33. Documentation
-
-Documentation is part of the library, not an optional finishing step.
-
-Every published library SHOULD contain at least:
-
-```text
-README.md
-CHANGELOG.md
-ROADMAP.md
-CONTRIBUTING.md
-DESIGN_PRINCIPLES.md
-LICENSE
-```
-
-Nontrivial libraries SHOULD additionally document relevant topics such as:
-
-```text
-docs/
-├── architecture.md
-├── memory-model.md
-├── performance.md
-└── adr/
-```
-
-Public D symbols SHOULD have useful Ddoc documentation.
-
-Documentation SHOULD explain both:
-
-- how the API is used,
-- and why important architectural choices were made.
-
----
-
-# 34. Examples
-
-Examples SHOULD represent realistic usage rather than only trivial syntax demonstrations.
-
-A useful example should help answer:
-
-> How would I actually use this library in a small real program?
-
-Examples SHOULD remain small enough to understand independently.
-
----
-
-# 35. Architecture decisions
-
-Significant design decisions SHOULD be recorded as ADRs.
-
-An ADR is appropriate when a decision:
-
-- materially constrains future architecture,
-- chooses between significant alternatives,
-- introduces or removes a major dependency,
-- defines a persistent representation,
-- or intentionally breaks compatibility.
-
-ADRs SHOULD explain:
-
-1. context,
-2. decision,
-3. alternatives considered,
-4. consequences.
-
-Library-specific architectural decisions belong in that library's repository.
-
----
-
-# 36. External dependencies must justify themselves
-
-Every dependency introduces:
-
-- maintenance burden,
-- supply-chain risk,
-- compatibility constraints,
-- packaging complexity,
-- build complexity.
-
-Dependencies SHOULD therefore provide substantial value.
-
-Do not import a large framework for a trivial operation.
-
-Do not reimplement a mature specialist library merely to eliminate a justified dependency.
-
-A bounded pure-D implementation of a well-specified mathematical operation MAY nevertheless be justified when it provides substantial independent value such as:
-
-- deployment without a native runtime;
-- `@safe` / `@nogc` integration;
-- transparent numerical behaviour;
-- CTFE or constrained-runtime use;
-- substantially simpler distribution for consumers that need only the mathematical kernel.
-
-Such a library MUST keep its scope bounded and SHOULD validate against authoritative specifications and mature independent implementations. It SHOULD NOT duplicate large authority databases, resource ecosystems or operation-selection machinery without a compelling reason.
-
-The trade-off MUST be evaluated in context.
-
----
-
-# 37. Adapters over unnecessary coupling
-
-When two independent libraries integrate naturally, a thin adapter is preferable to forcing either library to depend on the other unnecessarily.
-
-Conceptually:
-
-```text
-Library A       Library B
-    │               │
-    └──── adapter ──┘
-```
-
-This preserves independent usability and keeps dependency graphs small.
-
----
-
-# 38. No premature universality
-
-Reusable does not mean infinitely generic.
-
-A library SHOULD implement:
-
-- established requirements of its domain,
-- needs demonstrated by real consumers,
-- abstractions supported by concrete use cases.
-
-Speculative generalisation SHOULD be avoided.
-
-Breadth should be earned gradually.
-
----
-
-# 39. Quality over feature count
-
-A smaller set of operations that are:
-
-- correct,
-- tested,
-- documented,
-- composable,
-- efficient,
-
-is preferable to a broad API containing partially implemented features.
-
-Feature count is not a measure of maturity.
-
----
-
-# 40. Replaceability
-
-Higher-level libraries SHOULD depend on domain abstractions rather than incidental origins of data.
-
-For example, an algorithm consuming a raster view should not care whether the pixels originated from:
-
-- GDAL,
-- PNG,
-- an in-memory calculation,
-- or a machine-learning output.
-
-Likewise, geometry algorithms should not require objects to originate from one specific file format.
-
-Replaceability improves testing, reuse, and long-term architecture.
-
----
-
-# 41. Global principles versus local decisions
-
-This document contains principles that are intended to apply across the `d-geospatial` library family.
-
-It deliberately does **not** prescribe library-specific technical choices such as:
-
-- a particular multidimensional-array package,
-- a particular spatial index,
-- a particular file-format parser,
-- a particular native GIS library,
-- a particular ML runtime,
-- a particular GUI toolkit.
-
-Such decisions belong in the relevant library's architecture documentation or ADRs.
-
-This distinction is intentional:
-
-```text
-DESIGN_PRINCIPLES.md
-        │
-        └── shared engineering rules
-
-library ADRs
-        │
-        └── concrete implementation decisions
-```
-
----
-
-# 42. Shared file and versioning
-
-The workspace maintains three canonical shared documents at its root:
-
-```text
-d-geospatial/README.md
-d-geospatial/ROADMAP.md
-d-geospatial/DESIGN_PRINCIPLES.md
-```
-
-Each participating library repository contains the same three files at its own repository root:
-
-```text
-<library>/README.md
-<library>/ROADMAP.md
-<library>/DESIGN_PRINCIPLES.md
-```
-
-Within the local `d-geospatial` workspace these files are hardlinked to the canonical root copies. Git repositories still version their copies independently.
-
-Git does not preserve hardlink relationships, so workspace tooling SHOULD restore the links after clone, checkout, or repository creation.
-
-Changes to these shared principles SHOULD be:
-
-1. made intentionally,
-2. versioned in this document,
-3. reviewed for impact on all participating libraries,
-4. committed into each affected library repository.
-
-A historical library commit must therefore retain the version of the design principles under which it was developed.
-
----
-
-# 43. Deviations
-
-A principle MAY be violated when a library has a compelling domain-specific reason.
-
-The deviation SHOULD be documented in:
-
-```text
-docs/architecture.md
-```
-
-or an ADR.
-
-The documentation should state:
-
-- which principle is being deviated from,
-- why,
-- what alternatives were considered,
-- what consequences follow.
-
-A documented exception is preferable to forcing a poor design merely for superficial consistency.
-
----
-
-# Guiding idea
-
-The goal is **not** to make every library look identical.
-
-The goal is to make independent D libraries whose behaviour is unsurprising because they share the same assumptions about:
-
-- ownership,
-- lifetime,
-- safety,
-- memory,
-- errors,
-- dependencies,
-- interoperability,
-- performance,
-- testing,
-- and API quality.
-
-They should fit together naturally while remaining valuable on their own.
+A small geometry library whose behaviour can be trusted is more valuable than a broad one whose semantics depend on undocumented assumptions.

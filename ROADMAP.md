@@ -417,6 +417,22 @@ The next geometry design block is point-in-polygon classification,
 including explicit boundary semantics and behaviour for invalid or
 degenerate polygon representations.
 
+### Implemented foundation
+
+The current geometry foundation includes:
+
+- Point2, Vector2, Bounds, Segment and non-owning geometry views;
+- metric distance, squared distance, nearest-point and polyline-length operations;
+- robust orientation and segment-intersection predicates;
+- signed ring area and polygon area;
+- point-in-polygon classification;
+- ring and polygon topology validation;
+- caller-buffered Douglas-Peucker polyline simplification.
+
+Douglas-Peucker simplification is intentionally limited to PolylineView.
+Topology-preserving simplification of rings and polygons remains separate
+future work.
+
 ### Design questions
 
 - coordinate and scalar genericity;

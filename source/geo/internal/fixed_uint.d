@@ -167,6 +167,46 @@ UIntFixed!Limbs subtractUnsigned(size_t Limbs)(
 }
 
 
+/*
+ * Index of the least-significant non-zero limb.
+ *
+ * Returns Limbs for zero.
+ */
+private size_t firstNonZeroLimb(size_t Limbs)(
+    ref const UIntFixed!Limbs value
+)
+    pure nothrow @safe @nogc
+{
+    foreach (i; 0 .. Limbs)
+    {
+        if (value.limb[i] != 0)
+            return i;
+    }
+
+    return Limbs;
+}
+
+
+/*
+ * One-past the most-significant non-zero limb.
+ *
+ * Returns zero for zero.
+ */
+private size_t pastLastNonZeroLimb(size_t Limbs)(
+    ref const UIntFixed!Limbs value
+)
+    pure nothrow @safe @nogc
+{
+    for (size_t i = Limbs; i != 0; --i)
+    {
+        if (value.limb[i - 1] != 0)
+            return i;
+    }
+
+    return 0;
+}
+
+
 /**
  * Exact fixed-width multiplication.
  *
@@ -187,11 +227,45 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
 {
     UIntFixed!(LhsLimbs + RhsLimbs) result;
 
-    foreach (i; 0 .. LhsLimbs)
+    const size_t lhsFirst =
+        firstNonZeroLimb(lhs);
+
+    if (lhsFirst == LhsLimbs)
+        return result;
+
+    const size_t rhsFirst =
+        firstNonZeroLimb(rhs);
+
+    if (rhsFirst == RhsLimbs)
+        return result;
+
+    const size_t lhsEnd =
+        pastLastNonZeroLimb(lhs);
+
+    const size_t rhsEnd =
+        pastLastNonZeroLimb(rhs);
+
+
+    /*
+     * Fixed-width storage is intentionally sized for the complete
+     * numerical domain, but ordinary dyadic values usually occupy only
+     * a small contiguous range of limbs.
+     *
+     * Skip leading and trailing zero ranges while retaining every limb
+     * inside the active span. Interior zero limbs must still be
+     * processed because carry may propagate through them.
+     */
+    foreach (i; lhsFirst .. lhsEnd)
     {
+        const uint lhsWord =
+            lhs.limb[i];
+
+        if (lhsWord == 0)
+            continue;
+
         ulong carry = 0;
 
-        foreach (j; 0 .. RhsLimbs)
+        foreach (j; rhsFirst .. rhsEnd)
         {
             const size_t index =
                 i + j;
@@ -208,7 +282,7 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
              * therefore ulong is exactly sufficient.
              */
             const ulong accumulated =
-                cast(ulong) lhs.limb[i] *
+                cast(ulong) lhsWord *
                     cast(ulong) rhs.limb[j]
                 + cast(ulong)
                     result.limb[index]
@@ -222,7 +296,7 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
         }
 
         const size_t carryIndex =
-            i + RhsLimbs;
+            i + rhsEnd;
 
         assert(
             carryIndex <
@@ -230,10 +304,12 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
         );
 
         /*
-         * This limb lies immediately beyond the inner product range
-         * for this outer iteration and has not yet received a value
-         * except through the propagated carry represented here.
+         * No earlier multiplication row can have reached this limb.
          */
+        assert(
+            result.limb[carryIndex] == 0
+        );
+
         result.limb[carryIndex] =
             cast(uint) carry;
     }
@@ -244,6 +320,82 @@ UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsigned(
 
 @safe unittest
 {
+    /*
+     * Sparse operands near the high end of their fixed-width storage.
+     */
+    {
+        UIntFixed!4 a;
+        UIntFixed!5 b;
+
+        a.limb[3] = 2;
+        b.limb[4] = 3;
+
+        const auto product =
+            multiplyUnsigned(a, b);
+
+        foreach (i; 0 .. 7)
+            assert(product.limb[i] == 0);
+
+        assert(product.limb[7] == 6);
+        assert(product.limb[8] == 0);
+    }
+
+
+    /*
+     * Carry must propagate through an interior zero limb.
+     *
+     * Skipping zero limbs inside the active range would make this
+     * result incorrect.
+     */
+    {
+        UIntFixed!1 a;
+        UIntFixed!3 b;
+
+        a.limb[0] = uint.max;
+
+        b.limb[0] = uint.max;
+        b.limb[1] = 0;
+        b.limb[2] = 1;
+
+        const auto product =
+            multiplyUnsigned(a, b);
+
+        assert(product.limb[0] == 1);
+        assert(
+            product.limb[1] ==
+            uint.max - 1
+        );
+        assert(
+            product.limb[2] ==
+            uint.max
+        );
+        assert(product.limb[3] == 0);
+    }
+
+
+    /*
+     * Sparse multiplication preserves unequal-width positioning.
+     */
+    {
+        UIntFixed!6 a;
+        UIntFixed!2 b;
+
+        a.limb[4] = 7;
+        b.limb[1] = 9;
+
+        const auto product =
+            multiplyUnsigned(a, b);
+
+        assert(product.limb[5] == 63);
+
+        foreach (i; 0 .. 5)
+            assert(product.limb[i] == 0);
+
+        foreach (i; 6 .. 8)
+            assert(product.limb[i] == 0);
+    }
+
+
     /*
      * Initial value and zero detection.
      */

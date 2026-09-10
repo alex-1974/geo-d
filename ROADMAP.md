@@ -314,6 +314,27 @@ All ring contributions are combined exactly before one final binary64
 rounding. Polygon construction and area calculation deliberately do not
 perform topological validation or implicit normalization.
 
+Explicit topology validation is now implemented separately:
+
+    validateRing
+    validatePolygon
+
+Validation provides structured `RingValidationResult` and
+`PolygonValidationResult` diagnostics.
+
+Ring validation rejects insufficient cardinality, non-finite coordinates,
+zero-length edges, self-intersections and self-overlaps.
+
+Polygon validation additionally checks inter-ring crossings and overlaps,
+multiple distinct contacts between a ring pair, hole containment, nested
+holes, and connected polygon interior. Tangential point contacts are
+permitted where the resulting polygon topology remains valid.
+
+Topology validation uses exact predicates for int, long, float and double.
+Ring validation is `pure nothrow @safe @nogc`. Polygon validation is
+`pure nothrow @safe`; its connected-interior check deliberately uses
+temporary storage and therefore does not promise `@nogc`.
+
 Performance baselines exist for exact segment intersection and signed-area
 arithmetic. Signed-area exact-path optimisation retained exact numerical
 semantics while materially reducing per-vertex cost.

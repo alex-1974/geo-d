@@ -1,6 +1,6 @@
 # ADR-0012: Ring and polygon topology validation
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-10
 
 ## Context
@@ -80,14 +80,33 @@ A valid result has issue `none`.
 The result shall identify relevant ring, vertex, or segment indices where
 practical.
 
-The exact public layout may evolve during implementation, but the API shall
-preserve the distinction between:
+The public validation API provides:
 
-- validity;
-- issue category;
-- location of the detected issue.
+    RingValidationIssue
+    RingValidationResult
+    validateRing()
 
-A convenience `valid` property shall be available.
+    PolygonValidationIssue
+    PolygonValidationResult
+    validatePolygon()
+
+Both result types expose a convenience `valid` property.
+
+`RingValidationResult` reports applicable vertex or edge indices using
+`primaryIndex` and `secondaryIndex`.
+
+`PolygonValidationResult` reports applicable ring and edge indices using:
+
+    primaryRingIndex
+    secondaryRingIndex
+    primaryEdgeIndex
+    secondaryEdgeIndex
+
+For polygon failures caused by an invalid constituent ring, the detailed
+`RingValidationResult` is retained in `ringResult`.
+
+`size_t.max` denotes a diagnostic index that does not apply to the reported
+issue.
 
 ## Ring validation
 
@@ -511,6 +530,70 @@ connectedness.
 Rejected.
 
 Topology is exact in `geo-d`; proximity belongs to metric algorithms.
+
+## Implemented API and algorithm
+
+The accepted implementation exposes `validateRing()` and `validatePolygon()`
+as the only public validation entry points. Intermediate polygon-validation
+stages remain package-internal implementation details.
+
+Ring validation performs exact pairwise edge-topology checks and uses O(n^2)
+time with O(1) auxiliary storage.
+
+Polygon validation proceeds conceptually through four stages:
+
+1. validate every constituent ring;
+2. screen every pair of rings for crossings, positive-length overlaps, and
+   more than one distinct geometric contact point;
+3. validate exterior/interior containment and reject nested interior rings;
+4. verify that the polygon interior remains connected.
+
+A single tangential contact between different rings is permitted. Several
+rings may also meet at the same geometric point provided the resulting
+polygon interior remains connected.
+
+Connected-interior validation represents the remaining touch topology as a
+bipartite incidence graph whose nodes are polygon rings and exact geometric
+contact points. Multiple ring pairs meeting at the same point therefore share
+one contact-point node.
+
+The polygon interior is connected exactly when this incidence graph is
+acyclic. A cycle represents a closed boundary barrier and is reported as
+`disconnectedInterior`.
+
+All topology decisions use exact predicates in the supported scalar domain.
+No epsilon, rounded intersection coordinate, or floating-point distance test
+participates in validity.
+
+The supported scalar domain is:
+
+    int
+    long
+    float
+    double
+
+`real` remains deferred.
+
+The public polygon issue categories are:
+
+    none
+    invalidExteriorRing
+    invalidInteriorRing
+    interRingCrossing
+    interRingOverlap
+    multipleRingContacts
+    interiorRingOutsideExterior
+    nestedInteriorRings
+    disconnectedInterior
+
+The public ring issue categories are:
+
+    none
+    tooFewVertices
+    nonFiniteCoordinate
+    zeroLengthEdge
+    selfIntersection
+    selfOverlap
 
 ## Consequences
 

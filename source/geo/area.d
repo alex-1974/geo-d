@@ -4,11 +4,16 @@ import geo.internal.area_exact :
     SignedAreaAccumulator,
     addAreaDeterminant;
 
+import geo.internal.dyadic :
+    SignedDyadicDifference,
+    SignedDyadicProduct,
+    decodeDyadicCoordinate,
+    multiplyDyadicDifferences,
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
+
 import geo.internal.dyadic_round :
     roundSignedDyadicToBinary64;
-
-import geo.internal.orientation_dyadic :
-    orientationDeterminantDyadic;
 
 import geo.linear_ring_view :
     LinearRingView;
@@ -41,6 +46,39 @@ if (
 }
 
 
+/*
+ * Exact 2D determinant of two already-decoded relative vectors.
+ *
+ * Both vector components are represented in units of 2^-1074, therefore
+ * the returned determinant is represented in units of 2^-2148.
+ */
+private SignedDyadicProduct determinantFromDifferences(
+    ref const SignedDyadicDifference firstX,
+    ref const SignedDyadicDifference firstY,
+    ref const SignedDyadicDifference secondX,
+    ref const SignedDyadicDifference secondY
+)
+    pure nothrow @safe @nogc
+{
+    const auto p =
+        multiplyDyadicDifferences(
+            firstX,
+            secondY
+        );
+
+    const auto q =
+        multiplyDyadicDifferences(
+            firstY,
+            secondX
+        );
+
+    return subtractDyadicProducts(
+        p,
+        q
+    );
+}
+
+
 /**
  * Algebraic signed area of a linear ring.
  *
@@ -70,56 +108,148 @@ if (
 )
 {
     /*
-     * Non-finite input has no defined geometric area.
-     *
-     * Perform this check before the small-ring early return so even a
-     * singleton containing NaN or infinity returns NaN as specified.
+     * Empty rings contain no non-finite coordinates and have exact
+     * positive-zero area.
      */
-    foreach (i; 0 .. ring.length)
-    {
-        if (!ring[i].isFinite)
-            return double.nan;
-    }
-
-    if (ring.length < 3)
+    if (ring.length == 0)
         return 0.0;
 
 
     /*
-     * Exact triangle fan about the first stored vertex:
-     *
-     *     2 A =
-     *         sum orientDet(p0, pi, p(i+1))
-     *
-     * Every determinant uses the common exact dyadic scale 2^-2148.
+     * Check vertices as they enter the rolling fan rather than scanning
+     * the complete ring in a separate pass.
      */
     const auto origin =
         ring[0];
 
+    if (!origin.isFinite)
+        return double.nan;
+
+    if (ring.length == 1)
+        return 0.0;
+
+
+    const auto first =
+        ring[1];
+
+    if (!first.isFinite)
+        return double.nan;
+
+    if (ring.length == 2)
+        return 0.0;
+
+
+    /*
+     * Decode the fan origin once.
+     */
+    const auto originX =
+        decodeDyadicCoordinate(
+            origin.x
+        );
+
+    const auto originY =
+        decodeDyadicCoordinate(
+            origin.y
+        );
+
+
+    /*
+     * Build the first relative vector once:
+     *
+     *     p1 - p0
+     */
+    const auto firstXCoordinate =
+        decodeDyadicCoordinate(
+            first.x
+        );
+
+    const auto firstYCoordinate =
+        decodeDyadicCoordinate(
+            first.y
+        );
+
+    auto previousX =
+        subtractDyadicCoordinates(
+            firstXCoordinate,
+            originX
+        );
+
+    auto previousY =
+        subtractDyadicCoordinates(
+            firstYCoordinate,
+            originY
+        );
+
+
     SignedAreaAccumulator accumulator;
 
-    foreach (i; 1 .. ring.length - 1)
+
+    /*
+     * Rolling exact triangle fan.
+     *
+     * For each new vertex only that vertex is decoded. Its relative
+     * vector is then paired with the previous relative vector:
+     *
+     *     det(
+     *         p_i     - p0,
+     *         p_(i+1) - p0
+     *     )
+     *
+     * This preserves the exact ADR-0008 semantics while avoiding repeated
+     * decoding of p0 and the shared vertex between adjacent fan triangles.
+     */
+    foreach (i; 2 .. ring.length)
     {
         const auto current =
             ring[i];
 
-        const auto next =
-            ring[i + 1];
+        if (!current.isFinite)
+            return double.nan;
+
+
+        const auto currentXCoordinate =
+            decodeDyadicCoordinate(
+                current.x
+            );
+
+        const auto currentYCoordinate =
+            decodeDyadicCoordinate(
+                current.y
+            );
+
+
+        const auto currentX =
+            subtractDyadicCoordinates(
+                currentXCoordinate,
+                originX
+            );
+
+        const auto currentY =
+            subtractDyadicCoordinates(
+                currentYCoordinate,
+                originY
+            );
+
 
         const auto determinant =
-            orientationDeterminantDyadic(
-                origin.x,
-                origin.y,
-                current.x,
-                current.y,
-                next.x,
-                next.y
+            determinantFromDifferences(
+                previousX,
+                previousY,
+                currentX,
+                currentY
             );
 
         addAreaDeterminant(
             accumulator,
             determinant
         );
+
+
+        previousX =
+            currentX;
+
+        previousY =
+            currentY;
     }
 
 
@@ -127,14 +257,15 @@ if (
      * The accumulated determinant sum represents twice the signed area
      * in units of 2^-2148.
      *
-     * Dividing by two is therefore equivalent to interpreting the same
-     * integer magnitude in units of 2^-2149.
+     * Division by two is represented by changing the exact binary scale
+     * to 2^-2149 before one final correctly-rounded binary64 conversion.
      */
     return roundSignedDyadicToBinary64(
         accumulator.sign,
         accumulator.magnitude,
         -2149
     );
+
 }
 
 

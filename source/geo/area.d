@@ -79,25 +79,18 @@ private SignedDyadicProduct determinantFromDifferences(
 }
 
 
-/**
- * Algebraic signed area of a linear ring.
+/*
+ * Computes the exact determinant sum of a linear ring.
  *
- * Counter-clockwise traversal has positive area and clockwise traversal
- * has negative area in the usual Cartesian coordinate system.
+ * The returned accumulator represents twice the signed area in units of
+ * 2^-2148.
  *
- * For finite supported coordinates, the exact determinant sum is
- * accumulated before one final correctly-rounded binary64 conversion.
- *
- * Empty, singleton, two-vertex and otherwise algebraically degenerate
- * rings have area zero.
- *
- * A ring containing any non-finite coordinate returns NaN.
- *
- * Self-intersecting rings produce their algebraic signed area; this
- * operation does not validate polygon topology.
+ * Returns false when any stored coordinate is non-finite. On false,
+ * accumulator is reset to canonical zero.
  */
-AreaScalar!T signedArea(T)(
-    LinearRingView!T ring
+private bool tryExactRingTwiceArea(T)(
+    LinearRingView!T ring,
+    out SignedAreaAccumulator accumulator
 )
     pure nothrow @safe @nogc
 if (
@@ -108,11 +101,12 @@ if (
 )
 {
     /*
-     * Empty rings contain no non-finite coordinates and have exact
-     * positive-zero area.
+     * out initializes accumulator to canonical zero on entry.
+     *
+     * Empty rings therefore already have the required exact result.
      */
     if (ring.length == 0)
-        return 0.0;
+        return true;
 
 
     /*
@@ -123,20 +117,20 @@ if (
         ring[0];
 
     if (!origin.isFinite)
-        return double.nan;
+        return false;
 
     if (ring.length == 1)
-        return 0.0;
+        return true;
 
 
     const auto first =
         ring[1];
 
     if (!first.isFinite)
-        return double.nan;
+        return false;
 
     if (ring.length == 2)
-        return 0.0;
+        return true;
 
 
     /*
@@ -181,9 +175,6 @@ if (
         );
 
 
-    SignedAreaAccumulator accumulator;
-
-
     /*
      * Rolling exact triangle fan.
      *
@@ -204,7 +195,16 @@ if (
             ring[i];
 
         if (!current.isFinite)
-            return double.nan;
+        {
+            /*
+             * Do not expose a partial exact result to future internal
+             * callers.
+             */
+            accumulator =
+                SignedAreaAccumulator.init;
+
+            return false;
+        }
 
 
         const auto currentXCoordinate =
@@ -252,20 +252,138 @@ if (
             currentY;
     }
 
+    return true;
+}
+
+
+/**
+ * Algebraic signed area of a linear ring.
+ *
+ * Counter-clockwise traversal has positive area and clockwise traversal
+ * has negative area in the usual Cartesian coordinate system.
+ *
+ * For finite supported coordinates, the exact determinant sum is
+ * accumulated before one final correctly-rounded binary64 conversion.
+ *
+ * Empty, singleton, two-vertex and otherwise algebraically degenerate
+ * rings have area zero.
+ *
+ * A ring containing any non-finite coordinate returns NaN.
+ *
+ * Self-intersecting rings produce their algebraic signed area; this
+ * operation does not validate polygon topology.
+ */
+AreaScalar!T signedArea(T)(
+    LinearRingView!T ring
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    SignedAreaAccumulator accumulator;
+
+    if (
+        !tryExactRingTwiceArea(
+            ring,
+            accumulator
+        )
+    )
+    {
+        return double.nan;
+    }
+
 
     /*
-     * The accumulated determinant sum represents twice the signed area
-     * in units of 2^-2148.
+     * The exact accumulator contains twice the signed area in units of
+     * 2^-2148.
      *
-     * Division by two is represented by changing the exact binary scale
-     * to 2^-2149 before one final correctly-rounded binary64 conversion.
+     * Division by two is represented solely by changing the binary scale
+     * to 2^-2149 before one final correctly-rounded conversion.
      */
     return roundSignedDyadicToBinary64(
         accumulator.sign,
         accumulator.magnitude,
         -2149
     );
+}
 
+
+@safe unittest
+{
+    import geo.point :
+        Point2;
+
+
+    /*
+     * The internal helper retains the exact twice-area determinant sum.
+     */
+    {
+        Point2!long[3] points = [
+            Point2!long(0, 0),
+            Point2!long(4, 0),
+            Point2!long(0, 3)
+        ];
+
+        const ring =
+            LinearRingView!long(
+                points[]
+            );
+
+        SignedAreaAccumulator accumulator;
+
+        assert(
+            tryExactRingTwiceArea(
+                ring,
+                accumulator
+            )
+        );
+
+        assert(accumulator.sign == 1);
+        assert(!accumulator.magnitude.isZero);
+
+        assert(
+            roundSignedDyadicToBinary64(
+                accumulator.sign,
+                accumulator.magnitude,
+                -2149
+            ) == 6.0
+        );
+    }
+
+
+    /*
+     * Non-finite input is reported separately and never leaves a partial
+     * accumulator behind.
+     */
+    {
+        Point2!double[4] points = [
+            Point2!double(0.0, 0.0),
+            Point2!double(4.0, 0.0),
+            Point2!double(4.0, 3.0),
+            Point2!double(double.nan, 3.0)
+        ];
+
+        const ring =
+            LinearRingView!double(
+                points[]
+            );
+
+        SignedAreaAccumulator accumulator;
+
+        assert(
+            !tryExactRingTwiceArea(
+                ring,
+                accumulator
+            )
+        );
+
+        assert(accumulator.sign == 0);
+        assert(accumulator.magnitude.isZero);
+    }
 }
 
 

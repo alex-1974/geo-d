@@ -330,6 +330,16 @@ if (isGeoScalar!T)
     const M absCross =
         cross < M(0) ? -cross : cross;
 
+    /*
+     * Preserve exact zero explicitly.
+     *
+     * Apart from avoiding unnecessary work, this prevents compiler /
+     * runtime-library differences in scalbn() from turning a zero
+     * perpendicular distance into the smallest positive subnormal value.
+     */
+    if (absCross == M(0))
+        return M(0);
+
     const M normalizedDistance =
         absCross / hypot(ndx, ndy);
 
@@ -736,6 +746,37 @@ if (isGeoScalar!T)
             )
         );
         assert(d == 3.0);
+
+        /*
+         * Exact collinearity must produce exact zero, including when
+         * internal power-of-two rescaling uses a positive exponent.
+         *
+         * This guards against a compiler/runtime-library difference in
+         * scalbn(0, positiveExponent).
+         */
+        assert(
+            tryPointSegmentDistance(
+                PD(2.0, 0.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(4.0, 0.0)
+                ),
+                d
+            )
+        );
+        assert(d == 0.0);
+
+        assert(
+            tryPointSegmentDistance(
+                PD(3.0, 0.0),
+                SD(
+                    PD(0.0, 0.0),
+                    PD(4.0, 0.0)
+                ),
+                d
+            )
+        );
+        assert(d == 0.0);
 
         /*
          * Projection before the first endpoint.

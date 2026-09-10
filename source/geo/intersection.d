@@ -591,7 +591,7 @@ if (isIntersectionScalar!T)
  * SegmentIntersectionKind API continues to expose both touch and
  * properCrossing as point.
  */
-private enum SegmentContactKind : ubyte
+package(geo) enum SegmentContactKind : ubyte
 {
     none,
     touch,
@@ -607,7 +607,7 @@ private enum SegmentContactKind : ubyte
  *
  * No intersection coordinate is constructed.
  */
-private SegmentContactKind segmentContactKind(T)(
+package(geo) SegmentContactKind segmentContactKind(T)(
     Segment2!T first,
     Segment2!T second
 )

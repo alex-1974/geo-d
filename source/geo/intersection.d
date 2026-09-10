@@ -581,30 +581,33 @@ if (isIntersectionScalar!T)
 }
 
 
-/**
- * Classifies the exact topological intersection of two closed segments.
+/*
+ * Finer internal topology used by higher-level topology algorithms.
  *
- * Supported scalar types:
+ * touch means that the intersection consists of exactly one point and is
+ * not a proper interior/interior crossing.
  *
- *     int
- *     long
- *     float
- *     double
- *
- * For floating-point coordinates all endpoint coordinates must be
- * finite.
- *
- * The operation returns only topology. It deliberately does not
- * construct an intersection coordinate.
- *
- * Degenerate segments are valid and represent a point.
- *
- * Complexity:
- *
- *     time  O(1)
- *     space O(1)
+ * This distinction is intentionally internal. The public
+ * SegmentIntersectionKind API continues to expose both touch and
+ * properCrossing as point.
  */
-SegmentIntersectionKind segmentIntersectionKind(T)(
+private enum SegmentContactKind : ubyte
+{
+    none,
+    touch,
+    properCrossing,
+    overlap,
+}
+
+
+/*
+ * Exact internal contact classification of two closed segments.
+ *
+ * Floating-point endpoints must be finite.
+ *
+ * No intersection coordinate is constructed.
+ */
+private SegmentContactKind segmentContactKind(T)(
     Segment2!T first,
     Segment2!T second
 )
@@ -628,10 +631,10 @@ if (isIntersectionScalar!T)
 
 
     /*
-     * Handle point-segments first.
+     * Degenerate segments represent points.
      *
-     * This avoids imposing ordinary non-degenerate segment assumptions
-     * on the orientation logic below.
+     * Any non-empty intersection involving a point-segment is therefore a
+     * touch rather than a proper crossing or positive-length overlap.
      */
     if (firstDegenerate)
     {
@@ -639,8 +642,8 @@ if (isIntersectionScalar!T)
             first.a,
             second
         )
-            ? SegmentIntersectionKind.point
-            : SegmentIntersectionKind.none;
+            ? SegmentContactKind.touch
+            : SegmentContactKind.none;
     }
 
     if (secondDegenerate)
@@ -649,8 +652,8 @@ if (isIntersectionScalar!T)
             second.a,
             first
         )
-            ? SegmentIntersectionKind.point
-            : SegmentIntersectionKind.none;
+            ? SegmentContactKind.touch
+            : SegmentContactKind.none;
     }
 
 
@@ -684,8 +687,8 @@ if (isIntersectionScalar!T)
 
 
     /*
-     * Complete collinearity is the only case that may yield an overlap
-     * of positive length.
+     * Complete collinearity is the only case that can yield a
+     * positive-length overlap.
      */
     if (
         o1 == Orientation.collinear &&
@@ -694,15 +697,36 @@ if (isIntersectionScalar!T)
         o4 == Orientation.collinear
     )
     {
-        return classifyCollinear(
-            first,
-            second
-        );
+        const SegmentIntersectionKind kind =
+            classifyCollinear(
+                first,
+                second
+            );
+
+        if (
+            kind ==
+            SegmentIntersectionKind.none
+        )
+        {
+            return SegmentContactKind.none;
+        }
+
+        if (
+            kind ==
+            SegmentIntersectionKind.overlap
+        )
+        {
+            return SegmentContactKind.overlap;
+        }
+
+        return SegmentContactKind.touch;
     }
 
 
     /*
-     * Closed-segment boundary contacts.
+     * Closed-segment boundary contacts:
+     *
+     * shared endpoints and T-junctions are touches.
      */
     if (
         o1 == Orientation.collinear &&
@@ -713,7 +737,7 @@ if (isIntersectionScalar!T)
         )
     )
     {
-        return SegmentIntersectionKind.point;
+        return SegmentContactKind.touch;
     }
 
     if (
@@ -725,7 +749,7 @@ if (isIntersectionScalar!T)
         )
     )
     {
-        return SegmentIntersectionKind.point;
+        return SegmentContactKind.touch;
     }
 
     if (
@@ -737,7 +761,7 @@ if (isIntersectionScalar!T)
         )
     )
     {
-        return SegmentIntersectionKind.point;
+        return SegmentContactKind.touch;
     }
 
     if (
@@ -749,25 +773,189 @@ if (isIntersectionScalar!T)
         )
     )
     {
-        return SegmentIntersectionKind.point;
+        return SegmentContactKind.touch;
     }
 
 
     /*
-     * Proper crossing:
-     *
-     * each segment's endpoints lie strictly on opposite sides of the
-     * other segment's supporting line.
+     * Proper interior/interior crossing.
      */
     if (
         oppositeSides(o1, o2) &&
         oppositeSides(o3, o4)
     )
     {
-        return SegmentIntersectionKind.point;
+        return SegmentContactKind.properCrossing;
     }
 
-    return SegmentIntersectionKind.none;
+    return SegmentContactKind.none;
+}
+
+
+/**
+ * Classifies the exact topological intersection of two closed segments.
+ *
+ * Supported scalar types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
+ * For floating-point coordinates all endpoint coordinates must be finite.
+ *
+ * The operation returns only topology. It deliberately does not construct
+ * an intersection coordinate.
+ *
+ * Degenerate segments are valid and represent a point.
+ *
+ * Complexity:
+ *
+ *     time  O(1)
+ *     space O(1)
+ */
+SegmentIntersectionKind segmentIntersectionKind(T)(
+    Segment2!T first,
+    Segment2!T second
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    const SegmentContactKind contact =
+        segmentContactKind(
+            first,
+            second
+        );
+
+    if (
+        contact ==
+        SegmentContactKind.none
+    )
+    {
+        return SegmentIntersectionKind.none;
+    }
+
+    if (
+        contact ==
+        SegmentContactKind.overlap
+    )
+    {
+        return SegmentIntersectionKind.overlap;
+    }
+
+    /*
+     * Both touch and properCrossing remain one-point intersections in the
+     * public topology API.
+     */
+    return SegmentIntersectionKind.point;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+
+    /*
+     * Disjoint segments.
+     */
+    assert(
+        segmentContactKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(0, 2), P(4, 2))
+        ) ==
+        SegmentContactKind.none
+    );
+
+
+    /*
+     * Shared endpoint.
+     */
+    assert(
+        segmentContactKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(4, 0), P(4, 4))
+        ) ==
+        SegmentContactKind.touch
+    );
+
+
+    /*
+     * T-junction.
+     */
+    assert(
+        segmentContactKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(2, 0), P(2, 4))
+        ) ==
+        SegmentContactKind.touch
+    );
+
+
+    /*
+     * Proper interior/interior crossing.
+     */
+    assert(
+        segmentContactKind(
+            S(P(0, 0), P(4, 4)),
+            S(P(0, 4), P(4, 0))
+        ) ==
+        SegmentContactKind.properCrossing
+    );
+
+
+    /*
+     * Positive-length collinear overlap.
+     */
+    assert(
+        segmentContactKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(2, 0), P(6, 0))
+        ) ==
+        SegmentContactKind.overlap
+    );
+
+
+    /*
+     * Degenerate point-segment contact remains a touch.
+     */
+    assert(
+        segmentContactKind(
+            S(P(2, 0), P(2, 0)),
+            S(P(0, 0), P(4, 0))
+        ) ==
+        SegmentContactKind.touch
+    );
+
+
+    /*
+     * The finer internal distinction must collapse exactly to the existing
+     * public topology.
+     */
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(4, 0), P(4, 4))
+        ) ==
+        SegmentIntersectionKind.point
+    );
+
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(4, 4)),
+            S(P(0, 4), P(4, 0))
+        ) ==
+        SegmentIntersectionKind.point
+    );
+
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(2, 0), P(6, 0))
+        ) ==
+        SegmentIntersectionKind.overlap
+    );
 }
 
 

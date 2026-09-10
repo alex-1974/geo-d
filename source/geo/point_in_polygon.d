@@ -600,6 +600,197 @@ if (
 
 
     /*
+     * Full-range long coordinates remain exactly classifiable at polygon
+     * level without scalar overflow.
+     */
+    {
+        alias LP = Point2!long;
+        alias LR = LinearRingView!long;
+        alias LV = PolygonView!long;
+
+        LP[3] exteriorPoints = [
+            LP(long.min, long.min),
+            LP(long.max, long.min),
+            LP(0, long.max)
+        ];
+
+        LR exterior =
+            LR(exteriorPoints[]);
+
+        LR[1] rings = [
+            exterior
+        ];
+
+        auto polygon =
+            LV(rings[]);
+
+        PointPolygonLocation location;
+
+        assert(
+            tryClassifyPointInPolygon(
+                polygon,
+                LP(0, 0),
+                location
+            )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.inside
+        );
+
+        assert(
+            tryClassifyPointInPolygon(
+                polygon,
+                LP(long.min, long.min),
+                location
+            )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.boundary
+        );
+    }
+
+
+    /*
+     * Reversing the exterior ring does not change polygon classification.
+     */
+    {
+        P[4] forwardPoints = [
+            P(0.0, 0.0),
+            P(8.0, 0.0),
+            P(8.0, 8.0),
+            P(0.0, 8.0)
+        ];
+
+        P[4] reversePoints = [
+            P(0.0, 0.0),
+            P(0.0, 8.0),
+            P(8.0, 8.0),
+            P(8.0, 0.0)
+        ];
+
+        R forwardExterior =
+            R(forwardPoints[]);
+
+        R reverseExterior =
+            R(reversePoints[]);
+
+        R[1] forwardRings = [
+            forwardExterior
+        ];
+
+        R[1] reverseRings = [
+            reverseExterior
+        ];
+
+        auto forwardPolygon =
+            V(forwardRings[]);
+
+        auto reversePolygon =
+            V(reverseRings[]);
+
+        PointPolygonLocation forwardLocation;
+        PointPolygonLocation reverseLocation;
+
+        foreach (query; [
+            P(3.0, 4.0),
+            P(10.0, 4.0),
+            P(8.0, 4.0)
+        ])
+        {
+            assert(
+                tryClassifyPointInPolygon(
+                    forwardPolygon,
+                    query,
+                    forwardLocation
+                )
+            );
+
+            assert(
+                tryClassifyPointInPolygon(
+                    reversePolygon,
+                    query,
+                    reverseLocation
+                )
+            );
+
+            assert(
+                reverseLocation ==
+                forwardLocation
+            );
+        }
+    }
+
+
+    /*
+     * A self-intersecting exterior ring retains the deterministic even-odd
+     * semantics of the underlying ring classifier.
+     */
+    {
+        P[4] exteriorPoints = [
+            P(0.0, 0.0),
+            P(4.0, 4.0),
+            P(0.0, 4.0),
+            P(4.0, 0.0)
+        ];
+
+        R exterior =
+            R(exteriorPoints[]);
+
+        R[1] rings = [
+            exterior
+        ];
+
+        auto polygon =
+            V(rings[]);
+
+        PointPolygonLocation location;
+
+        assert(
+            tryClassifyPointInPolygon(
+                polygon,
+                P(1.0, 3.5),
+                location
+            )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.inside
+        );
+
+        assert(
+            tryClassifyPointInPolygon(
+                polygon,
+                P(1.0, 2.5),
+                location
+            )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.outside
+        );
+
+        assert(
+            tryClassifyPointInPolygon(
+                polygon,
+                P(2.0, 2.0),
+                location
+            )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.boundary
+        );
+    }
+
+
+    /*
      * A non-finite coordinate in a later interior ring invalidates the
      * complete operation even when the exterior already establishes a
      * boundary result.

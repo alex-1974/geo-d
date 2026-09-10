@@ -52,3 +52,5 @@ public import geo.topology_validation :
     RingValidationResult,
     validatePolygon,
     validateRing;
+
+public import geo.simplification : douglasPeuckerWorkspaceSize;

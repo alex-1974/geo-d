@@ -318,9 +318,14 @@ Performance baselines exist for exact segment intersection and signed-area
 arithmetic. Signed-area exact-path optimisation retained exact numerical
 semantics while materially reducing per-vertex cost.
 
-The next geometry design block is point-in-polygon classification,
-including explicit boundary semantics and behaviour for invalid or
-degenerate polygon representations.
+Point-in-polygon classification is implemented with exact three-way
+outside, boundary and inside semantics. Boundary detection is exact, ring
+orientation is irrelevant, and finite invalid or self-intersecting ring
+representations retain deterministic even-odd classification semantics.
+
+The next geometry design block is explicit ring and polygon topology
+validation. Validation remains separate from representation and from
+algorithms such as area and point classification.
 
 ### Current implementation status
 
@@ -367,6 +372,7 @@ Implemented variable-size algorithms include:
     polylineLength
     signedArea
     polygonArea
+    tryClassifyPointInPolygon
 
 Linear-ring signed area uses exact determinant accumulation followed by one
 correctly rounded binary64 conversion.

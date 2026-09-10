@@ -260,6 +260,136 @@ polyline length
 simplification
 ```
 
+### Current implementation status
+
+The fixed-size 2D geometry foundation is substantially implemented and
+verified.
+
+Implemented public representation and algorithms include:
+
+    Point2
+    Vector2
+    Bounds2
+    Segment2
+
+    orientation
+    distance / squared distance
+    nearest point
+    segment length
+    segment intersection classification
+    segment intersection point construction
+    segment overlap construction
+
+Robust orientation and segment-intersection topology use exact fallback
+arithmetic for int, long, float and double. Unique intersection points are
+constructed with correctly rounded binary64 results. Support for robust
+real arithmetic remains deferred pending a platform-aware backend.
+
+Variable-size linear and polygon geometry is now established around
+non-owning read-only views:
+
+    PolylineView
+    LinearRingView
+    PolygonView
+
+The view model uses explicit borrowing and DIP1000 lifetime checking.
+PolygonView is a view of LinearRingView descriptors; individual rings may
+use independent point-storage regions.
+
+Implemented variable-size algorithms include:
+
+    polylineLength
+    signedArea(LinearRingView)
+    polygonArea(PolygonView)
+
+Ring signed area uses exact determinant accumulation followed by one
+correctly rounded binary64 conversion.
+
+Polygon area is role-based rather than winding-based:
+
+    abs(exterior exact area)
+        - sum(abs(interior exact area))
+
+All ring contributions are combined exactly before one final binary64
+rounding. Polygon construction and area calculation deliberately do not
+perform topological validation or implicit normalization.
+
+Performance baselines exist for exact segment intersection and signed-area
+arithmetic. Signed-area exact-path optimisation retained exact numerical
+semantics while materially reducing per-vertex cost.
+
+The next geometry design block is point-in-polygon classification,
+including explicit boundary semantics and behaviour for invalid or
+degenerate polygon representations.
+
+### Current implementation status
+
+The fixed-size 2D geometry foundation is substantially implemented and
+verified.
+
+Implemented public representation and algorithms include:
+
+    Point2
+    Vector2
+    Bounds2
+    Segment2
+
+    orientation
+    distance
+    squaredDistance
+    tryNearestPoint
+    segmentLength
+    segmentIntersectionKind
+    trySegmentIntersectionPoint
+    trySegmentIntersectionOverlap
+
+Robust orientation and segment-intersection topology use exact fallback
+arithmetic for int, long, float and double.
+
+Unique segment-intersection points are constructed with correctly rounded
+binary64 results.
+
+Robust real arithmetic remains deferred pending a platform-aware backend.
+
+Variable-size geometry is established around non-owning read-only views:
+
+    PolylineView
+    LinearRingView
+    PolygonView
+
+The view model uses explicit borrowing and DIP1000 lifetime checking.
+
+PolygonView is a view of LinearRingView descriptors. Individual rings may
+use independent point-storage regions.
+
+Implemented variable-size algorithms include:
+
+    polylineLength
+    signedArea
+    polygonArea
+
+Linear-ring signed area uses exact determinant accumulation followed by one
+correctly rounded binary64 conversion.
+
+Polygon area is role-based rather than winding-based:
+
+    abs(exterior exact area)
+        - sum(abs(interior exact area))
+
+All ring contributions are combined exactly before one final binary64
+rounding.
+
+Polygon representation and polygon-area calculation deliberately do not
+perform topological validation or implicit normalization.
+
+Performance baselines exist for exact segment intersection and signed-area
+arithmetic. Exact signed-area optimisation retained the numerical semantics
+while materially reducing per-vertex cost.
+
+The next geometry design block is point-in-polygon classification,
+including explicit boundary semantics and behaviour for invalid or
+degenerate polygon representations.
+
 ### Design questions
 
 - coordinate and scalar genericity;

@@ -43,3 +43,8 @@ public import geo.intersection :
     segmentIntersectionKind,
     trySegmentIntersectionOverlap,
     trySegmentIntersectionPoint;
+
+public import geo.topology_validation :
+    RingValidationIssue,
+    RingValidationResult,
+    validateRing;

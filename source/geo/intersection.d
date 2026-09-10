@@ -2,6 +2,7 @@ module geo.intersection;
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
+    properIntersectionExactKnownCrossing,
     tryProperIntersectionExact;
 
 import geo.internal.intersection_round :
@@ -868,22 +869,11 @@ if (
      */
     ExactProperIntersection exact;
 
-    const bool proper =
-        tryProperIntersectionExact(
-            first,
-            second,
-            exact
-        );
-
-    assert(proper);
-
-    /*
-     * Keep a defensive release-build path in case the exact
-     * construction backend and the authoritative classifier ever
-     * disagree.
-     */
-    if (!proper)
-        return false;
+    properIntersectionExactKnownCrossing(
+        first,
+        second,
+        exact
+    );
 
     point =
         Point2!R(

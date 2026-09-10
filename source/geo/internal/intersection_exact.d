@@ -3,6 +3,7 @@ module geo.internal.intersection_exact;
 import geo.internal.dyadic :
     DyadicProductMagnitude,
     SignedDyadicCoordinate,
+    SignedDyadicProduct,
     decodeDyadicCoordinate,
     dyadicCoordinateLimbs,
     dyadicProductLimbs;
@@ -202,6 +203,127 @@ private SignedIntersectionNumerator weightedCoordinate(
 }
 
 
+/*
+ * Constructs exact rational data from the two already established
+ * opposite-side determinants of A and B relative to CD.
+ */
+private void buildProperIntersectionExact(T)(
+    Segment2!T first,
+    ref const SignedDyadicProduct dA,
+    ref const SignedDyadicProduct dB,
+    ref ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    assert(dA.sign != 0);
+    assert(dB.sign != 0);
+    assert(dA.sign != dB.sign);
+
+    const DyadicProductMagnitude weightA =
+        dB.magnitude;
+
+    const DyadicProductMagnitude weightB =
+        dA.magnitude;
+
+    result.denominator =
+        addUnsigned(
+            weightA,
+            weightB
+        );
+
+    assert(!result.denominator.isZero);
+
+    const auto aX =
+        decodeDyadicCoordinate(
+            first.a.x
+        );
+
+    const auto aY =
+        decodeDyadicCoordinate(
+            first.a.y
+        );
+
+    const auto bX =
+        decodeDyadicCoordinate(
+            first.b.x
+        );
+
+    const auto bY =
+        decodeDyadicCoordinate(
+            first.b.y
+        );
+
+    result.xNumerator =
+        weightedCoordinate(
+            weightA,
+            aX,
+            weightB,
+            bX
+        );
+
+    result.yNumerator =
+        weightedCoordinate(
+            weightA,
+            aY,
+            weightB,
+            bY
+        );
+}
+
+
+/*
+ * Exact construction for a crossing that has already been established
+ * as a strict interior/interior crossing by the authoritative
+ * intersection classifier.
+ *
+ * Only the two determinants required as barycentric weights are
+ * evaluated here.
+ */
+void properIntersectionExactKnownCrossing(T)(
+    Segment2!T first,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    const auto dA =
+        orientationDeterminantDyadic(
+            second.a.x,
+            second.a.y,
+            second.b.x,
+            second.b.y,
+            first.a.x,
+            first.a.y
+        );
+
+    const auto dB =
+        orientationDeterminantDyadic(
+            second.a.x,
+            second.a.y,
+            second.b.x,
+            second.b.y,
+            first.b.x,
+            first.b.y
+        );
+
+    /*
+     * The caller has already established a strict proper crossing.
+     */
+    assert(dA.sign != 0);
+    assert(dB.sign != 0);
+    assert(dA.sign != dB.sign);
+
+    buildProperIntersectionExact(
+        first,
+        dA,
+        dB,
+        result
+    );
+}
+
+
 /**
  * Builds exact rational construction data for a proper crossing.
  *
@@ -291,62 +413,12 @@ if (isExactIntersectionScalar!T)
     }
 
 
-    /*
-     * Barycentric weights on AB:
-     *
-     *     weightA = |orient(C,D,B)|
-     *     weightB = |orient(C,D,A)|
-     */
-    const DyadicProductMagnitude weightA =
-        dB.magnitude;
-
-    const DyadicProductMagnitude weightB =
-        dA.magnitude;
-
-    result.denominator =
-        addUnsigned(
-            weightA,
-            weightB
-        );
-
-    assert(!result.denominator.isZero);
-
-
-    const auto aX =
-        decodeDyadicCoordinate(
-            first.a.x
-        );
-
-    const auto aY =
-        decodeDyadicCoordinate(
-            first.a.y
-        );
-
-    const auto bX =
-        decodeDyadicCoordinate(
-            first.b.x
-        );
-
-    const auto bY =
-        decodeDyadicCoordinate(
-            first.b.y
-        );
-
-    result.xNumerator =
-        weightedCoordinate(
-            weightA,
-            aX,
-            weightB,
-            bX
-        );
-
-    result.yNumerator =
-        weightedCoordinate(
-            weightA,
-            aY,
-            weightB,
-            bY
-        );
+    buildProperIntersectionExact(
+        first,
+        dA,
+        dB,
+        result
+    );
 
     return true;
 }

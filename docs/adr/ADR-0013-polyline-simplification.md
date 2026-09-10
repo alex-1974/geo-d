@@ -1,6 +1,6 @@
 # ADR-0013: Polyline simplification
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-10
 
 ## Context
@@ -28,14 +28,18 @@ The intended public API is:
     size_t douglasPeuckerWorkspaceSize(size_t pointCount)
         pure nothrow @safe @nogc;
 
-    bool trySimplifyDouglasPeuckerInto(T)(
+    bool trySimplifyDouglasPeuckerInto(T, R)(
         scope PolylineView!T polyline,
-        MetricScalar!T tolerance,
+        R tolerance,
         scope Point2!T[] destination,
         scope size_t[] workspace,
         out size_t written
     )
-        pure nothrow @safe @nogc;
+        pure nothrow @safe @nogc
+    if (
+        isGeoScalar!T &&
+        is(R == MetricScalar!T)
+    );
 
 The destination and workspace buffers are caller-owned.
 
@@ -93,8 +97,9 @@ removed.
 
 Douglas-Peucker uses Euclidean point-to-segment distance.
 
-Point-to-segment distance should be implemented as a reusable metric primitive
-rather than by constructing a rounded nearest point and measuring from it.
+Point-to-segment distance is provided by the reusable
+tryPointSegmentDistance() metric primitive rather than by constructing a
+rounded nearest point and measuring from it.
 
 Integral coordinate differences must retain the overflow-safe handling already
 used by geo.metric.
@@ -117,8 +122,10 @@ trySimplifyDouglasPeuckerInto() returns false when:
 
 - tolerance is negative or non-finite;
 - any input coordinate is non-finite;
-- destination is smaller than polyline.length; or
-- workspace is smaller than douglasPeuckerWorkspaceSize(polyline.length).
+- destination is smaller than polyline.length;
+- workspace is smaller than douglasPeuckerWorkspaceSize(polyline.length); or
+- a required metric computation cannot be represented finitely in
+  MetricScalar!T.
 
 On failure, written is zero.
 

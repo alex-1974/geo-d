@@ -7,6 +7,9 @@ import geo.intersection :
 import geo.linear_ring_view :
     LinearRingView;
 
+import geo.polygon_view :
+    PolygonView;
+
 import geo.segment :
     Segment2;
 
@@ -53,6 +56,41 @@ struct RingValidationResult
     {
         return issue ==
             RingValidationIssue.none;
+    }
+}
+
+
+/*
+ * Package-internal polygon validation state.
+ *
+ * These types remain internal until full polygon topology validation is
+ * implemented. They must not yet be exported through geo.package.
+ */
+package(geo) enum PolygonValidationIssue : ubyte
+{
+    none,
+    invalidExteriorRing,
+    invalidInteriorRing,
+}
+
+
+package(geo) struct PolygonValidationResult
+{
+    PolygonValidationIssue issue =
+        PolygonValidationIssue.none;
+
+    size_t ringIndex =
+        size_t.max;
+
+    RingValidationResult ringResult =
+        RingValidationResult.init;
+
+
+    @property bool valid() const
+        pure nothrow @safe @nogc
+    {
+        return issue ==
+            PolygonValidationIssue.none;
     }
 }
 
@@ -318,6 +356,72 @@ if (isValidationScalar!T)
 
 
     return RingValidationResult.init;
+}
+
+
+/*
+ * Validates only the constituent rings of a PolygonView.
+ *
+ * This is deliberately not the public polygon validator.
+ *
+ * It establishes:
+ *
+ * - empty polygon validity;
+ * - exterior ring validity;
+ * - interior ring validity;
+ * - deterministic propagation of ring diagnostics.
+ *
+ * It does not yet establish:
+ *
+ * - exterior/interior containment;
+ * - inter-ring crossings or overlaps;
+ * - hole/hole relationships;
+ * - connected polygon interior.
+ */
+package(geo) PolygonValidationResult validatePolygonRings(T)(
+    scope PolygonView!T polygon
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    if (polygon.empty)
+        return PolygonValidationResult.init;
+
+
+    const RingValidationResult exteriorResult =
+        validateRing(
+            polygon.exterior
+        );
+
+    if (!exteriorResult.valid)
+    {
+        return PolygonValidationResult(
+            PolygonValidationIssue.invalidExteriorRing,
+            0,
+            exteriorResult
+        );
+    }
+
+
+    foreach (i; 0 .. polygon.holeCount)
+    {
+        const RingValidationResult interiorResult =
+            validateRing(
+                polygon.hole(i)
+            );
+
+        if (!interiorResult.valid)
+        {
+            return PolygonValidationResult(
+                PolygonValidationIssue.invalidInteriorRing,
+                i + 1,
+                interiorResult
+            );
+        }
+    }
+
+
+    return PolygonValidationResult.init;
 }
 
 
@@ -717,6 +821,185 @@ if (isValidationScalar!T)
 
         assert(
             validateRing(ring).valid
+        );
+    }
+
+
+    /*
+     * Ring-only polygon validation treats an empty polygon as valid.
+     */
+    {
+        R[] rings;
+
+        auto polygon =
+            PolygonView!double(rings);
+
+        const result =
+            validatePolygonRings(polygon);
+
+        assert(result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.none
+        );
+
+        assert(
+            result.ringIndex ==
+            size_t.max
+        );
+
+        assert(result.ringResult.valid);
+    }
+
+
+    /*
+     * Valid exterior and interior rings pass the ring-only stage.
+     */
+    {
+        P[4] exteriorPoints = [
+            P(0.0, 0.0),
+            P(10.0, 0.0),
+            P(10.0, 10.0),
+            P(0.0, 10.0)
+        ];
+
+        P[4] holePoints = [
+            P(3.0, 3.0),
+            P(7.0, 3.0),
+            P(7.0, 7.0),
+            P(3.0, 7.0)
+        ];
+
+        R exterior =
+            R(exteriorPoints[]);
+
+        R hole =
+            R(holePoints[]);
+
+        R[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            PolygonView!double(rings[]);
+
+        assert(
+            validatePolygonRings(polygon).valid
+        );
+    }
+
+
+    /*
+     * Exterior ring diagnostics are propagated with polygon ring index zero.
+     */
+    {
+        P[4] exteriorPoints = [
+            P(0.0, 0.0),
+            P(4.0, 4.0),
+            P(0.0, 4.0),
+            P(4.0, 0.0)
+        ];
+
+        R exterior =
+            R(exteriorPoints[]);
+
+        R[1] rings = [
+            exterior
+        ];
+
+        auto polygon =
+            PolygonView!double(rings[]);
+
+        const result =
+            validatePolygonRings(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.invalidExteriorRing
+        );
+
+        assert(
+            result.ringIndex ==
+            0
+        );
+
+        assert(
+            result.ringResult.issue ==
+            RingValidationIssue.selfIntersection
+        );
+    }
+
+
+    /*
+     * Interior ring diagnostics retain the actual polygon ring index.
+     */
+    {
+        P[4] exteriorPoints = [
+            P(0.0, 0.0),
+            P(20.0, 0.0),
+            P(20.0, 20.0),
+            P(0.0, 20.0)
+        ];
+
+        P[4] firstHolePoints = [
+            P(2.0, 2.0),
+            P(6.0, 2.0),
+            P(6.0, 6.0),
+            P(2.0, 6.0)
+        ];
+
+        P[4] secondHolePoints = [
+            P(10.0, 10.0),
+            P(14.0, 10.0),
+            P(14.0, 10.0),
+            P(10.0, 14.0)
+        ];
+
+        R exterior =
+            R(exteriorPoints[]);
+
+        R firstHole =
+            R(firstHolePoints[]);
+
+        R secondHole =
+            R(secondHolePoints[]);
+
+        R[3] rings = [
+            exterior,
+            firstHole,
+            secondHole
+        ];
+
+        auto polygon =
+            PolygonView!double(rings[]);
+
+        const result =
+            validatePolygonRings(polygon);
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.invalidInteriorRing
+        );
+
+        assert(
+            result.ringIndex ==
+            2
+        );
+
+        assert(
+            result.ringResult.issue ==
+            RingValidationIssue.zeroLengthEdge
+        );
+
+        assert(
+            result.ringResult.primaryIndex ==
+            1
         );
     }
 }

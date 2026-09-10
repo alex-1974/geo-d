@@ -263,3 +263,75 @@ portable performance guarantees.
 Ordinary segment-intersection classification remained around the
 sub-microsecond range, while exact full-range and construction paths
 benefited most from the fixed-width arithmetic improvements.
+
+## Signed-area optimisation result
+
+Profiling of the initial correctly-rounded signed-area implementation showed
+that its cost was dominated by per-vertex exact arithmetic rather than by
+the final binary64 rounding step.
+
+Two semantics-preserving optimisations were retained.
+
+First, signed-area triangle-fan traversal now decodes the fixed fan origin
+only once and reuses the previous relative vertex vector. For each new
+vertex, only that vertex is decoded and converted to a relative vector.
+
+Second, fixed-width unsigned addition and subtraction now skip inactive
+zero-limb ranges. This benefits signed-area determinant accumulation and
+product differences as well as other users of the shared exact-arithmetic
+primitives.
+
+An attempted area-specific cross-width accumulator optimisation improved
+isolated accumulator measurements but caused an end-to-end regression with
+DMD. It was therefore rejected.
+
+On the development machine, ordinary binary64 rings changed approximately
+as follows.
+
+    LDC release:
+
+        initial:
+            n=100          62.27 us/op
+            n=1,000       634.92 us/op
+            n=10,000        6.20 ms/op
+
+        final:
+            n=100          40.88 us/op
+            n=1,000       384.85 us/op
+            n=10,000        3.94 ms/op
+
+        steady-state cost:
+            about 0.39-0.41 us per vertex
+
+        improvement at n=10,000:
+            about 36 percent
+
+    DMD release:
+
+        initial:
+            n=100         149.68 us/op
+            n=1,000         1.54 ms/op
+            n=10,000       15.21 ms/op
+
+        final:
+            n=100         108.06 us/op
+            n=1,000         1.08 ms/op
+            n=10,000       11.00 ms/op
+
+        steady-state cost:
+            about 1.08-1.10 us per vertex
+
+        improvement at n=10,000:
+            about 28 percent
+
+The sparse fixed-width addition/subtraction change was also checked against
+the existing segment-intersection benchmarks. No material regression was
+observed; representative exact-construction cases improved slightly.
+
+The retained implementation therefore continues to provide exact
+determinant accumulation and one correctly-rounded binary64 result without
+introducing a floating-point fast path.
+
+Further optimisation, such as fused exact cross-product construction or a
+certified floating-point fast path, is deferred until a concrete workload
+demonstrates that the remaining cost is material.

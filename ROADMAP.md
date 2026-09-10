@@ -213,7 +213,7 @@ Required before tagging the first public release.
 
 - [x] finalise repository-specific `README.md`
 - [x] update technical documentation under `docs/`
-- [ ] finalise repository-specific `DESIGN_PRINCIPLES.md`
+- [x] finalise repository-specific `DESIGN_PRINCIPLES.md`
 - [x] populate `CHANGELOG.md`
 - [x] populate or deliberately remove empty `CONTRIBUTING.md`
 - [x] document the actual minimum supported D frontend/compiler version
@@ -224,14 +224,14 @@ Required before tagging the first public release.
 - [x] verify minimum supported D frontend
 - [x] encode the supported frontend requirement where appropriate
 - [x] add minimum-version CI coverage
-- [ ] pass current DMD tests
-- [ ] pass current LDC tests
-- [ ] pass LDC release build
-- [ ] pass external/public API compile probes
-- [ ] pass DIP1000 lifetime probes
-- [ ] run `git diff --check`
-- [ ] confirm clean repository state
-- [ ] run GitHub Actions successfully on the release commit
+- [x] pass current DMD tests
+- [x] pass current LDC tests
+- [x] pass LDC release build
+- [x] pass external/public API compile probes
+- [x] pass DIP1000 lifetime probes
+- [x] run `git diff --check`
+- [x] confirm clean repository state
+- [x] run GitHub Actions successfully on the release candidate
 - [ ] tag `v0.1.0`
 
 ## Post-v0.1 numerical work

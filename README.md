@@ -12,7 +12,7 @@ inside and outside GIS software.
 
 ## Status
 
-`geo-d` is preparing its first public release, `v0.1.0`.
+The initial public release of `geo-d` is `v0.1.0`.
 
 The initial API is intentionally small. New functionality is added when
 concrete use cases justify extending the geometry model.

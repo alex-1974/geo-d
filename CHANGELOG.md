@@ -4,7 +4,7 @@ All notable changes to `geo-d` are documented in this file.
 
 The project follows Semantic Versioning for published releases.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-09-11
 
 Initial public release.
 

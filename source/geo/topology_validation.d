@@ -23,6 +23,9 @@ import geo.point :
 import geo.segment :
     Segment2;
 
+import std.algorithm.sorting :
+    sort;
+
 
 /**
  * Validation issue detected in a LinearRingView.
@@ -86,6 +89,7 @@ package(geo) enum PolygonValidationIssue : ubyte
     multipleRingContacts,
     interiorRingOutsideExterior,
     nestedInteriorRings,
+    disconnectedInterior,
 }
 
 
@@ -914,6 +918,463 @@ if (isValidationScalar!T)
                 return result;
             }
         }
+    }
+
+
+    return PolygonValidationResult.init;
+}
+
+
+/*
+ * One exact geometric contact between two polygon rings.
+ *
+ * Contact points remain in the input scalar domain because inter-ring
+ * proper crossings and overlaps have already been rejected.
+ */
+private struct RingContact(T)
+{
+    Point2!T point;
+
+    size_t firstRingIndex;
+    size_t secondRingIndex;
+}
+
+
+/*
+ * Deterministic exact ordering for finite contact points.
+ *
+ * Ring indices break ties so sorting remains deterministic when several
+ * ring pairs meet at the same geometric point.
+ */
+private bool ringContactLess(T)(
+    ref const RingContact!T lhs,
+    ref const RingContact!T rhs
+)
+    pure nothrow @safe @nogc
+{
+    if (lhs.point.x < rhs.point.x)
+        return true;
+
+    if (rhs.point.x < lhs.point.x)
+        return false;
+
+    if (lhs.point.y < rhs.point.y)
+        return true;
+
+    if (rhs.point.y < lhs.point.y)
+        return false;
+
+    if (
+        lhs.firstRingIndex <
+        rhs.firstRingIndex
+    )
+    {
+        return true;
+    }
+
+    if (
+        rhs.firstRingIndex <
+        lhs.firstRingIndex
+    )
+    {
+        return false;
+    }
+
+    return
+        lhs.secondRingIndex <
+        rhs.secondRingIndex;
+}
+
+
+/*
+ * Returns one exact contact point for a ring pair when one exists.
+ *
+ * Preconditions:
+ *
+ * - both rings are valid;
+ * - the ring pair has passed screenRingPairContacts().
+ *
+ * Therefore the pair is either disjoint or has exactly one geometric
+ * tangential contact point.
+ */
+private bool tryRingPairTouchPoint(T)(
+    scope LinearRingView!T firstRing,
+    scope LinearRingView!T secondRing,
+    out Point2!T point
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    foreach (i; 0 .. firstRing.length)
+    {
+        const auto firstEdge =
+            ringEdge(
+                firstRing,
+                i
+            );
+
+        foreach (j; 0 .. secondRing.length)
+        {
+            const auto secondEdge =
+                ringEdge(
+                    secondRing,
+                    j
+                );
+
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    firstEdge,
+                    secondEdge
+                );
+
+            final switch (contact)
+            {
+                case SegmentContactKind.none:
+                    break;
+
+                case SegmentContactKind.touch:
+                {
+                    const bool success =
+                        trySegmentTouchPoint(
+                            firstEdge,
+                            secondEdge,
+                            point
+                        );
+
+                    assert(success);
+
+                    return true;
+                }
+
+                case SegmentContactKind.properCrossing:
+                    assert(false);
+                    break;
+
+                case SegmentContactKind.overlap:
+                    assert(false);
+                    break;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+/*
+ * Finds the root of one node in a union-find forest.
+ *
+ * Union by rank bounds tree depth, so path compression is not required for
+ * the correctness-oriented initial implementation.
+ */
+private size_t contactRoot(
+    scope const(size_t)[] parent,
+    size_t node
+)
+    pure nothrow @safe @nogc
+{
+    while (parent[node] != node)
+    {
+        node =
+            parent[node];
+    }
+
+    return node;
+}
+
+
+/*
+ * Adds an undirected graph edge between two nodes.
+ *
+ * Returns false when both endpoints were already connected. Adding that
+ * edge therefore closes a graph cycle.
+ */
+private bool unionContactNodes(
+    scope size_t[] parent,
+    scope ubyte[] rank,
+    size_t first,
+    size_t second
+)
+    pure nothrow @safe @nogc
+{
+    size_t firstRoot =
+        contactRoot(
+            parent,
+            first
+        );
+
+    size_t secondRoot =
+        contactRoot(
+            parent,
+            second
+        );
+
+    if (firstRoot == secondRoot)
+        return false;
+
+
+    if (
+        rank[firstRoot] <
+        rank[secondRoot]
+    )
+    {
+        parent[firstRoot] =
+            secondRoot;
+
+        return true;
+    }
+
+    if (
+        rank[secondRoot] <
+        rank[firstRoot]
+    )
+    {
+        parent[secondRoot] =
+            firstRoot;
+
+        return true;
+    }
+
+
+    parent[secondRoot] =
+        firstRoot;
+
+    ++rank[firstRoot];
+
+    return true;
+}
+
+
+/*
+ * Validates connected polygon interior.
+ *
+ * Preconditions are established by validatePolygonContainment().
+ *
+ * After all previous validation stages:
+ *
+ * - every ring is a simple closed curve;
+ * - different rings do not cross or overlap;
+ * - each ring pair has at most one geometric contact point;
+ * - interior rings are properly contained;
+ * - interior rings are not nested.
+ *
+ * The remaining boundary-contact topology is represented as a bipartite
+ * graph:
+ *
+ *     ring nodes <-> geometric contact-point nodes
+ *
+ * Multiple rings meeting at one identical point share one contact-point
+ * node.
+ *
+ * Polygon interior is connected exactly when this incidence graph is
+ * acyclic. A cycle forms a closed boundary barrier and separates at least
+ * one interior region.
+ *
+ * Temporary storage is proportional to the number of polygon rings and
+ * touching ring pairs. This stage is deliberately not @nogc.
+ */
+package(geo) PolygonValidationResult
+validatePolygonConnectedInterior(T)(
+    scope PolygonView!T polygon
+)
+    pure nothrow @safe
+if (isValidationScalar!T)
+{
+    const PolygonValidationResult containmentResult =
+        validatePolygonContainment(
+            polygon
+        );
+
+    if (!containmentResult.valid)
+        return containmentResult;
+
+
+    /*
+     * Zero or one ring cannot contain an inter-ring contact cycle.
+     */
+    if (polygon.length <= 1)
+        return PolygonValidationResult.init;
+
+
+    RingContact!T[] contacts;
+
+
+    /*
+     * Collect exactly one contact record for every touching ring pair.
+     */
+    foreach (
+        firstRingIndex;
+        0 .. polygon.length
+    )
+    {
+        auto firstRing =
+            polygon[firstRingIndex];
+
+        foreach (
+            secondRingIndex;
+            firstRingIndex + 1 .. polygon.length
+        )
+        {
+            auto secondRing =
+                polygon[secondRingIndex];
+
+            Point2!T point;
+
+            if (
+                !tryRingPairTouchPoint(
+                    firstRing,
+                    secondRing,
+                    point
+                )
+            )
+            {
+                continue;
+            }
+
+            contacts ~=
+                RingContact!T(
+                    point,
+                    firstRingIndex,
+                    secondRingIndex
+                );
+        }
+    }
+
+
+    if (contacts.length == 0)
+        return PolygonValidationResult.init;
+
+
+    /*
+     * Equal geometric contact points become adjacent in the sorted array.
+     *
+     * Finite coordinates have already been established by ring validation.
+     */
+    sort!(ringContactLess!T)(
+        contacts
+    );
+
+
+    /*
+     * Union-find nodes initially consist of the polygon rings.
+     *
+     * One additional node is appended for each distinct geometric contact
+     * point.
+     */
+    size_t[] parent =
+        new size_t[polygon.length];
+
+    ubyte[] rank =
+        new ubyte[polygon.length];
+
+    foreach (i; 0 .. polygon.length)
+    {
+        parent[i] =
+            i;
+    }
+
+
+    /*
+     * Marker used to avoid adding the same ring/contact-point incidence
+     * more than once when three or more rings meet at one point.
+     */
+    size_t[] seenAtContact =
+        new size_t[polygon.length];
+
+    foreach (i; 0 .. seenAtContact.length)
+    {
+        seenAtContact[i] =
+            size_t.max;
+    }
+
+
+    size_t contactGroup = 0;
+    size_t begin = 0;
+
+    while (begin < contacts.length)
+    {
+        size_t end =
+            begin + 1;
+
+        const Point2!T point =
+            contacts[begin].point;
+
+        while (
+            end < contacts.length &&
+            contacts[end].point == point
+        )
+        {
+            ++end;
+        }
+
+
+        const size_t pointNode =
+            parent.length;
+
+        parent ~=
+            pointNode;
+
+        rank ~=
+            0;
+
+
+        foreach (contactIndex; begin .. end)
+        {
+            const auto contact =
+                contacts[contactIndex];
+
+            size_t[2] touchingRings = [
+                contact.firstRingIndex,
+                contact.secondRingIndex
+            ];
+
+            foreach (ringIndex; touchingRings)
+            {
+                /*
+                 * Several ring pairs at the same geometric point may
+                 * mention the same ring. They represent only one incidence
+                 * edge in the bipartite graph.
+                 */
+                if (
+                    seenAtContact[ringIndex] ==
+                    contactGroup
+                )
+                {
+                    continue;
+                }
+
+                seenAtContact[ringIndex] =
+                    contactGroup;
+
+
+                if (
+                    !unionContactNodes(
+                        parent,
+                        rank,
+                        ringIndex,
+                        pointNode
+                    )
+                )
+                {
+                    PolygonValidationResult result;
+
+                    result.issue =
+                        PolygonValidationIssue.disconnectedInterior;
+
+                    result.ringIndex =
+                        contact.firstRingIndex;
+
+                    result.secondaryRingIndex =
+                        contact.secondRingIndex;
+
+                    return result;
+                }
+            }
+        }
+
+
+        ++contactGroup;
+        begin = end;
     }
 
 
@@ -2099,6 +2560,245 @@ if (isValidationScalar!T)
 
         assert(result.ringIndex == 2);
         assert(result.secondaryRingIndex == 1);
+    }
+
+
+
+    /*
+     * One hole touching the exterior once does not disconnect the
+     * polygon interior.
+     */
+    {
+        alias DP = Point2!double;
+        alias DR = LinearRingView!double;
+        alias DV = PolygonView!double;
+
+        DP[4] exteriorPoints = [
+            DP(0.0, 0.0),
+            DP(10.0, 0.0),
+            DP(10.0, 10.0),
+            DP(0.0, 10.0)
+        ];
+
+        DP[3] holePoints = [
+            DP(0.0, 5.0),
+            DP(2.0, 4.0),
+            DP(2.0, 6.0)
+        ];
+
+        DR exterior =
+            DR(exteriorPoints[]);
+
+        DR hole =
+            DR(holePoints[]);
+
+        DR[2] rings = [
+            exterior,
+            hole
+        ];
+
+        auto polygon =
+            DV(rings[]);
+
+        assert(
+            validatePolygonConnectedInterior(
+                polygon
+            ).valid
+        );
+    }
+
+
+    /*
+     * A chain of holes joining two distinct exterior contact points forms
+     * a barrier and disconnects the polygon interior.
+     */
+    {
+        alias DP = Point2!double;
+        alias DR = LinearRingView!double;
+        alias DV = PolygonView!double;
+
+        DP[4] exteriorPoints = [
+            DP(0.0, 0.0),
+            DP(10.0, 0.0),
+            DP(10.0, 10.0),
+            DP(0.0, 10.0)
+        ];
+
+        DP[3] firstHolePoints = [
+            DP(0.0, 5.0),
+            DP(5.0, 5.0),
+            DP(2.0, 7.0)
+        ];
+
+        DP[3] secondHolePoints = [
+            DP(10.0, 5.0),
+            DP(8.0, 7.0),
+            DP(5.0, 5.0)
+        ];
+
+        DR exterior =
+            DR(exteriorPoints[]);
+
+        DR firstHole =
+            DR(firstHolePoints[]);
+
+        DR secondHole =
+            DR(secondHolePoints[]);
+
+        DR[3] rings = [
+            exterior,
+            firstHole,
+            secondHole
+        ];
+
+        auto polygon =
+            DV(rings[]);
+
+        const result =
+            validatePolygonConnectedInterior(
+                polygon
+            );
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.disconnectedInterior
+        );
+    }
+
+
+    /*
+     * A closed cycle of mutually tangent holes can disconnect interior
+     * even without touching the exterior.
+     */
+    {
+        alias DP = Point2!double;
+        alias DR = LinearRingView!double;
+        alias DV = PolygonView!double;
+
+        DP[4] exteriorPoints = [
+            DP(0.0, 0.0),
+            DP(10.0, 0.0),
+            DP(10.0, 10.0),
+            DP(0.0, 10.0)
+        ];
+
+        DP[3] firstHolePoints = [
+            DP(5.0, 4.0),
+            DP(3.0, 7.0),
+            DP(2.0, 3.0)
+        ];
+
+        DP[3] secondHolePoints = [
+            DP(7.0, 7.0),
+            DP(5.0, 4.0),
+            DP(8.0, 3.0)
+        ];
+
+        DP[3] thirdHolePoints = [
+            DP(3.0, 7.0),
+            DP(7.0, 7.0),
+            DP(5.0, 9.0)
+        ];
+
+        DR exterior =
+            DR(exteriorPoints[]);
+
+        DR firstHole =
+            DR(firstHolePoints[]);
+
+        DR secondHole =
+            DR(secondHolePoints[]);
+
+        DR thirdHole =
+            DR(thirdHolePoints[]);
+
+        DR[4] rings = [
+            exterior,
+            firstHole,
+            secondHole,
+            thirdHole
+        ];
+
+        auto polygon =
+            DV(rings[]);
+
+        const result =
+            validatePolygonConnectedInterior(
+                polygon
+            );
+
+        assert(!result.valid);
+
+        assert(
+            result.issue ==
+            PolygonValidationIssue.disconnectedInterior
+        );
+    }
+
+
+    /*
+     * Several rings meeting at one identical geometric point form one
+     * contact-point node rather than a graph cycle.
+     */
+    {
+        alias DP = Point2!double;
+        alias DR = LinearRingView!double;
+        alias DV = PolygonView!double;
+
+        DP[4] exteriorPoints = [
+            DP(0.0, 0.0),
+            DP(10.0, 0.0),
+            DP(10.0, 10.0),
+            DP(0.0, 10.0)
+        ];
+
+        DP[3] firstHolePoints = [
+            DP(5.0, 5.0),
+            DP(3.0, 4.0),
+            DP(3.0, 6.0)
+        ];
+
+        DP[3] secondHolePoints = [
+            DP(5.0, 5.0),
+            DP(7.0, 6.0),
+            DP(7.0, 4.0)
+        ];
+
+        DP[3] thirdHolePoints = [
+            DP(5.0, 5.0),
+            DP(4.0, 7.0),
+            DP(6.0, 7.0)
+        ];
+
+        DR exterior =
+            DR(exteriorPoints[]);
+
+        DR firstHole =
+            DR(firstHolePoints[]);
+
+        DR secondHole =
+            DR(secondHolePoints[]);
+
+        DR thirdHole =
+            DR(thirdHolePoints[]);
+
+        DR[4] rings = [
+            exterior,
+            firstHole,
+            secondHole,
+            thirdHole
+        ];
+
+        auto polygon =
+            DV(rings[]);
+
+        assert(
+            validatePolygonConnectedInterior(
+                polygon
+            ).valid
+        );
     }
 
 }

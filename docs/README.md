@@ -34,6 +34,17 @@ Performance-specific material is documented under:
 benchmarks/
 ~~~
 
+Public API documentation conventions are defined in:
+
+~~~text
+docs/ddoc-style.md
+~~~
+
+This guide defines the documentation contract for symbols exposed through
+`import geo;`, including semantics, input domains, failure behaviour,
+allocation, complexity, numerical guarantees, and examples.
+
+
 ## Core geometry model
 
 The foundational value types are:

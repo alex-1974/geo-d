@@ -17,3 +17,5 @@ geo-d-test-*
 
 # Local d-geospatial workspace context
 .workspace/
+
+/build/

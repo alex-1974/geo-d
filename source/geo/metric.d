@@ -431,7 +431,13 @@ if (
     if (dx == M(0) && dy == M(0))
     {
         result = hypot(rx, ry);
-        return isFinite(result);
+        if (!isFinite(result))
+        {
+            result = M(0);
+            return false;
+        }
+
+        return true;
     }
 
     const M t =
@@ -449,7 +455,13 @@ if (
     if (t <= M(0))
     {
         result = hypot(rx, ry);
-        return isFinite(result);
+        if (!isFinite(result))
+        {
+            result = M(0);
+            return false;
+        }
+
+        return true;
     }
 
     if (t >= M(1))
@@ -470,7 +482,13 @@ if (
             return false;
 
         result = hypot(bx, by);
-        return isFinite(result);
+        if (!isFinite(result))
+        {
+            result = M(0);
+            return false;
+        }
+
+        return true;
     }
 
     if (!isFinite(t))
@@ -484,7 +502,13 @@ if (
             ry
         );
 
-    return isFinite(result);
+    if (!isFinite(result))
+    {
+        result = M(0);
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -598,7 +622,13 @@ if (
         );
     }
 
-    return result.isFinite;
+    if (!result.isFinite)
+    {
+        result = Point2!M.init;
+        return false;
+    }
+
+    return true;
 }
 
 

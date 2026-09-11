@@ -1,6 +1,9 @@
 module geo.internal.expansion;
 
-import core.math : toPrec;
+import geo.internal.binary64_rounding :
+    roundedAdd,
+    roundedMul,
+    roundedSub;
 import std.math.traits : isFinite;
 
 
@@ -59,31 +62,6 @@ struct SplitComponent
  */
 private enum double splitter =
     134_217_729.0;
-
-
-/*
- * Explicit binary64 rounding helpers.
- */
-private double roundedAdd(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs + rhs);
-}
-
-
-private double roundedSub(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs - rhs);
-}
-
-
-private double roundedMul(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs * rhs);
-}
-
 
 /**
  * Error-free transformation of a + b.

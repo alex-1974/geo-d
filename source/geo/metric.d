@@ -222,14 +222,20 @@ if (isGeoScalar!T)
  * signed overflow.
  *
  * This operation does not promise exact integral arithmetic. In
- * particular, long-coordinate results may lose precision after
- * conversion to double.
+ * particular, long-coordinate results may lose precision after conversion
+ * to double.
  *
- * Very large floating-point results may overflow to infinity according
- * to normal IEEE floating-point semantics.
+ * Floating-point NaN and infinity are not rejected. Results follow normal
+ * floating-point arithmetic. Very large finite results may overflow to
+ * infinity.
  *
  * This function is a metric computation, not a robust exact distance
  * comparison predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 MetricScalar!T squaredDistance(T)(
     Point2!T a,
@@ -250,14 +256,30 @@ if (isGeoScalar!T)
 /**
  * Euclidean distance between two points.
  *
- * The component differences use the same overflow-safe integer handling
- * as squaredDistance().
+ * Integer coordinate differences are obtained without signed overflow
+ * before conversion to MetricScalar!T. This avoids losing small differences
+ * merely because large integer coordinates were converted before
+ * subtraction.
+ *
+ * The resulting metric value is floating-point. In particular,
+ * long-coordinate results may lose precision after conversion to double.
  *
  * Distance is calculated directly with hypot rather than as
  *
  *     sqrt(squaredDistance(a, b))
  *
  * so avoidable intermediate square overflow is not introduced.
+ *
+ * Floating-point NaN and infinity are not rejected. Results follow normal
+ * floating-point arithmetic.
+ *
+ * This function is a metric computation, not a robust exact distance
+ * comparison predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 MetricScalar!T distance(T)(
     Point2!T a,
@@ -359,7 +381,7 @@ if (isGeoScalar!T)
  * - a required metric difference cannot be represented finitely in
  *   MetricScalar!T.
  *
- * On failure, result is zero.
+ * On failure, result is zero. A successful call produces a finite result.
  *
  * A degenerate segment is treated as its single endpoint.
  *
@@ -372,6 +394,11 @@ if (isGeoScalar!T)
  * is constructed.
  *
  * This is a metric computation, not an exact topological predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 bool tryPointSegmentDistance(T, R)(
     Point2!T point,
@@ -516,19 +543,31 @@ if (
 /**
  * Finds the nearest point on a segment to a point.
  *
- * The result uses MetricScalar!T because the nearest point of an
- * integral segment is not generally representable with integral
- * coordinates.
+ * The result uses MetricScalar!T because the nearest point of an integral
+ * segment is not generally representable with integral coordinates.
  *
  * Returns false when:
  *
  * - an input coordinate is NaN or infinite; or
- * - a required metric difference overflows the floating computation
- *   type.
+ * - a required metric difference cannot be represented finitely in the
+ *   metric computation type.
  *
- * On failure, result remains Point2!(MetricScalar!T).init.
+ * On failure, result remains Point2!(MetricScalar!T).init. A successful
+ * result contains only finite coordinates.
  *
- * A degenerate segment returns its single endpoint.
+ * A degenerate segment returns its single endpoint converted to
+ * MetricScalar!T. Endpoint projections are represented in the same way.
+ * Consequently, long coordinates may be rounded when represented as
+ * double.
+ *
+ * Interior nearest points are constructed using floating-point metric
+ * arithmetic. The constructed coordinates are not an exact topological
+ * representation and must not be treated as an exact predicate result.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 bool tryNearestPoint(T, R)(
     Segment2!T segment,
@@ -643,6 +682,16 @@ if (
  * - int, long and float geometry compute in double;
  * - real geometry computes in real;
  * - hypot is used indirectly through distance().
+ *
+ * Floating-point non-finite coordinates follow the same arithmetic
+ * semantics as distance().
+ *
+ * This is a metric computation, not an exact topological predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 MetricScalar!T segmentLength(T)(Segment2!T segment)
     pure nothrow @safe @nogc
@@ -662,7 +711,16 @@ if (isGeoScalar!T)
  *
  * Uses the same MetricScalar policy as segmentLength().
  *
+ * Segment lengths are accumulated in stored order in MetricScalar!T.
+ * Ordinary floating-point rounding may accumulate, and no exact-sum or
+ * order-independent numerical guarantee is provided. The accumulated
+ * result may overflow to infinity according to normal floating-point
+ * arithmetic.
+ *
  * No allocation or point copying is performed.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored points.
  */
 MetricScalar!T polylineLength(T)(PolylineView!T polyline)
     pure nothrow @safe @nogc

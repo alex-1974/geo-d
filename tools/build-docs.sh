@@ -63,6 +63,67 @@ dub run "ddox@$ddox_version" -- \
     "$json_file" \
     "$site_dir"
 
+ddox_dir="$(
+    dub list "ddox@$ddox_version" |
+    sed -nE \
+        "s|^[[:space:]]*ddox[[:space:]]+$ddox_version:[[:space:]]+(.*)$|\\1|p" |
+    head -n 1
+)"
+
+if [[ -z "$ddox_dir" || ! -d "$ddox_dir/public" ]]; then
+    echo "error: cannot locate ddox public assets" >&2
+    false
+fi
+
+echo "Copying ddox static assets..."
+
+cp -au \
+    "$ddox_dir/public/." \
+    "$site_dir/"
+
+echo "Verifying generated public API documentation..."
+
+for source in "${public_sources[@]}"; do
+    filename="${source##*/}"
+
+    if [[ "$filename" == "package.d" ]]; then
+        module_page="$site_dir/geo.html"
+    else
+        module="${filename%.d}"
+        module_page="$site_dir/geo/$module.html"
+    fi
+
+    if [[ ! -f "$module_page" ]]; then
+        echo "error: missing public module page: $module_page" >&2
+        false
+    fi
+done
+
+if grep -Rqi \
+    'geo\.internal' \
+    "$site_dir" \
+    --include='*.html'
+then
+    echo "error: internal geo modules leaked into public documentation" >&2
+    false
+fi
+
+private_page="$(
+    find "$site_dir/geo" \
+        -type f \
+        -name '*._*.html' \
+        -print \
+        -quit
+)"
+
+if [[ -n "$private_page" ]]; then
+    echo "error: private implementation symbol leaked into documentation:" >&2
+    echo "  $private_page" >&2
+    false
+fi
+
+echo "PASS: public-only ddox documentation"
+
 echo
 echo "Documentation generated:"
 echo "  $site_dir/index.html"

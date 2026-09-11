@@ -300,6 +300,22 @@ if (isGeoScalar!T)
 }
 
 
+/// Example using the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+
+    assert(
+        distance(
+            P(0.0, 0.0),
+            P(3.0, 4.0)
+        ) == 5.0
+    );
+}
+
+
 /*
  * Perpendicular distance from an offset vector r to the infinite line
  * through the origin with direction d.

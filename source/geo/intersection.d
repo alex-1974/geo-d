@@ -1275,6 +1275,53 @@ if (
 }
 
 
+/// Example using the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    const first =
+        S(
+            P(0, 0),
+            P(10, 10)
+        );
+
+    const second =
+        S(
+            P(0, 10),
+            P(10, 0)
+        );
+
+    assert(
+        segmentIntersectionKind(
+            first,
+            second
+        ) == SegmentIntersectionKind.point
+    );
+
+    Point2!double point;
+
+    assert(
+        trySegmentIntersectionPoint(
+            first,
+            second,
+            point
+        )
+    );
+
+    assert(
+        point ==
+        Point2!double(
+            5.0,
+            5.0
+        )
+    );
+}
+
+
 @safe unittest
 {
     /*

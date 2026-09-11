@@ -599,6 +599,31 @@ Orientation orientation(
 }
 
 
+/// Example using the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+
+    assert(
+        orientation(
+            P(0.0, 0.0),
+            P(1.0, 0.0),
+            P(0.0, 1.0)
+        ) == Orientation.left
+    );
+
+    assert(
+        orientation(
+            P(0.0, 0.0),
+            P(1.0, 0.0),
+            P(0.5, 0.0)
+        ) == Orientation.collinear
+    );
+}
+
+
 version(unittest)
 {
     import std.bigint : BigInt;

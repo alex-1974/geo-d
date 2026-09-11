@@ -31,8 +31,13 @@ import geo.segment :
  */
 enum SegmentIntersectionKind : ubyte
 {
+    /// The closed segments have no geometric point in common.
     none,
+
+    /// The intersection contains exactly one geometric point.
     point,
+
+    /// The intersection contains a segment of positive geometric length.
     overlap
 }
 
@@ -880,6 +885,8 @@ if (isIntersectionScalar!T)
  *
  * Degenerate segments are valid and represent a point.
  *
+ * No allocation is performed.
+ *
  * Complexity:
  *
  *     time  O(1)
@@ -1181,6 +1188,8 @@ if (isIntersectionScalar!T)
  * The returned rounded point is construction data. It must not be fed
  * back into exact predicates as evidence of the already established
  * topology.
+ *
+ * No allocation is performed.
  *
  * Complexity:
  *
@@ -2647,6 +2656,13 @@ if (
  *     segmentIntersectionKind(first, second)
  *         == SegmentIntersectionKind.overlap
  *
+ * Supported scalar types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
  * On success, `overlap` contains the exact common segment in the
  * original scalar type. Its endpoints are selected from the input
  * endpoints and returned in canonical lexicographic order.
@@ -2659,6 +2675,10 @@ if (
  * No numerical intersection coordinate is constructed.
  *
  * For floating-point coordinates all endpoints must be finite.
+ *
+ * On failure, overlap is Segment2!T.init.
+ *
+ * No allocation is performed.
  *
  * Complexity:
  *

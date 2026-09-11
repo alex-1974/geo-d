@@ -169,14 +169,34 @@ if (isGeoScalar!To && isGeoScalar!From)
 /**
  * Checked component-wise conversion of a point.
  *
- * No implicit rounding is performed.
+ * Source and target scalar types must belong to the geo-d scalar domain.
  *
- * Floating-point to integral conversion succeeds only when every
- * coordinate is finite, already integral-valued and inside the target
- * scalar range.
+ * Conversion is explicit and checked for range, but precision loss within
+ * the representable target range is permitted.
  *
- * On failure, result remains Point2!To.init because it is an out
- * parameter.
+ * In particular:
+ *
+ * - integral-to-integral narrowing fails outside the target range;
+ * - integral-to-floating conversion may lose precision;
+ * - floating-to-integral conversion requires every coordinate to be finite,
+ *   already integral-valued, and inside the target integral range;
+ * - floating-to-floating conversion permits NaN and infinity;
+ * - floating-to-floating conversion fails when a finite source would become
+ *   infinity in the target type.
+ *
+ * No implicit rounding or quantisation is performed. Use rounded, floored,
+ * ceiled, or truncated explicitly before an integral conversion when those
+ * semantics are required.
+ *
+ * Returns false when any coordinate cannot be converted according to these
+ * rules.
+ *
+ * On failure, result is Point2!To.init.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 bool tryConvert(To, From)(
     Point2!From source,
@@ -202,7 +222,18 @@ if (isGeoScalar!To && isGeoScalar!From)
 /**
  * Checked component-wise conversion of a vector.
  *
- * Conversion semantics are identical to Point2.
+ * Conversion follows exactly the same scalar rules as Point2 conversion:
+ * range overflow is rejected, precision loss within the representable target
+ * range is permitted, and no implicit rounding is performed.
+ *
+ * Returns false when either component cannot be converted.
+ *
+ * On failure, result is Vector2!To.init.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 bool tryConvert(To, From)(
     Vector2!From source,
@@ -228,8 +259,18 @@ if (isGeoScalar!To && isGeoScalar!From)
 /**
  * Checked component-wise conversion of a segment.
  *
- * Both endpoints must convert successfully. On failure, result remains
- * Segment2!To.init.
+ * Both endpoints are converted using the Point2 conversion rules. The
+ * complete operation succeeds only when both endpoints convert successfully.
+ *
+ * Precision loss within the representable target range is permitted. No
+ * implicit rounding or quantisation is performed.
+ *
+ * On failure, result is Segment2!To.init.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 bool tryConvert(To, From)(
     Segment2!From source,
@@ -256,7 +297,18 @@ if (isGeoScalar!To && isGeoScalar!From)
  * Returns a point whose coordinates are rounded to the nearest
  * integral-valued floating-point values.
  *
- * Halfway cases are rounded away from zero.
+ * This operation is available only for floating-point geometry.
+ *
+ * Halfway cases are rounded away from zero. NaN and infinities remain
+ * non-finite floating-point values; signed zero is preserved.
+ *
+ * The scalar type is unchanged. This operation does not convert the result
+ * to an integral geometry type.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Point2!T rounded(T)(Point2!T value)
     pure nothrow @safe @nogc
@@ -273,7 +325,18 @@ if (isFloatingPoint!T)
  * Returns a vector whose components are rounded to the nearest
  * integral-valued floating-point values.
  *
- * Halfway cases are rounded away from zero.
+ * This operation is available only for floating-point geometry.
+ *
+ * Halfway cases are rounded away from zero. NaN and infinities remain
+ * non-finite floating-point values; signed zero is preserved.
+ *
+ * The scalar type is unchanged. This operation does not convert the result
+ * to an integral geometry type.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Vector2!T rounded(T)(Vector2!T value)
     pure nothrow @safe @nogc
@@ -288,6 +351,15 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a point with each coordinate rounded toward negative infinity.
+ *
+ * This operation is available only for floating-point geometry and retains
+ * the original scalar type. Non-finite values follow the underlying
+ * floating-point floor semantics.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Point2!T floored(T)(Point2!T value)
     pure nothrow @safe @nogc
@@ -302,6 +374,15 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a vector with each component rounded toward negative infinity.
+ *
+ * This operation is available only for floating-point geometry and retains
+ * the original scalar type. Non-finite values follow the underlying
+ * floating-point floor semantics.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Vector2!T floored(T)(Vector2!T value)
     pure nothrow @safe @nogc
@@ -316,6 +397,15 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a point with each coordinate rounded toward positive infinity.
+ *
+ * This operation is available only for floating-point geometry and retains
+ * the original scalar type. Non-finite values follow the underlying
+ * floating-point ceil semantics.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Point2!T ceiled(T)(Point2!T value)
     pure nothrow @safe @nogc
@@ -330,6 +420,15 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a vector with each component rounded toward positive infinity.
+ *
+ * This operation is available only for floating-point geometry and retains
+ * the original scalar type. Non-finite values follow the underlying
+ * floating-point ceil semantics.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Vector2!T ceiled(T)(Vector2!T value)
     pure nothrow @safe @nogc
@@ -344,6 +443,16 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a point with each fractional coordinate part removed.
+ *
+ * This operation is available only for floating-point geometry. Finite
+ * coordinates are rounded toward zero and the original scalar type is
+ * retained. NaN and infinities remain non-finite floating-point values;
+ * signed zero is preserved.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Point2!T truncated(T)(Point2!T value)
     pure nothrow @safe @nogc
@@ -358,6 +467,16 @@ if (isFloatingPoint!T)
 
 /**
  * Returns a vector with each fractional component removed.
+ *
+ * This operation is available only for floating-point geometry. Finite
+ * components are rounded toward zero and the original scalar type is
+ * retained. NaN and infinities remain non-finite floating-point values;
+ * signed zero is preserved.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 @property Vector2!T truncated(T)(Vector2!T value)
     pure nothrow @safe @nogc

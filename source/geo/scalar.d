@@ -1,9 +1,19 @@
 module geo.scalar;
 
 /**
- * True exactly for the scalar types supported by the geo-d v0.1 core.
+ * True exactly for the scalar types supported by the geo-d core.
  *
- * Qualified scalar template arguments are deliberately excluded.
+ * The supported scalar domain is:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *     real
+ *
+ * This trait describes membership in the public scalar domain, not general
+ * numeric convertibility. Qualified scalar types, enums, and user-defined
+ * numeric-like types are deliberately excluded.
  */
 enum bool isGeoScalar(T) =
        is(T == int)

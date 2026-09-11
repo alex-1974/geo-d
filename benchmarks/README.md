@@ -1,7 +1,10 @@
 # geo-d benchmarks
 
-These benchmarks measure the performance of robust segment-intersection
-classification and exact unique-point construction.
+These benchmarks measure computationally significant geo-d algorithm
+families and selected internal exact-arithmetic components.
+
+The suite currently covers segment intersection, signed area, and
+orientation predicates.
 
 They are intended primarily for:
 
@@ -335,3 +338,93 @@ introducing a floating-point fast path.
 Further optimisation, such as fused exact cross-product construction or a
 certified floating-point fast path, is deferred until a concrete workload
 demonstrates that the remaining cost is material.
+
+## Orientation benchmarks
+
+`orientation_bench.d` measures the public `orientation()` operation
+end-to-end.
+
+The benchmark covers:
+
+- ordinary and full-range `int`;
+- ordinary and full-range `long`;
+- ordinary `float`;
+- ordinary binary64 cases certified by the first-stage filter;
+- binary64 collinear and near-collinear expansion fallback cases;
+- binary64 full-range dyadic fallback cases;
+- minimum-subnormal binary64 fallback cases.
+
+The benchmark uses two alternating inputs per case, a warm-up phase,
+seven measured repetitions, and reports median, minimum, and maximum
+nanoseconds per operation.
+
+Build with LDC using:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -mcpu=native \
+        -i \
+        -Isource \
+        benchmarks/orientation_bench.d \
+        -of=/tmp/geo-d-orientation-bench-ldc
+
+    /tmp/geo-d-orientation-bench-ldc
+
+With DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/orientation_bench.d \
+        -of=/tmp/geo-d-orientation-bench-dmd
+
+    /tmp/geo-d-orientation-bench-dmd
+
+### C++ orientation reference
+
+`reference/cpp/orientation_bench.cpp` is a diagnostic reference benchmark,
+not a complete independent implementation of geo-d's robust orientation
+contract.
+
+Its comparisons have different strengths:
+
+- `int` uses the same exact algorithm and is directly comparable;
+- `long manual` uses the portable 32-bit-limb multiplication algorithm;
+- `long native u128` uses GNU/Clang `unsigned __int128` and is the closest
+  reference for the LDC `core.int128` implementation;
+- `double certified filter` implements only the first-stage certified
+  binary64 filter;
+- `double naive baseline` is intentionally non-robust.
+
+There is currently no C++ reference implementation for geo-d's expansion
+or dyadic binary64 fallbacks.
+
+The C++ algorithms are inline and may be inlined into their no-inline
+benchmark wrappers. Consequently, these results are compiler/code-generation
+references and do not guarantee identical function-call overhead to the
+public D API.
+
+Build the GCC reference using strict floating-point semantics:
+
+    g++ \
+        -O3 \
+        -DNDEBUG \
+        -march=native \
+        -ffp-contract=off \
+        -std=c++20 \
+        benchmarks/reference/cpp/orientation_bench.cpp \
+        -o=/tmp/geo-d-orientation-bench-cpp
+
+    /tmp/geo-d-orientation-bench-cpp
+
+Do not use `-ffast-math` for the certified-filter comparison. It may
+invalidate assumptions required by the robustness checks.
+
+Absolute D-versus-C++ timings remain compiler-, machine-, and build-dependent.
+They are diagnostic measurements, not performance guarantees.

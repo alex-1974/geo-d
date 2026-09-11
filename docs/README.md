@@ -458,3 +458,10 @@ The generated documentation entry point is:
 ~~~text
 build/ddox/site/index.html
 ~~~
+
+## Performance
+
+Performance goals, benchmarking methodology, C/C++ comparison rules, and
+optimisation workflow are documented in
+[`performance.md`](performance.md).
+

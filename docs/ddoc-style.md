@@ -382,7 +382,15 @@ Large numerical edge-case suites, property checks, regression cases, and impleme
 
 Examples should be compilable.
 
-The exact mechanism used for generated examples will be decided together with the documentation generator (`ddox` versus `adrdox`). Until then, examples should remain source-adjacent and structured so that they can later become documented unittests without redesign.
+The public API documentation renderer is `ddox`.
+
+Generated API documentation is build output and is not stored under `docs/` or committed to the repository. It is generated with:
+
+    ./tools/build-docs.sh
+
+The documentation build includes only the public modules directly under `source/geo/` and filters the generated symbol model to documented public declarations.
+
+Documented unit tests may be used as executable API examples where appropriate. Examples should remain focused on realistic public usage through `import geo;` rather than reproducing exhaustive verification tests.
 
 ## 18. Tests are not documentation
 

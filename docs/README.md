@@ -429,3 +429,32 @@ and ownership are separate concerns in `geo-d`.
 Keeping these concerns separate is intentional. It prevents convenience
 APIs from silently weakening topology guarantees, introducing hidden
 allocation, or changing geometry semantics.
+
+## Generated API documentation
+
+Public API documentation is rendered with `ddox`.
+
+Generate it from the repository root with:
+
+~~~sh
+./tools/build-docs.sh
+~~~
+
+The generated site is written to:
+
+~~~text
+build/ddox/site/
+~~~
+
+Generated documentation is build output and is not committed to the
+repository.
+
+The documentation build includes only the public modules directly under
+`source/geo/`. Implementation modules under `source/geo/internal/` are
+deliberately excluded.
+
+The generated documentation entry point is:
+
+~~~text
+build/ddox/site/index.html
+~~~

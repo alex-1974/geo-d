@@ -3,6 +3,13 @@
  */
 module geo.orientation;
 
+version (LDC)
+{
+    import core.int128 :
+        Cent,
+        mul;
+}
+
 import geo.point : Point2;
 
 import geo.internal.orientation_filter :
@@ -172,15 +179,18 @@ private SignedDiff64 signedDifference(long a, long b)
 /*
  * Exact unsigned 64 x 64 -> 128 bit multiplication.
  *
- * Operands are decomposed into 32-bit limbs so that every primitive
- * multiplication fits exactly in ulong.
+ * LDC lowers core.int128.mul to LLVM i128 multiplication, allowing the
+ * backend to use the target's native wide-multiply instructions.
+ *
+ * Other compilers use a portable 32-bit-limb implementation so that every
+ * primitive multiplication fits exactly in ulong.
  *
  * The result is:
  *
  *     hi * 2^64 + lo
  *
- * This is deliberately local to the predicate implementation rather
- * than a speculative general-purpose wide-integer abstraction.
+ * The compiler-specific implementation remains hidden behind this local
+ * helper; the rest of the predicate uses the same Unsigned128 representation.
  */
 private Unsigned128 multiplyUnsigned64(
     ulong lhs,
@@ -188,46 +198,65 @@ private Unsigned128 multiplyUnsigned64(
 )
     pure nothrow @safe @nogc
 {
-    enum ulong mask32 = 0xffff_ffffUL;
+    version (LDC)
+    {
+        Cent lhs128 = Cent.init;
+        lhs128.lo = lhs;
 
-    const ulong lhsLo = lhs & mask32;
-    const ulong lhsHi = lhs >> 32;
+        Cent rhs128 = Cent.init;
+        rhs128.lo = rhs;
 
-    const ulong rhsLo = rhs & mask32;
-    const ulong rhsHi = rhs >> 32;
+        const Cent product =
+            mul(lhs128, rhs128);
 
-    /*
-     * Hacker's Delight style limb multiplication.
-     *
-     * All partial products are 32 x 32 -> <= 64 bit.
-     */
-    const ulong w0 =
-        lhsLo * rhsLo;
+        return Unsigned128(
+            product.hi,
+            product.lo
+        );
+    }
+    else
+    {
+        enum ulong mask32 = 0xffff_ffffUL;
 
-    const ulong t =
-        lhsHi * rhsLo +
-        (w0 >> 32);
+        const ulong lhsLo = lhs & mask32;
+        const ulong lhsHi = lhs >> 32;
 
-    const ulong w1Low =
-        t & mask32;
+        const ulong rhsLo = rhs & mask32;
+        const ulong rhsHi = rhs >> 32;
 
-    const ulong w2 =
-        t >> 32;
+        /*
+         * Hacker's Delight style limb multiplication.
+         *
+         * All partial products are 32 x 32 -> <= 64 bit.
+         */
+        const ulong w0 =
+            lhsLo * rhsLo;
 
-    const ulong w1 =
-        lhsLo * rhsHi +
-        w1Low;
+        const ulong t =
+            lhsHi * rhsLo +
+            (w0 >> 32);
 
-    const ulong hi =
-        lhsHi * rhsHi +
-        w2 +
-        (w1 >> 32);
+        const ulong w1Low =
+            t & mask32;
 
-    const ulong lo =
-        ((w1 & mask32) << 32) |
-        (w0 & mask32);
+        const ulong w2 =
+            t >> 32;
 
-    return Unsigned128(hi, lo);
+        const ulong w1 =
+            lhsLo * rhsHi +
+            w1Low;
+
+        const ulong hi =
+            lhsHi * rhsHi +
+            w2 +
+            (w1 >> 32);
+
+        const ulong lo =
+            ((w1 & mask32) << 32) |
+            (w0 & mask32);
+
+        return Unsigned128(hi, lo);
+    }
 }
 
 

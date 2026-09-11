@@ -264,6 +264,9 @@ if (
 /**
  * Algebraic signed area of a linear ring.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * The result is binary64.
+ *
  * Counter-clockwise traversal has positive area and clockwise traversal
  * has negative area in the usual Cartesian coordinate system.
  *
@@ -277,6 +280,11 @@ if (
  *
  * Self-intersecting rings produce their algebraic signed area; this
  * operation does not validate polygon topology.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices.
  */
 AreaScalar!T signedArea(T)(
     scope LinearRingView!T ring
@@ -320,6 +328,9 @@ if (
 /**
  * Role-based algebraic area of a polygon.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * The result is binary64.
+ *
  * Ring zero is the exterior ring and contributes the magnitude of its exact
  * algebraic area positively. Subsequent rings are interior rings and
  * contribute their exact area magnitudes negatively.
@@ -335,6 +346,12 @@ if (
  *
  * This operation does not validate polygon topology. Invalid polygon
  * representations may therefore produce a negative role-based result.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices across all
+ *     rings.
  */
 AreaScalar!T polygonArea(T)(
     scope PolygonView!T polygon

@@ -16,8 +16,13 @@ import geo.polygon_view :
  */
 enum PointPolygonLocation : ubyte
 {
+    /// The point is outside the role-based polygon interior.
     outside,
+
+    /// The point lies exactly on the boundary of at least one stored ring.
     boundary,
+
+    /// The point is inside the exterior and outside all interior rings.
     inside,
 }
 
@@ -25,8 +30,13 @@ enum PointPolygonLocation : ubyte
 /**
  * Classifies a point relative to a polygon.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * `real` is deliberately outside the robust predicate domain.
+ *
  * Returns false when the query point or any stored polygon coordinate is
  * non-finite.
+ *
+ * On failure, location is PointPolygonLocation.outside.
  *
  * For finite supported input, classification is exact and returns one of:
  *
@@ -34,14 +44,25 @@ enum PointPolygonLocation : ubyte
  *     boundary
  *     inside
  *
+ * A finite query against an empty polygon succeeds and is classified as
+ * outside.
+ *
  * Boundary has precedence over inside and outside across all stored rings.
  *
  * Ring zero is the exterior ring. Subsequent rings are interior rings.
- *
  * Ring orientation does not affect classification.
  *
- * No topology validation, normalization, allocation, tolerance, or
- * floating-point ray intersection is performed.
+ * No topology validation, normalization, tolerance, or floating-point ray
+ * intersection is performed.
+ *
+ * No allocation is performed.
+ *
+ * Every stored ring is inspected so that non-finite coordinates and
+ * boundary precedence are handled globally.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices across all
+ *     rings.
  */
 bool tryClassifyPointInPolygon(T)(
     scope PolygonView!T polygon,

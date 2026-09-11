@@ -260,6 +260,43 @@ if (
 }
 
 
+/// Example using caller-owned destination and workspace storage.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias V = PolylineView!double;
+
+    P[5] input = [
+        P(0.0, 0.0),
+        P(1.0, 0.1),
+        P(2.0, 0.0),
+        P(3.0, 0.1),
+        P(4.0, 0.0)
+    ];
+
+    P[5] output;
+    size_t[3] workspace;
+
+    size_t written;
+
+    assert(
+        trySimplifyDouglasPeuckerInto(
+            V(input[]),
+            0.2,
+            output[],
+            workspace[],
+            written
+        )
+    );
+
+    assert(written == 2);
+    assert(output[0] == input[0]);
+    assert(output[1] == input[$ - 1]);
+}
+
+
 @safe unittest
 {
     /*

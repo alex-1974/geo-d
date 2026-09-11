@@ -190,6 +190,72 @@ if (
 }
 
 
+/// Example classifying interior, boundary, and exterior points.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias R = LinearRingView!double;
+    alias V = PolygonView!double;
+
+    P[4] points = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0)
+    ];
+
+    R[1] rings = [
+        R(points[])
+    ];
+
+    auto polygon =
+        V(rings[]);
+
+    PointPolygonLocation location;
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(5.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.inside
+    );
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(0.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.boundary
+    );
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(20.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.outside
+    );
+}
+
+
 @safe unittest
 {
     import geo.linear_ring_view :

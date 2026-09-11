@@ -296,6 +296,42 @@ if (isGeoScalar!To && isGeoScalar!From)
 }
 
 
+/// Example of checked conversion without implicit rounding.
+@safe unittest
+{
+    import geo;
+
+    Point2!int result;
+
+    assert(
+        Point2!double(
+            3.0,
+            -2.0
+        ).tryConvert(result)
+    );
+
+    assert(
+        result ==
+        Point2!int(
+            3,
+            -2
+        )
+    );
+
+    assert(
+        !Point2!double(
+            3.5,
+            -2.0
+        ).tryConvert(result)
+    );
+
+    assert(
+        result ==
+        Point2!int.init
+    );
+}
+
+
 /**
  * Returns a point whose coordinates are rounded to the nearest
  * integral-valued floating-point values.

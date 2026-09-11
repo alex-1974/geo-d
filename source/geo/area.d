@@ -436,6 +436,44 @@ if (
 }
 
 
+/// Example showing that polygon ring roles are defined by storage order.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias R = LinearRingView!double;
+    alias V = PolygonView!double;
+
+    P[4] exteriorPoints = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0)
+    ];
+
+    P[4] holePoints = [
+        P(3.0, 3.0),
+        P(7.0, 3.0),
+        P(7.0, 7.0),
+        P(3.0, 7.0)
+    ];
+
+    R[2] rings = [
+        R(exteriorPoints[]),
+        R(holePoints[])
+    ];
+
+    auto polygon =
+        V(rings[]);
+
+    assert(
+        polygonArea(polygon) ==
+        84.0
+    );
+}
+
+
 @safe unittest
 {
     import geo.point :

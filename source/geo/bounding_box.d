@@ -9,10 +9,86 @@ module geo.bounding_box;
 
 import geo.bounds : Bounds2;
 import geo.linear_ring_view : LinearRingView;
+import geo.point : Point2;
 import geo.polygon_view : PolygonView;
 import geo.polyline_view : PolylineView;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
+
+import std.traits : isFloatingPoint;
+
+
+/*
+ * Private accumulator for linear bounds reductions.
+ *
+ * Bounds2.tryExtend() is the general single-point mutation primitive.
+ * Geometry-wide reductions keep extrema in scalar fields instead, avoiding
+ * repeated Bounds2 state handling and corner reconstruction in the hot loop.
+ */
+private struct BoundsAccumulator(T)
+if (isGeoScalar!T)
+{
+    private bool hasValue;
+
+    private T minX;
+    private T minY;
+    private T maxX;
+    private T maxY;
+
+
+    bool tryAdd(Point2!T point)
+        pure nothrow @safe @nogc
+    {
+        static if (isFloatingPoint!T)
+        {
+            if (point.x != point.x ||
+                point.y != point.y)
+            {
+                return false;
+            }
+        }
+
+        if (!hasValue)
+        {
+            minX = point.x;
+            minY = point.y;
+            maxX = point.x;
+            maxY = point.y;
+
+            hasValue = true;
+
+            return true;
+        }
+
+        if (point.x < minX)
+            minX = point.x;
+
+        if (point.y < minY)
+            minY = point.y;
+
+        if (point.x > maxX)
+            maxX = point.x;
+
+        if (point.y > maxY)
+            maxY = point.y;
+
+        return true;
+    }
+
+
+    bool finish(out Bounds2!T result) const
+        pure nothrow @safe @nogc
+    {
+        if (!hasValue)
+            return true;
+
+        return Bounds2!T.tryFromMinMax(
+            Point2!T(minX, minY),
+            Point2!T(maxX, maxY),
+            result
+        );
+    }
+}
 
 
 /**
@@ -41,17 +117,15 @@ bool tryBounds(T)(
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    Bounds2!T accumulated;
+    BoundsAccumulator!T accumulated;
 
-    if (!accumulated.tryExtend(segment.a))
+    if (!accumulated.tryAdd(segment.a))
         return false;
 
-    if (!accumulated.tryExtend(segment.b))
+    if (!accumulated.tryAdd(segment.b))
         return false;
 
-    result = accumulated;
-
-    return true;
+    return accumulated.finish(result);
 }
 
 
@@ -81,17 +155,15 @@ bool tryBounds(T)(
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    Bounds2!T accumulated;
+    BoundsAccumulator!T accumulated;
 
     foreach (i; 0 .. polyline.length)
     {
-        if (!accumulated.tryExtend(polyline[i]))
+        if (!accumulated.tryAdd(polyline[i]))
             return false;
     }
 
-    result = accumulated;
-
-    return true;
+    return accumulated.finish(result);
 }
 
 
@@ -125,17 +197,15 @@ bool tryBounds(T)(
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    Bounds2!T accumulated;
+    BoundsAccumulator!T accumulated;
 
     foreach (i; 0 .. ring.length)
     {
-        if (!accumulated.tryExtend(ring[i]))
+        if (!accumulated.tryAdd(ring[i]))
             return false;
     }
 
-    result = accumulated;
-
-    return true;
+    return accumulated.finish(result);
 }
 
 
@@ -169,7 +239,7 @@ bool tryBounds(T)(
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    Bounds2!T accumulated;
+    BoundsAccumulator!T accumulated;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -178,23 +248,18 @@ if (isGeoScalar!T)
 
         foreach (pointIndex; 0 .. ring.length)
         {
-            if (!accumulated.tryExtend(ring[pointIndex]))
+            if (!accumulated.tryAdd(ring[pointIndex]))
                 return false;
         }
     }
 
-    result = accumulated;
-
-    return true;
+    return accumulated.finish(result);
 }
 
 
 @safe unittest
 {
-    import geo.point : Point2;
-
     import std.meta : AliasSeq;
-    import std.traits : isFloatingPoint;
 
 
     /*

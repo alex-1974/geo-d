@@ -26,14 +26,26 @@ private T roundAwayFromZero(T)(T value)
     pure nothrow @safe @nogc
 if (isFloatingPoint!T)
 {
+    /*
+     * Preserve NaN, infinities, and signed zero directly.
+     */
+    if (!isFinite(value) || value == T(0))
+        return value;
+
     if (value > T(0))
-        return floor(value + T(0.5));
+    {
+        const T lower = floor(value);
 
-    if (value < T(0))
-        return ceil(value - T(0.5));
+        return value - lower < T(0.5)
+            ? lower
+            : lower + T(1);
+    }
 
-    // Preserves zero, signed zero and NaN.
-    return value;
+    const T upper = ceil(value);
+
+    return upper - value < T(0.5)
+        ? upper
+        : upper - T(1);
 }
 
 
@@ -395,6 +407,38 @@ if (isFloatingPoint!T)
 
     assert(p.rounded.tryConvert(pi));
     assert(pi == Point2!int(2, -3));
+
+    /*
+     * Values immediately below the half-way threshold must not cross it
+     * merely because adding 0.5 would itself round.
+     */
+    const double belowPositiveHalf =
+        0x1.fffffffffffffp-2;
+
+    const double aboveNegativeHalf =
+        -0x1.fffffffffffffp-2;
+
+    assert(
+        Point2!double(
+            belowPositiveHalf,
+            aboveNegativeHalf
+        ).rounded ==
+        Point2!double(
+            0.0,
+            0.0
+        )
+    );
+
+    assert(
+        Point2!double(
+            0.5,
+            -0.5
+        ).rounded ==
+        Point2!double(
+            1.0,
+            -1.0
+        )
+    );
 
     // Non-finite values cannot become integers.
     assert(!Point2!double(double.nan, 0.0).tryConvert(pi));

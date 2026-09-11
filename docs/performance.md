@@ -537,3 +537,113 @@ orientation performance blocker.
 Further optimization of these paths is not required for the present maturity
 milestone unless later workloads, architectures, compiler versions, or
 regression benchmarks reveal a new material gap.
+
+## Geometry bounding-box performance
+
+The public geometry-bounds operation is a linear reduction over stored
+coordinates.
+
+For a segment its complexity is O(1). For polyline and linear-ring views it is
+O(n), and for polygons it is O(total stored vertices). Auxiliary storage is
+O(1), and the operation performs no allocation.
+
+### Benchmark scope
+
+`benchmarks/bounding_box_bench.d` measures `tryBounds()` for ordinary finite
+binary64 geometry and compares it with diagnostic raw-slice implementations.
+
+Polyline sizes are:
+
+- 10 points;
+- 100 points;
+- 1,000 points;
+- 10,000 points;
+- 100,000 points.
+
+The polygon case contains four rings with 2,500 stored vertices each, for
+10,000 total vertices.
+
+All benchmark-data allocation occurs before the timed operation.
+
+The comparison implementations are:
+
+1. the public `tryBounds()` view-based operation;
+2. a raw-slice reduction using `Bounds2.tryExtend()`;
+3. a direct scalar min/max reduction.
+
+The polygon benchmark additionally contains a direct nested-ring scalar
+reduction.
+
+These are intra-D diagnostic comparisons. They are not substitutes for an
+algorithm-equivalent C/C++ reference and therefore must not be interpreted as
+cross-language performance ratios.
+
+### Initial optimized baseline
+
+Repeated release measurements on the development machine showed approximately
+linear steady-state behaviour.
+
+    LDC:
+
+        PolylineView, 1,000..100,000 points:
+            approximately 1.2 ns per point
+
+        PolygonView, 4 x 2,500 vertices:
+            approximately 1.4 ns per point
+
+    DMD:
+
+        PolylineView, 1,000..100,000 points:
+            approximately 4.0-4.4 ns per point
+
+        PolygonView, 4 x 2,500 vertices:
+            approximately 4.7-5.0 ns per point
+
+The LDC public polyline implementation is approximately at parity with the
+direct scalar raw-slice extrema loop for large inputs.
+
+DMD retains a measurable gap to that direct loop, approximately 1.4x for large
+polylines in the measured runs. This remains a diagnostic compiler/code-
+generation difference rather than evidence of view-abstraction overhead:
+the public implementation is substantially faster than the original
+`Bounds2.tryExtend()` reduction.
+
+### Bounds-accumulator optimization
+
+The initial implementation used `Bounds2.tryExtend()` for every stored point.
+
+That operation is an appropriate general-purpose single-point mutation
+primitive, but benchmarking showed that repeatedly invoking its full state
+handling inside a large linear reduction introduced measurable hot-loop cost.
+
+The retained implementation therefore uses a private scalar-extrema
+accumulator while traversing geometry and constructs the final `Bounds2` only
+after the reduction completes.
+
+The change preserves:
+
+- empty-geometry semantics;
+- transactional failure on NaN;
+- support for infinities;
+- exact coordinate extrema;
+- polygon representation semantics;
+- allocation-free execution;
+- O(n) time and O(1) auxiliary storage.
+
+For large polylines the change reduced measured end-to-end cost by roughly
+30 percent relative to the original implementation.
+
+The optimization is private implementation detail and does not alter the
+public API or numerical contract.
+
+### Current assessment
+
+The geometry-bounds implementation has the expected asymptotic behaviour and
+no material abstraction penalty under the primary performance compiler.
+
+The remaining DMD difference relative to a hand-written direct extrema loop is
+recorded for regression tracking but does not currently justify additional
+source complexity.
+
+No geometry-bounds performance blocker remains for the current v1 maturity
+milestone.

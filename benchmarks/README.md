@@ -428,3 +428,95 @@ invalidate assumptions required by the robustness checks.
 
 Absolute D-versus-C++ timings remain compiler-, machine-, and build-dependent.
 They are diagnostic measurements, not performance guarantees.
+
+## Geometry bounding-box benchmark
+
+`bounding_box_bench.d` measures end-to-end axis-aligned bounding-box
+computation through the public `tryBounds()` API.
+
+The benchmark covers:
+
+- `PolylineView!double` with 10, 100, 1,000, 10,000 and 100,000 points;
+- `PolygonView!double` with four rings of 2,500 vertices each;
+- the public view-based API;
+- a raw-slice reduction using `Bounds2.tryExtend()`;
+- a direct raw-slice extrema loop;
+- a direct nested-ring polygon extrema loop.
+
+The reference loops are diagnostic comparisons only. They are not separate
+public APIs and do not establish a cross-language performance guarantee.
+
+All dynamic benchmark-data allocation is performed before the timed regions.
+Each timed operation itself remains allocation-free.
+
+The benchmark uses two alternating datasets per case, a warm-up phase,
+seven measured repetitions and reports the median time per operation and
+per point.
+
+Build with LDC using:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/bounding_box_bench.d \
+        -of=/tmp/geo-d-bounding-box-bench-ldc
+
+    /tmp/geo-d-bounding-box-bench-ldc
+
+With DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/bounding_box_bench.d \
+        -of=/tmp/geo-d-bounding-box-bench-dmd
+
+    /tmp/geo-d-bounding-box-bench-dmd
+
+### Initial geometry-bounds baseline
+
+On the development machine, the optimized implementation showed approximately
+linear steady-state cost for ordinary finite binary64 data.
+
+    LDC release:
+
+        polyline, n=1,000..100,000:
+            about 1.2 ns per point
+
+        polygon, 4 x 2,500 vertices:
+            about 1.4 ns per point
+
+    DMD release:
+
+        polyline, n=1,000..100,000:
+            about 4.0-4.4 ns per point
+
+        polygon, 4 x 2,500 vertices:
+            about 4.7-5.0 ns per point
+
+The first implementation reduced geometry bounds by repeatedly calling
+`Bounds2.tryExtend()` inside the hot loop.
+
+Benchmarking showed that a private scalar-extrema accumulator reduced
+large-polyline cost by roughly 30 percent while preserving the public
+`tryBounds()` semantics.
+
+Under LDC, the optimized public polyline path is approximately at parity with
+the direct raw-slice extrema loop. Under DMD, the public path remains slower
+than the direct extrema loop but is materially faster than the original
+`Bounds2.tryExtend()` reduction.
+
+The polygon comparison demonstrates that source-level loop simplicity does not
+by itself predict generated-code performance: under LDC the direct nested-ring
+extrema reference was slower than both the public implementation and the
+`Bounds2.tryExtend()` reference.
+
+No further geometry-bounds optimization is currently justified by these
+measurements.

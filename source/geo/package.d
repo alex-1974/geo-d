@@ -15,6 +15,7 @@
  * - points, vectors, segments, and bounds;
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
+ * - axis-aligned geometry bounds;
  * - distance and nearest-point operations;
  * - robust orientation and segment-intersection predicates;
  * - signed and polygon area;
@@ -40,6 +41,7 @@ public import geo.area :
     polygonArea,
     signedArea;
 
+public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;
 public import geo.convert :
     ceiled,

@@ -371,3 +371,169 @@ Orientation is the preferred first C/C++ comparison because it is:
 - used by multiple higher-level algorithms;
 - sensitive to robustness strategy;
 - suitable for separate fast-path and fallback-path measurements.
+
+## Robust binary64 orientation performance
+
+### Benchmark conditions
+
+The robust `orientation(double)` implementation is compared against an
+algorithm-equivalent C++ reference that mirrors the same high-level structure
+and major helper boundaries:
+
+- filtered binary64 fast path;
+- exact expansion fallback;
+- exact dyadic fallback.
+
+The controlled comparison reported here used:
+
+- LDC 1.41.0;
+- D frontend 2.111.0;
+- LLVM 19.1.7;
+- GCC 15.2.0;
+- x86-64;
+- native CPU code generation;
+- release optimization;
+- bounds checks disabled for the D benchmark;
+- `-O3 -DNDEBUG -march=native -ffp-contract=off -fno-fast-math` for the C++
+  reference;
+- one pinned physical CPU;
+- the SMT sibling taken offline;
+- performance governor and performance energy preference;
+- turbo disabled;
+- observed clock frequency approximately 2.60 GHz.
+
+D and C++ runs were alternated across four controlled rounds in order to
+reduce run-order and thermal bias.
+
+The initial uncontrolled smoke runs are intentionally not used for comparative
+ratios. Only the controlled alternating runs at the stabilized CPU frequency
+are treated as reference measurements.
+
+The reported values are arithmetic means of the per-round benchmark medians.
+
+### Controlled D/LDC versus C++ reference
+
+| Robust binary64 path | D/LDC | C++/GCC | D/C++ |
+| --- | ---: | ---: | ---: |
+| Filter fast path | 20.91 ns | 22.63 ns | **0.924x** |
+| Expansion fallback, collinear | 101.27 ns | 103.51 ns | **0.978x** |
+| Expansion fallback, near-degenerate | 128.10 ns | 116.39 ns | **1.101x** |
+| Dyadic fallback, collinear | 482.66 ns | 448.24 ns | **1.077x** |
+| Dyadic fallback, near-degenerate | 476.00 ns | 389.85 ns | **1.221x** |
+| Dyadic fallback, subnormal | 261.65 ns | 185.44 ns | **1.411x** |
+
+The ordinary filtered path is slightly faster than the current GCC reference.
+The collinear expansion fallback is effectively at parity with C++, while the
+near-degenerate expansion fallback remains approximately 10% slower.
+
+The dyadic fallback remains the largest relative gap, particularly for the
+subnormal case, but all measured dyadic cases remain below the 1.5x
+investigation threshold. These paths are also exceptional fallbacks rather
+than the expected workload for ordinary finite geometry.
+
+### Expansion component comparison
+
+The same controlled environment was used for the lower-level expansion
+comparison.
+
+| Expansion component | D/LDC | C++/GCC | D/C++ |
+| --- | ---: | ---: | ---: |
+| `twoSum` | 3.72 ns | 5.25 ns | **0.709x** |
+| `twoDiff` | 3.72 ns | 4.71 ns | **0.790x** |
+| `fastTwoSum` | 3.10 ns | 4.84 ns | **0.641x** |
+| `twoProduct` | 5.80 ns | 6.24 ns | **0.929x** |
+| `scaleExpansion 2->4` | 15.65 ns | 16.28 ns | **0.961x** |
+| `fastExpansionSum 4+4` | 45.20 ns | 41.37 ns | **1.093x** |
+| Exact orientation, collinear | 77.39 ns | 81.68 ns | **0.947x** |
+| Exact orientation, near-degenerate | 89.86 ns | 98.07 ns | **0.916x** |
+
+The primitive EFT measurements are useful diagnostically, but the complete
+expansion and orientation measurements are the more meaningful cross-language
+comparison because minor differences in helper inlining can affect isolated
+primitive timings.
+
+### Effect of the explicit binary64 rounding backend
+
+The original robust binary64 implementation used `core.math.toPrec!double` at
+every elementary rounding point required by the filter and expansion
+arithmetic.
+
+Under LDC 1.41, these operations resulted in non-inlined runtime calls.
+Component-level investigation showed that the call boundaries, rather than the
+robust arithmetic itself, dominated the cost of the exact expansion
+implementation.
+
+The LDC-specific backend introduced by ADR-0014 replaces those runtime calls
+with explicit plain LLVM binary64 operations:
+
+- `fadd double`;
+- `fsub double`;
+- `fmul double`.
+
+No fast-math flags are attached.
+
+DMD and other compilers continue to use the portable
+`core.math.toPrec!double` implementation.
+
+Before adopting the backend, the explicit LLVM operations were validated
+against `toPrec!double` for edge cases and 1,000,000 additional
+deterministically generated finite binary64 operand pairs. Addition,
+subtraction, and multiplication were bit-identical in all tested cases.
+
+Code-generation inspection of the relevant LDC hot paths additionally
+confirmed:
+
+- no x87 floating-point arithmetic;
+- no fused multiply-add contraction;
+- no remaining `toPrec` calls;
+- scalar binary64 arithmetic using the expected SSE/AVX scalar instructions.
+
+The resulting end-to-end improvement is substantial:
+
+| Robust binary64 path | Before | After | Change |
+| --- | ---: | ---: | ---: |
+| Filter fast path | 29.40 ns | 20.91 ns | **-28.9%** |
+| Expansion fallback, collinear | 238.85 ns | 101.27 ns | **-57.6%** |
+| Expansion fallback, near-degenerate | 275.33 ns | 128.10 ns | **-53.5%** |
+| Dyadic fallback, collinear | 497.77 ns | 482.66 ns | **-3.0%** |
+| Dyadic fallback, near-degenerate | 507.47 ns | 476.00 ns | **-6.2%** |
+| Dyadic fallback, subnormal | 294.41 ns | 261.65 ns | **-11.1%** |
+
+The large improvement in the filter and expansion paths confirms that the
+previous performance deficit was primarily caused by the LDC `toPrec` call
+boundaries rather than by the robust predicate algorithms themselves.
+
+The smaller improvement in dyadic end-to-end cases is expected: the dyadic
+arithmetic backend itself was not changed, but these calls still pass through
+now-cheaper filter and exact-fallback preparation before reaching the dyadic
+determinant.
+
+### Performance gate status
+
+The provisional performance targets for geo-d are:
+
+- simple primitives and linear loops: ideally no more than 1.25x a comparable
+  C/C++ implementation;
+- robust ordinary fast paths: ideally no more than 1.5x;
+- exact fallbacks: ideally no more than 2x;
+- higher-level algorithms: same asymptotic complexity and preferably no more
+  than 1.5x;
+- ratios above 2x for comparable implementations require investigation.
+
+For robust `orientation(double)`, the current implementation passes all
+applicable gates.
+
+The ordinary filtered path is **0.924x** the algorithm-equivalent C++
+reference.
+
+The exact expansion fallbacks are **0.978x** and **1.101x**.
+
+The measured dyadic fallbacks range from **1.077x** to **1.411x**.
+
+Therefore, as of the explicit binary64 rounding backend, there is no remaining
+robust binary64 orientation path above the 1.5x target and no current
+orientation performance blocker.
+
+Further optimization of these paths is not required for the present maturity
+milestone unless later workloads, architectures, compiler versions, or
+regression benchmarks reveal a new material gap.

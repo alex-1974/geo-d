@@ -37,6 +37,10 @@ if (isGeoScalar!T)
 /**
  * A closed axis-aligned bounds in a two-dimensional Euclidean space.
  *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `Bounds2.init` is empty.
+ *
  * Bounds2 has two semantic states:
  *
  * - empty: contains no point;

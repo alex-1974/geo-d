@@ -1,6 +1,6 @@
 # ADR-0015: Geometry bounding-box semantics
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-12
 
 ## Context

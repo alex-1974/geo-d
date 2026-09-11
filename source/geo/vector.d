@@ -8,6 +8,22 @@ import std.meta : AliasSeq;
 
 /**
  * A displacement in a two-dimensional Euclidean vector space.
+ *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `Vector2.init` is the zero vector `(0, 0)`.
+ *
+ * Vectors support addition, subtraction, negation, and scalar
+ * multiplication. Scalar division is available when the resulting scalar
+ * type is floating-point. Arithmetic result types follow D's scalar
+ * arithmetic rules subject to the supported `geo-d` scalar types.
+ *
+ * Equality is exact and component-wise according to the equality semantics
+ * of `T`; no tolerance or epsilon is applied. Consequently, a floating-point
+ * vector containing NaN does not compare equal to itself.
+ *
+ * Floating-point components may be non-finite. `isFinite` reports whether
+ * both components are finite. Integral vectors are always finite.
  */
 struct Vector2(T)
 if (isGeoScalar!T)

@@ -9,6 +9,22 @@ import std.meta : AliasSeq;
 
 /**
  * A position in a two-dimensional Euclidean affine space.
+ *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `Point2.init` is the origin `(0, 0)`.
+ *
+ * `Point2` follows affine point semantics. A point may be translated by
+ * adding or subtracting a vector, and subtracting two points produces the
+ * vector between them. Point-point addition, unary point negation, and
+ * scalar multiplication or division of points are deliberately unavailable.
+ *
+ * Equality is exact and component-wise according to the equality semantics
+ * of `T`; no tolerance or epsilon is applied. Consequently, a floating-point
+ * point containing NaN does not compare equal to itself.
+ *
+ * Floating-point coordinates may be non-finite. `isFinite` reports whether
+ * both coordinates are finite. Integral points are always finite.
  */
 struct Point2(T)
 if (isGeoScalar!T)

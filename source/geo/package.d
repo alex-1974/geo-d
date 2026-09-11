@@ -1,3 +1,38 @@
+/**
+ * Public package module for geo-d.
+ *
+ * geo-d provides small, robust, coordinate-system-independent primitives and
+ * algorithms for two-dimensional Euclidean geometry.
+ *
+ * Import this module to access the supported public API:
+ *
+ * ---
+ * import geo;
+ * ---
+ *
+ * The public API includes:
+ *
+ * - points, vectors, segments, and bounds;
+ * - non-owning polyline, linear-ring, and polygon views;
+ * - scalar conversion and explicit floating-point quantization;
+ * - distance and nearest-point operations;
+ * - robust orientation and segment-intersection predicates;
+ * - signed and polygon area;
+ * - point-in-polygon classification;
+ * - ring and polygon topology validation;
+ * - Douglas-Peucker polyline simplification.
+ *
+ * Numerical topology is deliberately separated from rounded geometric
+ * construction. Robust predicates do not use a global epsilon.
+ *
+ * geo-d does not provide coordinate reference systems, projections,
+ * ellipsoidal or geodesic calculations, raster processing, spatial indexes,
+ * or geospatial file-format support.
+ *
+ * Variable-size geometry is represented by non-owning views. Low-level
+ * numerical operations avoid hidden allocation; algorithms requiring
+ * variable temporary storage document that requirement explicitly.
+ */
 module geo;
 
 public import geo.area :

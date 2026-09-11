@@ -8,12 +8,24 @@ import geo.segment : Segment2;
 /**
  * Non-owning read-only view of an ordered cyclic sequence of 2D points.
  *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `LinearRingView.init` is an empty ring.
+ *
  * LinearRingView does not allocate or copy point data. The caller retains
  * ownership of the backing storage, which must remain valid for the
  * lifetime of the view.
  *
+ * The view aliases its backing storage. Changes made to mutable backing
+ * storage through its owner remain visible through an existing view.
+ * Mutation is not exposed through LinearRingView itself.
+ *
  * Closure is implicit: for a non-empty ring the final stored vertex is
  * connected back to the first stored vertex.
+ *
+ * No normalization is performed. An explicitly repeated first vertex
+ * remains an ordinary stored vertex and participates in the implicit
+ * closing traversal.
  *
  * Empty and degenerate rings are valid representations.
  */

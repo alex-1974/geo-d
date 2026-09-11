@@ -7,12 +7,24 @@ import geo.scalar : isGeoScalar;
 /**
  * Non-owning read-only view of an ordered sequence of polygon rings.
  *
- * PolygonView does not allocate or copy ring descriptors or point data.
- * The caller retains ownership of the backing ring-descriptor storage,
- * which must remain valid for the lifetime of the view.
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
  *
- * For a non-empty polygon, ring zero is the exterior ring. Subsequent
- * rings are interior rings.
+ * `PolygonView.init` is an empty polygon view.
+ *
+ * PolygonView does not allocate or copy ring descriptors or point data.
+ * The caller retains ownership of both the backing ring-descriptor storage
+ * and the point storage referenced by those descriptors. The ring-descriptor
+ * storage must remain valid for the lifetime of the PolygonView. Point
+ * storage referenced by a stored ring descriptor must remain valid for as
+ * long as that descriptor can be accessed through the PolygonView.
+ *
+ * The view aliases this backing storage. Changes made through the owners of
+ * mutable ring-descriptor or point storage remain visible through an
+ * existing PolygonView. Mutation is not exposed through PolygonView itself.
+ *
+ * For a non-empty polygon, ring zero is the exterior ring. Subsequent rings
+ * are interior rings. Ring roles are structural and do not depend on
+ * winding direction.
  *
  * PolygonView does not validate topology or normalize ring orientation.
  * Empty and degenerate rings remain representable through LinearRingView.

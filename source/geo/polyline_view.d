@@ -8,9 +8,17 @@ import geo.segment : Segment2;
 /**
  * Non-owning read-only view of an ordered sequence of 2D points.
  *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `PolylineView.init` is an empty view.
+ *
  * PolylineView does not allocate or copy point data. The caller retains
  * ownership of the backing storage, which must remain valid for the
  * lifetime of the view.
+ *
+ * The view aliases its backing storage. Changes made to mutable backing
+ * storage through its owner remain visible through an existing view.
+ * Mutation is not exposed through PolylineView itself.
  *
  * Empty and singleton polylines are valid.
  */

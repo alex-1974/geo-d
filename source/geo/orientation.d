@@ -17,7 +17,7 @@ import geo.internal.orientation_filter :
     orientationFilter;
 
 import geo.internal.orientation_robust :
-    tryOrientationRobustDouble;
+    tryOrientationRobustDoubleFallback;
 
 /**
  * Orientation of a point relative to the directed line a -> b.
@@ -559,10 +559,32 @@ Orientation orientation(
     assert(b.isFinite);
     assert(c.isFinite);
 
+    const auto filtered =
+        orientationFilter(
+            a.x, a.y,
+            b.x, b.y,
+            c.x, c.y
+        );
+
+    final switch (filtered)
+    {
+        case OrientationFilterResult.right:
+            return Orientation.right;
+
+        case OrientationFilterResult.collinear:
+            return Orientation.collinear;
+
+        case OrientationFilterResult.left:
+            return Orientation.left;
+
+        case OrientationFilterResult.uncertain:
+            break;
+    }
+
     int sign;
 
     const bool success =
-        tryOrientationRobustDouble(
+        tryOrientationRobustDoubleFallback(
             a.x, a.y,
             b.x, b.y,
             c.x, c.y,
@@ -570,8 +592,8 @@ Orientation orientation(
         );
 
     /*
-     * Finite binary64 inputs are completely covered by the robust
-     * backend.
+     * Finite binary64 inputs are completely covered by the exact
+     * fallback backends.
      */
     assert(success);
 

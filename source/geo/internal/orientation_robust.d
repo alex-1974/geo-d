@@ -107,9 +107,45 @@ bool tryOrientationRobustDouble(
             break;
     }
 
-    /*
-     * First exact fallback: fast stack-based expansion arithmetic.
-     */
+    return tryOrientationRobustDoubleFallback(
+        ax, ay,
+        bx, by,
+        cx, cy,
+        sign
+    );
+}
+
+
+/*
+ * Exact fallback used after the floating-point filter cannot certify
+ * a result.
+ *
+ * Expansion arithmetic handles ordinary uncertain cases. Inputs outside
+ * its conservative exponent range use the exact fixed-width dyadic
+ * backend.
+ *
+ * Returns false only for non-finite inputs.
+ */
+/*
+ * Keep this exact fallback out of the ordinary certified fast path.
+ *
+ * Inlining it causes the expansion/dyadic working storage to enlarge the
+ * caller's stack frame even when orientationFilter() certifies the result.
+ * The explicit call boundary therefore forms the hot/cold split of the
+ * robust binary64 predicate.
+ */
+pragma(inline, false)
+bool tryOrientationRobustDoubleFallback(
+    double ax,
+    double ay,
+    double bx,
+    double by,
+    double cx,
+    double cy,
+    out int sign
+)
+    pure nothrow @safe @nogc
+{
     if (tryOrientationExactExpansion(
             ax, ay,
             bx, by,
@@ -120,11 +156,6 @@ bool tryOrientationRobustDouble(
         return true;
     }
 
-    /*
-     * Both internal exact backends use stronger preconditions than the
-     * public binary64 predicate. Check the public domain before entering
-     * the final fallback, whose finite-input contract is asserted.
-     */
     if (!allFinite(
             ax, ay,
             bx, by,
@@ -134,17 +165,6 @@ bool tryOrientationRobustDouble(
         return false;
     }
 
-    /*
-     * Final fallback:
-     *
-     * decode every finite binary64 coordinate exactly as a dyadic
-     * integer and determine the determinant sign using fixed-width
-     * integer arithmetic.
-     *
-     * This covers the complete finite binary64 exponent range,
-     * including subnormals and coordinate differences that overflow
-     * ordinary double arithmetic.
-     */
     sign =
         orientationDyadicExact(
             ax, ay,

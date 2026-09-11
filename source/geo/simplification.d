@@ -28,6 +28,9 @@ import std.math.traits : isFinite;
  *     max(pointCount - 2, 0)
  *
  * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 size_t douglasPeuckerWorkspaceSize(size_t pointCount)
     pure nothrow @safe @nogc
@@ -41,6 +44,9 @@ size_t douglasPeuckerWorkspaceSize(size_t pointCount)
 /**
  * Simplifies a polyline using the Douglas-Peucker algorithm.
  *
+ * Geometry scalars follow the geo-d scalar domain: `int`, `long`, `float`,
+ * `double`, and `real`. The tolerance type must be MetricScalar!T.
+ *
  * The output consists only of vertices selected from the input, in their
  * original order.
  *
@@ -48,7 +54,13 @@ size_t douglasPeuckerWorkspaceSize(size_t pointCount)
  * always retained.
  *
  * A section is replaced by its baseline when every intermediate point has
- * Euclidean point-to-segment distance less than or equal to tolerance.
+ * computed Euclidean point-to-segment distance less than or equal to
+ * tolerance.
+ *
+ * Distance decisions use the floating-point metric computation provided by
+ * tryPointSegmentDistance(). They are not exact distance predicates. Values
+ * near the tolerance threshold are therefore classified according to the
+ * computed MetricScalar!T result.
  *
  * When several intermediate vertices have the same maximum computed
  * distance, the first one in stored order is selected as the split point.
@@ -85,7 +97,12 @@ size_t douglasPeuckerWorkspaceSize(size_t pointCount)
  *
  * No topology-preservation guarantee is provided.
  *
- * No allocation is performed.
+ * No allocation is performed. The caller-provided workspace requires O(n)
+ * elements in the worst case; beyond destination and workspace, the
+ * algorithm uses O(1) auxiliary storage.
+ *
+ * Complexity:
+ *     O(n^2) time in the worst case for n stored input points.
  */
 bool trySimplifyDouglasPeuckerInto(T, R)(
     scope PolylineView!T polyline,

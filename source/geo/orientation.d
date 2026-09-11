@@ -1,3 +1,6 @@
+/**
+ * Robust orientation predicates for two-dimensional points.
+ */
 module geo.orientation;
 
 import geo.point : Point2;

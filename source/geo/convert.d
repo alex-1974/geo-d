@@ -1,3 +1,6 @@
+/**
+ * Checked scalar conversion and explicit coordinate quantization.
+ */
 module geo.convert;
 
 import geo.point : Point2;

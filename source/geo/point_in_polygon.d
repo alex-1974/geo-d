@@ -1,3 +1,6 @@
+/**
+ * Robust point-in-polygon classification.
+ */
 module geo.point_in_polygon;
 
 import geo.internal.ring_point_classification :

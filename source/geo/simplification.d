@@ -1,3 +1,6 @@
+/**
+ * Polyline simplification algorithms.
+ */
 module geo.simplification;
 
 import geo.metric :

@@ -1,3 +1,6 @@
+/**
+ * Two-dimensional Euclidean point primitives.
+ */
 module geo.point;
 
 import geo.scalar : isGeoScalar;

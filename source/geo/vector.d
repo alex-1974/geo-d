@@ -1,3 +1,6 @@
+/**
+ * Two-dimensional Euclidean vector primitives.
+ */
 module geo.vector;
 
 import geo.scalar : isGeoScalar;

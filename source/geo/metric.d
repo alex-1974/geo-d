@@ -1,3 +1,6 @@
+/**
+ * Euclidean distance, length, and nearest-point operations.
+ */
 module geo.metric;
 
 import geo.polyline_view : PolylineView;

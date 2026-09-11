@@ -1,3 +1,6 @@
+/**
+ * Axis-aligned two-dimensional bounds.
+ */
 module geo.bounds;
 
 import geo.point : Point2;

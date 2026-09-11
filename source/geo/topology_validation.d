@@ -1,3 +1,6 @@
+/**
+ * Topology validation for linear rings and polygons.
+ */
 module geo.topology_validation;
 
 import geo.intersection :

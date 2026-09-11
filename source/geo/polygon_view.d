@@ -1,3 +1,6 @@
+/**
+ * Non-owning views of polygons composed from linear rings.
+ */
 module geo.polygon_view;
 
 import geo.linear_ring_view : LinearRingView;

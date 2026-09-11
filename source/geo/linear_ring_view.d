@@ -1,3 +1,6 @@
+/**
+ * Non-owning views of implicitly closed linear rings.
+ */
 module geo.linear_ring_view;
 
 import geo.point : Point2;

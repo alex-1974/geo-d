@@ -1,3 +1,6 @@
+/**
+ * Signed and polygon area operations.
+ */
 module geo.area;
 
 import geo.internal.area_exact :

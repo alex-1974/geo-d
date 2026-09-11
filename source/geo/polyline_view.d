@@ -1,3 +1,6 @@
+/**
+ * Non-owning views of ordered point sequences.
+ */
 module geo.polyline_view;
 
 import geo.point : Point2;

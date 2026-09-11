@@ -1,3 +1,6 @@
+/**
+ * Robust segment-intersection classification and construction.
+ */
 module geo.intersection;
 
 import geo.internal.intersection_exact :

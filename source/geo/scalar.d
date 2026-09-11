@@ -1,3 +1,6 @@
+/**
+ * Scalar-domain definitions used by geo-d geometry primitives.
+ */
 module geo.scalar;
 
 /**

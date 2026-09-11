@@ -1,3 +1,6 @@
+/**
+ * Two-dimensional closed line-segment primitives.
+ */
 module geo.segment;
 
 import geo.point : Point2;

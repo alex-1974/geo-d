@@ -226,6 +226,30 @@ For floating-point bounds:
 - infinities are permitted when ordering remains valid;
 - empty and non-empty bounds are distinct states.
 
+Axis-aligned bounds of stored geometry are computed explicitly with:
+
+~~~text
+tryBounds
+~~~
+
+`tryBounds` is provided for:
+
+- `Segment2`;
+- `PolylineView`;
+- `LinearRingView`;
+- `PolygonView`.
+
+Empty variable-size geometry produces empty bounds successfully.
+
+For floating-point geometry, any stored NaN coordinate causes failure and the
+output remains `Bounds2.init`. Infinite coordinates are permitted.
+
+Polygon bounds are representation bounds: every stored ring contributes,
+without implicit topology validation.
+
+The operation performs no allocation. Segment bounds are O(1); polyline and
+ring bounds are O(n); polygon bounds are O(total stored vertices).
+
 ## Non-finite values
 
 Floating-point `Point2`, `Vector2`, and `Segment2` values may represent NaN or

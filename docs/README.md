@@ -363,6 +363,46 @@ Ring and polygon simplification require a separate future design because
 they must preserve constraints such as closure, self-intersection rules,
 hole containment, and inter-ring relationships.
 
+## Geometry bounds
+
+Axis-aligned bounds of existing geometry are computed with:
+
+~~~text
+tryBounds
+~~~
+
+The operation supports:
+
+~~~text
+Segment2
+PolylineView
+LinearRingView
+PolygonView
+~~~
+
+Its semantics are representation-based rather than topology-validating.
+
+For variable-size geometry:
+
+- empty geometry succeeds with `Bounds2.init`;
+- every stored coordinate contributes;
+- polygon rings are all considered regardless of topology validity;
+- NaN causes transactional failure;
+- infinities are permitted;
+- no allocation is performed.
+
+Complexity is:
+
+~~~text
+Segment2        O(1)
+PolylineView    O(n)
+LinearRingView  O(n)
+PolygonView     O(total stored vertices)
+~~~
+
+The traversal cost is intentionally exposed through the `tryBounds` operation
+rather than hidden behind a property access.
+
 ## Execution properties
 
 Low-level numerical operations are designed to provide the strongest useful

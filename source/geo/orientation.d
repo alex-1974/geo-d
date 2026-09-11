@@ -14,8 +14,13 @@ import geo.internal.orientation_robust :
  */
 enum Orientation : byte
 {
+    /// c lies to the right of the directed line a -> b.
     right     = -1,
+
+    /// a, b, and c are collinear.
     collinear =  0,
+
+    /// c lies to the left of the directed line a -> b.
     left      =  1,
 }
 
@@ -417,6 +422,14 @@ private Orientation fromDeterminantSign(int sign)
  *
  * No signed subtraction or multiplication overflow is permitted in the
  * implementation.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!int a,
@@ -448,6 +461,14 @@ Orientation orientation(
  *
  * Product magnitudes are evaluated with exact 128-bit arithmetic. The
  * determinant itself is not materialized; only its sign is determined.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!long a,
@@ -486,6 +507,14 @@ Orientation orientation(
  * - a certified floating-point filter;
  * - exact expansion arithmetic for uncertain ordinary cases;
  * - an exact full-range dyadic fallback for extreme finite inputs.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!double a,
@@ -530,6 +559,14 @@ Orientation orientation(
  * by the complete robust binary64 orientation backend.
  *
  * No predicate information is lost by this promotion.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!float a,

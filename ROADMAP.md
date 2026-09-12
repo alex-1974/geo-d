@@ -317,7 +317,7 @@ Required benchmark areas:
 - [x] segment-intersection construction
 - [x] signed ring area
 - [x] polygon-area core arithmetic
-- [ ] point-in-polygon classification
+- [x] point-in-polygon classification
 - [ ] ring validation
 - [ ] polygon validation
 - [ ] Douglas-Peucker simplification

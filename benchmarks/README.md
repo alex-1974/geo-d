@@ -1110,3 +1110,126 @@ measurements.
 
 Absolute timings are machine-, compiler-, build-, and workload-dependent and
 are not public performance guarantees.
+
+## Point-in-polygon benchmark
+
+`point_in_polygon_bench.d` measures robust public
+`tryClassifyPointInPolygon()` performance.
+
+Coverage includes:
+
+- single-ring polygons with 16, 128, and 1,024 stored vertices;
+- inside, outside, and boundary queries;
+- an exterior ring plus four holes, with 1,536 total stored vertices;
+- a near-collinear binary64 robust-predicate case;
+- a full-range signed-`long` case.
+
+Ordinary moderate binary64 workloads are compared with a local diagnostic
+even-odd reference.
+
+The reference deliberately applies a closed y-range prefilter before
+evaluating an ordinary binary64 determinant. It is suitable only for the
+moderate exactly representable benchmark geometry and is not a replacement
+for geo-d's robust predicate semantics.
+
+The timed wrappers alternate between two runtime query points. This prevents
+an optimizing compiler from hoisting a loop-invariant classification out of
+the benchmark loop.
+
+An earlier development version used one constant query per timed wrapper.
+LDC optimized the direct-reference classification almost completely out of
+the loop, producing impossible sub-nanosecond results for 1,024-vertex
+polygons. Those measurements were rejected and are not part of the retained
+baseline.
+
+Benchmark harness commit:
+
+    ccb81e0c6533
+
+Production y-range prefilter:
+
+    647eaee
+
+### Production optimization
+
+Before commit `647eaee`, point-in-ring classification evaluated robust
+`orientation()` for every stored edge until boundary detection.
+
+A point can lie on an edge, or that edge can contribute to the horizontal
+even-odd crossing rule, only when the query y-coordinate lies inside the
+closed y-range of the edge.
+
+The implementation therefore now performs this inexpensive y-range test
+before invoking the robust orientation predicate.
+
+The complete ring traversal remains unchanged:
+
+- every stored vertex is still inspected;
+- non-finite coordinates still cause failure;
+- boundary still has precedence;
+- even-odd semantics are unchanged;
+- robust orientation is still used whenever an edge can geometrically
+  affect the classification.
+
+### Representative results
+
+For a 1,024-vertex single ring:
+
+| Case | LDC before | LDC after | Speedup | DMD before | DMD after | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| inside | 19,244.60 ns | 2,621.43 ns | 7.34x | 26,831.58 ns | 4,423.44 ns | 6.07x |
+| outside | 18,896.63 ns | 2,628.20 ns | 7.19x | 27,130.36 ns | 4,258.11 ns | 6.37x |
+| boundary | 5,370.02 ns | 2,715.03 ns | 1.98x | 8,813.80 ns | 4,571.81 ns | 1.93x |
+
+For the 1,536-vertex exterior-plus-four-holes workload:
+
+| Case | LDC before | LDC after | Speedup | DMD before | DMD after | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| shell interior | 28,153.76 ns | 3,961.43 ns | 7.11x | 41,156.38 ns | 6,450.73 ns | 6.38x |
+| inside hole | 29,589.44 ns | 4,090.03 ns | 7.23x | 41,121.15 ns | 6,640.73 ns | 6.19x |
+| hole boundary | 27,604.19 ns | 4,738.23 ns | 5.83x | 37,869.72 ns | 7,088.03 ns | 5.34x |
+
+The ordinary large-ring cost after the optimization is approximately:
+
+    LDC:
+        2.6 ns per stored vertex
+
+    DMD:
+        4.2 to 4.6 ns per stored vertex
+
+The diagnostic direct reference measured approximately:
+
+    LDC:
+        0.9 to 1.0 ns per stored vertex
+
+    DMD:
+        4.2 to 4.7 ns per stored vertex
+
+Under DMD, the robust public implementation is therefore approximately at
+the direct-reference level for the large ordinary workloads after the
+prefilter.
+
+The robust-special-case measurements did not regress:
+
+    near-collinear binary64:
+
+        LDC:
+            134.22 -> 122.14 ns/op
+
+        DMD:
+            259.75 -> 249.60 ns/op
+
+    full-range signed long:
+
+        LDC:
+            33.04 -> 25.41 ns/op
+
+        DMD:
+            116.66 -> 87.73 ns/op
+
+These measurements support retaining the y-range prefilter: it removes
+robust predicate work only for geometrically irrelevant edges while
+preserving the full public numerical and failure semantics.
+
+Absolute timings are machine-, compiler-, build-, and workload-dependent and
+are not public performance guarantees.

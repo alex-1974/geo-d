@@ -309,9 +309,9 @@ Required benchmark areas:
 
 - [ ] scalar conversion and quantisation
 - [x] bounds operations where computationally meaningful
-- [ ] metric primitives
+- [x] metric primitives
 - [x] polyline length
-- [ ] nearest-point and point-to-segment distance
+- [x] nearest-point and point-to-segment distance
 - [x] orientation
 - [x] segment-intersection classification
 - [x] segment-intersection construction

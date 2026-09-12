@@ -631,3 +631,271 @@ allocation, complexity, exception, and non-finite-value contracts.
 
 Absolute timings are development measurements and are not portable
 performance guarantees.
+
+## Metric benchmark
+
+`metric_bench.d` measures the public metric operations:
+
+- `squaredDistance()`;
+- `distance()`;
+- `segmentLength()`;
+- `tryPointSegmentDistance()`;
+- `tryNearestPoint()`.
+
+Ordinary finite binary64 cases are compared with local direct mathematical
+references.
+
+These references are diagnostic comparisons only. In particular, the direct
+point-to-segment and nearest-point references are restricted to moderate
+finite inputs and do not implement geo-d's full numerical-range contract.
+
+Large-range cases therefore benchmark only the public implementation. Their
+purpose is to exercise the scaled fallback paths for inputs where naive
+unscaled intermediate arithmetic can overflow.
+
+All benchmark data is prepared before timing.
+
+The benchmark uses:
+
+- two alternating deterministic inputs per case;
+- a warm-up phase;
+- seven measured repetitions;
+- the median measured time;
+- 3,000,000 operations per metric-primitive sample;
+- 1,000,000 operations per point/segment sample.
+
+Results are reported in nanoseconds per operation.
+
+### Build
+
+LDC:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/metric_bench.d \
+        -of=/tmp/geo-d-metric-bench-ldc
+
+    /tmp/geo-d-metric-bench-ldc
+
+DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/metric_bench.d \
+        -of=/tmp/geo-d-metric-bench-dmd
+
+    /tmp/geo-d-metric-bench-dmd
+
+### Initial metric baseline
+
+Benchmark harness commit:
+
+    cc48a48f4f53
+
+Production ordinary-range metric fast path:
+
+    9bab553
+
+Development environment:
+
+    CPU:
+        not reported by lscpu
+
+    OS:
+        Ubuntu 26.04.1 LTS
+
+    Kernel:
+        Linux 6.17.0-22-generic x86_64 GNU/Linux
+
+    LDC:
+        1.41.0
+        DMD frontend 2.111.0
+        LLVM 19.1.7
+
+    DMD:
+        2.111.0
+
+The retained production implementation measured:
+
+```text
+LDC release:
+
+    metric primitives:
+
+        squaredDistance double       5.44 ns/op
+        direct squared double        5.43 ns/op
+
+        distance double              7.56 ns/op
+        direct distance double       7.55 ns/op
+
+        distance long               12.09 ns/op
+        direct distance long        10.19 ns/op
+
+        segmentLength double         7.63 ns/op
+        direct segment double        7.55 ns/op
+
+        segmentLength long          10.42 ns/op
+        direct segment long         10.48 ns/op
+
+    point-to-segment distance:
+
+        public interior             25.39 ns/op
+        direct interior             10.11 ns/op
+
+        public endpoint clamp       20.83 ns/op
+        direct endpoint clamp       10.18 ns/op
+
+        public degenerate           16.18 ns/op
+        direct degenerate            9.49 ns/op
+
+        public huge-range interior  43.39 ns/op
+
+    nearest point:
+
+        public interior             21.16 ns/op
+        direct interior             12.60 ns/op
+
+        public endpoint clamp       20.49 ns/op
+        direct endpoint clamp       11.49 ns/op
+
+        public degenerate           14.05 ns/op
+        direct degenerate            9.08 ns/op
+
+        public huge-range interior  32.63 ns/op
+
+
+DMD release:
+
+    metric primitives:
+
+        squaredDistance double       7.67 ns/op
+        direct squared double        7.77 ns/op
+
+        distance double             12.21 ns/op
+        direct distance double      12.15 ns/op
+
+        distance long               17.86 ns/op
+        direct distance long        14.72 ns/op
+
+        segmentLength double        13.17 ns/op
+        direct segment double       13.15 ns/op
+
+        segmentLength long          18.96 ns/op
+        direct segment long         16.41 ns/op
+
+    point-to-segment distance:
+
+        public interior             39.35 ns/op
+        direct interior             18.74 ns/op
+
+        public endpoint clamp       44.85 ns/op
+        direct endpoint clamp       18.82 ns/op
+
+        public degenerate           37.80 ns/op
+        direct degenerate           18.28 ns/op
+
+        public huge-range interior 113.85 ns/op
+
+    nearest point:
+
+        public interior             41.69 ns/op
+        direct interior             18.49 ns/op
+
+        public endpoint clamp       33.66 ns/op
+        direct endpoint clamp       15.43 ns/op
+
+        public degenerate           26.14 ns/op
+        direct degenerate           13.59 ns/op
+
+        public huge-range interior  71.43 ns/op
+```
+
+The binary64 scalar primitives are approximately at direct-reference parity.
+
+The `long` paths incur some additional cost for exact integral component
+difference handling before conversion to the floating metric scalar. This
+preserves the supported full signed-`long` coordinate domain.
+
+### Point/segment optimisation result
+
+The initial implementation used exponent-scaled arithmetic for every
+projection and perpendicular-distance computation.
+
+Profiling by focused benchmarking showed that this full-range machinery was
+also paid for by ordinary moderate binary64 geometry.
+
+Commit `9bab553` introduced a conservative ordinary-range fast path inside the
+private metric helpers. Inputs whose products are safely representable use
+direct arithmetic. Inputs outside that domain retain the existing
+exponent-scaled implementation.
+
+Representative ordinary-case development measurements changed approximately
+as follows:
+
+```text
+LDC release:
+
+    point-segment interior:
+        41.44 -> 25.39 ns/op
+        about 39 percent faster
+
+    point-segment endpoint clamp:
+        29.05 -> 20.83 ns/op
+        about 28 percent faster
+
+    nearest-point interior:
+        30.32 -> 21.16 ns/op
+        about 30 percent faster
+
+    nearest-point endpoint clamp:
+        27.98 -> 20.49 ns/op
+        about 27 percent faster
+
+
+DMD release:
+
+    point-segment interior:
+        125.97 -> 39.35 ns/op
+        about 69 percent faster
+
+    point-segment endpoint clamp:
+        97.78 -> 44.85 ns/op
+        about 54 percent faster
+
+    nearest-point interior:
+        85.48 -> 41.69 ns/op
+        about 51 percent faster
+
+    nearest-point endpoint clamp:
+        83.76 -> 33.66 ns/op
+        about 60 percent faster
+```
+
+The conservative range check adds a small cost to the extreme-range fallback
+path. Representative development measurements changed from approximately
+39.71 to 43.39 ns/op under LDC and 104.28 to 113.85 ns/op under DMD for the
+point-to-segment huge-range case.
+
+For nearest-point huge-range inputs, the corresponding measurements changed
+from approximately 29.52 to 32.63 ns/op under LDC and 68.81 to 71.43 ns/op
+under DMD.
+
+This trade-off is accepted because ordinary finite geometry receives a large
+latency reduction while the existing full-range semantics remain available.
+
+A second experiment attempted to hoist the range decision out of the private
+metric helpers so that a caller could reuse one guard across projection and
+perpendicular-distance work. Measurements did not show a stable overall
+benefit and showed regressions in several paths. That design was rejected.
+
+Absolute timings are machine-, compiler-, build-, and workload-dependent and
+are not public performance guarantees.

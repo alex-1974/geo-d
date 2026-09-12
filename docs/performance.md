@@ -475,10 +475,17 @@ No fast-math flags are attached.
 DMD and other compilers continue to use the portable
 `core.math.toPrec!double` implementation.
 
-Before adopting the backend, the explicit LLVM operations were validated
-against `toPrec!double` for edge cases and 1,000,000 additional
-deterministically generated finite binary64 operand pairs. Addition,
-subtraction, and multiplication were bit-identical in all tested cases.
+The explicit LLVM operations are validated against `toPrec!double` using
+selected edge cases and 1,000,000 additional deterministically generated
+finite binary64 operand pairs. Together with the 256 edge-case combinations,
+the current semantic probe checks 1,000,256 finite operand pairs. Addition,
+subtraction, and multiplication are bit-identical in all tested cases.
+
+The semantic probe exercises the actual production
+`geo.internal.binary64_rounding` backend and is compiled with `-release`.
+Mismatch handling is independent of D assertions. A negative control
+deliberately replaces the production addition operation with subtraction and
+verifies that the probe detects the mismatch and terminates with status 1.
 
 Code-generation inspection of the relevant LDC hot paths additionally
 confirmed:

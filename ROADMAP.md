@@ -266,7 +266,7 @@ Required:
 - [x] generate complete API reference documentation automatically
 - [x] evaluate `ddox` and `adrdox` and select one publication path
 - [ ] publish navigable API documentation
-- [ ] make documentation generation part of CI
+- [x] make documentation generation part of CI
 - [x] verify that exported public API is not left undocumented
 
 Source-level Ddoc comments are the authoritative API documentation.

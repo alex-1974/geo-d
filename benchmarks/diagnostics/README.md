@@ -25,20 +25,25 @@ implementation.
 
 ## `run_ldc_ir_rounding_probe.sh`
 
-Compares three implementations:
+Compares three implementations derived from the current rounding backend:
 
-1. production `core.math.toPrec!double`;
-2. direct D binary64 arithmetic;
-3. explicit plain LLVM binary64 arithmetic through
-   `ldc.llvmasm.__ir_pure`.
+1. a portable `core.math.toPrec!double` reference variant;
+2. a direct-D binary64 diagnostic variant;
+3. the production LDC backend using explicit plain LLVM binary64 arithmetic
+   through `ldc.llvmasm.__ir_pure`.
 
 The diagnostic was used to validate the LDC-specific rounding backend
-adopted in ADR-0014.
+adopted in ADR-0014 and is kept aligned with the current
+`geo.internal.binary64_rounding` architecture.
 
 The probe checks:
 
-- bitwise agreement with `toPrec!double` on selected edge cases and
-  1,000,000 additional deterministic finite binary64 operand pairs;
+- bitwise agreement of the production backend with `toPrec!double` on
+  selected edge cases and 1,000,000 additional deterministic finite
+  binary64 operand pairs;
+- a negative control that deliberately corrupts the addition backend and
+  verifies that a mismatch terminates the semantic probe with non-zero status
+  even when compiled with `-release`;
 - generated hot-path instructions;
 - absence of unintended x87 arithmetic;
 - absence of fused multiply-add contraction;

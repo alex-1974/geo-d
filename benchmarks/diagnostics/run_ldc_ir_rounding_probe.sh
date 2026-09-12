@@ -5,16 +5,16 @@ cd "${1:-$HOME/Programmiersprachen/dlang/d-geospatial/libs/geo-d}"
 
 BENCH=benchmarks/expansion_component_bench.d
 
-PROD_BIN=/tmp/geo-d-expansion-rounding-prod
+TOPREC_BIN=/tmp/geo-d-expansion-rounding-toprec
 DIRECT_BIN=/tmp/geo-d-expansion-rounding-direct
 IR_BIN=/tmp/geo-d-expansion-rounding-ir
 
 TMP=/tmp/geo-d-ir-rounding-probe
 rm -rf "$TMP"
-mkdir -p "$TMP/direct" "$TMP/ir"
+mkdir -p "$TMP/toprec" "$TMP/direct"
 
+cp -a source "$TMP/toprec/source"
 cp -a source "$TMP/direct/source"
-cp -a source "$TMP/ir/source"
 
 python3 - "$TMP" <<'PY'
 from pathlib import Path
@@ -22,80 +22,118 @@ import sys
 
 tmp = Path(sys.argv[1])
 
-def replace_all(path, replacements, label):
+def replace_exact(path, old, new, label):
     text = path.read_text()
-    for old, new in replacements:
-        if old not in text:
-            raise SystemExit(f"{label}: expected text not found in {path}: {old}")
-        text = text.replace(old, new)
-    path.write_text(text)
+    count = text.count(old)
 
-direct_root = tmp / "direct" / "source" / "geo" / "internal"
+    if count != 1:
+        raise SystemExit(
+            f"{label}: expected exactly one match in {path}, found {count}"
+        )
 
-replace_all(
-    direct_root / "expansion.d",
-    [
-        ("return toPrec!double(lhs + rhs);", "return lhs + rhs;"),
-        ("return toPrec!double(lhs - rhs);", "return lhs - rhs;"),
-        ("return toPrec!double(lhs * rhs);", "return lhs * rhs;"),
-    ],
-    "direct expansion",
+    path.write_text(text.replace(old, new, 1))
+
+
+ir_add = """        return __ir_pure!(
+            `%r = fadd double %0, %1
+             ret double %r`,
+            double
+        )(lhs, rhs);"""
+
+ir_sub = """        return __ir_pure!(
+            `%r = fsub double %0, %1
+             ret double %r`,
+            double
+        )(lhs, rhs);"""
+
+ir_mul = """        return __ir_pure!(
+            `%r = fmul double %0, %1
+             ret double %r`,
+            double
+        )(lhs, rhs);"""
+
+
+# ------------------------------------------------------------------
+# Portable toPrec reference variant.
+# ------------------------------------------------------------------
+
+toprec = (
+    tmp
+    / "toprec"
+    / "source"
+    / "geo"
+    / "internal"
+    / "binary64_rounding.d"
 )
 
-replace_all(
-    direct_root / "orientation_exact.d",
-    [
-        ("return toPrec!double(lhs - rhs);", "return lhs - rhs;"),
-    ],
-    "direct orientation",
+replace_exact(
+    toprec,
+    "    import ldc.llvmasm : __ir_pure;",
+    "    import core.math : toPrec;",
+    "toPrec import",
 )
 
-ir_root = tmp / "ir" / "source" / "geo" / "internal"
-
-ir_add = "\n".join([
-    "return __ir_pure!(",
-    "        `%r = fadd double %0, %1",
-    "         ret double %r`,",
-    "        double",
-    "    )(lhs, rhs);",
-])
-
-ir_sub = "\n".join([
-    "return __ir_pure!(",
-    "        `%r = fsub double %0, %1",
-    "         ret double %r`,",
-    "        double",
-    "    )(lhs, rhs);",
-])
-
-ir_mul = "\n".join([
-    "return __ir_pure!(",
-    "        `%r = fmul double %0, %1",
-    "         ret double %r`,",
-    "        double",
-    "    )(lhs, rhs);",
-])
-
-expansion = ir_root / "expansion.d"
-replace_all(
-    expansion,
-    [
-        ("import core.math : toPrec;", "import ldc.llvmasm : __ir_pure;"),
-        ("return toPrec!double(lhs + rhs);", ir_add),
-        ("return toPrec!double(lhs - rhs);", ir_sub),
-        ("return toPrec!double(lhs * rhs);", ir_mul),
-    ],
-    "IR expansion",
+replace_exact(
+    toprec,
+    ir_add,
+    "        return toPrec!double(lhs + rhs);",
+    "toPrec add",
 )
 
-orientation = ir_root / "orientation_exact.d"
-replace_all(
-    orientation,
-    [
-        ("import core.math : toPrec;", "import ldc.llvmasm : __ir_pure;"),
-        ("return toPrec!double(lhs - rhs);", ir_sub),
-    ],
-    "IR orientation",
+replace_exact(
+    toprec,
+    ir_sub,
+    "        return toPrec!double(lhs - rhs);",
+    "toPrec sub",
+)
+
+replace_exact(
+    toprec,
+    ir_mul,
+    "        return toPrec!double(lhs * rhs);",
+    "toPrec mul",
+)
+
+
+# ------------------------------------------------------------------
+# Direct-D diagnostic variant.
+# ------------------------------------------------------------------
+
+direct = (
+    tmp
+    / "direct"
+    / "source"
+    / "geo"
+    / "internal"
+    / "binary64_rounding.d"
+)
+
+replace_exact(
+    direct,
+    "    import ldc.llvmasm : __ir_pure;",
+    "    // Direct-arithmetic diagnostic variant.",
+    "direct import",
+)
+
+replace_exact(
+    direct,
+    ir_add,
+    "        return lhs + rhs;",
+    "direct add",
+)
+
+replace_exact(
+    direct,
+    ir_sub,
+    "        return lhs - rhs;",
+    "direct sub",
+)
+
+replace_exact(
+    direct,
+    ir_mul,
+    "        return lhs * rhs;",
+    "direct mul",
 )
 PY
 
@@ -103,38 +141,11 @@ cat > "$TMP/ir_semantic_probe.d" <<'D'
 module ir_semantic_probe;
 
 import core.math : toPrec;
-import ldc.llvmasm : __ir_pure;
+import geo.internal.binary64_rounding :
+    roundedAdd,
+    roundedMul,
+    roundedSub;
 import std.stdio : writeln, writefln;
-
-private double irAdd(double a, double b)
-    pure nothrow @safe @nogc
-{
-    return __ir_pure!(
-        `%r = fadd double %0, %1
-         ret double %r`,
-        double
-    )(a, b);
-}
-
-private double irSub(double a, double b)
-    pure nothrow @safe @nogc
-{
-    return __ir_pure!(
-        `%r = fsub double %0, %1
-         ret double %r`,
-        double
-    )(a, b);
-}
-
-private double irMul(double a, double b)
-    pure nothrow @safe @nogc
-{
-    return __ir_pure!(
-        `%r = fmul double %0, %1
-         ret double %r`,
-        double
-    )(a, b);
-}
 
 private ulong bits(double value)
     @trusted pure nothrow @nogc
@@ -155,14 +166,14 @@ private bool finiteBits(ulong value)
         != 0x7ff0_0000_0000_0000UL;
 }
 
-private void checkPair(
+private bool checkPair(
     double a,
     double b,
     ref ulong checked
 )
 {
     const double refAdd = toPrec!double(a + b);
-    const double gotAdd = irAdd(a, b);
+    const double gotAdd = roundedAdd(a, b);
 
     if (bits(refAdd) != bits(gotAdd))
     {
@@ -170,11 +181,11 @@ private void checkPair(
             "ADD mismatch a=%016x b=%016x ref=%016x got=%016x",
             bits(a), bits(b), bits(refAdd), bits(gotAdd)
         );
-        assert(false);
+        return false;
     }
 
     const double refSub = toPrec!double(a - b);
-    const double gotSub = irSub(a, b);
+    const double gotSub = roundedSub(a, b);
 
     if (bits(refSub) != bits(gotSub))
     {
@@ -182,11 +193,11 @@ private void checkPair(
             "SUB mismatch a=%016x b=%016x ref=%016x got=%016x",
             bits(a), bits(b), bits(refSub), bits(gotSub)
         );
-        assert(false);
+        return false;
     }
 
     const double refMul = toPrec!double(a * b);
-    const double gotMul = irMul(a, b);
+    const double gotMul = roundedMul(a, b);
 
     if (bits(refMul) != bits(gotMul))
     {
@@ -194,10 +205,11 @@ private void checkPair(
             "MUL mismatch a=%016x b=%016x ref=%016x got=%016x",
             bits(a), bits(b), bits(refMul), bits(gotMul)
         );
-        assert(false);
+        return false;
     }
 
     ++checked;
+    return true;
 }
 
 private ulong nextRandom(ref ulong state)
@@ -209,7 +221,7 @@ private ulong nextRandom(ref ulong state)
     return state * 0x2545_F491_4F6C_DD1DUL;
 }
 
-void main()
+int main()
 {
     immutable ulong[] edgeBits =
     [
@@ -237,11 +249,12 @@ void main()
     {
         foreach (bBits; edgeBits)
         {
-            checkPair(
+            if (!checkPair(
                 fromBits(aBits),
                 fromBits(bBits),
                 checked
-            );
+            ))
+                return 1;
         }
     }
 
@@ -258,53 +271,111 @@ void main()
         if (!finiteBits(aBits) || !finiteBits(bBits))
             continue;
 
-        checkPair(
+        if (!checkPair(
             fromBits(aBits),
             fromBits(bBits),
             checked
-        );
+        ))
+            return 1;
 
         ++generated;
     }
 
     writeln("IR semantic probe: PASS");
     writefln("checked finite pairs: %s", checked);
+    return 0;
 }
 D
 
 printf '\n=== patch summary ===\n'
-printf '\n-- direct --\n'
-grep -nE \
-    'return (lhs \+ rhs|lhs - rhs|lhs \* rhs);' \
-    "$TMP/direct/source/geo/internal/expansion.d" \
-    "$TMP/direct/source/geo/internal/orientation_exact.d"
 
-printf '\n-- IR --\n'
+printf '\n-- toPrec reference backend --\n'
+grep -nE \
+    'return toPrec!double\(lhs [+\*-] rhs\);' \
+    "$TMP/toprec/source/geo/internal/binary64_rounding.d"
+
+printf '\n-- direct diagnostic backend --\n'
+grep -nE \
+    'return lhs [+\*-] rhs;' \
+    "$TMP/direct/source/geo/internal/binary64_rounding.d"
+
+printf '\n-- production explicit IR backend --\n'
 grep -nE \
     'f(add|sub|mul) double' \
-    "$TMP/ir/source/geo/internal/expansion.d" \
-    "$TMP/ir/source/geo/internal/orientation_exact.d"
+    source/geo/internal/binary64_rounding.d
 
 printf '\n=== build semantic probe ===\n'
 ldc2 \
     -O3 \
     -release \
+    -i \
+    -Isource \
     "$TMP/ir_semantic_probe.d" \
     -of="$TMP/ir_semantic_probe"
 
 printf '\n=== run semantic probe ===\n'
 "$TMP/ir_semantic_probe"
 
-printf '\n=== build production ===\n'
+printf '\n=== semantic probe negative control ===\n'
+
+rm -rf "$TMP/negative"
+mkdir -p "$TMP/negative"
+cp -a source "$TMP/negative/source"
+
+python3 - "$TMP/negative/source/geo/internal/binary64_rounding.d" <<'PYNEG'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+
+old = "%r = fadd double %0, %1"
+new = "%r = fsub double %0, %1"
+
+count = text.count(old)
+
+if count != 1:
+    raise SystemExit(
+        f"negative control: expected exactly one production fadd, found {count}"
+    )
+
+path.write_text(text.replace(old, new, 1))
+PYNEG
+
+ldc2 \
+    -O3 \
+    -release \
+    -i \
+    -I"$TMP/negative/source" \
+    "$TMP/ir_semantic_probe.d" \
+    -of="$TMP/ir_semantic_probe_negative"
+
+if "$TMP/ir_semantic_probe_negative"; then
+    printf 'error: negative semantic control unexpectedly returned success\n' >&2
+    false
+else
+    rc=$?
+
+    if [[ "$rc" -ne 1 ]]; then
+        printf \
+            'error: negative semantic control returned unexpected status %s\n' \
+            "$rc" >&2
+        false
+    fi
+fi
+
+printf 'PASS: semantic mismatch detected under -release with status 1\n'
+
+printf '\n=== build toPrec reference ===\n'
 ldc2 \
     -O3 \
     -release \
     -boundscheck=off \
     -mcpu=native \
     -i \
-    -Isource \
+    -I"$TMP/toprec/source" \
     "$BENCH" \
-    -of="$PROD_BIN"
+    -of="$TOPREC_BIN"
 
 printf '\n=== build direct diagnostic ===\n'
 ldc2 \
@@ -317,22 +388,22 @@ ldc2 \
     "$BENCH" \
     -of="$DIRECT_BIN"
 
-printf '\n=== build explicit IR diagnostic ===\n'
+printf '\n=== build production explicit IR ===\n'
 ldc2 \
     -O3 \
     -release \
     -boundscheck=off \
     -mcpu=native \
     -i \
-    -I"$TMP/ir/source" \
+    -Isource \
     "$BENCH" \
     -of="$IR_BIN"
 
 printf '\n=== toPrec references ===\n'
 for item in \
-    "PROD:$PROD_BIN" \
+    "TOPREC:$TOPREC_BIN" \
     "DIRECT:$DIRECT_BIN" \
-    "IR:$IR_BIN"
+    "IR_PRODUCTION:$IR_BIN"
 do
     label="${item%%:*}"
     bin="${item#*:}"
@@ -481,16 +552,16 @@ run_one()
 }
 
 printf '\n================ ROUND 1 ================\n'
-run_one PROD_TOPREC "$PROD_BIN"
-run_one IR_EXPLICIT "$IR_BIN"
+run_one TOPREC_REFERENCE "$TOPREC_BIN"
+run_one IR_PRODUCTION "$IR_BIN"
 run_one DIRECT_DIAGNOSTIC "$DIRECT_BIN"
 
 printf '\n================ ROUND 2 ================\n'
-run_one IR_EXPLICIT "$IR_BIN"
+run_one IR_PRODUCTION "$IR_BIN"
 run_one DIRECT_DIAGNOSTIC "$DIRECT_BIN"
-run_one PROD_TOPREC "$PROD_BIN"
+run_one TOPREC_REFERENCE "$TOPREC_BIN"
 
 printf '\n================ ROUND 3 ================\n'
 run_one DIRECT_DIAGNOSTIC "$DIRECT_BIN"
-run_one PROD_TOPREC "$PROD_BIN"
-run_one IR_EXPLICIT "$IR_BIN"
+run_one TOPREC_REFERENCE "$TOPREC_BIN"
+run_one IR_PRODUCTION "$IR_BIN"

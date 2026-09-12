@@ -1007,6 +1007,34 @@ if (isGeoScalar!T)
 
 
     /*
+     * Finite geometry can still require a metric difference outside the
+     * finite MetricScalar range.
+     *
+     * Failure must retain the documented zero result rather than expose
+     * an infinite intermediate value.
+     */
+    {
+        alias PD = Point2!double;
+        alias SD = Segment2!double;
+
+        double d = 123.0;
+
+        assert(
+            !tryPointSegmentDistance(
+                PD(0.0, 1.0),
+                SD(
+                    PD(-double.max, 0.0),
+                    PD( double.max, 0.0)
+                ),
+                d
+            )
+        );
+
+        assert(d == 0.0);
+    }
+
+
+    /*
      * Point-to-segment distance follows MetricScalar.
      */
     static assert(

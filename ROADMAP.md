@@ -421,7 +421,7 @@ Before `v1.0.0`:
       accumulation
 - [ ] resolve the long-term policy for robust `real` support
 - [ ] audit all public scalar constraints for consistency
-- [ ] audit all public failure semantics
+- [x] audit all public failure semantics
 - [ ] audit all public allocation guarantees
 - [ ] audit all public complexity guarantees
 - [x] audit all symbols exported through `import geo;`

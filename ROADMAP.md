@@ -310,7 +310,7 @@ Required benchmark areas:
 - [ ] scalar conversion and quantisation
 - [x] bounds operations where computationally meaningful
 - [ ] metric primitives
-- [ ] polyline length
+- [x] polyline length
 - [ ] nearest-point and point-to-segment distance
 - [x] orientation
 - [x] segment-intersection classification
@@ -417,7 +417,7 @@ Correctness remains more important than raw throughput.
 
 Before `v1.0.0`:
 
-- [ ] resolve or explicitly defer compensated `polylineLength`
+- [x] resolve or explicitly defer compensated `polylineLength`
       accumulation
 - [x] resolve the long-term policy for robust `real` support
 - [x] audit all public scalar constraints for consistency

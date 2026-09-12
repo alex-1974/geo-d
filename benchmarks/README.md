@@ -520,3 +520,114 @@ extrema reference was slower than both the public implementation and the
 
 No further geometry-bounds optimization is currently justified by these
 measurements.
+
+## Polyline-length benchmark
+
+`polyline_length_bench.d` measures end-to-end `polylineLength()` throughput
+for ordinary finite `PolylineView!double` inputs.
+
+The public implementation uses compensated accumulation as defined by
+ADR-0017.
+
+The benchmark compares it with a local ordinary sequential-accumulation
+baseline corresponding to the previous implementation.
+
+The ordinary baseline is diagnostic only. It is not a separate public API.
+
+The benchmark covers polylines with:
+
+```text
+10
+100
+1,000
+10,000
+```
+
+stored points.
+
+It uses two alternating deterministic datasets per size, a warm-up phase,
+seven measured repetitions, and reports median time per operation and per
+segment.
+
+All dynamic test-data allocation occurs before timing.
+
+The benchmark also contains a deterministic numerical probe consisting of 256
+repetitions of:
+
+```text
+0 -> 2^52 -> 0 -> 1 -> 0
+```
+
+The exactly representable mathematical result is:
+
+```text
+2^61 + 512
+```
+
+On the development machine, ordinary binary64 sequential accumulation lost
+512 units in this case, while the public compensated implementation produced
+the expected representable result under both DMD and LDC.
+
+Build with LDC using:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/polyline_length_bench.d \
+        -of=/tmp/geo-d-polyline-length-bench-ldc
+
+    /tmp/geo-d-polyline-length-bench-ldc
+
+With DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/polyline_length_bench.d \
+        -of=/tmp/geo-d-polyline-length-bench-dmd
+
+    /tmp/geo-d-polyline-length-bench-dmd
+
+### Initial compensated polyline-length baseline
+
+On the development machine, the retained production implementation measured:
+
+```text
+LDC release:
+
+    n=1,000:
+        public compensated   4.274 ns/segment
+        ordinary baseline    3.697 ns/segment
+        overhead             about 15.6 %
+
+    n=10,000:
+        public compensated   4.607 ns/segment
+        ordinary baseline    4.171 ns/segment
+        overhead             about 10.4 %
+
+DMD release:
+
+    n=1,000:
+        public compensated  18.969 ns/segment
+        ordinary baseline   16.162 ns/segment
+        overhead             about 17.4 %
+
+    n=10,000:
+        public compensated  18.729 ns/segment
+        ordinary baseline   16.274 ns/segment
+        overhead             about 15.1 %
+```
+
+The measured cost is accepted because compensated accumulation materially
+improves mixed-scale numerical behaviour while preserving the public
+allocation, complexity, exception, and non-finite-value contracts.
+
+Absolute timings are development measurements and are not portable
+performance guarantees.

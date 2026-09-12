@@ -105,6 +105,215 @@ static assert(is(typeof(LinearRingView!double.init) == LinearRingView!double));
 static assert(is(typeof(PolygonView!double.init) == PolygonView!double));
 
 
+/*
+ * Scalar-domain contract.
+ *
+ * `real` belongs to the general geo-d scalar domain and is supported by
+ * storage, affine geometry, bounds, conversion, metric operations, and
+ * metric simplification.
+ *
+ * Robust topology and exact/correctly-rounded area deliberately exclude
+ * `real` until geo-d has a platform-aware exact backend for that scalar.
+ */
+static assert(isGeoScalar!real);
+
+static assert(is(Point2!real));
+static assert(is(Vector2!real));
+static assert(is(Segment2!real));
+static assert(is(Bounds2!real));
+static assert(is(PolylineView!real));
+static assert(is(LinearRingView!real));
+static assert(is(PolygonView!real));
+
+static assert(is(MetricScalar!real == real));
+
+static assert(
+    __traits(
+        compiles,
+        {
+            Bounds2!real result;
+
+            tryBounds(
+                Segment2!real.init,
+                result
+            );
+        }
+    )
+);
+
+static assert(
+    __traits(
+        compiles,
+        {
+            Point2!double result;
+
+            tryConvert!double(
+                Point2!real.init,
+                result
+            );
+        }
+    )
+);
+
+static assert(
+    __traits(
+        compiles,
+        {
+            const real value =
+                distance(
+                    Point2!real.init,
+                    Point2!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    __traits(
+        compiles,
+        {
+            Point2!real[3] input;
+            Point2!real[3] output;
+            size_t[1] workspace;
+            size_t written;
+
+            trySimplifyDouglasPeuckerInto(
+                PolylineView!real(input[]),
+                real(0),
+                output[],
+                workspace[],
+                written
+            );
+        }
+    )
+);
+
+
+/*
+ * Robust topology and exact area currently have the narrower scalar
+ * domain int | long | float | double.
+ */
+static assert(
+    !__traits(
+        compiles,
+        {
+            const value =
+                orientation(
+                    Point2!real.init,
+                    Point2!real.init,
+                    Point2!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            const value =
+                segmentIntersectionKind(
+                    Segment2!real.init,
+                    Segment2!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            Point2!double point;
+
+            trySegmentIntersectionPoint(
+                Segment2!real.init,
+                Segment2!real.init,
+                point
+            );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            Segment2!real overlap;
+
+            trySegmentIntersectionOverlap(
+                Segment2!real.init,
+                Segment2!real.init,
+                overlap
+            );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            const value =
+                signedArea(
+                    LinearRingView!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            const value =
+                polygonArea(
+                    PolygonView!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            PointPolygonLocation location;
+
+            tryClassifyPointInPolygon(
+                PolygonView!real.init,
+                Point2!real.init,
+                location
+            );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            const result =
+                validateRing(
+                    LinearRingView!real.init
+                );
+        }
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        {
+            const result =
+                validatePolygon(
+                    PolygonView!real.init
+                );
+        }
+    )
+);
+
+
 @safe void main()
 {
     alias P = Point2!double;

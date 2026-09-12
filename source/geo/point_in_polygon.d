@@ -409,7 +409,8 @@ if (
         auto polygon =
             V(rings);
 
-        PointPolygonLocation location;
+        PointPolygonLocation location =
+            PointPolygonLocation.boundary;
 
         assert(
             !tryClassifyPointInPolygon(
@@ -417,6 +418,11 @@ if (
                 P(double.nan, 0.0),
                 location
             )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.outside
         );
     }
 
@@ -926,7 +932,8 @@ if (
         auto polygon =
             V(rings[]);
 
-        PointPolygonLocation location;
+        PointPolygonLocation location =
+            PointPolygonLocation.boundary;
 
         assert(
             !tryClassifyPointInPolygon(
@@ -934,6 +941,11 @@ if (
                 P(5.0, 0.0),
                 location
             )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.outside
         );
     }
 }

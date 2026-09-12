@@ -15,7 +15,7 @@ implementation structure.
 | Contract area | Status |
 | --- | --- |
 | Failure semantics | Complete |
-| Scalar constraints | Pending |
+| Scalar constraints | Complete |
 | Allocation guarantees | Pending |
 | Complexity guarantees | Pending |
 
@@ -153,5 +153,138 @@ The audit found and closed concrete verification gaps before completion:
 - point-in-polygon failure-state verification;
 - finite-input metric failure-state verification.
 
-Further scalar-domain, allocation, and complexity audits remain separate
+Further allocation and complexity audits remain separate
 release-preparation tasks.
+
+
+## Scalar constraints
+
+Status: **complete**
+
+The audit reviewed the scalar constraints of the frozen public API and the
+public members of its exported geometry and result types.
+
+### General geo-d scalar domain
+
+The general public scalar domain is exactly:
+
+```text
+int
+long
+float
+double
+real
+```
+
+`isGeoScalar` deliberately excludes:
+
+- narrower signed and unsigned integral types;
+- `uint` and `ulong`;
+- `bool` and character types;
+- qualified scalar types;
+- enums;
+- user-defined numeric-like types.
+
+The core geometry and view types consistently use this general domain:
+
+- `Point2`;
+- `Vector2`;
+- `Segment2`;
+- `Bounds2`;
+- `PolylineView`;
+- `LinearRingView`;
+- `PolygonView`.
+
+Geometry bounds and checked conversion likewise support the complete general
+scalar domain.
+
+### Metric scalar domain
+
+Metric operations support the complete general scalar domain.
+
+Their computation type is:
+
+```text
+int     -> double
+long    -> double
+float   -> double
+double  -> double
+real    -> real
+```
+
+The public `MetricScalar` template exposes this policy directly.
+
+Metric operations therefore preserve `real` computation rather than silently
+reducing it to binary64.
+
+Douglas-Peucker simplification follows the metric scalar domain because its
+decisions are explicitly based on computed metric distances rather than exact
+topological predicates.
+
+### Robust and exact scalar domain
+
+The current robust/exact public domain is:
+
+```text
+int
+long
+float
+double
+```
+
+`real` is deliberately excluded from:
+
+- `orientation`;
+- segment-intersection classification;
+- segment-intersection point construction;
+- segment-intersection overlap construction;
+- `signedArea`;
+- `polygonArea`;
+- point-in-polygon classification;
+- ring validation;
+- polygon validation.
+
+The narrower domain is intentional rather than accidental.
+
+These operations depend on exact or certified numerical guarantees for which
+geo-d currently has complete backends for fixed-width signed integers,
+binary32, and binary64.
+
+### `real` policy
+
+ADR-0016 defines the long-term policy.
+
+`real` remains a first-class scalar for representation and metric algorithms,
+but robust/exact operations must not accept it until a platform-aware backend
+can preserve their established mathematical guarantees.
+
+In particular, geo-d will not claim robust `real` support by:
+
+- converting inputs to `double`;
+- using ordinary uncertified floating-point predicates;
+- introducing an epsilon-based fallback.
+
+### Verification
+
+The external consumer test verifies the public scalar boundary through only:
+
+```d
+import geo;
+```
+
+It contains positive compile-time checks for representative `real` operations
+in the general and metric domains and negative compile-time checks proving
+that `real` remains unavailable to the robust/exact families.
+
+The same external consumer is exercised under the supported CI compiler
+matrix.
+
+### Scalar-constraint conclusion
+
+No contradictory public scalar constraint was found.
+
+The difference between the five-type general geometry domain and the
+four-type robust/exact domain is explicit, documented, and verified.
+
+Future robust `real` support is governed by ADR-0016 rather than by silently
+widening template constraints.

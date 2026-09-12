@@ -419,8 +419,8 @@ Before `v1.0.0`:
 
 - [ ] resolve or explicitly defer compensated `polylineLength`
       accumulation
-- [ ] resolve the long-term policy for robust `real` support
-- [ ] audit all public scalar constraints for consistency
+- [x] resolve the long-term policy for robust `real` support
+- [x] audit all public scalar constraints for consistency
 - [x] audit all public failure semantics
 - [ ] audit all public allocation guarantees
 - [ ] audit all public complexity guarantees

@@ -742,11 +742,17 @@ if (isGeoScalar!T)
  *
  * Uses the same MetricScalar policy as segmentLength().
  *
- * Segment lengths are accumulated in stored order in MetricScalar!T.
- * Ordinary floating-point rounding may accumulate, and no exact-sum or
- * order-independent numerical guarantee is provided. The accumulated
- * result may overflow to infinity according to normal floating-point
- * arithmetic.
+ * Segment lengths are accumulated in stored order in MetricScalar!T using
+ * Kahan-style compensated summation to reduce floating-point accumulation
+ * error.
+ *
+ * Compensation improves mixed-scale sums but does not make the result exact,
+ * correctly rounded, or independent of segment order. Each segment length
+ * remains an ordinary floating-point metric computation.
+ *
+ * Non-finite segment lengths and accumulated overflow propagate according to
+ * normal floating-point arithmetic. The accumulated result may therefore be
+ * NaN or infinity.
  *
  * No allocation or point copying is performed.
  *
@@ -757,14 +763,45 @@ MetricScalar!T polylineLength(T)(PolylineView!T polyline)
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    MetricScalar!T result = 0;
+    alias M = MetricScalar!T;
+
+    M result = M(0);
+    M correction = M(0);
 
     foreach (i; 0 .. polyline.segmentCount)
     {
-        result +=
+        const M value =
             segmentLength(
                 polyline.segment(i)
             );
+
+        const M adjusted =
+            value - correction;
+
+        const M next =
+            result + adjusted;
+
+        /*
+         * A non-finite next value covers:
+         *
+         * - a non-finite segment length;
+         * - accumulated finite overflow;
+         * - an already non-finite running result.
+         *
+         * Preserve that ordinary floating-point result and discard the
+         * compensation state before continuing.
+         */
+        if (!isFinite(next))
+        {
+            result = next;
+            correction = M(0);
+            continue;
+        }
+
+        correction =
+            (next - result) - adjusted;
+
+        result = next;
     }
 
     return result;
@@ -1415,6 +1452,117 @@ if (isGeoScalar!T)
 
         assert(polyline.segmentCount == 2);
         assert(polylineLength(polyline) == 10.0);
+    }
+
+
+    /*
+     * Compensated accumulation preserves small segment lengths that ordinary
+     * sequential addition can lose after the running total becomes large.
+     *
+     * Each block contributes exactly:
+     *
+     *     2 * 2^52 + 2
+     *
+     * and the complete expected result is itself exactly representable as
+     * binary64.
+     */
+    {
+        alias PP = Point2!double;
+
+        enum size_t blocks = 256;
+        enum double large = 0x1p52;
+        enum double expected = 0x1p61 + 512.0;
+
+        PP[1 + blocks * 4] points;
+
+        size_t index;
+
+        points[index++] =
+            PP(0.0, 0.0);
+
+        foreach (_; 0 .. blocks)
+        {
+            points[index++] =
+                PP(large, 0.0);
+
+            points[index++] =
+                PP(0.0, 0.0);
+
+            points[index++] =
+                PP(1.0, 0.0);
+
+            points[index++] =
+                PP(0.0, 0.0);
+        }
+
+        assert(index == points.length);
+
+        const length =
+            polylineLength(
+                PolylineView!double(points[])
+            );
+
+        assert(length == expected);
+    }
+
+
+    /*
+     * Compensated accumulation retains the established floating-point
+     * non-finite semantics.
+     */
+    {
+        alias PP = Point2!double;
+
+        PP[2] infinitePoints = [
+            PP(0.0, 0.0),
+            PP(double.infinity, 0.0)
+        ];
+
+        assert(
+            polylineLength(
+                PolylineView!double(
+                    infinitePoints[]
+                )
+            ) ==
+            double.infinity
+        );
+
+
+        PP[2] nanPoints = [
+            PP(0.0, 0.0),
+            PP(double.nan, 0.0)
+        ];
+
+        const nanLength =
+            polylineLength(
+                PolylineView!double(
+                    nanPoints[]
+                )
+            );
+
+        assert(nanLength != nanLength);
+
+
+        /*
+         * Every individual segment length is finite, but two double.max
+         * segments overflow the accumulated result. A later finite segment
+         * must leave that infinity intact.
+         */
+        PP[4] overflowPoints = [
+            PP(0.0, 0.0),
+            PP(double.max, 0.0),
+            PP(0.0, 0.0),
+            PP(1.0, 0.0)
+        ];
+
+        assert(
+            polylineLength(
+                PolylineView!double(
+                    overflowPoints[]
+                )
+            ) ==
+            double.infinity
+        );
     }
 
 

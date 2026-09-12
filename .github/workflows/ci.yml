@@ -45,6 +45,35 @@ jobs:
         shell: bash
         run: dub test --compiler="$DC" --force
 
+      - name: Run external consumer test
+        shell: bash
+        run: |
+          cd tests/consumer
+          dub run --compiler="$DC" --force
+
       - name: Build release configuration
         shell: bash
         run: dub build --build=release --compiler="$DC" --force
+
+  documentation:
+    name: documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install D compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: dmd-latest
+
+      - name: Compiler versions
+        shell: bash
+        run: |
+          dmd --version
+          dub --version
+
+      - name: Build and verify public API documentation
+        shell: bash
+        run: bash tools/build-docs.sh

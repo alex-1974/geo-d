@@ -542,6 +542,8 @@ if (isFloatingPoint!T)
 
 @safe unittest
 {
+    import std.bitmanip : DoubleRep;
+
     // Integral widening.
     Point2!long pl;
     assert(Point2!int(1, -2).tryConvert(pl));
@@ -610,6 +612,63 @@ if (isFloatingPoint!T)
         )
     );
 
+    /*
+     * Vector quantisation follows the same component-wise rules.
+     */
+    auto v = Vector2!double(-1.5, 2.5);
+
+    assert(v.rounded == Vector2!double(-2.0, 3.0));
+    assert(v.floored == Vector2!double(-2.0, 2.0));
+    assert(v.ceiled == Vector2!double(-1.0, 3.0));
+    assert(v.truncated == Vector2!double(-1.0, 2.0));
+
+
+    /*
+     * rounded and truncated explicitly preserve signed zero.
+     */
+    auto negativeZero =
+        Point2!double(-0.0, -0.0);
+
+    DoubleRep roundedZeroBits;
+    roundedZeroBits.value =
+        negativeZero.rounded.x;
+
+    assert(roundedZeroBits.sign);
+
+    DoubleRep truncatedZeroBits;
+    truncatedZeroBits.value =
+        negativeZero.truncated.x;
+
+    assert(truncatedZeroBits.sign);
+
+
+    /*
+     * Quantisation retains non-finite floating-point values.
+     */
+    auto nonFinite =
+        Point2!double(
+            double.infinity,
+            double.nan
+        );
+
+    auto roundedNonFinite = nonFinite.rounded;
+    auto flooredNonFinite = nonFinite.floored;
+    auto ceiledNonFinite = nonFinite.ceiled;
+    auto truncatedNonFinite = nonFinite.truncated;
+
+    assert(roundedNonFinite.x == double.infinity);
+    assert(roundedNonFinite.y != roundedNonFinite.y);
+
+    assert(flooredNonFinite.x == double.infinity);
+    assert(flooredNonFinite.y != flooredNonFinite.y);
+
+    assert(ceiledNonFinite.x == double.infinity);
+    assert(ceiledNonFinite.y != ceiledNonFinite.y);
+
+    assert(truncatedNonFinite.x == double.infinity);
+    assert(truncatedNonFinite.y != truncatedNonFinite.y);
+
+
     // Non-finite values cannot become integers.
     assert(!Point2!double(double.nan, 0.0).tryConvert(pi));
     assert(!Point2!double(double.infinity, 0.0).tryConvert(pi));
@@ -654,7 +713,8 @@ if (isFloatingPoint!T)
     assert(Vector2!double(4.0, -7.0).tryConvert(vi));
     assert(vi == Vector2!int(4, -7));
 
-    assert(!Vector2!double(4.25, -7.0).tryConvert(vi));
+    assert(!Vector2!double(4.0, -7.25).tryConvert(vi));
+    assert(vi == Vector2!int.init);
 
     // Segment conversion reuses the Point2 scalar rules.
     Segment2!int si;
@@ -672,6 +732,13 @@ if (isFloatingPoint!T)
     assert(!Segment2!double(
         Point2!double(1.5, -2.0),
         Point2!double(3.0, 4.0)
+    ).tryConvert(si));
+
+    assert(si == Segment2!int.init);
+
+    assert(!Segment2!double(
+        Point2!double(1.0, -2.0),
+        Point2!double(3.5, 4.0)
     ).tryConvert(si));
 
     assert(si == Segment2!int.init);

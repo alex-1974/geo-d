@@ -246,23 +246,28 @@ documented, independently consumable, benchmarked, and performance-audited.
 New geometry features are not a prerequisite for `v1.0.0` unless required
 by concrete consumers.
 
+**API freeze status:** complete. The supported v1 public API was frozen at
+`api-freeze-v1.0.0` with 41 top-level public names. Post-freeze work may
+improve documentation, verification, performance evidence, CI, and release
+packaging without silently expanding that API.
+
 ### Documentation maturity
 
 Required:
 
-- [ ] document every public module, type, enum, template, function, method,
+- [x] document every public module, type, enum, template, function, method,
       and property with Ddoc-compatible documentation
-- [ ] document semantics, valid input domain, failure behaviour,
+- [x] document semantics, valid input domain, failure behaviour,
       degeneracies, non-finite handling, allocation behaviour, and relevant
       complexity
-- [ ] document numerical guarantees separately from implementation details
+- [x] document numerical guarantees separately from implementation details
 - [ ] provide documented `unittest` examples for representative public APIs
 - [ ] ensure documentation examples are compiled during verification
-- [ ] generate complete API reference documentation automatically
-- [ ] evaluate `ddox` and `adrdox` and select one publication path
+- [x] generate complete API reference documentation automatically
+- [x] evaluate `ddox` and `adrdox` and select one publication path
 - [ ] publish navigable API documentation
 - [ ] make documentation generation part of CI
-- [ ] verify that exported public API is not left undocumented
+- [x] verify that exported public API is not left undocumented
 
 Source-level Ddoc comments are the authoritative API documentation.
 Generated HTML documentation is a derived publication artifact.
@@ -272,7 +277,7 @@ Generated HTML documentation is a derived publication artifact.
 Required:
 
 - [ ] document installation through the public DUB registry
-- [ ] document supported compiler/frontend versions
+- [x] document supported compiler/frontend versions
 - [ ] document DMD and LDC usage
 - [ ] document `dub add geo-d`
 - [ ] provide a minimal working example using only `import geo;`
@@ -303,11 +308,11 @@ must have benchmark coverage.
 Required benchmark areas:
 
 - [ ] scalar conversion and quantisation
-- [ ] bounds operations where computationally meaningful
+- [x] bounds operations where computationally meaningful
 - [ ] metric primitives
 - [ ] polyline length
 - [ ] nearest-point and point-to-segment distance
-- [ ] orientation
+- [x] orientation
 - [x] segment-intersection classification
 - [x] segment-intersection construction
 - [x] signed ring area
@@ -419,7 +424,7 @@ Before `v1.0.0`:
 - [ ] audit all public failure semantics
 - [ ] audit all public allocation guarantees
 - [ ] audit all public complexity guarantees
-- [ ] audit all symbols exported through `import geo;`
+- [x] audit all symbols exported through `import geo;`
 - [ ] define source-compatibility expectations for the `1.x` series
 - [ ] define a public API deprecation policy
 
@@ -486,8 +491,7 @@ such as:
 
 - bounds union;
 - bounds intersection;
-- extent and size queries;
-- geometry-to-bounds helpers.
+- extent and size queries.
 
 The API should preserve the established empty-bounds identities and NaN
 invariants.

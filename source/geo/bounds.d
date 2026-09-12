@@ -1,5 +1,17 @@
 /**
  * Axis-aligned two-dimensional bounds.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.bounds;
 

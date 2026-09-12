@@ -1,5 +1,17 @@
 /**
  * Non-owning views of polygons composed from linear rings.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.polygon_view;
 

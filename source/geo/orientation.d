@@ -1,5 +1,17 @@
 /**
  * Robust orientation predicates for two-dimensional points.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.orientation;
 

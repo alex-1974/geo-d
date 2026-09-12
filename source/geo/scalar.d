@@ -1,5 +1,17 @@
 /**
  * Scalar-domain definitions used by geo-d geometry primitives.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.scalar;
 

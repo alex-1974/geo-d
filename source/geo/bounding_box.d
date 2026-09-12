@@ -4,6 +4,18 @@
  * The operations in this module compute `Bounds2` directly in the input
  * scalar domain. They perform no coordinate conversion, topology validation,
  * or allocation.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.bounding_box;
 

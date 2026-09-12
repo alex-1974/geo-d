@@ -32,6 +32,45 @@ if ((${#public_sources[@]} == 0)); then
     exit 1
 fi
 
+echo "Verifying public module metadata..."
+
+required_module_metadata=(
+    Authors
+    Copyright
+    License
+    Date
+)
+
+for source in "${public_sources[@]}"; do
+    module_line="$(
+        grep -n -m1 -E             '^[[:space:]]*module[[:space:]]+[A-Za-z0-9_.]+[[:space:]]*;'             "$source" |
+        cut -d: -f1 ||
+        true
+    )"
+
+    if [[ -z "$module_line" ]]; then
+        echo "error: missing module declaration: $source" >&2
+        false
+    fi
+
+    if ((module_line <= 1)); then
+        echo "error: missing module documentation before declaration: $source" >&2
+        false
+    fi
+
+    for field in "${required_module_metadata[@]}"; do
+        if ! head -n "$((module_line - 1))" "$source" |
+            grep -Eq                 "^[[:space:]]*\\*[[:space:]]+$field:[[:space:]]*$"
+        then
+            echo "error: missing module Ddoc metadata '$field:' in $source" >&2
+            false
+        fi
+    done
+done
+
+echo "PASS: public module metadata (${#public_sources[@]} modules)"
+echo
+
 echo "Generating ddox input for ${#public_sources[@]} public modules..."
 
 dmd \

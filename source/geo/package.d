@@ -33,6 +33,18 @@
  * Variable-size geometry is represented by non-owning views. Low-level
  * numerical operations avoid hidden allocation; algorithms requiring
  * variable temporary storage document that requirement explicitly.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo;
 

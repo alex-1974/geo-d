@@ -51,6 +51,52 @@ Public documentation describes observable behaviour. Implementation details belo
 
 Avoid repeating information that is already obvious from the declaration unless it materially affects use.
 
+### Module metadata
+
+Every public module directly under `source/geo/` must have a module-level
+Ddoc comment immediately preceding its `module` declaration.
+
+The module documentation must contain the following Ddoc sections:
+
+```text
+Authors:
+Copyright:
+License:
+Date:
+```
+
+For `geo-d`, the standard metadata form is:
+
+```d
+Authors:
+    Alexander Bernardi
+
+Copyright:
+    Copyright © 2026 Alexander Bernardi
+
+License:
+    MIT
+
+Date:
+    September 12, 2026
+```
+
+`Authors:`, `Date:`, and `License:` are standard Ddoc sections.
+`Copyright:` has special meaning in module documentation and is likewise part
+of the required `geo-d` module metadata.
+
+`Date:` records the current revision date of the module documentation. It must
+be updated when the module-level public contract or its documentation is
+materially revised.
+
+`Version:` is deliberately not maintained per module. Package versions are
+defined by released `geo-d` versions and Git tags. Duplicating package-version
+state in every source module would create unnecessary synchronization risk.
+
+These metadata sections are a `geo-d` documentation requirement. Their
+presence must be verified automatically as part of the public documentation
+build.
+
 ## 4. Documentation order
 
 For non-trivial public functions, document relevant topics in this order:

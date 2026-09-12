@@ -1,5 +1,17 @@
 /**
  * Non-owning views of implicitly closed linear rings.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
  */
 module geo.linear_ring_view;
 

@@ -425,8 +425,8 @@ Before `v1.0.0`:
 - [x] audit all public allocation guarantees
 - [x] audit all public complexity guarantees
 - [x] audit all symbols exported through `import geo;`
-- [ ] define source-compatibility expectations for the `1.x` series
-- [ ] define a public API deprecation policy
+- [x] define source-compatibility expectations for the `1.x` series
+- [x] define a public API deprecation policy
 
 ### v1.0.0 release gate
 

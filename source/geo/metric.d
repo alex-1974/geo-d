@@ -146,6 +146,116 @@ if (isGeoScalar!T)
 
 
 /*
+ * Conservative domain for direct binary floating-point products used by the
+ * ordinary-range metric fast path.
+ *
+ * Every non-zero component must lie in [2^-250, 2^250]. Therefore the
+ * individual products needed by projection and perpendicular-distance
+ * formulas lie in [2^-500, 2^500], comfortably inside the normal binary64
+ * range.
+ *
+ * The bound is intentionally conservative. Values outside it use the scaled
+ * full-range implementation.
+ */
+private bool isDirectMetricComponent(M)(M value)
+    pure nothrow @safe @nogc
+{
+    const M magnitude =
+        value < M(0)
+            ? -value
+            : value;
+
+    return
+        magnitude == M(0) ||
+        (
+            magnitude >= M(0x1p-250) &&
+            magnitude <= M(0x1p250)
+        );
+}
+
+
+private bool hasDirectMetricProductRange(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    return
+        isDirectMetricComponent(dx) &&
+        isDirectMetricComponent(dy) &&
+        isDirectMetricComponent(rx) &&
+        isDirectMetricComponent(ry);
+}
+
+
+/*
+ * Direct ordinary-range projection.
+ *
+ * Preconditions:
+ *
+ *     dx, dy, rx and ry are finite;
+ *     d is non-zero;
+ *     hasDirectMetricProductRange(dx, dy, rx, ry) is true.
+ */
+private M directProjectionParameter(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    const M numerator =
+        rx * dx +
+        ry * dy;
+
+    const M denominator =
+        dx * dx +
+        dy * dy;
+
+    return
+        numerator /
+        denominator;
+}
+
+
+/*
+ * Direct ordinary-range perpendicular distance.
+ *
+ * Preconditions are identical to directProjectionParameter().
+ */
+private M directPerpendicularDistance(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    const M cross =
+        dx * ry -
+        dy * rx;
+
+    const M absCross =
+        cross < M(0)
+            ? -cross
+            : cross;
+
+    if (absCross == M(0))
+        return M(0);
+
+    return
+        absCross /
+        hypot(
+            dx,
+            dy
+        );
+}
+
+
+/*
  * Projection parameter of r onto d.
  *
  * Computes
@@ -173,6 +283,30 @@ private MetricScalar!T projectionParameter(T)(
 if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
+
+    /*
+     * Ordinary finite-range fast path.
+     *
+     * Inside this conservative domain, all direct products and their sums
+     * remain safely representable, so exponent normalization is unnecessary.
+     */
+    if (
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        )
+    )
+    {
+        return
+            directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            );
+    }
 
     const M absDx = dx < M(0) ? -dx : dx;
     const M absDy = dy < M(0) ? -dy : dy;
@@ -355,6 +489,30 @@ if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
 
+    /*
+     * Ordinary finite-range fast path.
+     *
+     * Power-of-two normalization is only needed outside the conservative
+     * direct-product domain.
+     */
+    if (
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        )
+    )
+    {
+        return
+            directPerpendicularDistance(
+                dx,
+                dy,
+                rx,
+                ry
+            );
+    }
+
     const M absDx = dx < M(0) ? -dx : dx;
     const M absDy = dy < M(0) ? -dy : dy;
     const M absRx = rx < M(0) ? -rx : rx;
@@ -498,13 +656,28 @@ if (
         return true;
     }
 
-    const M t =
-        projectionParameter!T(
+    const bool directMetricRange =
+        hasDirectMetricProductRange(
             dx,
             dy,
             rx,
             ry
         );
+
+    const M t =
+        directMetricRange
+            ? directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : projectionParameter!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     /*
      * Infinite projection parameters still determine an endpoint.
@@ -553,12 +726,19 @@ if (
         return false;
 
     result =
-        perpendicularDistance!T(
-            dx,
-            dy,
-            rx,
-            ry
-        );
+        directMetricRange
+            ? directPerpendicularDistance(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : perpendicularDistance!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     if (!isFinite(result))
     {
@@ -649,8 +829,28 @@ if (
     if (!isFinite(rx) || !isFinite(ry))
         return false;
 
+    const bool directMetricRange =
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        );
+
     const M t =
-        projectionParameter!T(dx, dy, rx, ry);
+        directMetricRange
+            ? directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : projectionParameter!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     /*
      * Positive overflow of t simply means the projection lies beyond b.

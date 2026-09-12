@@ -1,3 +1,18 @@
+/**
+ * Robust segment-intersection classification and construction.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.intersection;
 
 import geo.internal.intersection_exact :
@@ -31,8 +46,13 @@ import geo.segment :
  */
 enum SegmentIntersectionKind : ubyte
 {
+    /// The closed segments have no geometric point in common.
     none,
+
+    /// The intersection contains exactly one geometric point.
     point,
+
+    /// The intersection contains a segment of positive geometric length.
     overlap
 }
 
@@ -880,6 +900,8 @@ if (isIntersectionScalar!T)
  *
  * Degenerate segments are valid and represent a point.
  *
+ * No allocation is performed.
+ *
  * Complexity:
  *
  *     time  O(1)
@@ -1182,6 +1204,8 @@ if (isIntersectionScalar!T)
  * back into exact predicates as evidence of the already established
  * topology.
  *
+ * No allocation is performed.
+ *
  * Complexity:
  *
  *     time  O(1)
@@ -1260,6 +1284,53 @@ if (
         );
 
     return true;
+}
+
+
+/// Example using the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    const first =
+        S(
+            P(0, 0),
+            P(10, 10)
+        );
+
+    const second =
+        S(
+            P(0, 10),
+            P(10, 0)
+        );
+
+    assert(
+        segmentIntersectionKind(
+            first,
+            second
+        ) == SegmentIntersectionKind.point
+    );
+
+    Point2!double point;
+
+    assert(
+        trySegmentIntersectionPoint(
+            first,
+            second,
+            point
+        )
+    );
+
+    assert(
+        point ==
+        Point2!double(
+            5.0,
+            5.0
+        )
+    );
 }
 
 
@@ -2647,6 +2718,13 @@ if (
  *     segmentIntersectionKind(first, second)
  *         == SegmentIntersectionKind.overlap
  *
+ * Supported scalar types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
  * On success, `overlap` contains the exact common segment in the
  * original scalar type. Its endpoints are selected from the input
  * endpoints and returned in canonical lexicographic order.
@@ -2659,6 +2737,10 @@ if (
  * No numerical intersection coordinate is constructed.
  *
  * For floating-point coordinates all endpoints must be finite.
+ *
+ * On failure, overlap is Segment2!T.init.
+ *
+ * No allocation is performed.
  *
  * Complexity:
  *

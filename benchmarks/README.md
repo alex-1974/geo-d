@@ -1,7 +1,10 @@
 # geo-d benchmarks
 
-These benchmarks measure the performance of robust segment-intersection
-classification and exact unique-point construction.
+These benchmarks measure computationally significant geo-d algorithm
+families and selected internal exact-arithmetic components.
+
+The suite currently covers segment intersection, signed area, and
+orientation predicates.
 
 They are intended primarily for:
 
@@ -335,3 +338,185 @@ introducing a floating-point fast path.
 Further optimisation, such as fused exact cross-product construction or a
 certified floating-point fast path, is deferred until a concrete workload
 demonstrates that the remaining cost is material.
+
+## Orientation benchmarks
+
+`orientation_bench.d` measures the public `orientation()` operation
+end-to-end.
+
+The benchmark covers:
+
+- ordinary and full-range `int`;
+- ordinary and full-range `long`;
+- ordinary `float`;
+- ordinary binary64 cases certified by the first-stage filter;
+- binary64 collinear and near-collinear expansion fallback cases;
+- binary64 full-range dyadic fallback cases;
+- minimum-subnormal binary64 fallback cases.
+
+The benchmark uses two alternating inputs per case, a warm-up phase,
+seven measured repetitions, and reports median, minimum, and maximum
+nanoseconds per operation.
+
+Build with LDC using:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -mcpu=native \
+        -i \
+        -Isource \
+        benchmarks/orientation_bench.d \
+        -of=/tmp/geo-d-orientation-bench-ldc
+
+    /tmp/geo-d-orientation-bench-ldc
+
+With DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/orientation_bench.d \
+        -of=/tmp/geo-d-orientation-bench-dmd
+
+    /tmp/geo-d-orientation-bench-dmd
+
+### C++ orientation reference
+
+`reference/cpp/orientation_bench.cpp` is a diagnostic reference benchmark,
+not a complete independent implementation of geo-d's robust orientation
+contract.
+
+Its comparisons have different strengths:
+
+- `int` uses the same exact algorithm and is directly comparable;
+- `long manual` uses the portable 32-bit-limb multiplication algorithm;
+- `long native u128` uses GNU/Clang `unsigned __int128` and is the closest
+  reference for the LDC `core.int128` implementation;
+- `double certified filter` implements only the first-stage certified
+  binary64 filter;
+- `double naive baseline` is intentionally non-robust.
+
+There is currently no C++ reference implementation for geo-d's expansion
+or dyadic binary64 fallbacks.
+
+The C++ algorithms are inline and may be inlined into their no-inline
+benchmark wrappers. Consequently, these results are compiler/code-generation
+references and do not guarantee identical function-call overhead to the
+public D API.
+
+Build the GCC reference using strict floating-point semantics:
+
+    g++ \
+        -O3 \
+        -DNDEBUG \
+        -march=native \
+        -ffp-contract=off \
+        -std=c++20 \
+        benchmarks/reference/cpp/orientation_bench.cpp \
+        -o=/tmp/geo-d-orientation-bench-cpp
+
+    /tmp/geo-d-orientation-bench-cpp
+
+Do not use `-ffast-math` for the certified-filter comparison. It may
+invalidate assumptions required by the robustness checks.
+
+Absolute D-versus-C++ timings remain compiler-, machine-, and build-dependent.
+They are diagnostic measurements, not performance guarantees.
+
+## Geometry bounding-box benchmark
+
+`bounding_box_bench.d` measures end-to-end axis-aligned bounding-box
+computation through the public `tryBounds()` API.
+
+The benchmark covers:
+
+- `PolylineView!double` with 10, 100, 1,000, 10,000 and 100,000 points;
+- `PolygonView!double` with four rings of 2,500 vertices each;
+- the public view-based API;
+- a raw-slice reduction using `Bounds2.tryExtend()`;
+- a direct raw-slice extrema loop;
+- a direct nested-ring polygon extrema loop.
+
+The reference loops are diagnostic comparisons only. They are not separate
+public APIs and do not establish a cross-language performance guarantee.
+
+All dynamic benchmark-data allocation is performed before the timed regions.
+Each timed operation itself remains allocation-free.
+
+The benchmark uses two alternating datasets per case, a warm-up phase,
+seven measured repetitions and reports the median time per operation and
+per point.
+
+Build with LDC using:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/bounding_box_bench.d \
+        -of=/tmp/geo-d-bounding-box-bench-ldc
+
+    /tmp/geo-d-bounding-box-bench-ldc
+
+With DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/bounding_box_bench.d \
+        -of=/tmp/geo-d-bounding-box-bench-dmd
+
+    /tmp/geo-d-bounding-box-bench-dmd
+
+### Initial geometry-bounds baseline
+
+On the development machine, the optimized implementation showed approximately
+linear steady-state cost for ordinary finite binary64 data.
+
+    LDC release:
+
+        polyline, n=1,000..100,000:
+            about 1.2 ns per point
+
+        polygon, 4 x 2,500 vertices:
+            about 1.4 ns per point
+
+    DMD release:
+
+        polyline, n=1,000..100,000:
+            about 4.0-4.4 ns per point
+
+        polygon, 4 x 2,500 vertices:
+            about 4.7-5.0 ns per point
+
+The first implementation reduced geometry bounds by repeatedly calling
+`Bounds2.tryExtend()` inside the hot loop.
+
+Benchmarking showed that a private scalar-extrema accumulator reduced
+large-polyline cost by roughly 30 percent while preserving the public
+`tryBounds()` semantics.
+
+Under LDC, the optimized public polyline path is approximately at parity with
+the direct raw-slice extrema loop. Under DMD, the public path remains slower
+than the direct extrema loop but is materially faster than the original
+`Bounds2.tryExtend()` reduction.
+
+The polygon comparison demonstrates that source-level loop simplicity does not
+by itself predict generated-code performance: under LDC the direct nested-ring
+extrema reference was slower than both the public implementation and the
+`Bounds2.tryExtend()` reference.
+
+No further geometry-bounds optimization is currently justified by these
+measurements.

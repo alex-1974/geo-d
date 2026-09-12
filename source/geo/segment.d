@@ -1,3 +1,18 @@
+/**
+ * Two-dimensional closed line-segment primitives.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.segment;
 
 import geo.point : Point2;
@@ -7,10 +22,21 @@ import geo.scalar : isGeoScalar;
 /**
  * A line segment between two points in a two-dimensional Euclidean space.
  *
- * Segment2 preserves endpoint order as part of its value representation,
- * but does not imply traversal direction.
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `Segment2.init` is the degenerate segment from the origin to the origin.
+ *
+ * Endpoint order is part of the stored value representation, but does not
+ * imply traversal direction. Reversing the endpoints therefore produces a
+ * different value unless both endpoints are equal.
  *
  * Degenerate segments with equal endpoints are valid.
+ *
+ * Equality is exact endpoint equality according to the equality semantics
+ * of `Point2!T`; no tolerance or epsilon is applied.
+ *
+ * Floating-point endpoints may contain non-finite coordinates. `isFinite`
+ * reports whether both endpoints contain only finite coordinates.
  */
 struct Segment2(T)
 if (isGeoScalar!T)

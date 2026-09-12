@@ -1,0 +1,10 @@
+name "geo-d-consumer-test"
+description "External consumer compile test for the frozen geo-d public API"
+license "MIT"
+
+targetType "executable"
+targetPath "../../build/consumer"
+
+dependency "geo-d" path="../.."
+
+dflags "-preview=dip1000"

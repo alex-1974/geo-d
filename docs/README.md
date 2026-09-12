@@ -34,6 +34,17 @@ Performance-specific material is documented under:
 benchmarks/
 ~~~
 
+Public API documentation conventions are defined in:
+
+~~~text
+docs/ddoc-style.md
+~~~
+
+This guide defines the documentation contract for symbols exposed through
+`import geo;`, including semantics, input domains, failure behaviour,
+allocation, complexity, numerical guarantees, and examples.
+
+
 ## Core geometry model
 
 The foundational value types are:
@@ -352,6 +363,46 @@ Ring and polygon simplification require a separate future design because
 they must preserve constraints such as closure, self-intersection rules,
 hole containment, and inter-ring relationships.
 
+## Geometry bounds
+
+Axis-aligned bounds of existing geometry are computed with:
+
+~~~text
+tryBounds
+~~~
+
+The operation supports:
+
+~~~text
+Segment2
+PolylineView
+LinearRingView
+PolygonView
+~~~
+
+Its semantics are representation-based rather than topology-validating.
+
+For variable-size geometry:
+
+- empty geometry succeeds with `Bounds2.init`;
+- every stored coordinate contributes;
+- polygon rings are all considered regardless of topology validity;
+- NaN causes transactional failure;
+- infinities are permitted;
+- no allocation is performed.
+
+Complexity is:
+
+~~~text
+Segment2        O(1)
+PolylineView    O(n)
+LinearRingView  O(n)
+PolygonView     O(total stored vertices)
+~~~
+
+The traversal cost is intentionally exposed through the `tryBounds` operation
+rather than hidden behind a property access.
+
 ## Execution properties
 
 Low-level numerical operations are designed to provide the strongest useful
@@ -418,3 +469,39 @@ and ownership are separate concerns in `geo-d`.
 Keeping these concerns separate is intentional. It prevents convenience
 APIs from silently weakening topology guarantees, introducing hidden
 allocation, or changing geometry semantics.
+
+## Generated API documentation
+
+Public API documentation is rendered with `ddox`.
+
+Generate it from the repository root with:
+
+~~~sh
+./tools/build-docs.sh
+~~~
+
+The generated site is written to:
+
+~~~text
+build/ddox/site/
+~~~
+
+Generated documentation is build output and is not committed to the
+repository.
+
+The documentation build includes only the public modules directly under
+`source/geo/`. Implementation modules under `source/geo/internal/` are
+deliberately excluded.
+
+The generated documentation entry point is:
+
+~~~text
+build/ddox/site/index.html
+~~~
+
+## Performance
+
+Performance goals, benchmarking methodology, C/C++ comparison rules, and
+optimisation workflow are documented in
+[`performance.md`](performance.md).
+

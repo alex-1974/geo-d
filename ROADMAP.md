@@ -232,7 +232,222 @@ Required before tagging the first public release.
 - [x] run `git diff --check`
 - [x] confirm clean repository state
 - [x] run GitHub Actions successfully on the release candidate
-- [ ] tag `v0.1.0`
+- [x] tag `v0.1.0`
+
+
+## v1.0.0 — Library maturity target
+
+`v1.0.0` marks API and engineering maturity rather than simply a larger
+feature set.
+
+Before `v1.0.0`, the existing public functionality must be comprehensively
+documented, independently consumable, benchmarked, and performance-audited.
+
+New geometry features are not a prerequisite for `v1.0.0` unless required
+by concrete consumers.
+
+**API freeze status:** complete. The supported v1 public API was frozen at
+`api-freeze-v1.0.0` with 41 top-level public names. Post-freeze work may
+improve documentation, verification, performance evidence, CI, and release
+packaging without silently expanding that API.
+
+### Documentation maturity
+
+Required:
+
+- [x] document every public module, type, enum, template, function, method,
+      and property with Ddoc-compatible documentation
+- [x] document semantics, valid input domain, failure behaviour,
+      degeneracies, non-finite handling, allocation behaviour, and relevant
+      complexity
+- [x] document numerical guarantees separately from implementation details
+- [ ] provide documented `unittest` examples for representative public APIs
+- [ ] ensure documentation examples are compiled during verification
+- [x] generate complete API reference documentation automatically
+- [x] evaluate `ddox` and `adrdox` and select one publication path
+- [ ] publish navigable API documentation
+- [x] make documentation generation part of CI
+- [x] verify that exported public API is not left undocumented
+
+Source-level Ddoc comments are the authoritative API documentation.
+Generated HTML documentation is a derived publication artifact.
+
+### Installation and onboarding
+
+Required:
+
+- [ ] document installation through the public DUB registry
+- [x] document supported compiler/frontend versions
+- [ ] document DMD and LDC usage
+- [ ] document `dub add geo-d`
+- [ ] provide a minimal working example using only `import geo;`
+- [ ] verify the MWE against the published DUB package
+- [ ] provide task-oriented examples for:
+  - point/vector algebra
+  - metric operations
+  - orientation
+  - segment intersection
+  - polyline views
+  - rings and polygons
+  - area
+  - point-in-polygon classification
+  - topology validation
+  - Douglas-Peucker simplification
+- [ ] clearly explain view ownership and lifetime semantics
+- [ ] clearly explain robust topology versus rounded geometric construction
+- [ ] clearly explain supported scalar domains and current `real` limitations
+
+`README.md` should remain a concise landing page. Detailed guides belong
+under `docs/`.
+
+### Benchmark coverage
+
+Before `v1.0.0`, every computationally meaningful public algorithm family
+must have benchmark coverage.
+
+Required benchmark areas:
+
+- [ ] scalar conversion and quantisation
+- [x] bounds operations where computationally meaningful
+- [ ] metric primitives
+- [ ] polyline length
+- [ ] nearest-point and point-to-segment distance
+- [x] orientation
+- [x] segment-intersection classification
+- [x] segment-intersection construction
+- [x] signed ring area
+- [x] polygon-area core arithmetic
+- [ ] point-in-polygon classification
+- [ ] ring validation
+- [ ] polygon validation
+- [ ] Douglas-Peucker simplification
+
+Benchmark workloads should distinguish where meaningful:
+
+- ordinary representative inputs;
+- degenerate inputs;
+- numerically difficult inputs;
+- exact-arithmetic slow paths;
+- varying geometry sizes;
+- integer and floating-point scalar domains.
+
+Existing intersection and area benchmarks form the initial baseline and
+should be integrated into one consistent benchmark framework.
+
+### Benchmark methodology
+
+Benchmark results must contain enough context to be reproducible.
+
+Record at least:
+
+- geo-d commit;
+- compiler and frontend version;
+- DMD or LDC;
+- compiler flags;
+- operating system;
+- CPU;
+- workload;
+- iteration or sample count;
+- geometry/input size;
+- timing unit.
+
+Benchmarks must:
+
+- use monotonic timing;
+- prevent dead-code elimination;
+- include warm-up where appropriate;
+- use repeated measurements rather than one isolated timing;
+- distinguish throughput from latency where relevant.
+
+Absolute timings are machine-, compiler-, and build-dependent and are not
+part of the public API contract.
+
+### Performance audit and optimisation
+
+Every computationally meaningful public algorithm family must receive an
+explicit performance review before `v1.0.0`.
+
+For each area:
+
+1. establish a reproducible baseline;
+2. identify dominant costs by profiling or focused component benchmarks;
+3. inspect allocation and copying behaviour;
+4. inspect algorithmic complexity;
+5. compare DMD and LDC behaviour;
+6. identify redundant or avoidable work;
+7. optimise only where measurements justify the change;
+8. rerun semantic and numerical verification;
+9. record before/after benchmark results.
+
+Performance optimisation must preserve established semantics unless a
+different API contract is explicitly designed.
+
+In particular, optimisation must not weaken existing guarantees for:
+
+- robust topology;
+- correctly-rounded construction;
+- deterministic behaviour;
+- ownership and lifetime;
+- `@safe`;
+- `@nogc`;
+- `pure`;
+- `nothrow`;
+
+where those guarantees apply.
+
+### Performance acceptance criteria
+
+`v1.0.0` does not require arbitrary universal timing thresholds.
+
+It does require:
+
+- [ ] no known accidental asymptotic regression
+- [ ] no avoidable hidden allocation on low-level paths
+- [ ] no unnecessary deep copy
+- [ ] no known major redundant exact-arithmetic work
+- [ ] documented scaling behaviour for variable-size algorithms
+- [ ] DMD performance baselines
+- [ ] LDC performance baselines
+- [ ] investigation of substantial compiler-specific differences
+- [ ] explicit justification for intentionally expensive robust paths
+
+Correctness remains more important than raw throughput.
+
+### Numerical and API hardening
+
+Before `v1.0.0`:
+
+- [ ] resolve or explicitly defer compensated `polylineLength`
+      accumulation
+- [ ] resolve the long-term policy for robust `real` support
+- [ ] audit all public scalar constraints for consistency
+- [ ] audit all public failure semantics
+- [ ] audit all public allocation guarantees
+- [ ] audit all public complexity guarantees
+- [x] audit all symbols exported through `import geo;`
+- [ ] define source-compatibility expectations for the `1.x` series
+- [ ] define a public API deprecation policy
+
+### v1.0.0 release gate
+
+`v1.0.0` may be tagged only when:
+
+- [ ] API documentation is complete and published
+- [ ] installation instructions are verified from a clean environment
+- [ ] MWEs compile against the public DUB package
+- [ ] benchmark coverage spans all computational public API families
+- [ ] DMD and LDC performance baselines are recorded
+- [ ] all computational public API families have completed a performance
+      audit
+- [ ] identified high-value optimisations are completed or explicitly
+      deferred
+- [ ] unit and property verification passes
+- [ ] minimum-compiler CI passes
+- [ ] current DMD CI passes
+- [ ] current LDC CI passes
+- [ ] external-consumer tests pass
+- [ ] documentation generation passes
+- [ ] repository state is release-clean
 
 ## Post-v0.1 numerical work
 
@@ -276,8 +491,7 @@ such as:
 
 - bounds union;
 - bounds intersection;
-- extent and size queries;
-- geometry-to-bounds helpers.
+- extent and size queries.
 
 The API should preserve the established empty-bounds identities and NaN
 invariants.

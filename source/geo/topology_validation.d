@@ -1,3 +1,18 @@
+/**
+ * Topology validation for linear rings and polygons.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.topology_validation;
 
 import geo.intersection :
@@ -32,11 +47,22 @@ import std.algorithm.sorting :
  */
 enum RingValidationIssue : ubyte
 {
+    /// No validation issue was detected.
     none,
+
+    /// The ring contains fewer than three stored vertices.
     tooFewVertices,
+
+    /// A stored vertex contains a non-finite coordinate.
     nonFiniteCoordinate,
+
+    /// An implicit ring edge has identical endpoints.
     zeroLengthEdge,
+
+    /// Ring edges have an invalid point intersection.
     selfIntersection,
+
+    /// Ring edges overlap over positive length.
     selfOverlap,
 }
 
@@ -48,6 +74,9 @@ enum RingValidationIssue : ubyte
  * (i + 1) % length.
  *
  * size_t.max denotes an index that does not apply to the reported issue.
+ *
+ * RingValidationResult.init represents a valid ring result with issue
+ * RingValidationIssue.none and both diagnostic indices set to size_t.max.
  */
 struct RingValidationResult
 {
@@ -78,14 +107,31 @@ struct RingValidationResult
  */
 enum PolygonValidationIssue : ubyte
 {
+    /// No validation issue was detected.
     none,
+
+    /// The exterior ring failed ring validation.
     invalidExteriorRing,
+
+    /// An interior ring failed ring validation.
     invalidInteriorRing,
+
+    /// Two different rings cross properly.
     interRingCrossing,
+
+    /// Boundaries of two different rings overlap over positive length.
     interRingOverlap,
+
+    /// One ring pair has more than one distinct geometric contact point.
     multipleRingContacts,
+
+    /// An interior ring lies outside the exterior ring.
     interiorRingOutsideExterior,
+
+    /// One interior ring contains another interior ring.
     nestedInteriorRings,
+
+    /// Boundary contacts form a cycle that disconnects polygon interior.
     disconnectedInterior,
 }
 
@@ -110,6 +156,13 @@ enum PolygonValidationIssue : ubyte
  *
  * For nestedInteriorRings, primaryRingIndex identifies the contained interior
  * ring and secondaryRingIndex identifies the containing interior ring.
+ *
+ * For disconnectedInterior, primaryRingIndex and secondaryRingIndex identify
+ * the ring pair whose contact incidence closes the detected contact-graph
+ * cycle.
+ *
+ * PolygonValidationResult.init represents a valid polygon result with issue
+ * PolygonValidationIssue.none and all diagnostic indices set to size_t.max.
  */
 struct PolygonValidationResult
 {
@@ -225,6 +278,9 @@ private bool adjacentRingEdges(
 /**
  * Validates one LinearRingView.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * `real` is deliberately outside the robust topology domain.
+ *
  * A valid ring:
  *
  * - has at least three stored vertices;
@@ -238,12 +294,15 @@ private bool adjacentRingEdges(
  * copy of the first vertex therefore creates a zero-length closing edge and
  * is invalid.
  *
+ * Topological decisions are exact. No epsilon or rounded intersection
+ * coordinate is used.
+ *
  * The first detected issue is returned deterministically.
  *
- * Complexity:
+ * No allocation is performed.
  *
- *     time  O(n^2)
- *     space O(1)
+ * Complexity:
+ *     O(n^2) time and O(1) auxiliary space for n stored vertices.
  */
 RingValidationResult validateRing(T)(
     scope LinearRingView!T ring
@@ -1406,6 +1465,9 @@ if (isValidationScalar!T)
 /**
  * Validates one PolygonView for polygon topology.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * `real` is deliberately outside the robust topology domain.
+ *
  * A valid polygon:
  *
  * - is empty, or has a valid simple exterior ring;
@@ -1429,10 +1491,16 @@ if (isValidationScalar!T)
  *
  * The first detected issue is returned deterministically.
  *
- * Supported scalar types are int, long, float, and double.
- *
  * This operation may allocate temporary storage while checking connected
  * polygon interior and therefore does not promise @nogc.
+ *
+ * Let n be the total number of stored vertices, r the number of rings, and c
+ * the number of touching ring pairs. Temporary storage is O(r + c). Because
+ * c may be quadratic in the number of rings, auxiliary storage is O(n^2) in
+ * the worst case.
+ *
+ * Complexity:
+ *     O(n^2 log n) time in the worst case.
  */
 PolygonValidationResult validatePolygon(T)(
     scope PolygonView!T polygon

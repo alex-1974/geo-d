@@ -1,3 +1,18 @@
+/**
+ * Robust point-in-polygon classification.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.point_in_polygon;
 
 import geo.internal.ring_point_classification :
@@ -16,8 +31,13 @@ import geo.polygon_view :
  */
 enum PointPolygonLocation : ubyte
 {
+    /// The point is outside the role-based polygon interior.
     outside,
+
+    /// The point lies exactly on the boundary of at least one stored ring.
     boundary,
+
+    /// The point is inside the exterior and outside all interior rings.
     inside,
 }
 
@@ -25,8 +45,13 @@ enum PointPolygonLocation : ubyte
 /**
  * Classifies a point relative to a polygon.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * `real` is deliberately outside the robust predicate domain.
+ *
  * Returns false when the query point or any stored polygon coordinate is
  * non-finite.
+ *
+ * On failure, location is PointPolygonLocation.outside.
  *
  * For finite supported input, classification is exact and returns one of:
  *
@@ -34,14 +59,25 @@ enum PointPolygonLocation : ubyte
  *     boundary
  *     inside
  *
+ * A finite query against an empty polygon succeeds and is classified as
+ * outside.
+ *
  * Boundary has precedence over inside and outside across all stored rings.
  *
  * Ring zero is the exterior ring. Subsequent rings are interior rings.
- *
  * Ring orientation does not affect classification.
  *
- * No topology validation, normalization, allocation, tolerance, or
- * floating-point ray intersection is performed.
+ * No topology validation, normalization, tolerance, or floating-point ray
+ * intersection is performed.
+ *
+ * No allocation is performed.
+ *
+ * Every stored ring is inspected so that non-finite coordinates and
+ * boundary precedence are handled globally.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices across all
+ *     rings.
  */
 bool tryClassifyPointInPolygon(T)(
     scope PolygonView!T polygon,
@@ -163,6 +199,72 @@ if (
     }
 
     return true;
+}
+
+
+/// Example classifying interior, boundary, and exterior points.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias R = LinearRingView!double;
+    alias V = PolygonView!double;
+
+    P[4] points = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0)
+    ];
+
+    R[1] rings = [
+        R(points[])
+    ];
+
+    auto polygon =
+        V(rings[]);
+
+    PointPolygonLocation location;
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(5.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.inside
+    );
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(0.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.boundary
+    );
+
+    assert(
+        tryClassifyPointInPolygon(
+            polygon,
+            P(20.0, 5.0),
+            location
+        )
+    );
+
+    assert(
+        location ==
+        PointPolygonLocation.outside
+    );
 }
 
 
@@ -307,7 +409,8 @@ if (
         auto polygon =
             V(rings);
 
-        PointPolygonLocation location;
+        PointPolygonLocation location =
+            PointPolygonLocation.boundary;
 
         assert(
             !tryClassifyPointInPolygon(
@@ -315,6 +418,11 @@ if (
                 P(double.nan, 0.0),
                 location
             )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.outside
         );
     }
 
@@ -824,7 +932,8 @@ if (
         auto polygon =
             V(rings[]);
 
-        PointPolygonLocation location;
+        PointPolygonLocation location =
+            PointPolygonLocation.boundary;
 
         assert(
             !tryClassifyPointInPolygon(
@@ -832,6 +941,11 @@ if (
                 P(5.0, 0.0),
                 location
             )
+        );
+
+        assert(
+            location ==
+            PointPolygonLocation.outside
         );
     }
 }

@@ -1,6 +1,9 @@
 module geo.internal.orientation_filter;
 
-import core.math : toPrec;
+import geo.internal.binary64_rounding :
+    roundedAdd,
+    roundedMul,
+    roundedSub;
 import std.math.traits :
     isFinite,
     isSubnormal;
@@ -36,36 +39,6 @@ enum OrientationFilterResult : byte
  */
 private enum double ccwErrboundA =
     0x1.8000000000004p-52;
-
-
-/*
- * D permits excess precision in intermediate floating-point
- * expressions.
- *
- * Robust-predicate error bounds depend on known rounding points, so
- * every elementary operation used by this filter is explicitly rounded
- * to binary64 through core.math.toPrec.
- */
-private double roundedSub(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs - rhs);
-}
-
-
-private double roundedAdd(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs + rhs);
-}
-
-
-private double roundedMul(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs * rhs);
-}
-
 
 /*
  * This initial certified filter deliberately refuses to reason through

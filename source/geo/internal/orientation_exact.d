@@ -9,7 +9,7 @@ import geo.internal.expansion :
     scaleExpansionZeroElim,
     twoDiff;
 
-import core.math : toPrec;
+import geo.internal.binary64_rounding : roundedSub;
 import std.math.traits : isFinite;
 
 
@@ -44,14 +44,6 @@ private enum double minWorkingMagnitude =
 
 private enum double maxWorkingMagnitude =
     0x1p+450;
-
-
-private double roundedSub(double lhs, double rhs)
-    pure nothrow @safe @nogc
-{
-    return toPrec!double(lhs - rhs);
-}
-
 
 private double magnitude(double value)
     pure nothrow @safe @nogc

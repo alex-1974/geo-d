@@ -1,4 +1,26 @@
+/**
+ * Robust orientation predicates for two-dimensional points.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.orientation;
+
+version (LDC)
+{
+    import core.int128 :
+        Cent,
+        mul;
+}
 
 import geo.point : Point2;
 
@@ -7,15 +29,20 @@ import geo.internal.orientation_filter :
     orientationFilter;
 
 import geo.internal.orientation_robust :
-    tryOrientationRobustDouble;
+    tryOrientationRobustDoubleFallback;
 
 /**
  * Orientation of a point relative to the directed line a -> b.
  */
 enum Orientation : byte
 {
+    /// c lies to the right of the directed line a -> b.
     right     = -1,
+
+    /// a, b, and c are collinear.
     collinear =  0,
+
+    /// c lies to the left of the directed line a -> b.
     left      =  1,
 }
 
@@ -164,15 +191,18 @@ private SignedDiff64 signedDifference(long a, long b)
 /*
  * Exact unsigned 64 x 64 -> 128 bit multiplication.
  *
- * Operands are decomposed into 32-bit limbs so that every primitive
- * multiplication fits exactly in ulong.
+ * LDC lowers core.int128.mul to LLVM i128 multiplication, allowing the
+ * backend to use the target's native wide-multiply instructions.
+ *
+ * Other compilers use a portable 32-bit-limb implementation so that every
+ * primitive multiplication fits exactly in ulong.
  *
  * The result is:
  *
  *     hi * 2^64 + lo
  *
- * This is deliberately local to the predicate implementation rather
- * than a speculative general-purpose wide-integer abstraction.
+ * The compiler-specific implementation remains hidden behind this local
+ * helper; the rest of the predicate uses the same Unsigned128 representation.
  */
 private Unsigned128 multiplyUnsigned64(
     ulong lhs,
@@ -180,46 +210,65 @@ private Unsigned128 multiplyUnsigned64(
 )
     pure nothrow @safe @nogc
 {
-    enum ulong mask32 = 0xffff_ffffUL;
+    version (LDC)
+    {
+        Cent lhs128 = Cent.init;
+        lhs128.lo = lhs;
 
-    const ulong lhsLo = lhs & mask32;
-    const ulong lhsHi = lhs >> 32;
+        Cent rhs128 = Cent.init;
+        rhs128.lo = rhs;
 
-    const ulong rhsLo = rhs & mask32;
-    const ulong rhsHi = rhs >> 32;
+        const Cent product =
+            mul(lhs128, rhs128);
 
-    /*
-     * Hacker's Delight style limb multiplication.
-     *
-     * All partial products are 32 x 32 -> <= 64 bit.
-     */
-    const ulong w0 =
-        lhsLo * rhsLo;
+        return Unsigned128(
+            product.hi,
+            product.lo
+        );
+    }
+    else
+    {
+        enum ulong mask32 = 0xffff_ffffUL;
 
-    const ulong t =
-        lhsHi * rhsLo +
-        (w0 >> 32);
+        const ulong lhsLo = lhs & mask32;
+        const ulong lhsHi = lhs >> 32;
 
-    const ulong w1Low =
-        t & mask32;
+        const ulong rhsLo = rhs & mask32;
+        const ulong rhsHi = rhs >> 32;
 
-    const ulong w2 =
-        t >> 32;
+        /*
+         * Hacker's Delight style limb multiplication.
+         *
+         * All partial products are 32 x 32 -> <= 64 bit.
+         */
+        const ulong w0 =
+            lhsLo * rhsLo;
 
-    const ulong w1 =
-        lhsLo * rhsHi +
-        w1Low;
+        const ulong t =
+            lhsHi * rhsLo +
+            (w0 >> 32);
 
-    const ulong hi =
-        lhsHi * rhsHi +
-        w2 +
-        (w1 >> 32);
+        const ulong w1Low =
+            t & mask32;
 
-    const ulong lo =
-        ((w1 & mask32) << 32) |
-        (w0 & mask32);
+        const ulong w2 =
+            t >> 32;
 
-    return Unsigned128(hi, lo);
+        const ulong w1 =
+            lhsLo * rhsHi +
+            w1Low;
+
+        const ulong hi =
+            lhsHi * rhsHi +
+            w2 +
+            (w1 >> 32);
+
+        const ulong lo =
+            ((w1 & mask32) << 32) |
+            (w0 & mask32);
+
+        return Unsigned128(hi, lo);
+    }
 }
 
 
@@ -417,6 +466,14 @@ private Orientation fromDeterminantSign(int sign)
  *
  * No signed subtraction or multiplication overflow is permitted in the
  * implementation.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!int a,
@@ -448,6 +505,14 @@ Orientation orientation(
  *
  * Product magnitudes are evaluated with exact 128-bit arithmetic. The
  * determinant itself is not materialized; only its sign is determined.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!long a,
@@ -486,6 +551,14 @@ Orientation orientation(
  * - a certified floating-point filter;
  * - exact expansion arithmetic for uncertain ordinary cases;
  * - an exact full-range dyadic fallback for extreme finite inputs.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!double a,
@@ -498,10 +571,32 @@ Orientation orientation(
     assert(b.isFinite);
     assert(c.isFinite);
 
+    const auto filtered =
+        orientationFilter(
+            a.x, a.y,
+            b.x, b.y,
+            c.x, c.y
+        );
+
+    final switch (filtered)
+    {
+        case OrientationFilterResult.right:
+            return Orientation.right;
+
+        case OrientationFilterResult.collinear:
+            return Orientation.collinear;
+
+        case OrientationFilterResult.left:
+            return Orientation.left;
+
+        case OrientationFilterResult.uncertain:
+            break;
+    }
+
     int sign;
 
     const bool success =
-        tryOrientationRobustDouble(
+        tryOrientationRobustDoubleFallback(
             a.x, a.y,
             b.x, b.y,
             c.x, c.y,
@@ -509,8 +604,8 @@ Orientation orientation(
         );
 
     /*
-     * Finite binary64 inputs are completely covered by the robust
-     * backend.
+     * Finite binary64 inputs are completely covered by the exact
+     * fallback backends.
      */
     assert(success);
 
@@ -530,6 +625,14 @@ Orientation orientation(
  * by the complete robust binary64 orientation backend.
  *
  * No predicate information is lost by this promotion.
+ *
+ * A degenerate directed line with a == b is valid and classifies every c as
+ * collinear.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
  */
 Orientation orientation(
     Point2!float a,
@@ -555,6 +658,31 @@ Orientation orientation(
             cast(double) c.x,
             cast(double) c.y
         )
+    );
+}
+
+
+/// Example using the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+
+    assert(
+        orientation(
+            P(0.0, 0.0),
+            P(1.0, 0.0),
+            P(0.0, 1.0)
+        ) == Orientation.left
+    );
+
+    assert(
+        orientation(
+            P(0.0, 0.0),
+            P(1.0, 0.0),
+            P(0.5, 0.0)
+        ) == Orientation.collinear
     );
 }
 

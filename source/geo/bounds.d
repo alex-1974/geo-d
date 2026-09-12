@@ -1,3 +1,18 @@
+/**
+ * Axis-aligned two-dimensional bounds.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.bounds;
 
 import geo.point : Point2;
@@ -36,6 +51,10 @@ if (isGeoScalar!T)
 
 /**
  * A closed axis-aligned bounds in a two-dimensional Euclidean space.
+ *
+ * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
+ *
+ * `Bounds2.init` is empty.
  *
  * Bounds2 has two semantic states:
  *

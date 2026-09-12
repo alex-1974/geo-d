@@ -1,3 +1,18 @@
+/**
+ * Signed and polygon area operations.
+  *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 12, 2026
+ */
 module geo.area;
 
 import geo.internal.area_exact :
@@ -264,6 +279,9 @@ if (
 /**
  * Algebraic signed area of a linear ring.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * The result is binary64.
+ *
  * Counter-clockwise traversal has positive area and clockwise traversal
  * has negative area in the usual Cartesian coordinate system.
  *
@@ -277,6 +295,11 @@ if (
  *
  * Self-intersecting rings produce their algebraic signed area; this
  * operation does not validate polygon topology.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices.
  */
 AreaScalar!T signedArea(T)(
     scope LinearRingView!T ring
@@ -320,6 +343,9 @@ if (
 /**
  * Role-based algebraic area of a polygon.
  *
+ * Supported scalar types are `int`, `long`, `float`, and `double`.
+ * The result is binary64.
+ *
  * Ring zero is the exterior ring and contributes the magnitude of its exact
  * algebraic area positively. Subsequent rings are interior rings and
  * contribute their exact area magnitudes negatively.
@@ -335,6 +361,12 @@ if (
  *
  * This operation does not validate polygon topology. Invalid polygon
  * representations may therefore produce a negative role-based result.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(n) time and O(1) auxiliary space for n stored vertices across all
+ *     rings.
  */
 AreaScalar!T polygonArea(T)(
     scope PolygonView!T polygon
@@ -412,6 +444,44 @@ if (
         polygonAccumulator.sign,
         polygonAccumulator.magnitude,
         -2149
+    );
+}
+
+
+/// Example showing that polygon ring roles are defined by storage order.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias R = LinearRingView!double;
+    alias V = PolygonView!double;
+
+    P[4] exteriorPoints = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0)
+    ];
+
+    P[4] holePoints = [
+        P(3.0, 3.0),
+        P(7.0, 3.0),
+        P(7.0, 7.0),
+        P(3.0, 7.0)
+    ];
+
+    R[2] rings = [
+        R(exteriorPoints[]),
+        R(holePoints[])
+    ];
+
+    auto polygon =
+        V(rings[]);
+
+    assert(
+        polygonArea(polygon) ==
+        84.0
     );
 }
 

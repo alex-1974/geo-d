@@ -16,8 +16,8 @@ implementation structure.
 | --- | --- |
 | Failure semantics | Complete |
 | Scalar constraints | Complete |
-| Allocation guarantees | Pending |
-| Complexity guarantees | Pending |
+| Allocation guarantees | Complete |
+| Complexity guarantees | Complete |
 
 ## Failure semantics
 
@@ -288,3 +288,182 @@ four-type robust/exact domain is explicit, documented, and verified.
 
 Future robust `real` support is governed by ADR-0016 rather than by silently
 widening template constraints.
+
+## Allocation guarantees
+
+Status: **complete**
+
+The audit reviewed allocation behaviour for the frozen public API and the
+public members of its exported types.
+
+### Value types and views
+
+`Point2`, `Vector2`, `Segment2`, and `Bounds2` are direct value types.
+
+Their public value operations do not allocate.
+
+`PolylineView`, `LinearRingView`, and `PolygonView` are non-owning views.
+Construction does not allocate or copy the referenced geometry storage.
+
+The caller retains ownership of:
+
+- point storage referenced by polyline and ring views;
+- ring-descriptor storage referenced by polygon views;
+- point storage referenced transitively by those ring descriptors.
+
+### Allocation-free algorithm families
+
+The following public computational families perform no allocation:
+
+- checked conversion and explicit quantisation;
+- `Bounds2` operations;
+- `tryBounds`;
+- metric primitives;
+- `polylineLength`;
+- nearest-point and point-to-segment distance;
+- orientation;
+- segment-intersection classification and construction;
+- signed ring area;
+- polygon area;
+- point-in-polygon classification;
+- ring validation;
+- Douglas-Peucker workspace sizing;
+- Douglas-Peucker simplification.
+
+Where these operations are declared `@nogc`, the compiler attribute reinforces
+the documented allocation contract.
+
+`trySimplifyDouglasPeuckerInto` does not allocate internal dynamic storage.
+Destination and traversal workspace are supplied by the caller.
+
+### Polygon-validation exception
+
+`validatePolygon` deliberately does not promise `@nogc`.
+
+Connected-interior validation may allocate temporary storage for:
+
+- touching-ring contact records;
+- union-find parent and rank storage;
+- per-contact bookkeeping.
+
+This allocation is part of the documented public contract rather than hidden
+allocation on an otherwise allocation-free path.
+
+Temporary storage depends on the number of rings and touching ring pairs and
+is covered by the corresponding complexity contract.
+
+### Allocation conclusion
+
+No undocumented allocation was found in a public API family.
+
+The dominant low-level geometry and predicate paths are allocation-free.
+
+`validatePolygon` is the intentional public exception and documents its
+temporary-storage behaviour explicitly.
+
+No public view performs an implicit deep copy.
+
+## Complexity guarantees
+
+Status: **complete**
+
+The audit reviewed asymptotic time and auxiliary-space behaviour for the
+frozen public API.
+
+Trivial value construction, field access, view indexing, and similarly direct
+constant-time operations do not require repetitive per-member complexity
+sections under the geo-d Ddoc policy.
+
+### Constant-time operations
+
+The following public operation families are O(1) in time and use O(1)
+auxiliary space:
+
+- core affine and value operations;
+- `Bounds2` value operations;
+- checked conversion;
+- explicit quantisation;
+- segment bounds computation;
+- metric primitives on points and segments;
+- nearest-point computation;
+- point-to-segment distance;
+- orientation;
+- segment-intersection classification;
+- segment-intersection point construction;
+- segment-intersection overlap construction;
+- Douglas-Peucker workspace-size calculation.
+
+The exact/robust implementation of a constant-size predicate may contain
+multiple internal numerical stages, but those stages operate on bounded-size
+representations. They therefore do not change the public asymptotic
+complexity.
+
+### Linear traversal
+
+For `n` participating stored points or vertices:
+
+- polyline bounds computation is O(n) time and O(1) auxiliary space;
+- ring bounds computation is O(n) time and O(1) auxiliary space;
+- polygon bounds computation is O(n) time and O(1) auxiliary space over all
+  stored vertices;
+- `polylineLength` is O(n) time and O(1) auxiliary space;
+- `signedArea` is O(n) time and O(1) auxiliary space;
+- `polygonArea` is O(n) time and O(1) auxiliary space over all stored
+  vertices;
+- point-in-polygon classification is O(n) time and O(1) auxiliary space over
+  all stored vertices.
+
+### Topology validation
+
+For a ring containing `n` stored vertices:
+
+```text
+validateRing
+    time   O(n^2)
+    space  O(1)
+```
+
+For polygon validation, let `n` be the total number of stored vertices, `r`
+the number of rings, and `c` the number of touching ring pairs.
+
+The public worst-case contract is:
+
+```text
+validatePolygon
+    time   O(n^2 log n)
+    temporary storage O(r + c)
+    worst-case auxiliary storage O(n^2)
+```
+
+The non-constant storage is required by connected-interior validation.
+
+### Douglas-Peucker simplification
+
+For `n` stored input points:
+
+```text
+trySimplifyDouglasPeuckerInto
+    worst-case time O(n^2)
+```
+
+The caller-provided traversal workspace requires at most:
+
+```text
+max(n - 2, 0)
+```
+
+`size_t` elements.
+
+Beyond caller-owned destination and workspace storage, the algorithm uses
+O(1) auxiliary storage and performs no allocation.
+
+### Complexity conclusion
+
+No undocumented asymptotic public algorithm was found.
+
+Every non-trivial public algorithm has an explicit complexity contract.
+
+Variable-size operations identify the input dimension governing their cost.
+
+The frozen v1 API contains no known accidental asymptotic behaviour that
+contradicts its documented contract.

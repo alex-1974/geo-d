@@ -422,8 +422,8 @@ Before `v1.0.0`:
 - [x] resolve the long-term policy for robust `real` support
 - [x] audit all public scalar constraints for consistency
 - [x] audit all public failure semantics
-- [ ] audit all public allocation guarantees
-- [ ] audit all public complexity guarantees
+- [x] audit all public allocation guarantees
+- [x] audit all public complexity guarantees
 - [x] audit all symbols exported through `import geo;`
 - [ ] define source-compatibility expectations for the `1.x` series
 - [ ] define a public API deprecation policy

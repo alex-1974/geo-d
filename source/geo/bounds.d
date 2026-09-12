@@ -64,6 +64,9 @@ if (isGeoScalar!T)
  * A degenerate bounds with min == max is non-empty.
  *
  * Floating-point non-empty bounds may contain infinities but never NaN.
+ *
+ * All public Bounds2 value operations perform no allocation and run in
+ * O(1) time with O(1) auxiliary space.
  */
 struct Bounds2(T)
 if (isGeoScalar!T)

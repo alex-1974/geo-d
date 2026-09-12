@@ -275,6 +275,80 @@ private bool adjacentRingEdges(
 }
 
 
+/*
+ * True when two closed scalar intervals overlap.
+ *
+ * No subtraction is used, so the complete signed integer scalar domain
+ * remains safe from overflow.
+ *
+ * Floating-point callers reach this helper only after ring validation has
+ * established finite coordinates.
+ */
+private bool closedIntervalsOverlap(T)(
+    T firstA,
+    T firstB,
+    T secondA,
+    T secondB
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    const T firstMin =
+        firstA < firstB
+            ? firstA
+            : firstB;
+
+    const T firstMax =
+        firstA > firstB
+            ? firstA
+            : firstB;
+
+    const T secondMin =
+        secondA < secondB
+            ? secondA
+            : secondB;
+
+    const T secondMax =
+        secondA > secondB
+            ? secondA
+            : secondB;
+
+    return
+        firstMax >= secondMin &&
+        secondMax >= firstMin;
+}
+
+
+/*
+ * Broad-phase rejection for robust topology work.
+ *
+ * Closed segments whose closed axis-aligned bounding boxes are disjoint
+ * cannot have any geometric contact. The test therefore safely avoids an
+ * exact segment-intersection classification for such pairs.
+ */
+private bool segmentBoxesOverlap(T)(
+    Segment2!T first,
+    Segment2!T second
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    return
+        closedIntervalsOverlap(
+            first.a.x,
+            first.b.x,
+            second.a.x,
+            second.b.x
+        ) &&
+        closedIntervalsOverlap(
+            first.a.y,
+            first.b.y,
+            second.a.y,
+            second.b.y
+        );
+}
+
+
 /**
  * Validates one LinearRingView.
  *
@@ -385,6 +459,23 @@ if (isValidationScalar!T)
                     ring,
                     j
                 );
+
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust segment-intersection predicate.
+             *
+             * Adjacent edges naturally survive because their shared
+             * endpoint belongs to both closed boxes.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    first,
+                    second
+                )
+            )
+            {
+                continue;
+            }
 
             const SegmentIntersectionKind kind =
                 segmentIntersectionKind(

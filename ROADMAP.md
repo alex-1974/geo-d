@@ -307,7 +307,7 @@ must have benchmark coverage.
 
 Required benchmark areas:
 
-- [ ] scalar conversion and quantisation
+- [x] scalar conversion and quantisation
 - [x] bounds operations where computationally meaningful
 - [x] metric primitives
 - [x] polyline length

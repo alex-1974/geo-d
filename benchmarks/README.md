@@ -899,3 +899,214 @@ benefit and showed regressions in several paths. That design was rejected.
 
 Absolute timings are machine-, compiler-, build-, and workload-dependent and
 are not public performance guarantees.
+
+## Conversion and quantisation benchmark
+
+`conversion_bench.d` measures representative public operations from
+`geo.convert`.
+
+The benchmark covers checked conversion for:
+
+- `Point2!int -> Point2!long`;
+- `Point2!long -> Point2!int`, including success and range failure;
+- `Point2!long -> Point2!double`;
+- `Point2!double -> Point2!int`, including success and fractional failure;
+- `Point2!double -> Point2!float`;
+- representative four-coordinate `Segment2` conversions.
+
+It also measures the public binary64 quantisation operations:
+
+- `rounded`;
+- `floored`;
+- `ceiled`;
+- `truncated`.
+
+Local direct implementations reproduce the relevant conversion and
+quantisation semantics and are diagnostic references only.
+
+The benchmark uses two alternating deterministic inputs per case, a warm-up
+phase, seven measured repetitions, and reports median nanoseconds per
+operation.
+
+All benchmark inputs are prepared before timing.
+
+### Build
+
+LDC:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/conversion_bench.d \
+        -of=/tmp/geo-d-conversion-bench-ldc
+
+    /tmp/geo-d-conversion-bench-ldc
+
+DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/conversion_bench.d \
+        -of=/tmp/geo-d-conversion-bench-dmd
+
+    /tmp/geo-d-conversion-bench-dmd
+
+### Initial conversion baseline
+
+Benchmark harness commit:
+
+    f5161f0fac1e
+
+The retained production implementation measured:
+
+```text
+LDC release:
+
+    Point2 conversion:
+
+        int -> long:
+            public   1.55 ns/op
+            direct   1.56 ns/op
+
+        long -> int success:
+            public   1.74 ns/op
+            direct   1.76 ns/op
+
+        long -> int failure:
+            public   1.70 ns/op
+            direct   1.71 ns/op
+
+        long -> double:
+            public   7.63 ns/op
+            direct   8.75 ns/op
+
+        double -> int success:
+            public   7.80 ns/op
+            direct   6.42 ns/op
+
+        double -> int fractional failure:
+            public   5.49 ns/op
+            direct   5.28 ns/op
+
+        double -> float:
+            public  10.30 ns/op
+            direct  11.03 ns/op
+
+    Segment2 conversion:
+
+        long -> int:
+            public   3.22 ns/op
+            direct   3.02 ns/op
+
+        double -> int:
+            public  18.15 ns/op
+            direct  16.13 ns/op
+
+    Point2!double quantisation:
+
+        rounded:
+            public  14.40 ns/op
+            direct  14.40 ns/op
+
+        floored:
+            public  10.25 ns/op
+            direct  10.55 ns/op
+
+        ceiled:
+            public  10.50 ns/op
+            direct  10.63 ns/op
+
+        truncated:
+            public  11.85 ns/op
+            direct  12.72 ns/op
+
+
+DMD release:
+
+    Point2 conversion:
+
+        int -> long:
+            public   3.37 ns/op
+            direct   2.02 ns/op
+
+        long -> int success:
+            public  11.07 ns/op
+            direct   7.93 ns/op
+
+        long -> int failure:
+            public   5.16 ns/op
+            direct   7.49 ns/op
+
+        long -> double:
+            public   8.71 ns/op
+            direct   7.56 ns/op
+
+        double -> int success:
+            public  25.59 ns/op
+            direct  21.56 ns/op
+
+        double -> int fractional failure:
+            public  17.30 ns/op
+            direct  15.05 ns/op
+
+        double -> float:
+            public  31.53 ns/op
+            direct  26.32 ns/op
+
+    Segment2 conversion:
+
+        long -> int:
+            public  24.07 ns/op
+            direct  18.16 ns/op
+
+        double -> int:
+            public  54.70 ns/op
+            direct  44.58 ns/op
+
+    Point2!double quantisation:
+
+        rounded:
+            public  24.39 ns/op
+            direct  24.85 ns/op
+
+        floored:
+            public  15.17 ns/op
+            direct  14.80 ns/op
+
+        ceiled:
+            public  19.03 ns/op
+            direct  19.03 ns/op
+
+        truncated:
+            public  18.16 ns/op
+            direct  18.41 ns/op
+```
+
+Under LDC, checked conversions are generally at or close to their direct
+references. The successful `double -> int` path shows a small additional
+cost, but no dominant abstraction overhead was identified.
+
+DMD shows a consistent additional cost on several successful checked
+conversion paths, particularly where multiple scalar checks are composed.
+The absolute latency remains small and no single local operation accounts for
+the difference.
+
+An explicit `pragma(inline, true)` experiment on the private scalar conversion
+helper was measured under both compilers. It did not produce a stable overall
+improvement and regressed several representative cases, so the change was
+rejected.
+
+The quantisation operations are effectively at direct-reference parity under
+both LDC and DMD. No production optimisation is justified by these
+measurements.
+
+Absolute timings are machine-, compiler-, build-, and workload-dependent and
+are not public performance guarantees.

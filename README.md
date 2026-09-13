@@ -12,10 +12,14 @@ inside and outside GIS software.
 
 ## Status
 
-The initial public release of `geo-d` is `v0.1.0`.
+The first public release of `geo-d` was `v0.1.0`.
 
-The initial API is intentionally small. New functionality is added when
-concrete use cases justify extending the geometry model.
+`v1.0.0` establishes the stable v1 public API. The supported package-level
+surface is frozen at 41 top-level names exported through `import geo;`.
+
+The API is intentionally small. New functionality is added when concrete use
+cases justify extending the geometry model and must follow the project's
+source-compatibility and deprecation policy.
 
 ## Features
 
@@ -55,7 +59,7 @@ real
 ~~~
 
 Unsigned integers, small integer types, arbitrary numeric-like types, and
-qualified scalar template parameters are outside the `v0.1` scalar contract.
+qualified scalar template parameters are outside the public scalar contract.
 
 There are no implicit conversions between different geometry scalar types.
 
@@ -400,6 +404,10 @@ verified as part of release preparation; a repository path dependency does
 not replace that verification.
 
 ## Documentation
+
+The generated public API reference is published at:
+
+https://alex-1974.github.io/geo-d/
 
 Architecture decisions are maintained under:
 

@@ -268,7 +268,7 @@ Required:
 - [x] ensure documentation examples are compiled during verification
 - [x] generate complete API reference documentation automatically
 - [x] evaluate `ddox` and `adrdox` and select one publication path
-- [ ] publish navigable API documentation
+- [x] publish navigable API documentation
 - [x] make documentation generation part of CI
 - [x] verify that exported public API is not left undocumented
 
@@ -284,7 +284,7 @@ Required:
 - [x] document DMD and LDC usage
 - [x] document `dub add geo-d`
 - [x] provide a minimal working example using only `import geo;`
-- [ ] verify the MWE against the published DUB package
+- [x] verify the MWE against the published DUB package
 - [x] provide task-oriented examples for:
   - point/vector algebra
   - metric operations
@@ -435,24 +435,29 @@ Before `v1.0.0`:
 
 `v1.0.0` may be tagged only when:
 
-- [ ] API documentation is complete and published
-- [ ] installation instructions are verified from a clean environment
-- [ ] MWEs compile against the public DUB package
+- [x] API documentation is complete and published
+- [x] installation instructions are verified from a clean environment
+- [x] MWEs compile against the public DUB package
 - [x] benchmark coverage spans all computational public API families
 - [x] DMD and LDC performance baselines are recorded
 - [x] all computational public API families have completed a performance
       audit
 - [x] identified high-value optimisations are completed or explicitly
       deferred
-- [ ] unit and property verification passes
-- [ ] minimum-compiler CI passes
-- [ ] current DMD CI passes
-- [ ] current LDC CI passes
-- [ ] external-consumer tests pass
-- [ ] documentation generation passes
-- [ ] repository state is release-clean
+- [x] unit and property verification passes
+- [x] minimum-compiler CI passes
+- [x] current DMD CI passes
+- [x] current LDC CI passes
+- [x] external-consumer tests pass
+- [x] documentation generation passes
+- [x] repository state is release-clean
 
-## Post-v0.1 numerical work
+Pre-tag public-registry verification resolved `geo-d ~main` from the public
+DUB registry and successfully built and ran the documented minimal consumer
+with both DMD and LDC. The exact `v1.0.0` registry version is smoke-tested
+again after the release tag has been indexed.
+
+## Post-v1 numerical work
 
 ### Robust `real` topology
 
@@ -464,24 +469,6 @@ Investigate a platform-aware exact or certified arithmetic backend for:
 
 No public assumption may be made about the representation, precision, or
 layout of D `real`.
-
-### Polyline-length accumulation
-
-Evaluate compensated accumulation techniques such as Neumaier or Kahan
-summation.
-
-Evaluation should cover:
-
-- long polylines;
-- heterogeneous segment lengths;
-- `double` metric results;
-- `real` metric results;
-- DMD performance;
-- LDC performance;
-- preservation of `pure`, `nothrow`, `@safe`, and `@nogc` where applicable.
-
-A more complicated accumulation strategy should only replace sequential
-addition if measurements demonstrate a worthwhile numerical improvement.
 
 ## Candidate future geometry
 

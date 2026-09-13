@@ -261,8 +261,8 @@ Required:
       degeneracies, non-finite handling, allocation behaviour, and relevant
       complexity
 - [x] document numerical guarantees separately from implementation details
-- [ ] provide documented `unittest` examples for representative public APIs
-- [ ] ensure documentation examples are compiled during verification
+- [x] provide documented `unittest` examples for representative public APIs
+- [x] ensure documentation examples are compiled during verification
 - [x] generate complete API reference documentation automatically
 - [x] evaluate `ddox` and `adrdox` and select one publication path
 - [ ] publish navigable API documentation
@@ -280,7 +280,7 @@ Required:
 - [x] document supported compiler/frontend versions
 - [ ] document DMD and LDC usage
 - [ ] document `dub add geo-d`
-- [ ] provide a minimal working example using only `import geo;`
+- [x] provide a minimal working example using only `import geo;`
 - [ ] verify the MWE against the published DUB package
 - [ ] provide task-oriented examples for:
   - point/vector algebra
@@ -293,9 +293,9 @@ Required:
   - point-in-polygon classification
   - topology validation
   - Douglas-Peucker simplification
-- [ ] clearly explain view ownership and lifetime semantics
-- [ ] clearly explain robust topology versus rounded geometric construction
-- [ ] clearly explain supported scalar domains and current `real` limitations
+- [x] clearly explain view ownership and lifetime semantics
+- [x] clearly explain robust topology versus rounded geometric construction
+- [x] clearly explain supported scalar domains and current `real` limitations
 
 `README.md` should remain a concise landing page. Detailed guides belong
 under `docs/`.
@@ -401,15 +401,15 @@ where those guarantees apply.
 
 It does require:
 
-- [ ] no known accidental asymptotic regression
-- [ ] no avoidable hidden allocation on low-level paths
-- [ ] no unnecessary deep copy
-- [ ] no known major redundant exact-arithmetic work
-- [ ] documented scaling behaviour for variable-size algorithms
-- [ ] DMD performance baselines
-- [ ] LDC performance baselines
-- [ ] investigation of substantial compiler-specific differences
-- [ ] explicit justification for intentionally expensive robust paths
+- [x] no known accidental asymptotic regression
+- [x] no avoidable hidden allocation on low-level paths
+- [x] no unnecessary deep copy
+- [x] no known major redundant exact-arithmetic work
+- [x] documented scaling behaviour for variable-size algorithms
+- [x] DMD performance baselines
+- [x] LDC performance baselines
+- [x] investigation of substantial compiler-specific differences
+- [x] explicit justification for intentionally expensive robust paths
 
 Correctness remains more important than raw throughput.
 
@@ -435,11 +435,11 @@ Before `v1.0.0`:
 - [ ] API documentation is complete and published
 - [ ] installation instructions are verified from a clean environment
 - [ ] MWEs compile against the public DUB package
-- [ ] benchmark coverage spans all computational public API families
-- [ ] DMD and LDC performance baselines are recorded
-- [ ] all computational public API families have completed a performance
+- [x] benchmark coverage spans all computational public API families
+- [x] DMD and LDC performance baselines are recorded
+- [x] all computational public API families have completed a performance
       audit
-- [ ] identified high-value optimisations are completed or explicitly
+- [x] identified high-value optimisations are completed or explicitly
       deferred
 - [ ] unit and property verification passes
 - [ ] minimum-compiler CI passes

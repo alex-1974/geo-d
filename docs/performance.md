@@ -654,3 +654,58 @@ source complexity.
 
 No geometry-bounds performance blocker remains for the current v1 maturity
 milestone.
+
+## v1.0.0 performance audit conclusion
+
+The v1.0.0 performance audit covers every computationally meaningful public
+algorithm family exposed through `import geo;`.
+
+The audit established public-API benchmark coverage for scalar conversion,
+bounds, metric primitives, polyline length, nearest-point and point-segment
+distance, orientation, segment-intersection classification and construction,
+signed area, polygon area, point-in-polygon classification, ring validation,
+polygon validation, and Douglas-Peucker simplification.
+
+Both DMD and LDC baselines were recorded throughout the audit. Variable-size
+algorithms were measured at multiple input sizes where meaningful so that
+their scaling behaviour is visible rather than represented by a single
+convenient input size.
+
+The audit also reviewed:
+
+- asymptotic complexity;
+- allocation and caller-owned workspace behaviour;
+- copying and non-owning geometry-view semantics;
+- repeated robust or exact-arithmetic work;
+- substantial DMD-versus-LDC differences;
+- ordinary fast paths separately from numerically difficult or exact fallback
+  paths where those distinctions are material.
+
+Measurement-driven optimisations were retained where they produced a clear
+benefit without weakening established semantics. Examples include compensated
+polyline-length accumulation, ordinary metric fast paths, point-in-polygon
+edge prefiltering, and topology-level bounding-box broad phases for ring and
+polygon validation.
+
+Experimental optimisations were rejected when their broader cost outweighed
+their local benefit. In particular, broad-phase segment rejection was kept in
+higher-level topology algorithms rather than moved into the general segment
+primitive when measurements showed regressions on ordinary contact paths.
+
+The robust binary64 orientation implementation was also compared against an
+algorithm-equivalent C++ reference. The measured filtered, expansion, and
+dyadic paths remained within the performance objectives established above
+while preserving the stronger numerical contract.
+
+No known accidental asymptotic regression, avoidable hidden low-level
+allocation, unnecessary deep copy, or major redundant exact-arithmetic work
+remains from the v1.0.0 audit.
+
+Intentionally expensive paths are retained where their cost follows from the
+documented numerical or topological guarantees. Correctness and numerical
+semantics remain higher priorities than replacing those paths with weaker
+approximations.
+
+Detailed workload definitions, compiler-specific measurements, rejected
+probes, and before/after optimisation results are recorded in
+`benchmarks/README.md`.

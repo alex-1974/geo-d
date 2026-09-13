@@ -68,7 +68,7 @@ Completed:
 
 Tracked numerical follow-up:
 
-- [ ] evaluate compensated accumulation for long polylines
+- [x] evaluate compensated accumulation for long polylines
 
 The existing sequential `polylineLength` accumulation remains valid API.
 Any change to the accumulation strategy must preserve the established result
@@ -92,8 +92,8 @@ Deferred:
 
 - [ ] robust orientation for `real`
 
-Robust `real` support requires a platform-aware backend and is not a
-`v0.1.0` requirement.
+Robust `real` support requires a platform-aware backend. It is an explicitly
+deferred post-v1 capability and is not a `v1.0.0` release blocker.
 
 ### Segment intersection
 
@@ -120,6 +120,9 @@ double
 Deferred:
 
 - [ ] segment-intersection support for `real`
+
+This follows the same explicitly deferred robust-`real` policy and is not a
+`v1.0.0` release blocker.
 
 ### Ring and polygon area
 
@@ -276,13 +279,13 @@ Generated HTML documentation is a derived publication artifact.
 
 Required:
 
-- [ ] document installation through the public DUB registry
+- [x] document installation through the public DUB registry
 - [x] document supported compiler/frontend versions
-- [ ] document DMD and LDC usage
-- [ ] document `dub add geo-d`
+- [x] document DMD and LDC usage
+- [x] document `dub add geo-d`
 - [x] provide a minimal working example using only `import geo;`
 - [ ] verify the MWE against the published DUB package
-- [ ] provide task-oriented examples for:
+- [x] provide task-oriented examples for:
   - point/vector algebra
   - metric operations
   - orientation

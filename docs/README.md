@@ -44,6 +44,13 @@ This guide defines the documentation contract for symbols exposed through
 `import geo;`, including semantics, input domains, failure behaviour,
 allocation, complexity, numerical guarantees, and examples.
 
+Practical installation and task-oriented usage examples are collected in:
+
+~~~text
+docs/getting-started.md
+~~~
+
+
 
 ## Core geometry model
 
@@ -439,27 +446,26 @@ Numerical and topology verification includes, where applicable:
 Benchmarks are maintained for numerical paths where exact arithmetic may
 materially affect runtime cost.
 
-## Open numerical work
-
-Two numerical topics remain deliberately open without blocking `v0.1.0`.
+## Numerical follow-up
 
 ### Robust `real` topology
 
-Supporting topology-sensitive operations for `real` requires an implementation
-that does not assume a particular representation, precision, size, or
-alignment for D `real`.
+Supporting topology-sensitive operations for `real` remains deliberately
+deferred. A robust implementation must not assume a particular representation,
+precision, size, or alignment for D `real`.
+
+This deferred feature is not a `v1.0.0` release blocker because the supported
+robust topology scalar domain is explicitly documented as `int`, `long`,
+`float`, and `double`.
 
 ### Polyline-length accumulation
 
-`polylineLength` currently uses sequential accumulation in
-`MetricScalar!T`.
+The polyline-length accumulation review required for the v1 series is
+complete.
 
-Compensated techniques such as Neumaier or Kahan summation should be
-evaluated for long or heterogeneous polylines before changing the current
-implementation.
-
-Any replacement must be justified by measured numerical benefit and should
-preserve the existing execution contracts where practical.
+`polylineLength` uses compensated accumulation while preserving its existing
+public result type and execution contracts. The design decision is recorded in
+ADR-0017.
 
 ## Design rule
 

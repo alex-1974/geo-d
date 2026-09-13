@@ -372,17 +372,32 @@ targets.
 
 ## Installation
 
-Once `geo-d` is published in the DUB registry:
+For a `geo-d` release available through the public DUB registry, add the
+package to a DUB project with:
 
 ~~~sh
 dub add geo-d
 ~~~
 
-Then import the package:
+Then import the supported package module:
 
 ~~~d
 import geo;
 ~~~
+
+DMD and LDC are both supported:
+
+~~~sh
+dub build --compiler=dmd
+dub build --compiler=ldc2
+~~~
+
+For a complete minimal program and task-oriented examples, see
+[`docs/getting-started.md`](docs/getting-started.md).
+
+Public-registry installation and the minimal example are independently
+verified as part of release preparation; a repository path dependency does
+not replace that verification.
 
 ## Documentation
 

@@ -1410,3 +1410,88 @@ most candidate edge pairs, and many hole pairs, are spatially disjoint.
 Absolute timings are machine-, compiler-, and build-dependent and are not part
 of the public API or performance contract.
 
+## Douglas-Peucker simplification benchmark
+
+`douglas_peucker_bench.d` measures the public
+`trySimplifyDouglasPeuckerInto()` polyline simplifier.
+
+Coverage includes:
+
+- completely reducible straight polylines;
+- sine-wave polylines with an intermediate retained-point ratio;
+- parabolic polylines retaining every input point with comparatively
+  balanced subdivision;
+- alternating zigzag polylines retaining every input point and stressing
+  unfavorable subdivision balance;
+- an integral `long` zigzag control workload.
+
+The benchmark uses caller-owned destination and workspace buffers sized before
+the timed region. Geometry construction and allocation are therefore excluded
+from the simplification measurements.
+
+### Input-dependent complexity
+
+Douglas-Peucker has input-dependent running time. The retained-point count
+alone does not determine the cost because the balance of the recursive
+subdivision tree determines how often input points are reconsidered.
+
+The benchmark deliberately contrasts two workloads that both retain every
+input point at zero tolerance:
+
+- the parabola produces comparatively balanced subdivisions;
+- the alternating zigzag produces strongly unbalanced subdivisions and
+  approaches the documented O(n^2) worst case.
+
+For a 16-fold increase in input size from 64 to 1,024 points:
+
+| Workload | LDC 64 | LDC 1,024 | Growth | DMD 64 | DMD 1,024 | Growth |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| straight | 1,067 ns | 17,444 ns | 16.3x | 1,341 ns | 20,743 ns | 15.5x |
+| sine, tolerance 0.1 | 5,513 ns | 510,356 ns | 92.6x | 8,817 ns | 787,402 ns | 89.3x |
+| parabola, tolerance 0 | 6,611 ns | 182,257 ns | 27.6x | 10,728 ns | 293,340 ns | 27.3x |
+| zigzag, tolerance 0 | 34,338 ns | 8,976,933 ns | 261x | 46,964 ns | 12,740,650 ns | 271x |
+
+The straight workload remains approximately linear at about:
+
+    LDC:
+        17 ns per input point
+
+    DMD:
+        20 ns per input point
+
+The parabola and zigzag both retain all 1,024 input points, but the zigzag is
+approximately 49 times slower under LDC and 43 times slower under DMD. This
+demonstrates that subdivision balance, rather than merely the output size,
+dominates the adverse case.
+
+The intermediate sine workload retains:
+
+    11 / 64 points
+    38 / 256 points
+    149 / 1024 points
+
+and exhibits the expected superlinear behavior between the fully reducible
+and worst-case workloads.
+
+The integral scalar-domain control at 256 points measured:
+
+    double zigzag:
+        LDC: 557,623 ns
+        DMD: 777,881 ns
+
+    long zigzag:
+        LDC: 600,155 ns
+        DMD: 1,029,425 ns
+
+No production optimization was introduced during this benchmark audit. The
+observed behavior is consistent with the documented algorithm and its O(n^2)
+worst-case complexity, and no separate implementation-level performance
+pathology was identified.
+
+Benchmark harness commit:
+
+- `f13b6bc` — `bench: add Douglas-Peucker performance coverage`
+
+Absolute timings are machine-, compiler-, build-, and workload-dependent and
+are not part of the public API or performance contract.
+

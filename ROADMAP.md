@@ -320,7 +320,7 @@ Required benchmark areas:
 - [x] point-in-polygon classification
 - [x] ring validation
 - [x] polygon validation
-- [ ] Douglas-Peucker simplification
+- [x] Douglas-Peucker simplification
 
 Benchmark workloads should distinguish where meaningful:
 

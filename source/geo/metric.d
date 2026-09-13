@@ -146,6 +146,116 @@ if (isGeoScalar!T)
 
 
 /*
+ * Conservative domain for direct binary floating-point products used by the
+ * ordinary-range metric fast path.
+ *
+ * Every non-zero component must lie in [2^-250, 2^250]. Therefore the
+ * individual products needed by projection and perpendicular-distance
+ * formulas lie in [2^-500, 2^500], comfortably inside the normal binary64
+ * range.
+ *
+ * The bound is intentionally conservative. Values outside it use the scaled
+ * full-range implementation.
+ */
+private bool isDirectMetricComponent(M)(M value)
+    pure nothrow @safe @nogc
+{
+    const M magnitude =
+        value < M(0)
+            ? -value
+            : value;
+
+    return
+        magnitude == M(0) ||
+        (
+            magnitude >= M(0x1p-250) &&
+            magnitude <= M(0x1p250)
+        );
+}
+
+
+private bool hasDirectMetricProductRange(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    return
+        isDirectMetricComponent(dx) &&
+        isDirectMetricComponent(dy) &&
+        isDirectMetricComponent(rx) &&
+        isDirectMetricComponent(ry);
+}
+
+
+/*
+ * Direct ordinary-range projection.
+ *
+ * Preconditions:
+ *
+ *     dx, dy, rx and ry are finite;
+ *     d is non-zero;
+ *     hasDirectMetricProductRange(dx, dy, rx, ry) is true.
+ */
+private M directProjectionParameter(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    const M numerator =
+        rx * dx +
+        ry * dy;
+
+    const M denominator =
+        dx * dx +
+        dy * dy;
+
+    return
+        numerator /
+        denominator;
+}
+
+
+/*
+ * Direct ordinary-range perpendicular distance.
+ *
+ * Preconditions are identical to directProjectionParameter().
+ */
+private M directPerpendicularDistance(M)(
+    M dx,
+    M dy,
+    M rx,
+    M ry
+)
+    pure nothrow @safe @nogc
+{
+    const M cross =
+        dx * ry -
+        dy * rx;
+
+    const M absCross =
+        cross < M(0)
+            ? -cross
+            : cross;
+
+    if (absCross == M(0))
+        return M(0);
+
+    return
+        absCross /
+        hypot(
+            dx,
+            dy
+        );
+}
+
+
+/*
  * Projection parameter of r onto d.
  *
  * Computes
@@ -173,6 +283,30 @@ private MetricScalar!T projectionParameter(T)(
 if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
+
+    /*
+     * Ordinary finite-range fast path.
+     *
+     * Inside this conservative domain, all direct products and their sums
+     * remain safely representable, so exponent normalization is unnecessary.
+     */
+    if (
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        )
+    )
+    {
+        return
+            directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            );
+    }
 
     const M absDx = dx < M(0) ? -dx : dx;
     const M absDy = dy < M(0) ? -dy : dy;
@@ -355,6 +489,30 @@ if (isGeoScalar!T)
 {
     alias M = MetricScalar!T;
 
+    /*
+     * Ordinary finite-range fast path.
+     *
+     * Power-of-two normalization is only needed outside the conservative
+     * direct-product domain.
+     */
+    if (
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        )
+    )
+    {
+        return
+            directPerpendicularDistance(
+                dx,
+                dy,
+                rx,
+                ry
+            );
+    }
+
     const M absDx = dx < M(0) ? -dx : dx;
     const M absDy = dy < M(0) ? -dy : dy;
     const M absRx = rx < M(0) ? -rx : rx;
@@ -498,13 +656,28 @@ if (
         return true;
     }
 
-    const M t =
-        projectionParameter!T(
+    const bool directMetricRange =
+        hasDirectMetricProductRange(
             dx,
             dy,
             rx,
             ry
         );
+
+    const M t =
+        directMetricRange
+            ? directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : projectionParameter!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     /*
      * Infinite projection parameters still determine an endpoint.
@@ -553,12 +726,19 @@ if (
         return false;
 
     result =
-        perpendicularDistance!T(
-            dx,
-            dy,
-            rx,
-            ry
-        );
+        directMetricRange
+            ? directPerpendicularDistance(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : perpendicularDistance!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     if (!isFinite(result))
     {
@@ -649,8 +829,28 @@ if (
     if (!isFinite(rx) || !isFinite(ry))
         return false;
 
+    const bool directMetricRange =
+        hasDirectMetricProductRange(
+            dx,
+            dy,
+            rx,
+            ry
+        );
+
     const M t =
-        projectionParameter!T(dx, dy, rx, ry);
+        directMetricRange
+            ? directProjectionParameter(
+                dx,
+                dy,
+                rx,
+                ry
+            )
+            : projectionParameter!T(
+                dx,
+                dy,
+                rx,
+                ry
+            );
 
     /*
      * Positive overflow of t simply means the projection lies beyond b.
@@ -742,11 +942,17 @@ if (isGeoScalar!T)
  *
  * Uses the same MetricScalar policy as segmentLength().
  *
- * Segment lengths are accumulated in stored order in MetricScalar!T.
- * Ordinary floating-point rounding may accumulate, and no exact-sum or
- * order-independent numerical guarantee is provided. The accumulated
- * result may overflow to infinity according to normal floating-point
- * arithmetic.
+ * Segment lengths are accumulated in stored order in MetricScalar!T using
+ * Kahan-style compensated summation to reduce floating-point accumulation
+ * error.
+ *
+ * Compensation improves mixed-scale sums but does not make the result exact,
+ * correctly rounded, or independent of segment order. Each segment length
+ * remains an ordinary floating-point metric computation.
+ *
+ * Non-finite segment lengths and accumulated overflow propagate according to
+ * normal floating-point arithmetic. The accumulated result may therefore be
+ * NaN or infinity.
  *
  * No allocation or point copying is performed.
  *
@@ -757,14 +963,45 @@ MetricScalar!T polylineLength(T)(PolylineView!T polyline)
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
-    MetricScalar!T result = 0;
+    alias M = MetricScalar!T;
+
+    M result = M(0);
+    M correction = M(0);
 
     foreach (i; 0 .. polyline.segmentCount)
     {
-        result +=
+        const M value =
             segmentLength(
                 polyline.segment(i)
             );
+
+        const M adjusted =
+            value - correction;
+
+        const M next =
+            result + adjusted;
+
+        /*
+         * A non-finite next value covers:
+         *
+         * - a non-finite segment length;
+         * - accumulated finite overflow;
+         * - an already non-finite running result.
+         *
+         * Preserve that ordinary floating-point result and discard the
+         * compensation state before continuing.
+         */
+        if (!isFinite(next))
+        {
+            result = next;
+            correction = M(0);
+            continue;
+        }
+
+        correction =
+            (next - result) - adjusted;
+
+        result = next;
     }
 
     return result;
@@ -997,6 +1234,34 @@ if (isGeoScalar!T)
                 SD(
                     PD(0.0, 0.0),
                     PD(1.0, 0.0)
+                ),
+                d
+            )
+        );
+
+        assert(d == 0.0);
+    }
+
+
+    /*
+     * Finite geometry can still require a metric difference outside the
+     * finite MetricScalar range.
+     *
+     * Failure must retain the documented zero result rather than expose
+     * an infinite intermediate value.
+     */
+    {
+        alias PD = Point2!double;
+        alias SD = Segment2!double;
+
+        double d = 123.0;
+
+        assert(
+            !tryPointSegmentDistance(
+                PD(0.0, 1.0),
+                SD(
+                    PD(-double.max, 0.0),
+                    PD( double.max, 0.0)
                 ),
                 d
             )
@@ -1387,6 +1652,117 @@ if (isGeoScalar!T)
 
         assert(polyline.segmentCount == 2);
         assert(polylineLength(polyline) == 10.0);
+    }
+
+
+    /*
+     * Compensated accumulation preserves small segment lengths that ordinary
+     * sequential addition can lose after the running total becomes large.
+     *
+     * Each block contributes exactly:
+     *
+     *     2 * 2^52 + 2
+     *
+     * and the complete expected result is itself exactly representable as
+     * binary64.
+     */
+    {
+        alias PP = Point2!double;
+
+        enum size_t blocks = 256;
+        enum double large = 0x1p52;
+        enum double expected = 0x1p61 + 512.0;
+
+        PP[1 + blocks * 4] points;
+
+        size_t index;
+
+        points[index++] =
+            PP(0.0, 0.0);
+
+        foreach (_; 0 .. blocks)
+        {
+            points[index++] =
+                PP(large, 0.0);
+
+            points[index++] =
+                PP(0.0, 0.0);
+
+            points[index++] =
+                PP(1.0, 0.0);
+
+            points[index++] =
+                PP(0.0, 0.0);
+        }
+
+        assert(index == points.length);
+
+        const length =
+            polylineLength(
+                PolylineView!double(points[])
+            );
+
+        assert(length == expected);
+    }
+
+
+    /*
+     * Compensated accumulation retains the established floating-point
+     * non-finite semantics.
+     */
+    {
+        alias PP = Point2!double;
+
+        PP[2] infinitePoints = [
+            PP(0.0, 0.0),
+            PP(double.infinity, 0.0)
+        ];
+
+        assert(
+            polylineLength(
+                PolylineView!double(
+                    infinitePoints[]
+                )
+            ) ==
+            double.infinity
+        );
+
+
+        PP[2] nanPoints = [
+            PP(0.0, 0.0),
+            PP(double.nan, 0.0)
+        ];
+
+        const nanLength =
+            polylineLength(
+                PolylineView!double(
+                    nanPoints[]
+                )
+            );
+
+        assert(nanLength != nanLength);
+
+
+        /*
+         * Every individual segment length is finite, but two double.max
+         * segments overflow the accumulated result. A later finite segment
+         * must leave that infinity intact.
+         */
+        PP[4] overflowPoints = [
+            PP(0.0, 0.0),
+            PP(double.max, 0.0),
+            PP(0.0, 0.0),
+            PP(1.0, 0.0)
+        ];
+
+        assert(
+            polylineLength(
+                PolylineView!double(
+                    overflowPoints[]
+                )
+            ) ==
+            double.infinity
+        );
     }
 
 

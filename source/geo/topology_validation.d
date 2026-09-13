@@ -15,6 +15,12 @@
  */
 module geo.topology_validation;
 
+import geo.bounding_box :
+    tryBounds;
+
+import geo.bounds :
+    Bounds2;
+
 import geo.intersection :
     SegmentContactKind,
     SegmentIntersectionKind,
@@ -275,6 +281,80 @@ private bool adjacentRingEdges(
 }
 
 
+/*
+ * True when two closed scalar intervals overlap.
+ *
+ * No subtraction is used, so the complete signed integer scalar domain
+ * remains safe from overflow.
+ *
+ * Floating-point callers reach this helper only after ring validation has
+ * established finite coordinates.
+ */
+private bool closedIntervalsOverlap(T)(
+    T firstA,
+    T firstB,
+    T secondA,
+    T secondB
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    const T firstMin =
+        firstA < firstB
+            ? firstA
+            : firstB;
+
+    const T firstMax =
+        firstA > firstB
+            ? firstA
+            : firstB;
+
+    const T secondMin =
+        secondA < secondB
+            ? secondA
+            : secondB;
+
+    const T secondMax =
+        secondA > secondB
+            ? secondA
+            : secondB;
+
+    return
+        firstMax >= secondMin &&
+        secondMax >= firstMin;
+}
+
+
+/*
+ * Broad-phase rejection for robust topology work.
+ *
+ * Closed segments whose closed axis-aligned bounding boxes are disjoint
+ * cannot have any geometric contact. The test therefore safely avoids an
+ * exact segment-intersection classification for such pairs.
+ */
+private bool segmentBoxesOverlap(T)(
+    Segment2!T first,
+    Segment2!T second
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    return
+        closedIntervalsOverlap(
+            first.a.x,
+            first.b.x,
+            second.a.x,
+            second.b.x
+        ) &&
+        closedIntervalsOverlap(
+            first.a.y,
+            first.b.y,
+            second.a.y,
+            second.b.y
+        );
+}
+
+
 /**
  * Validates one LinearRingView.
  *
@@ -385,6 +465,23 @@ if (isValidationScalar!T)
                     ring,
                     j
                 );
+
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust segment-intersection predicate.
+             *
+             * Adjacent edges naturally survive because their shared
+             * endpoint belongs to both closed boxes.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    first,
+                    second
+                )
+            )
+            {
+                continue;
+            }
 
             const SegmentIntersectionKind kind =
                 segmentIntersectionKind(
@@ -560,6 +657,43 @@ private struct RingPairContactResult
 
 
 /*
+ * Broad-phase overlap test for two already validated rings.
+ *
+ * Validation guarantees finite coordinates and non-empty valid rings.
+ */
+private bool ringBoxesOverlap(T)(
+    scope LinearRingView!T firstRing,
+    scope LinearRingView!T secondRing
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    Bounds2!T firstBounds;
+    Bounds2!T secondBounds;
+
+    const bool haveFirstBounds =
+        tryBounds(
+            firstRing,
+            firstBounds
+        );
+
+    const bool haveSecondBounds =
+        tryBounds(
+            secondRing,
+            secondBounds
+        );
+
+    assert(haveFirstBounds);
+    assert(haveSecondBounds);
+
+    return
+        firstBounds.intersects(
+            secondBounds
+        );
+}
+
+
+/*
  * Screens all segment contacts between two valid rings.
  *
  * Preconditions:
@@ -606,6 +740,20 @@ if (isValidationScalar!T)
                     secondRing,
                     j
                 );
+
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust contact predicate.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    firstEdge,
+                    secondEdge
+                )
+            )
+            {
+                continue;
+            }
 
             const SegmentContactKind contact =
                 segmentContactKind(
@@ -726,6 +874,24 @@ if (isValidationScalar!T)
         {
             auto secondRing =
                 polygon[secondRingIndex];
+
+            /*
+             * Exterior/hole pairs normally overlap at ring-bounds level
+             * because a valid hole lies inside the exterior. Avoid paying
+             * for an unproductive ring-level test there.
+             *
+             * Distinct holes, however, are commonly spatially disjoint.
+             */
+            if (
+                firstRingIndex > 0 &&
+                !ringBoxesOverlap(
+                    firstRing,
+                    secondRing
+                )
+            )
+            {
+                continue;
+            }
 
             const RingPairContactResult contactResult =
                 screenRingPairContacts(
@@ -1101,6 +1267,20 @@ if (isValidationScalar!T)
                     j
                 );
 
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust contact predicate.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    firstEdge,
+                    secondEdge
+                )
+            )
+            {
+                continue;
+            }
+
             const SegmentContactKind contact =
                 segmentContactKind(
                     firstEdge,
@@ -1297,6 +1477,17 @@ if (isValidationScalar!T)
         {
             auto secondRing =
                 polygon[secondRingIndex];
+
+            if (
+                firstRingIndex > 0 &&
+                !ringBoxesOverlap(
+                    firstRing,
+                    secondRing
+                )
+            )
+            {
+                continue;
+            }
 
             Point2!T point;
 

@@ -160,7 +160,14 @@ if (
         if (!current.isFinite)
             return false;
 
-        if (!boundaryFound)
+        if (
+            !boundaryFound &&
+            withinClosedBounds(
+                point.y,
+                previous.y,
+                current.y
+            )
+        )
         {
             const Orientation side =
                 orientation(
@@ -214,7 +221,14 @@ if (
      *
      * For a singleton this is the degenerate segment P -> P.
      */
-    if (!boundaryFound)
+    if (
+        !boundaryFound &&
+        withinClosedBounds(
+            point.y,
+            previous.y,
+            first.y
+        )
+    )
     {
         const Orientation side =
             orientation(

@@ -1233,3 +1233,83 @@ preserving the full public numerical and failure semantics.
 
 Absolute timings are machine-, compiler-, build-, and workload-dependent and
 are not public performance guarantees.
+
+## Ring validation benchmark
+
+`ring_validation_bench.d` measures the public `validateRing()` topology
+validator.
+
+Coverage includes:
+
+- valid convex rings with 16, 64, and 256 stored vertices;
+- minimum-cardinality failure;
+- late non-finite-coordinate failure;
+- late zero-length-edge failure;
+- self-intersection;
+- adjacent positive-length overlap.
+
+Valid-ring measurements report both time per validation and time per unordered
+edge pair.
+
+### Broad-phase bounding-box rejection
+
+The v1 release-preparation audit identified robust segment-intersection
+classification as the dominant cost for valid rings. `validateRing()` has
+quadratic worst-case complexity because every unordered pair of implicit ring
+edges must be considered.
+
+Production now performs a closed axis-aligned bounding-box overlap test before
+calling the robust segment-intersection predicate. Two closed segments whose
+closed bounding boxes are disjoint cannot intersect, so the rejection is
+topologically exact.
+
+The test uses coordinate comparisons rather than subtraction. It therefore
+does not introduce signed-integer overflow risk for the supported integral
+scalar domains.
+
+The optimization deliberately lives in the topology-validation layer rather
+than in the general segment-intersection primitive. A probe that placed the
+same rejection inside the segment primitive accelerated spatially disjoint
+segments but regressed ordinary crossing, overlap, near-parallel, and several
+intersection-construction cases. Higher-level O(n^2) topology algorithms have
+a much stronger expectation that most tested edge pairs are disjoint and are
+therefore the appropriate broad-phase layer.
+
+A second probe special-cased adjacent ring edges before the bounding-box test.
+It improved the isolated adjacent-overlap failure case but made valid-ring
+validation slower because adjacency then had to be tested for every unordered
+edge pair. That variant was rejected.
+
+Production optimization commit:
+
+- `4574424` — `perf: prefilter ring edge pairs by bounding box`
+
+Benchmark harness commit:
+
+- `56e278f` — `bench: add ring validation performance coverage`
+
+### Representative results
+
+The table compares the original production validator with the retained
+topology-level bounding-box prefilter.
+
+| Compiler | Vertices | Before | After | Speedup |
+| --- | ---: | ---: | ---: | ---: |
+| LDC | 16 | 8,117 ns | 1,147 ns | 7.1x |
+| LDC | 64 | 128,755 ns | 6,568 ns | 19.6x |
+| LDC | 256 | 2,098,241 ns | 53,596 ns | 39.1x |
+| DMD | 16 | 13,011 ns | 4,656 ns | 2.8x |
+| DMD | 64 | 208,885 ns | 52,899 ns | 3.95x |
+| DMD | 256 | 3,384,305 ns | 745,798 ns | 4.54x |
+
+The optimization does not change the documented asymptotic complexity:
+`validateRing()` remains O(n^2) time and O(1) auxiliary space. It substantially
+reduces the cost of the common case where most non-adjacent ring edges are
+spatially disjoint.
+
+Failure-path timings remain small compared with full valid-ring validation.
+They are retained primarily as regression controls rather than as optimization
+targets.
+
+Absolute timings are machine-, compiler-, and build-dependent and are not part
+of the public API or performance contract.

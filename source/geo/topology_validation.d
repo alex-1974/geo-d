@@ -15,6 +15,12 @@
  */
 module geo.topology_validation;
 
+import geo.bounding_box :
+    tryBounds;
+
+import geo.bounds :
+    Bounds2;
+
 import geo.intersection :
     SegmentContactKind,
     SegmentIntersectionKind,
@@ -651,6 +657,43 @@ private struct RingPairContactResult
 
 
 /*
+ * Broad-phase overlap test for two already validated rings.
+ *
+ * Validation guarantees finite coordinates and non-empty valid rings.
+ */
+private bool ringBoxesOverlap(T)(
+    scope LinearRingView!T firstRing,
+    scope LinearRingView!T secondRing
+)
+    pure nothrow @safe @nogc
+if (isValidationScalar!T)
+{
+    Bounds2!T firstBounds;
+    Bounds2!T secondBounds;
+
+    const bool haveFirstBounds =
+        tryBounds(
+            firstRing,
+            firstBounds
+        );
+
+    const bool haveSecondBounds =
+        tryBounds(
+            secondRing,
+            secondBounds
+        );
+
+    assert(haveFirstBounds);
+    assert(haveSecondBounds);
+
+    return
+        firstBounds.intersects(
+            secondBounds
+        );
+}
+
+
+/*
  * Screens all segment contacts between two valid rings.
  *
  * Preconditions:
@@ -697,6 +740,20 @@ if (isValidationScalar!T)
                     secondRing,
                     j
                 );
+
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust contact predicate.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    firstEdge,
+                    secondEdge
+                )
+            )
+            {
+                continue;
+            }
 
             const SegmentContactKind contact =
                 segmentContactKind(
@@ -817,6 +874,24 @@ if (isValidationScalar!T)
         {
             auto secondRing =
                 polygon[secondRingIndex];
+
+            /*
+             * Exterior/hole pairs normally overlap at ring-bounds level
+             * because a valid hole lies inside the exterior. Avoid paying
+             * for an unproductive ring-level test there.
+             *
+             * Distinct holes, however, are commonly spatially disjoint.
+             */
+            if (
+                firstRingIndex > 0 &&
+                !ringBoxesOverlap(
+                    firstRing,
+                    secondRing
+                )
+            )
+            {
+                continue;
+            }
 
             const RingPairContactResult contactResult =
                 screenRingPairContacts(
@@ -1192,6 +1267,20 @@ if (isValidationScalar!T)
                     j
                 );
 
+            /*
+             * Reject spatially disjoint edge pairs before invoking the
+             * robust contact predicate.
+             */
+            if (
+                !segmentBoxesOverlap(
+                    firstEdge,
+                    secondEdge
+                )
+            )
+            {
+                continue;
+            }
+
             const SegmentContactKind contact =
                 segmentContactKind(
                     firstEdge,
@@ -1388,6 +1477,17 @@ if (isValidationScalar!T)
         {
             auto secondRing =
                 polygon[secondRingIndex];
+
+            if (
+                firstRingIndex > 0 &&
+                !ringBoxesOverlap(
+                    firstRing,
+                    secondRing
+                )
+            )
+            {
+                continue;
+            }
 
             Point2!T point;
 

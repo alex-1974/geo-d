@@ -319,7 +319,7 @@ Required benchmark areas:
 - [x] polygon-area core arithmetic
 - [x] point-in-polygon classification
 - [x] ring validation
-- [ ] polygon validation
+- [x] polygon validation
 - [ ] Douglas-Peucker simplification
 
 Benchmark workloads should distinguish where meaningful:

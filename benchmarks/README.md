@@ -1313,3 +1313,100 @@ targets.
 
 Absolute timings are machine-, compiler-, and build-dependent and are not part
 of the public API or performance contract.
+
+## Polygon validation benchmark
+
+`polygon_validation_bench.d` measures the public `validatePolygon()` topology
+validator.
+
+Coverage includes:
+
+- an exterior-only polygon;
+- valid polygons with 1, 4, and 16 rectangular holes;
+- a high-vertex exterior-plus-hole workload;
+- a tangential hole contact;
+- a hole outside the exterior;
+- nested holes;
+- an inter-ring crossing.
+
+Valid multi-ring measurements report both time per validation and, where
+meaningful, time per unordered ring pair.
+
+### Hierarchical bounding-box rejection
+
+The v1 release-preparation audit identified repeated robust segment-contact
+classification as the dominant cost of polygon validation.
+
+Polygon validation performs several topology stages. Inter-ring contact
+screening considers edge pairs from different rings, and connected-interior
+validation may later inspect the same ring pairs again for permitted point
+contacts. Calling the robust segment-contact predicate for every such edge
+pair was particularly expensive for large rings whose individual edges are
+mostly spatially disjoint.
+
+Production now applies two broad-phase levels.
+
+First, every inter-ring edge pair is tested for overlap of its closed
+axis-aligned bounding boxes before the robust segment-contact predicate is
+called. Disjoint closed segment boxes prove that the segments cannot touch,
+cross, or overlap.
+
+Second, unordered hole-to-hole ring pairs receive an additional ring-level
+bounding-box test before their edge pairs are inspected. Distinct holes are
+commonly spatially disjoint, so this rejects the entire pair cheaply.
+
+The ring-level test is deliberately not applied unconditionally to
+exterior-to-hole pairs. A valid hole lies within the exterior, so their ring
+bounding boxes normally overlap. A probe that computed ring bounds for every
+ring pair improved workloads with many disjoint holes but added unnecessary
+work to exterior-to-hole paths and caused measurable regressions in several
+DMD control cases. The retained implementation therefore uses ring-level
+rejection only for hole-to-hole pairs.
+
+The optimization remains in the topology-validation layer. The general
+segment-intersection primitives are unchanged.
+
+Production optimization commit:
+
+- `d102ea5` — `perf: prefilter polygon ring contacts by bounding box`
+
+Benchmark harness commit:
+
+- `021b3c3` — `bench: add polygon validation performance coverage`
+
+### Representative results
+
+The table compares the original production validator with the retained
+hierarchical bounding-box broad phase.
+
+| Case | LDC before | LDC after | Speedup | DMD before | DMD after | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 hole, 4 vertices/ring | 2,649 ns | 607 ns | 4.37x | 5,420 ns | 2,341 ns | 2.31x |
+| 4 holes, 4 vertices/ring | 22,424 ns | 2,289 ns | 9.79x | 41,227 ns | 9,166 ns | 4.50x |
+| 16 holes, 4 vertices/ring | 302,089 ns | 15,903 ns | 19.0x | 545,530 ns | 64,738 ns | 8.43x |
+| outer 128 + hole 64 vertices | 1,130,597 ns | 51,152 ns | 22.1x | 2,156,364 ns | 652,579 ns | 3.30x |
+| 1 tangent hole | 2,564 ns | 1,614 ns | 1.59x | 4,542 ns | 3,523 ns | 1.29x |
+| hole outside exterior | 1,809 ns | 515 ns | 3.52x | 3,383 ns | 1,753 ns | 1.93x |
+| nested holes | 3,799 ns | 1,006 ns | 3.77x | 8,014 ns | 3,657 ns | 2.19x |
+| inter-ring crossing | 751 ns | 542 ns | 1.39x | 1,805 ns | 1,499 ns | 1.20x |
+
+The high-vertex workload is especially diagnostic: it contains only one ring
+pair, but 128 exterior edges and 64 hole edges. The large speedup therefore
+comes primarily from rejecting spatially disjoint edge pairs before robust
+contact classification rather than from reducing the number of ring pairs.
+
+The many-hole workload demonstrates the complementary ring-level broad phase.
+With 16 holes, many unordered hole pairs are spatially disjoint and can be
+rejected before entering their edge-pair loops.
+
+Case verification passed for both benchmarked compilers, including tangential
+contact and the invalid outside-hole, nested-hole, and inter-ring-crossing
+paths.
+
+The optimization does not change the documented worst-case asymptotic
+complexity of polygon validation. It reduces work in the common case where
+most candidate edge pairs, and many hole pairs, are spatially disjoint.
+
+Absolute timings are machine-, compiler-, and build-dependent and are not part
+of the public API or performance contract.
+

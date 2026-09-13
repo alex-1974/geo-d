@@ -4,6 +4,51 @@ All notable changes to `geo-d` are documented in this file.
 
 The project follows Semantic Versioning for published releases.
 
+## [1.0.0] - 2026-09-13
+
+First stable release.
+
+The supported v1 package-level API is frozen at 41 top-level names exported
+through `import geo;`.
+
+### Added
+
+- Geometry-wide `tryBounds` support for segments, polylines, linear rings,
+  and polygons with explicit empty and NaN semantics.
+- Complete task-oriented getting-started documentation.
+- Public navigable ddox API documentation published through GitHub Pages.
+- External-consumer verification of the frozen package-level API.
+- Complete benchmark coverage for every computational public API family.
+
+### Changed
+
+- `polylineLength` now uses compensated accumulation while preserving its
+  public type and execution contracts.
+- Ordinary-range nearest-point and point-to-segment metric operations use a
+  measured fast path while retaining scaled full-range handling.
+- Point-in-polygon classification avoids unnecessary robust orientation work
+  through a y-range edge prefilter.
+- Ring and polygon validation use bounding-box broad-phase filters to avoid
+  unnecessary exact segment-contact work.
+- Robust binary64 orientation internals were hardened and benchmarked against
+  direct C/C++ reference implementations.
+
+### Stability and verification
+
+- Defined source-compatibility expectations and deprecation policy for the
+  `1.x` series.
+- Audited public failure semantics, scalar domains, allocation behaviour, and
+  algorithmic complexity.
+- Recorded DMD and LDC performance baselines for all computational API
+  families.
+- CI verifies the minimum supported D frontend, current DMD, current LDC,
+  external package consumption, release builds, and generated public API
+  documentation.
+- Clean public-registry consumer verification succeeds with both DMD and LDC.
+- Robust topology for D `real` remains intentionally deferred; this is an
+  explicit v1 scalar-domain limitation rather than an unfinished release
+  requirement.
+
 ## [0.1.0] - 2026-09-11
 
 Initial public release.

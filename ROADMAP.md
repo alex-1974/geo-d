@@ -557,7 +557,7 @@ DDox documentation.
 
 The desired state is:
 
-- [ ] inventory every public declaration requiring an example
+- [x] inventory every public declaration requiring an example
 - [ ] add documented `unittest` examples where useful
 - [ ] ensure examples use the supported consumer surface through
       `import geo;`
@@ -575,6 +575,14 @@ accidental.
 The existing representative documented unittests remain valid; this audit
 raises the post-v1 goal from representative coverage to systematic public
 API example coverage.
+
+
+The baseline inventory is recorded in
+`docs/public-api-example-audit.md`. The DDox output generated from commit
+`4b3b246` contains 92 public symbol pages: seven already render an `Example`,
+31 are classified for a dedicated example, and 54 are deliberately covered
+by an owning type or API-family example. Completing the inventory does not
+mark the example implementation or DDox-verification tasks complete.
 
 
 Baseline audit of the documentation generated from commit `4b3b246` found

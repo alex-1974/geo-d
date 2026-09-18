@@ -461,6 +461,281 @@ DUB registry and successfully built and ran the documented minimal consumer
 with both DMD and LDC. The exact `v1.0.0` registry version is smoke-tested
 again after the release tag has been indexed.
 
+## Post-v1 maturity and consumer audit
+
+The first post-v1 phase is an audit of portability, documentation maturity,
+ecosystem expectations, and concrete consumer requirements.
+
+This phase does not commit `geo-d` to implementing the conventional feature
+set of larger geometry libraries.
+
+New public API remains consumer-driven and research-gated.
+
+The purpose of the audit is to identify:
+
+- portability gaps;
+- public documentation and example gaps;
+- capabilities commonly expected from reusable 2D geometry libraries;
+- concrete geometry requirements of downstream consumers;
+- opportunities for stronger independent verification.
+
+Any resulting API proposal must still pass the ordinary `1.x`
+source-compatibility, scope, semantic, numerical, and ownership review.
+
+### Cross-platform and cross-architecture portability
+
+The current Linux x86-64 compiler matrix remains the baseline.
+
+Expand verification to other operating systems and architectures supported
+by practical CI infrastructure.
+
+Initial targets:
+
+- [ ] Linux x86-64
+- [ ] Linux ARM64
+- [ ] Windows x86-64
+- [ ] macOS x86-64
+- [ ] macOS ARM64
+- [ ] evaluate Windows ARM64 when the GitHub-hosted runner and D toolchain
+      provide a sufficiently stable combination
+
+For additional platforms, prefer `LDC latest` as the first portability
+probe. Broader compiler combinations should be added only where they provide
+useful independent evidence rather than creating a redundant Cartesian
+product.
+
+Each supported CI target should, where practical:
+
+- [ ] run the library unit tests
+- [ ] run the external consumer test
+- [ ] build the release configuration
+- [ ] build or otherwise verify public documentation where relevant
+
+The portability audit must pay particular attention to assumptions involving:
+
+- D `real` representation and precision;
+- floating-point evaluation behaviour;
+- the explicit binary64 rounding backend;
+- exact integer arithmetic helpers;
+- integer width and data layout;
+- compiler-specific intrinsics or code generation;
+- alignment and ABI assumptions.
+
+Architectures not covered by ordinary GitHub-hosted runners should be
+identified explicitly rather than silently treated as verified.
+
+Potential later portability probes include:
+
+- 32-bit targets;
+- big-endian targets;
+- additional Unix-like operating systems.
+
+These are research targets rather than current support commitments.
+
+### Public API executable-example audit
+
+Audit the complete supported public API exported through `import geo;`.
+
+The audit covers:
+
+- the 41 frozen v1 top-level public names;
+- public methods and properties of exported types;
+- templates and overload families;
+- failure-oriented APIs whose correct use is not obvious from the signature.
+
+For every user-facing public declaration, determine whether it has an
+appropriate documented `unittest` example that appears in the generated
+DDox documentation.
+
+The desired state is:
+
+- [ ] inventory every public declaration requiring an example
+- [ ] add documented `unittest` examples where useful
+- [ ] ensure examples use the supported consumer surface through
+      `import geo;`
+- [ ] ensure every example is compiled as part of ordinary verification
+- [ ] verify that DDox actually publishes the example
+- [ ] add automated documentation-example coverage checking where practical
+
+Tiny accessors, enum members, or closely related overloads do not require
+artificial duplicate examples when one documented example clearly
+demonstrates the complete public API family.
+
+Any omission should therefore be deliberate and auditable rather than
+accidental.
+
+The existing representative documented unittests remain valid; this audit
+raises the post-v1 goal from representative coverage to systematic public
+API example coverage.
+
+### Geometry-library landscape inventory
+
+Inventory comparable and influential geometry libraries before selecting
+new `geo-d` functionality.
+
+Research should include both D libraries and mature libraries in other
+ecosystems.
+
+Candidate reference implementations include:
+
+- D geometry and mathematical libraries;
+- Boost.Geometry;
+- GEOS and JTS;
+- CGAL;
+- Rust `geo`;
+- Clipper2;
+- other focused libraries where they provide useful evidence for a specific
+  algorithm family.
+
+The inventory should record more than function names.
+
+For each relevant capability, compare where practical:
+
+- geometry model;
+- public operation;
+- scalar model;
+- numerical robustness;
+- degenerate-input semantics;
+- non-finite handling;
+- ownership and allocation model;
+- mutating versus non-mutating design;
+- algorithmic complexity;
+- topology guarantees;
+- error or failure representation.
+
+The result should be a capability matrix, not a feature wish list.
+
+### General ecosystem capability-gap analysis
+
+Use the library inventory to determine whether important generally expected
+2D Euclidean geometry capabilities are absent from `geo-d`.
+
+Every identified capability should be classified as one of:
+
+~~~text
+already covered
+deliberately out of scope
+useful but currently unproven
+research candidate
+consumer-backed candidate
+~~~
+
+Areas worth investigating may include, but are not limited to:
+
+- additional vector operations;
+- additional bounds operations;
+- line and projection primitives;
+- nearest-point operations on aggregate geometry;
+- ring perimeter;
+- ring orientation queries;
+- centroid calculation;
+- convex hull;
+- geometry-to-geometry distance;
+- affine transformations;
+- additional geometric relationships;
+- clipping and overlay;
+- buffer or offset operations.
+
+Presence in another library is not sufficient justification for addition to
+`geo-d`.
+
+Large algorithm families such as polygon overlay, buffering, or generalized
+topological relationships require substantially stronger evidence and design
+work than small primitive operations.
+
+### OSM-editor consumer analysis
+
+Treat the planned D OSM editor as a concrete downstream consumer of
+`geo-d`.
+
+Do not copy the geometry utility surface of an existing editor wholesale.
+
+Instead:
+
+1. identify real editor workflows;
+2. decompose each workflow into coordinate-system-agnostic Euclidean
+   geometry operations;
+3. determine whether `geo-d` already provides those operations;
+4. separate geometry requirements from OSM model, CRS, projection, spatial
+   indexing, rendering, and UI concerns;
+5. turn missing geometry primitives into explicit consumer requirements.
+
+Relevant editor workflows may include:
+
+- snapping to ways and segments;
+- nearest-segment discovery once candidate geometry is known;
+- projecting a point onto a line or segment;
+- line and segment intersection;
+- angle and direction operations;
+- area orientation;
+- polygon or area editing;
+- clipping or overlap operations;
+- geometry validation and repair support.
+
+The analysis should examine established OSM editors, including JOSM, as
+research references while preserving the architectural boundaries of the
+D geospatial workspace.
+
+Requirements belonging to `osm-d`, `proj-d`, `spatial-d`, `imagery-d`, or
+other sibling libraries must not migrate into `geo-d` merely because an
+editor needs them.
+
+### Independent differential and property verification
+
+Expand independent verification where external implementations or
+mathematical properties provide useful oracles.
+
+Potential techniques include:
+
+- differential testing against mature geometry implementations;
+- randomized property testing;
+- metamorphic testing;
+- permutation and reversal invariants;
+- cross-compiler comparison;
+- cross-architecture comparison;
+- exact arithmetic reference implementations.
+
+External geometry libraries may be used as research or test oracles without
+becoming runtime dependencies of `geo-d`.
+
+Differences must be investigated semantically: disagreement does not by
+itself establish which implementation is correct when libraries define
+degenerate cases or topology differently.
+
+### Post-v1 API decision gate
+
+The audit may produce API candidates, but it does not itself authorize API
+expansion.
+
+A candidate public addition should follow this sequence:
+
+~~~text
+research and/or concrete consumer requirement
+                    |
+                    v
+              geo-d scope check
+                    |
+                    v
+        semantic and numerical design
+                    |
+                    v
+          1.x compatibility analysis
+                    |
+                    v
+       ADR when architecturally relevant
+                    |
+                    v
+          implementation and evidence
+~~~
+
+Small additions are not exempt from this process merely because they appear
+conventional.
+
+The preferred outcome remains the smallest public API that makes `geo-d`
+broadly useful while preserving explicit semantics, numerical robustness,
+predictable memory behaviour, and clear workspace boundaries.
+
+
 ## Post-v1 numerical work
 
 ### Robust `real` topology

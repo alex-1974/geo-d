@@ -131,7 +131,7 @@ geographic grid references
 location coding systems
 ```
 
-Such concepts belong to `georef-d` or another explicitly specialised library.
+Such concepts belong to `locationref-d` or another explicitly specialised library.
 
 ### 7. CRS infrastructure is outside `geo-d`
 
@@ -304,7 +304,7 @@ geo-d
 geodesy-d
     Earth- and ellipsoid-dependent mathematics
 
-georef-d
+locationref-d
     geographic referencing and location coding
 
 raster-d

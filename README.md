@@ -330,7 +330,7 @@ Those concerns belong in separate libraries.
 
 Within the wider `d-geospatial` family, complementary projects may include
 libraries such as `geodesy-d`, `proj-d`, `spatial-d`, `raster-d`, and
-`georef-d`.
+`locationref-d`.
 
 `geo-d` remains independently usable and versioned.
 

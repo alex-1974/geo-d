@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "${1:-$HOME/Programmiersprachen/dlang/d-geospatial/libs/geo-d}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="${1:-$(cd "$script_dir/../.." && pwd)}"
+cd "$repo_root"
 
 BENCH=benchmarks/expansion_component_bench.d
 

@@ -1,11 +1,14 @@
 # ADR-0001 — Scope and boundaries of `geo-d`
 
 **Status:** Accepted  
-**Date:** 2026-09-09
+**Date:** 2026-09-09<br>
+**Amended:** 2026-09-18 — workspace naming and sibling-library ownership were
+updated after the coordinated workspace reorganization; the `geo-d` scope
+decision itself is unchanged.
 
 ## Context
 
-`d-geospatial` consists of independent, reusable D libraries. Each library must represent a coherent domain, remain independently useful, and avoid dependencies that exist only for incidental code sharing.
+`d-geospatial-workspace` coordinates independent, reusable D libraries. Each library must represent a coherent domain, remain independently useful, and avoid dependencies that exist only for incidental code sharing.
 
 `geo-d` is intended to provide the fundamental geometry layer of this library family.
 
@@ -148,7 +151,7 @@ PROJ contexts
 PROJ pipelines
 ```
 
-These belong to `proj-d` or other specialised CRS infrastructure.
+These belong to a future `proj-d` or other specialised CRS infrastructure.
 
 A transformation library may use or adapt `geo-d` value types where that produces a genuine conceptual layering, but CRS semantics must never be embedded into `Point2` or another fundamental `geo-d` type.
 
@@ -156,7 +159,11 @@ Interoperability should be implemented through higher-level APIs or adapters rat
 
 ### 8. Raster processing is outside `geo-d`
 
-Raster storage, raster views, pixel layout, sampling, convolution, image processing, and related raster operations belong to `raster-d`.
+Raster storage, raster views, pixel layout, sampling, convolution, image
+processing, and related raster operations are outside `geo-d`. The active
+workspace implementation of that domain is currently `imagery-d`. A future
+`raster-d` may be extracted only if a coherent generic raster layer proves
+independently useful.
 
 A raster consumer may use `Point2`, `Vector2`, `Bounds2`, or related geometry where useful, but `geo-d` must not acquire raster semantics as a consequence.
 
@@ -166,7 +173,7 @@ Pixel coordinates and array indices are not automatically equivalent to generic 
 
 `geo-d` owns geometry.
 
-`spatial-d` owns **data structures and algorithms whose primary purpose is spatial indexing and search**.
+A future `spatial-d` would own **data structures and algorithms whose primary purpose is spatial indexing and search**.
 
 Examples belonging to `spatial-d` include:
 
@@ -208,7 +215,7 @@ PROJ
 GEOS
 a GUI framework
 a logging framework
-another d-geospatial package
+another workspace library
 ```
 
 solely to provide ordinary Euclidean geometry.
@@ -304,16 +311,19 @@ geo-d
 geodesy-d
     Earth- and ellipsoid-dependent mathematics
 
+imagery-d
+    active raster and image-engine infrastructure
+
 locationref-d
-    geographic referencing and location coding
+    planned geographic referencing and location coding
 
-raster-d
-    raster representation and raster algorithms
+future raster-d
+    possible generic raster extraction from imagery-d
 
-spatial-d
+future spatial-d
     spatial indexes and spatial-query infrastructure
 
-proj-d
+future proj-d
     CRS, authority, grid and coordinate-operation infrastructure
 ```
 

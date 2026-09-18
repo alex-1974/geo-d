@@ -8,8 +8,12 @@ functionality should have explicit semantics, strong numerical behaviour,
 tests, and documented ownership characteristics before the public API is
 expanded further.
 
-Features listed beyond the current release target are candidates rather
-than commitments. New API should be driven by concrete consumers.
+`v1.0.0` is the current stable API baseline. There is no committed post-v1
+feature milestone; new API remains driven by concrete consumers and must
+respect the source-compatibility policy defined for the `1.x` series.
+
+Features listed beyond the stable v1 release are candidates rather than
+commitments.
 
 ## v0.1.0 — Initial public foundation
 
@@ -594,6 +598,6 @@ A smaller API with explicit semantics, robust numerical behaviour,
 predictable allocation, and strong verification is preferred over broad
 feature coverage.
 
-After `v0.1.0`, the next feature should be selected by a concrete consumer
+Post-v1, the next feature should be selected by a concrete consumer
 requirement rather than simply by choosing the next conventional item from
 a geometry-library checklist.

@@ -2,7 +2,7 @@
 
 This document defines the engineering and architectural principles specific to `geo-d`.
 
-The library may be developed inside the wider `d-geospatial` workspace, but it is an independent repository and DUB package.
+The library may be developed inside `d-geospatial-workspace`, but it is an independent repository and DUB package.
 
 Workspace-wide context may be available locally under:
 

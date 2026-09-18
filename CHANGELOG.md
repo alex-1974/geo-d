@@ -4,6 +4,16 @@ All notable changes to `geo-d` are documented in this file.
 
 The project follows Semantic Versioning for published releases.
 
+## [Unreleased]
+
+### Changed
+
+- Aligned repository documentation with the `d-geospatial-workspace`
+  reorganization and current sibling-library boundaries.
+- Made benchmark helpers resolve the repository location relative to their
+  scripts while retaining an explicit path override.
+- Refreshed benchmark documentation to reflect the completed v1 coverage.
+
 ## [1.0.0] - 2026-09-13
 
 First stable release.

@@ -134,7 +134,7 @@ ci: add ...
 
 Do not commit generated DUB build artefacts or local workspace context.
 
-The `.workspace/` directory, when present, contains local context from the wider `d-geospatial` workspace and is not part of the repository.
+The `.workspace/` directory, when present, contains local context from `d-geospatial-workspace` and is not part of the repository.
 
 ## Benchmarks
 

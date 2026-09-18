@@ -328,9 +328,10 @@ decision records under `docs/adr/`.
 
 Those concerns belong in separate libraries.
 
-Within the wider `d-geospatial` family, complementary projects may include
-libraries such as `geodesy-d`, `proj-d`, `spatial-d`, `raster-d`, and
-`locationref-d`.
+Within the wider `d-geospatial-workspace` ecosystem, active complementary
+projects include `geodesy-d`, `imagery-d`, and `osm-d`. Planned or candidate
+domains include `locationref-d`, `proj-d`, `spatial-d`, and a possible future
+`raster-d` extraction from `imagery-d`.
 
 `geo-d` remains independently usable and versioned.
 
@@ -425,9 +426,9 @@ benchmarks/README.md
 The repository-level `DESIGN_PRINCIPLES.md` documents the engineering
 principles adopted by this library.
 
-When developed inside the wider `d-geospatial` workspace, additional
-workspace context may be available locally under `.workspace/`. That
-directory is not part of the repository or published package.
+When developed inside `d-geospatial-workspace`, additional workspace
+context may be available locally under `.workspace/`. That directory is not
+part of the repository or published package.
 
 ## License
 

@@ -1,10 +1,13 @@
 # geo-d benchmarks
 
-These benchmarks measure computationally significant geo-d algorithm
+These benchmarks measure computationally significant `geo-d` algorithm
 families and selected internal exact-arithmetic components.
 
-The suite currently covers segment intersection, signed area, and
-orientation predicates.
+The suite covers every computationally meaningful public v1 algorithm family,
+including scalar conversion and quantisation, geometry bounds, metric
+operations, polyline length, orientation, segment intersection, area,
+point-in-polygon classification, ring and polygon validation, and
+Douglas-Peucker simplification.
 
 They are intended primarily for:
 

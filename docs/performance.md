@@ -349,11 +349,10 @@ Performance work should normally follow this sequence:
 
 Optimisation should be evidence-driven rather than speculative.
 
-## Initial benchmark expansion priorities
+## Initial benchmark expansion priorities — completed for v1.0.0
 
-The existing intersection and signed-area benchmarks remain useful.
-
-The next benchmark work should prioritise:
+The v1 benchmark expansion retained the original intersection and signed-area
+benchmarks and proceeded through these priority areas:
 
 1. orientation;
 2. scalar conversion and quantisation;
@@ -365,7 +364,10 @@ The next benchmark work should prioritise:
 8. topology validation;
 9. Douglas-Peucker simplification.
 
-Orientation is the preferred first C/C++ comparison because it is:
+All of these areas now have benchmark coverage. Geometry bounds was added later
+as part of the completed v1 performance audit.
+
+Orientation was selected as the first C/C++ comparison because it is:
 
 - a very small hot primitive;
 - used by multiple higher-level algorithms;

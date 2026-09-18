@@ -491,13 +491,21 @@ by practical CI infrastructure.
 
 Initial targets:
 
-- [ ] Linux x86-64
-- [ ] Linux ARM64
-- [ ] Windows x86-64
-- [ ] macOS x86-64
-- [ ] macOS ARM64
+- [x] Linux x86-64
+- [x] Linux ARM64
+- [x] Windows x86-64
+- [x] macOS x86-64
+- [x] macOS ARM64
 - [ ] evaluate Windows ARM64 when the GitHub-hosted runner and D toolchain
       provide a sufficiently stable combination
+
+Portability verification completed on commit `4b3b246` with the existing
+Linux x86-64 compiler gate and `LDC latest` portability jobs for Linux ARM64,
+Windows x86-64, macOS x86-64, and macOS ARM64. Unit tests, the external
+consumer test, and the release build passed on every verified target.
+
+Windows ARM64 remains a separate toolchain investigation rather than a
+verified target.
 
 For additional platforms, prefer `LDC latest` as the first portability
 probe. Broader compiler combinations should be added only where they provide

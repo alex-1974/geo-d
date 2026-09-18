@@ -576,6 +576,24 @@ The existing representative documented unittests remain valid; this audit
 raises the post-v1 goal from representative coverage to systematic public
 API example coverage.
 
+
+Baseline audit of the documentation generated from commit `4b3b246` found
+92 public DDox symbol pages. Seven currently contain a rendered `Example`
+section:
+
+- `polygonArea`;
+- `tryConvert`;
+- `trySegmentIntersectionPoint`;
+- `distance`;
+- `orientation`;
+- `tryClassifyPointInPolygon`;
+- `trySimplifyDouglasPeuckerInto`.
+
+This count is a baseline, not the target coverage metric. The next step is
+to classify the complete public surface by whether a declaration needs its
+own example, is adequately represented by an API-family example, or is
+sufficiently trivial that a separate example would add no useful information.
+
 ### Geometry-library landscape inventory
 
 Inventory comparable and influential geometry libraries before selecting

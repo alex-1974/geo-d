@@ -74,6 +74,8 @@ This includes, where applicable:
 
 - public symbol names;
 - function and template signatures;
+- public callable parameter names where named arguments are supported by the
+  declared compiler matrix;
 - overload resolution for previously valid calls;
 - supported scalar domains;
 - public result types and scalar mappings;
@@ -103,6 +105,11 @@ scope
 
 Removing or weakening such a guarantee in a way that makes previously valid
 client source fail is a breaking change.
+
+For the frozen v1 surface, public callable parameter names are treated as
+source compatibility where named-argument calls compile across the supported
+compiler matrix. Renaming such a parameter during the 1.x series is therefore
+a breaking source change even when positional calls would remain valid.
 
 ## Unsupported compatibility surface
 
@@ -351,6 +358,20 @@ tests/consumer/
 ```
 
 is part of the compatibility evidence.
+
+It includes positive named-argument probes for the supported public v1
+callable surface so that parameter-name compatibility is checked on the
+declared compiler matrix.
+
+Compiler-enforced borrowed-view lifetime rejection is additionally verified
+by minimal whole-source positive/negative fixtures under:
+
+```text
+tests/compile-negative/
+```
+
+These fixtures complement, rather than replace, the inline
+`__traits(compiles)` regression probes.
 
 The `v1.0.0` consumer checks form a persistent baseline.
 

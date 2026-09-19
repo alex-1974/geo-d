@@ -33,6 +33,9 @@ import geo.internal.orientation_robust :
 
 /**
  * Orientation of a point relative to the directed line a -> b.
+ *
+ * `Orientation.init` is `Orientation.right`. This is a valid but
+ * non-neutral default and is part of the stable 1.x source contract.
  */
 enum Orientation : byte
 {

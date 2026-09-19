@@ -64,7 +64,7 @@ compile_negative()
 
 
 echo "compiler: $DC"
-"$DC" --version | head -3
+"$DC" --version | sed -n '1,3p'
 echo
 
 for family in polyline ring polygon

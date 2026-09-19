@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** Baseline complete  
+**Status:** Batch 1 complete; audit in progress
 **Baseline:** DDox output generated from commit `4b3b246`  
 **Public DDox symbol pages:** 92
 
@@ -47,6 +47,32 @@ The seven existing rendered examples are:
 - `orientation`;
 - `tryClassifyPointInPolygon`;
 - `trySimplifyDouglasPeuckerInto`.
+
+## Current progress
+
+Batch 1 adds documented executable examples for the core value types and
+non-owning geometry views.
+
+Current validated DDox state:
+
+| Classification | Count |
+| --- | ---: |
+| Existing rendered examples | 13 |
+| Dedicated examples still to add | 25 |
+| Deliberately family-covered declarations | 54 |
+| **Total public symbol pages** | **92** |
+
+The six Batch 1 examples are:
+
+- `Point2`;
+- `Vector2`;
+- `Segment2`;
+- `PolylineView`;
+- `LinearRingView`;
+- `PolygonView`.
+
+All six compile through the supported public package surface with `import geo;`
+and render as `Example` sections in DDox.
 
 ## `geo.area`
 
@@ -103,7 +129,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `LinearRingView` | **add** | owning family example |
+| `LinearRingView` | **existing** | Batch 1 rendered Example |
 | `LinearRingView.this` | **family** | LinearRingView |
 | `LinearRingView.length` | **family** | LinearRingView |
 | `LinearRingView.empty` | **family** | LinearRingView |
@@ -134,7 +160,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `Point2` | **add** | owning family example |
+| `Point2` | **existing** | Batch 1 rendered Example |
 | `Point2.this` | **family** | Point2 |
 | `Point2.x` | **family** | Point2 |
 | `Point2.y` | **family** | Point2 |
@@ -154,7 +180,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `PolygonView` | **add** | owning family example |
+| `PolygonView` | **existing** | Batch 1 rendered Example |
 | `PolygonView.this` | **family** | PolygonView |
 | `PolygonView.length` | **family** | PolygonView |
 | `PolygonView.empty` | **family** | PolygonView |
@@ -167,7 +193,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `PolylineView` | **add** | owning family example |
+| `PolylineView` | **existing** | Batch 1 rendered Example |
 | `PolylineView.this` | **family** | PolylineView |
 | `PolylineView.length` | **family** | PolylineView |
 | `PolylineView.empty` | **family** | PolylineView |
@@ -185,7 +211,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `Segment2` | **add** | owning family example |
+| `Segment2` | **existing** | Batch 1 rendered Example |
 | `Segment2.this` | **family** | Segment2 |
 | `Segment2.a` | **family** | Segment2 |
 | `Segment2.b` | **family** | Segment2 |
@@ -215,7 +241,7 @@ The seven existing rendered examples are:
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `Vector2` | **add** | owning family example |
+| `Vector2` | **existing** | Batch 1 rendered Example |
 | `Vector2.this` | **family** | Vector2 |
 | `Vector2.x` | **family** | Vector2 |
 | `Vector2.y` | **family** | Vector2 |
@@ -249,8 +275,8 @@ After each group:
 The audit is complete when:
 
 - every one of the 92 current public DDox symbol pages remains classified;
-- all 31 declarations marked **add** have a documented executable example;
-- all seven existing examples remain rendered;
+- all declarations marked **add** have a documented executable example;
+- all declarations marked **existing** remain rendered;
 - family-covered declarations are exercised by the declared family example;
 - examples compile through the public package surface where practical;
 - DDox rendering is checked automatically or by an equivalent reproducible

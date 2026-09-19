@@ -215,6 +215,49 @@ public:
     }
 }
 
+/// Example using vector arithmetic through the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias V = Vector2!double;
+
+    auto vector =
+        V(2.0, -4.0);
+
+    assert(vector.x == 2.0);
+    assert(vector.y == -4.0);
+    assert(vector.isFinite);
+
+    assert(
+        -vector ==
+        V(-2.0, 4.0)
+    );
+
+    assert(
+        vector + V(1.0, 1.0) ==
+        V(3.0, -3.0)
+    );
+
+    assert(
+        vector * 0.5 ==
+        V(1.0, -2.0)
+    );
+
+    assert(
+        0.5 * vector ==
+        V(1.0, -2.0)
+    );
+
+    vector *= 2.0;
+
+    assert(
+        vector ==
+        V(4.0, -8.0)
+    );
+}
+
+
 @safe unittest
 {
     static assert(!__traits(compiles, Vector2!byte));

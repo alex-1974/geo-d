@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** Batch 2 complete; audit in progress
+**Status:** Batch 3 complete; audit in progress
 **Baseline:** DDox output generated from commit `4b3b246`  
 **Public DDox symbol pages:** 92
 
@@ -50,16 +50,16 @@ The seven existing rendered examples are:
 
 ## Current progress
 
-Batches 1 and 2 add documented executable examples for the core value types,
-non-owning geometry views, scalar policies, and explicit quantisation
-operations.
+Batches 1 through 3 add documented executable examples for the core value
+types, non-owning geometry views, scalar policies, explicit quantisation,
+bounds, and metric operations.
 
 Current validated DDox state:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 21 |
-| Dedicated examples still to add | 17 |
+| Existing rendered examples | 32 |
+| Dedicated examples still to add | 6 |
 | Deliberately family-covered declarations | 54 |
 | **Total public symbol pages** | **92** |
 
@@ -83,8 +83,22 @@ The eight Batch 2 examples are:
 - `ceiled`;
 - `truncated`.
 
-All fourteen audit-added examples compile through the supported public package
-surface with `import geo;` and render as `Example` sections in DDox.
+The eleven Batch 3 examples are:
+
+- `tryBounds`;
+- `Bounds2`;
+- `Bounds2.tryFromMinMax`;
+- `Bounds2.tryExtend`;
+- `Bounds2.contains`;
+- `Bounds2.intersects`;
+- `squaredDistance`;
+- `segmentLength`;
+- `polylineLength`;
+- `tryNearestPoint`;
+- `tryPointSegmentDistance`.
+
+All twenty-five audit-added examples compile through the supported public
+package surface with `import geo;` and render as `Example` sections in DDox.
 
 ## `geo.area`
 
@@ -98,22 +112,22 @@ surface with `import geo;` and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `tryBounds` | **add** | dedicated geometry-bounds example |
+| `tryBounds` | **existing** | Batch 3 rendered Example |
 
 ## `geo.bounds`
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `Bounds2` | **add** | owning family example |
+| `Bounds2` | **existing** | Batch 3 rendered Example |
 | `Bounds2.empty` | **family** | Bounds2 |
 | `Bounds2.min` | **family** | Bounds2 |
 | `Bounds2.max` | **family** | Bounds2 |
-| `Bounds2.tryFromMinMax` | **add** | dedicated failure/constructor example |
+| `Bounds2.tryFromMinMax` | **existing** | Batch 3 rendered Example |
 | `Bounds2.tryFromPoint` | **family** | Bounds2 |
-| `Bounds2.tryExtend` | **add** | dedicated transactional extension example |
+| `Bounds2.tryExtend` | **existing** | Batch 3 rendered Example |
 | `Bounds2.extend` | **family** | Bounds2 / Bounds2.tryExtend |
-| `Bounds2.contains` | **add** | dedicated relationship example |
-| `Bounds2.intersects` | **add** | dedicated relationship example |
+| `Bounds2.contains` | **existing** | Batch 3 rendered Example |
+| `Bounds2.intersects` | **existing** | Batch 3 rendered Example |
 | `Bounds2.isFinite` | **family** | Bounds2 |
 | `Bounds2.opEquals` | **family** | Bounds2 |
 
@@ -155,11 +169,11 @@ surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `MetricScalar` | **existing** | Batch 2 rendered Example |
 | `distance` | **existing** | existing rendered Example |
-| `squaredDistance` | **add** | dedicated metric example |
-| `segmentLength` | **add** | dedicated metric example |
-| `polylineLength` | **add** | dedicated aggregate metric example |
-| `tryNearestPoint` | **add** | dedicated construction example |
-| `tryPointSegmentDistance` | **add** | dedicated metric/failure example |
+| `squaredDistance` | **existing** | Batch 3 rendered Example |
+| `segmentLength` | **existing** | Batch 3 rendered Example |
+| `polylineLength` | **existing** | Batch 3 rendered Example |
+| `tryNearestPoint` | **existing** | Batch 3 rendered Example |
+| `tryPointSegmentDistance` | **existing** | Batch 3 rendered Example |
 
 ## `geo.orientation`
 

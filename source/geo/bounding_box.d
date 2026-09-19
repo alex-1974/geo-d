@@ -269,6 +269,38 @@ if (isGeoScalar!T)
 }
 
 
+/// Example computing bounds of a non-owning polyline view.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+
+    P[4] points = [
+        P(3, 4),
+        P(-2, 9),
+        P(8, -5),
+        P(1, 6)
+    ];
+
+    const polyline =
+        PolylineView!int(points[]);
+
+    Bounds2!int bounds;
+
+    assert(
+        tryBounds(
+            polyline,
+            bounds
+        )
+    );
+
+    assert(bounds.min == P(-2, -5));
+    assert(bounds.max == P(8, 9));
+}
+
+
+// Existing exhaustive regression coverage.
 @safe unittest
 {
     import std.meta : AliasSeq;

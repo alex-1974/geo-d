@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** Batch 3 complete; audit in progress
+**Status:** Batch 4 complete; audit in progress
 **Baseline:** DDox output generated from commit `4b3b246`  
 **Public DDox symbol pages:** 92
 
@@ -50,16 +50,17 @@ The seven existing rendered examples are:
 
 ## Current progress
 
-Batches 1 through 3 add documented executable examples for the core value
+Batches 1 through 4 add documented executable examples for the core value
 types, non-owning geometry views, scalar policies, explicit quantisation,
-bounds, and metric operations.
+bounds, metric operations, and segment-intersection classification and
+overlap construction.
 
 Current validated DDox state:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 32 |
-| Dedicated examples still to add | 6 |
+| Existing rendered examples | 34 |
+| Dedicated examples still to add | 4 |
 | Deliberately family-covered declarations | 54 |
 | **Total public symbol pages** | **92** |
 
@@ -97,7 +98,12 @@ The eleven Batch 3 examples are:
 - `tryNearestPoint`;
 - `tryPointSegmentDistance`.
 
-All twenty-five audit-added examples compile through the supported public
+The two Batch 4 examples are:
+
+- `segmentIntersectionKind`;
+- `trySegmentIntersectionOverlap`.
+
+All twenty-seven audit-added examples compile through the supported public
 package surface with `import geo;` and render as `Example` sections in DDox.
 
 ## `geo.area`
@@ -147,9 +153,9 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `IntersectionScalar` | **existing** | Batch 2 rendered Example |
 | `SegmentIntersectionKind` | **family** | segmentIntersectionKind / construction examples |
-| `segmentIntersectionKind` | **add** | dedicated classification example |
+| `segmentIntersectionKind` | **existing** | Batch 4 rendered Example |
 | `trySegmentIntersectionPoint` | **existing** | existing rendered Example |
-| `trySegmentIntersectionOverlap` | **add** | dedicated overlap-construction example |
+| `trySegmentIntersectionOverlap` | **existing** | Batch 4 rendered Example |
 
 ## `geo.linear_ring_view`
 

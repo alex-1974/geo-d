@@ -143,6 +143,43 @@ public:
     }
 }
 
+/// Example using a point with affine vector translation.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias V = Vector2!double;
+
+    auto point =
+        P(1.0, 2.0);
+
+    auto shift =
+        V(3.0, -1.0);
+
+    assert(point.x == 1.0);
+    assert(point.y == 2.0);
+    assert(point.isFinite);
+
+    assert(
+        point + shift ==
+        P(4.0, 1.0)
+    );
+
+    assert(
+        shift + point ==
+        P(4.0, 1.0)
+    );
+
+    point += shift;
+
+    assert(
+        point ==
+        P(4.0, 1.0)
+    );
+}
+
+
 @safe unittest
 {
     static assert(!__traits(compiles, Point2!byte));

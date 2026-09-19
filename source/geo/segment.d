@@ -83,6 +83,33 @@ public:
     }
 }
 
+/// Example constructing and inspecting a segment.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias S = Segment2!double;
+
+    auto segment =
+        S(
+            P(1.0, 2.0),
+            P(4.0, 6.0)
+        );
+
+    assert(
+        segment.a ==
+        P(1.0, 2.0)
+    );
+
+    assert(
+        segment.b ==
+        P(4.0, 6.0)
+    );
+
+    assert(segment.isFinite);
+}
+
 
 @safe unittest
 {

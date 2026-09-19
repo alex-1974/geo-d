@@ -137,6 +137,57 @@ public:
     }
 }
 
+/// Example using structural exterior and hole ring roles.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias R = LinearRingView!double;
+    alias G = PolygonView!double;
+
+    P[4] exteriorPoints = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0)
+    ];
+
+    P[4] holePoints = [
+        P(2.0, 2.0),
+        P(4.0, 2.0),
+        P(4.0, 4.0),
+        P(2.0, 4.0)
+    ];
+
+    R[2] rings = [
+        R(exteriorPoints[]),
+        R(holePoints[])
+    ];
+
+    auto polygon =
+        G(rings[]);
+
+    assert(!polygon.empty);
+    assert(polygon.length == 2);
+    assert(polygon.holeCount == 1);
+
+    assert(
+        polygon[0][0] ==
+        P(0.0, 0.0)
+    );
+
+    assert(
+        polygon.exterior[2] ==
+        P(10.0, 10.0)
+    );
+
+    assert(
+        polygon.hole(0)[1] ==
+        P(4.0, 2.0)
+    );
+}
+
 
 @safe unittest
 {

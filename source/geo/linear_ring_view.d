@@ -140,6 +140,45 @@ public:
     }
 }
 
+/// Example using the implicit closing edge of a linear ring.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias S = Segment2!double;
+    alias R = LinearRingView!double;
+
+    P[3] points = [
+        P(0.0, 0.0),
+        P(4.0, 0.0),
+        P(0.0, 3.0)
+    ];
+
+    auto ring =
+        R(points[]);
+
+    assert(!ring.empty);
+    assert(ring.length == 3);
+    assert(ring.segmentCount == 3);
+
+    assert(
+        ring[1] ==
+        P(4.0, 0.0)
+    );
+
+    /*
+     * Ring closure is implicit: the final segment returns to vertex 0.
+     */
+    assert(
+        ring.segment(2) ==
+        S(
+            P(0.0, 3.0),
+            P(0.0, 0.0)
+        )
+    );
+}
+
 
 @safe unittest
 {

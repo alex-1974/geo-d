@@ -118,6 +118,53 @@ public:
     }
 }
 
+/// Example borrowing caller-owned point storage as a polyline.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias S = Segment2!double;
+    alias V = PolylineView!double;
+
+    P[3] points = [
+        P(0.0, 0.0),
+        P(2.0, 1.0),
+        P(5.0, 1.0)
+    ];
+
+    auto polyline =
+        V(points[]);
+
+    assert(!polyline.empty);
+    assert(polyline.length == 3);
+    assert(polyline.segmentCount == 2);
+
+    assert(
+        polyline[1] ==
+        P(2.0, 1.0)
+    );
+
+    assert(
+        polyline.segment(1) ==
+        S(
+            P(2.0, 1.0),
+            P(5.0, 1.0)
+        )
+    );
+
+    /*
+     * The view aliases rather than copies caller-owned storage.
+     */
+    points[1] =
+        P(3.0, 2.0);
+
+    assert(
+        polyline[1] ==
+        P(3.0, 2.0)
+    );
+}
+
 
 @safe unittest
 {

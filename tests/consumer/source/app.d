@@ -4,6 +4,9 @@
  * This package deliberately imports only the supported package entry point:
  *
  *     import geo;
+
+import init_contract;
+import named_arguments;
  *
  * It verifies the frozen v1 public names from outside the geo-d package and
  * compiles representative operations through that surface.

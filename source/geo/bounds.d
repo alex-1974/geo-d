@@ -204,6 +204,39 @@ public:
     }
 
 
+    /// Example constructing bounds and rejecting reversed corners.
+    @safe unittest
+    {
+        import geo;
+
+        alias P = Point2!double;
+        alias B = Bounds2!double;
+
+        B bounds;
+
+        assert(
+            B.tryFromMinMax(
+                P(1.0, 2.0),
+                P(4.0, 6.0),
+                bounds
+            )
+        );
+
+        assert(bounds.min == P(1.0, 2.0));
+        assert(bounds.max == P(4.0, 6.0));
+
+        assert(
+            !B.tryFromMinMax(
+                P(5.0, 2.0),
+                P(4.0, 6.0),
+                bounds
+            )
+        );
+
+        assert(bounds == B.init);
+    }
+
+
     /**
      * Extends this bounds so that it contains p.
      *
@@ -236,6 +269,34 @@ public:
         _max = Point2!T(maxX, maxY);
 
         return true;
+    }
+
+
+    /// Example extending bounds transactionally by a point.
+    @safe unittest
+    {
+        import geo;
+
+        alias P = Point2!double;
+        alias B = Bounds2!double;
+
+        B bounds;
+
+        assert(bounds.tryExtend(P(5.0, 4.0)));
+        assert(bounds.tryExtend(P(1.0, 7.0)));
+
+        assert(bounds.min == P(1.0, 4.0));
+        assert(bounds.max == P(5.0, 7.0));
+
+        const before = bounds;
+
+        assert(
+            !bounds.tryExtend(
+                P(double.nan, 10.0)
+            )
+        );
+
+        assert(bounds == before);
     }
 
 
@@ -295,6 +356,33 @@ public:
     }
 
 
+    /// Example using closed point containment.
+    @safe unittest
+    {
+        import geo;
+
+        alias P = Point2!int;
+        alias B = Bounds2!int;
+
+        B bounds;
+
+        assert(
+            B.tryFromMinMax(
+                P(1, 2),
+                P(4, 6),
+                bounds
+            )
+        );
+
+        assert(bounds.contains(P(1, 2)));
+        assert(bounds.contains(P(4, 6)));
+        assert(bounds.contains(P(3, 4)));
+
+        assert(!bounds.contains(P(0, 4)));
+        assert(!B.init.contains(P(1, 2)));
+    }
+
+
     /**
      * True when this closed bounds intersects other.
      *
@@ -314,6 +402,48 @@ public:
             || _max.y < other._min.y
             || other._max.y < _min.y
         );
+    }
+
+
+    /// Example showing that closed bounds intersect when they touch.
+    @safe unittest
+    {
+        import geo;
+
+        alias P = Point2!int;
+        alias B = Bounds2!int;
+
+        B first;
+        B touching;
+        B separate;
+
+        assert(
+            B.tryFromMinMax(
+                P(0, 0),
+                P(4, 4),
+                first
+            )
+        );
+
+        assert(
+            B.tryFromMinMax(
+                P(4, 2),
+                P(7, 6),
+                touching
+            )
+        );
+
+        assert(
+            B.tryFromMinMax(
+                P(5, 2),
+                P(7, 6),
+                separate
+            )
+        );
+
+        assert(first.intersects(touching));
+        assert(!first.intersects(separate));
+        assert(!first.intersects(B.init));
     }
 
 
@@ -338,6 +468,51 @@ public:
 }
 
 
+/// Example using the core Bounds2 value operations.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias B = Bounds2!int;
+
+    assert(B.init.empty);
+    assert(B.init.isFinite);
+
+    B first;
+
+    assert(
+        B.tryFromPoint(
+            P(3, 4),
+            first
+        )
+    );
+
+    assert(!first.empty);
+    assert(first.min == P(3, 4));
+    assert(first.max == P(3, 4));
+    assert(first.isFinite);
+
+    B second;
+
+    assert(
+        B.tryFromPoint(
+            P(-2, 8),
+            second
+        )
+    );
+
+    first.extend(second);
+
+    assert(first.min == P(-2, 4));
+    assert(first.max == P(3, 8));
+
+    const copy = first;
+    assert(copy == first);
+}
+
+
+// Existing exhaustive regression coverage.
 @safe unittest
 {
     import std.meta : AliasSeq;

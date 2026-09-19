@@ -415,6 +415,24 @@ if (isGeoScalar!T)
 }
 
 
+/// Example computing squared distance without taking a square root.
+@safe unittest
+{
+    import geo;
+
+    const a = Point2!int(0, 0);
+    const b = Point2!int(3, 4);
+
+    static assert(
+        is(typeof(squaredDistance(a, b)) == double)
+    );
+
+    assert(
+        squaredDistance(a, b) == 25.0
+    );
+}
+
+
 /**
  * Euclidean distance between two points.
  *
@@ -763,6 +781,45 @@ if (
 }
 
 
+/// Example computing point-to-segment distance and handling failure.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias S = Segment2!double;
+
+    const segment =
+        S(
+            P(0.0, 0.0),
+            P(10.0, 0.0)
+        );
+
+    double result;
+
+    assert(
+        tryPointSegmentDistance(
+            P(5.0, 3.0),
+            segment,
+            result
+        )
+    );
+
+    assert(result == 3.0);
+
+    result = 123.0;
+
+    assert(
+        !tryPointSegmentDistance(
+            P(double.nan, 0.0),
+            segment,
+            result
+        )
+    );
+
+    assert(result == 0.0);
+}
+
 
 /**
  * Finds the nearest point on a segment to a point.
@@ -915,6 +972,41 @@ if (
 }
 
 
+/// Example constructing the nearest point in the metric scalar type.
+@safe unittest
+{
+    import geo;
+
+    const segment =
+        Segment2!int(
+            Point2!int(0, 0),
+            Point2!int(10, 0)
+        );
+
+    Point2!double nearest;
+
+    assert(
+        tryNearestPoint(
+            segment,
+            Point2!int(3, 4),
+            nearest
+        )
+    );
+
+    static assert(
+        is(typeof(nearest) == Point2!double)
+    );
+
+    assert(
+        nearest ==
+        Point2!double(
+            3.0,
+            0.0
+        )
+    );
+}
+
+
 /**
  * Euclidean length of a segment.
  *
@@ -942,6 +1034,21 @@ MetricScalar!T segmentLength(T)(Segment2!T segment)
 if (isGeoScalar!T)
 {
     return distance(segment.a, segment.b);
+}
+
+
+/// Example computing the Euclidean length of a segment.
+@safe unittest
+{
+    import geo;
+
+    const segment =
+        Segment2!double(
+            Point2!double(0.0, 0.0),
+            Point2!double(3.0, 4.0)
+        );
+
+    assert(segmentLength(segment) == 5.0);
 }
 
 
@@ -1021,6 +1128,27 @@ if (isGeoScalar!T)
 }
 
 
+/// Example summing the lengths of consecutive polyline segments.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+
+    P[3] points = [
+        P(0.0, 0.0),
+        P(3.0, 4.0),
+        P(6.0, 8.0)
+    ];
+
+    const polyline =
+        PolylineView!double(points[]);
+
+    assert(polylineLength(polyline) == 10.0);
+}
+
+
+// Existing exhaustive regression coverage.
 @safe unittest
 {
     /*

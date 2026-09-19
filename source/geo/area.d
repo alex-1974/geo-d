@@ -66,6 +66,25 @@ if (
 }
 
 
+/// Example inspecting the signed-area result scalar policy.
+@safe unittest
+{
+    import geo;
+
+    static assert(is(AreaScalar!int == double));
+    static assert(is(AreaScalar!long == double));
+    static assert(is(AreaScalar!float == double));
+    static assert(is(AreaScalar!double == double));
+
+    static assert(
+        !__traits(
+            compiles,
+            AreaScalar!real
+        )
+    );
+}
+
+
 /*
  * Exact 2D determinant of two already-decoded relative vectors.
  *

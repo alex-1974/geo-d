@@ -93,6 +93,25 @@ if (
 }
 
 
+/// Example inspecting the constructed-intersection scalar policy.
+@safe unittest
+{
+    import geo;
+
+    static assert(is(IntersectionScalar!int == double));
+    static assert(is(IntersectionScalar!long == double));
+    static assert(is(IntersectionScalar!float == double));
+    static assert(is(IntersectionScalar!double == double));
+
+    static assert(
+        !__traits(
+            compiles,
+            IntersectionScalar!real
+        )
+    );
+}
+
+
 static assert(
     is(IntersectionScalar!int == double)
 );

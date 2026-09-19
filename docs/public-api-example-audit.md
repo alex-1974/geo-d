@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** Batch 1 complete; audit in progress
+**Status:** Batch 2 complete; audit in progress
 **Baseline:** DDox output generated from commit `4b3b246`  
 **Public DDox symbol pages:** 92
 
@@ -50,15 +50,16 @@ The seven existing rendered examples are:
 
 ## Current progress
 
-Batch 1 adds documented executable examples for the core value types and
-non-owning geometry views.
+Batches 1 and 2 add documented executable examples for the core value types,
+non-owning geometry views, scalar policies, and explicit quantisation
+operations.
 
 Current validated DDox state:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 13 |
-| Dedicated examples still to add | 25 |
+| Existing rendered examples | 21 |
+| Dedicated examples still to add | 17 |
 | Deliberately family-covered declarations | 54 |
 | **Total public symbol pages** | **92** |
 
@@ -71,14 +72,25 @@ The six Batch 1 examples are:
 - `LinearRingView`;
 - `PolygonView`.
 
-All six compile through the supported public package surface with `import geo;`
-and render as `Example` sections in DDox.
+The eight Batch 2 examples are:
+
+- `isGeoScalar`;
+- `AreaScalar`;
+- `MetricScalar`;
+- `IntersectionScalar`;
+- `rounded`;
+- `floored`;
+- `ceiled`;
+- `truncated`.
+
+All fourteen audit-added examples compile through the supported public package
+surface with `import geo;` and render as `Example` sections in DDox.
 
 ## `geo.area`
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `AreaScalar` | **add** | dedicated compile-time scalar-policy example |
+| `AreaScalar` | **existing** | Batch 2 rendered Example |
 | `polygonArea` | **existing** | existing rendered Example |
 | `signedArea` | **add** | dedicated operation example |
 
@@ -110,16 +122,16 @@ and render as `Example` sections in DDox.
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
 | `tryConvert` | **existing** | existing rendered Example |
-| `floored` | **add** | dedicated quantisation example |
-| `ceiled` | **add** | dedicated quantisation example |
-| `rounded` | **add** | dedicated quantisation example |
-| `truncated` | **add** | dedicated quantisation example |
+| `floored` | **existing** | Batch 2 rendered Example |
+| `ceiled` | **existing** | Batch 2 rendered Example |
+| `rounded` | **existing** | Batch 2 rendered Example |
+| `truncated` | **existing** | Batch 2 rendered Example |
 
 ## `geo.intersection`
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `IntersectionScalar` | **add** | dedicated compile-time scalar-policy example |
+| `IntersectionScalar` | **existing** | Batch 2 rendered Example |
 | `SegmentIntersectionKind` | **family** | segmentIntersectionKind / construction examples |
 | `segmentIntersectionKind` | **add** | dedicated classification example |
 | `trySegmentIntersectionPoint` | **existing** | existing rendered Example |
@@ -141,7 +153,7 @@ and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `MetricScalar` | **add** | dedicated compile-time scalar-policy example |
+| `MetricScalar` | **existing** | Batch 2 rendered Example |
 | `distance` | **existing** | existing rendered Example |
 | `squaredDistance` | **add** | dedicated metric example |
 | `segmentLength` | **add** | dedicated metric example |
@@ -205,7 +217,7 @@ and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `isGeoScalar` | **add** | dedicated compile-time policy example |
+| `isGeoScalar` | **existing** | Batch 2 rendered Example |
 
 ## `geo.segment`
 

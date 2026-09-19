@@ -48,6 +48,19 @@ if (isGeoScalar!T)
 }
 
 
+/// Example inspecting the metric computation scalar policy.
+@safe unittest
+{
+    import geo;
+
+    static assert(is(MetricScalar!int == double));
+    static assert(is(MetricScalar!long == double));
+    static assert(is(MetricScalar!float == double));
+    static assert(is(MetricScalar!double == double));
+    static assert(is(MetricScalar!real == real));
+}
+
+
 private enum bool isMetricIntegral(T) =
        is(T == int)
     || is(T == long);

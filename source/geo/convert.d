@@ -400,6 +400,41 @@ if (isFloatingPoint!T)
 }
 
 
+/// Example rounding halfway values away from zero.
+@safe unittest
+{
+    import geo;
+
+    const point =
+        Point2!double(
+            1.5,
+            -2.5
+        );
+
+    const vector =
+        Vector2!double(
+            -0.5,
+            3.5
+        );
+
+    assert(
+        point.rounded ==
+        Point2!double(
+            2.0,
+            -3.0
+        )
+    );
+
+    assert(
+        vector.rounded ==
+        Vector2!double(
+            -1.0,
+            4.0
+        )
+    );
+}
+
+
 /**
  * Returns a point with each coordinate rounded toward negative infinity.
  *
@@ -442,6 +477,41 @@ if (isFloatingPoint!T)
     return Vector2!T(
         floor(value.x),
         floor(value.y)
+    );
+}
+
+
+/// Example rounding coordinates toward negative infinity.
+@safe unittest
+{
+    import geo;
+
+    const point =
+        Point2!double(
+            1.75,
+            -2.25
+        );
+
+    const vector =
+        Vector2!double(
+            -1.25,
+            2.75
+        );
+
+    assert(
+        point.floored ==
+        Point2!double(
+            1.0,
+            -3.0
+        )
+    );
+
+    assert(
+        vector.floored ==
+        Vector2!double(
+            -2.0,
+            2.0
+        )
     );
 }
 
@@ -492,6 +562,41 @@ if (isFloatingPoint!T)
 }
 
 
+/// Example rounding coordinates toward positive infinity.
+@safe unittest
+{
+    import geo;
+
+    const point =
+        Point2!double(
+            1.75,
+            -2.25
+        );
+
+    const vector =
+        Vector2!double(
+            -1.25,
+            2.75
+        );
+
+    assert(
+        point.ceiled ==
+        Point2!double(
+            2.0,
+            -2.0
+        )
+    );
+
+    assert(
+        vector.ceiled ==
+        Vector2!double(
+            -1.0,
+            3.0
+        )
+    );
+}
+
+
 /**
  * Returns a point with each fractional coordinate part removed.
  *
@@ -536,6 +641,41 @@ if (isFloatingPoint!T)
     return Vector2!T(
         truncateTowardZero(value.x),
         truncateTowardZero(value.y)
+    );
+}
+
+
+/// Example removing fractional parts toward zero.
+@safe unittest
+{
+    import geo;
+
+    const point =
+        Point2!double(
+            1.75,
+            -2.25
+        );
+
+    const vector =
+        Vector2!double(
+            -1.25,
+            2.75
+        );
+
+    assert(
+        point.truncated ==
+        Point2!double(
+            1.0,
+            -2.0
+        )
+    );
+
+    assert(
+        vector.truncated ==
+        Vector2!double(
+            -1.0,
+            2.0
+        )
     );
 }
 

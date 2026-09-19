@@ -37,6 +37,23 @@ enum bool isGeoScalar(T) =
     || is(T == double)
     || is(T == real);
 
+
+/// Example checking the exact public scalar domain.
+@safe unittest
+{
+    import geo;
+
+    static assert(isGeoScalar!int);
+    static assert(isGeoScalar!long);
+    static assert(isGeoScalar!float);
+    static assert(isGeoScalar!double);
+    static assert(isGeoScalar!real);
+
+    static assert(!isGeoScalar!uint);
+    static assert(!isGeoScalar!(const int));
+}
+
+
 @safe unittest
 {
     static assert(isGeoScalar!int);

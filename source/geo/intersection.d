@@ -963,6 +963,41 @@ if (isIntersectionScalar!T)
 }
 
 
+/// Example classifying closed-segment intersections without construction.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias S = Segment2!int;
+    alias K = SegmentIntersectionKind;
+
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(4, 0)),
+            S(P(0, 2), P(4, 2))
+        ) ==
+        K.none
+    );
+
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(4, 4)),
+            S(P(0, 4), P(4, 0))
+        ) ==
+        K.point
+    );
+
+    assert(
+        segmentIntersectionKind(
+            S(P(0, 0), P(6, 0)),
+            S(P(2, 0), P(8, 0))
+        ) ==
+        K.overlap
+    );
+}
+
+
 @safe unittest
 {
     alias P = Point2!int;
@@ -2866,6 +2901,50 @@ if (isIntersectionScalar!T)
         );
 
     return true;
+}
+
+
+/// Example constructing the exact canonical overlap in the input scalar type.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    const first =
+        S(
+            P(10, 0),
+            P(0, 0)
+        );
+
+    const second =
+        S(
+            P(3, 0),
+            P(12, 0)
+        );
+
+    S overlap;
+
+    assert(
+        trySegmentIntersectionOverlap(
+            first,
+            second,
+            overlap
+        )
+    );
+
+    static assert(
+        is(typeof(overlap) == S)
+    );
+
+    assert(
+        overlap ==
+        S(
+            P(3, 0),
+            P(10, 0)
+        )
+    );
 }
 
 

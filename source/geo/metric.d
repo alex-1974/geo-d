@@ -15,6 +15,8 @@
  */
 module geo.metric;
 
+static import euclid_core.scalar;
+
 import geo.polyline_view : PolylineView;
 
 import geo.point : Point2;
@@ -38,14 +40,8 @@ import std.math.traits : isFinite;
  *     double  -> double
  *     real    -> real
  */
-template MetricScalar(T)
-if (isGeoScalar!T)
-{
-    static if (is(T == real))
-        alias MetricScalar = real;
-    else
-        alias MetricScalar = double;
-}
+alias MetricScalar =
+    euclid_core.scalar.MetricScalar;
 
 
 /// Example inspecting the metric computation scalar policy.

@@ -15,6 +15,8 @@
  */
 module geo.simplification;
 
+static import euclid_core.simplification;
+
 import geo.metric :
     MetricScalar,
     tryPointSegmentDistance;
@@ -47,13 +49,8 @@ import std.math.traits : isFinite;
  * Complexity:
  *     O(1) time and O(1) auxiliary space.
  */
-size_t douglasPeuckerWorkspaceSize(size_t pointCount)
-    pure nothrow @safe @nogc
-{
-    return pointCount > 2
-        ? pointCount - 2
-        : 0;
-}
+alias douglasPeuckerWorkspaceSize =
+    euclid_core.simplification.douglasPeuckerWorkspaceSize;
 
 
 /**

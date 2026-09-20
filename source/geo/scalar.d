@@ -15,6 +15,8 @@
  */
 module geo.scalar;
 
+static import euclid_core.scalar;
+
 /**
  * True exactly for the scalar types supported by the geo-d core.
  *
@@ -30,12 +32,8 @@ module geo.scalar;
  * numeric convertibility. Qualified scalar types, enums, and user-defined
  * numeric-like types are deliberately excluded.
  */
-enum bool isGeoScalar(T) =
-       is(T == int)
-    || is(T == long)
-    || is(T == float)
-    || is(T == double)
-    || is(T == real);
+alias isGeoScalar =
+    euclid_core.scalar.isGeoScalar;
 
 
 /// Example checking the exact public scalar domain.

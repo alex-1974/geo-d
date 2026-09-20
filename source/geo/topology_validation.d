@@ -15,6 +15,8 @@
  */
 module geo.topology_validation;
 
+static import euclid_core.ring_validation;
+
 import geo.bounding_box :
     tryBounds;
 
@@ -51,26 +53,8 @@ import std.algorithm.sorting :
 /**
  * Validation issue detected in a LinearRingView.
  */
-enum RingValidationIssue : ubyte
-{
-    /// No validation issue was detected.
-    none,
-
-    /// The ring contains fewer than three stored vertices.
-    tooFewVertices,
-
-    /// A stored vertex contains a non-finite coordinate.
-    nonFiniteCoordinate,
-
-    /// An implicit ring edge has identical endpoints.
-    zeroLengthEdge,
-
-    /// Ring edges have an invalid point intersection.
-    selfIntersection,
-
-    /// Ring edges overlap over positive length.
-    selfOverlap,
-}
+alias RingValidationIssue =
+    euclid_core.ring_validation.RingValidationIssue;
 
 
 /**
@@ -84,28 +68,8 @@ enum RingValidationIssue : ubyte
  * RingValidationResult.init represents a valid ring result with issue
  * RingValidationIssue.none and both diagnostic indices set to size_t.max.
  */
-struct RingValidationResult
-{
-    RingValidationIssue issue =
-        RingValidationIssue.none;
-
-    size_t primaryIndex =
-        size_t.max;
-
-    size_t secondaryIndex =
-        size_t.max;
-
-
-    /**
-     * True when no validation issue was detected.
-     */
-    @property bool valid() const
-        pure nothrow @safe @nogc
-    {
-        return issue ==
-            RingValidationIssue.none;
-    }
-}
+alias RingValidationResult =
+    euclid_core.ring_validation.RingValidationResult;
 
 
 /**

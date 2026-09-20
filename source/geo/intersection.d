@@ -15,6 +15,9 @@
  */
 module geo.intersection;
 
+static import euclid_core.intersection;
+static import euclid_core.scalar;
+
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     properIntersectionExactKnownCrossing,
@@ -44,17 +47,8 @@ import geo.segment :
  * `overlap` means that the intersection contains a segment of positive
  * geometric length.
  */
-enum SegmentIntersectionKind : ubyte
-{
-    /// The closed segments have no geometric point in common.
-    none,
-
-    /// The intersection contains exactly one geometric point.
-    point,
-
-    /// The intersection contains a segment of positive geometric length.
-    overlap
-}
+alias SegmentIntersectionKind =
+    euclid_core.intersection.SegmentIntersectionKind;
 
 
 /*
@@ -81,16 +75,8 @@ private enum bool isIntersectionScalar(T) =
  * Topological classification remains exact in the input scalar domain.
  * Construction is deliberately a separate, rounded operation.
  */
-template IntersectionScalar(T)
-if (
-    is(T == int) ||
-    is(T == long) ||
-    is(T == float) ||
-    is(T == double)
-)
-{
-    alias IntersectionScalar = double;
-}
+alias IntersectionScalar =
+    euclid_core.scalar.IntersectionScalar;
 
 
 /// Example inspecting the constructed-intersection scalar policy.

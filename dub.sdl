@@ -11,3 +11,6 @@ targetType "library"
 sourcePaths "source"
 
 dflags "-preview=dip1000"
+
+# Experimental shared-contract architecture probe.
+dependency "euclid-core-d" path="../../euclid-core-d"

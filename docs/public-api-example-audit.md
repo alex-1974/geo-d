@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** Batch 4 complete; audit in progress
+**Status:** Batch 5 complete; audit in progress
 **Baseline:** DDox output generated from commit `4b3b246`  
 **Public DDox symbol pages:** 92
 
@@ -50,7 +50,7 @@ The seven existing rendered examples are:
 
 ## Current progress
 
-Batches 1 through 4 add documented executable examples for the core value
+Batches 1 through 5 add documented executable examples for the core value
 types, non-owning geometry views, scalar policies, explicit quantisation,
 bounds, metric operations, and segment-intersection classification and
 overlap construction.
@@ -59,8 +59,8 @@ Current validated DDox state:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 34 |
-| Dedicated examples still to add | 4 |
+| Existing rendered examples | 35 |
+| Dedicated examples still to add | 3 |
 | Deliberately family-covered declarations | 54 |
 | **Total public symbol pages** | **92** |
 
@@ -103,7 +103,11 @@ The two Batch 4 examples are:
 - `segmentIntersectionKind`;
 - `trySegmentIntersectionOverlap`.
 
-All twenty-seven audit-added examples compile through the supported public
+The Batch 5 example is:
+
+- `signedArea`.
+
+All twenty-eight audit-added examples compile through the supported public
 package surface with `import geo;` and render as `Example` sections in DDox.
 
 ## `geo.area`
@@ -112,7 +116,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `AreaScalar` | **existing** | Batch 2 rendered Example |
 | `polygonArea` | **existing** | existing rendered Example |
-| `signedArea` | **add** | dedicated operation example |
+| `signedArea` | **existing** | Batch 5 rendered Example |
 
 ## `geo.bounding_box`
 

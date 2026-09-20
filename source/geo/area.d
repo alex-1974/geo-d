@@ -359,6 +359,44 @@ if (
 }
 
 
+/// Example showing the sign defined by ring traversal orientation.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias R = LinearRingView!int;
+
+    P[4] counterClockwisePoints = [
+        P(0, 0),
+        P(4, 0),
+        P(4, 3),
+        P(0, 3)
+    ];
+
+    P[4] clockwisePoints = [
+        P(0, 0),
+        P(0, 3),
+        P(4, 3),
+        P(4, 0)
+    ];
+
+    assert(
+        signedArea(
+            R(counterClockwisePoints[])
+        ) ==
+        12.0
+    );
+
+    assert(
+        signedArea(
+            R(clockwisePoints[])
+        ) ==
+        -12.0
+    );
+}
+
+
 /**
  * Role-based algebraic area of a polygon.
  *

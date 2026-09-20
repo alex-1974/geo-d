@@ -21,6 +21,19 @@ The API is intentionally small. New functionality is added when concrete use
 cases justify extending the geometry model and must follow the project's
 source-compatibility and deprecation policy.
 
+Development toward `v2.0.0` intentionally reopens API design to align
+`geo-d` with the planned separate `geo3-d` sibling library. `geo-d` remains
+exclusively a coordinate-system-agnostic 2D Euclidean geometry library.
+
+The v2 migration focuses on dimensional naming, shared operation families,
+UFCS and argument consistency, and source-compatible deprecation of v1 forms
+where practical. It is not a general expansion of `geo-d` into 3D or a
+blanket feature-expansion milestone.
+
+See
+[`ADR-0019`](docs/adr/ADR-0019-geo-d-v2-api-family-migration.md)
+and the v2 section of [`ROADMAP.md`](ROADMAP.md).
+
 ## Features
 
 ### Core geometry

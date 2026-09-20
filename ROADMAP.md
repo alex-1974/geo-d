@@ -8,12 +8,20 @@ functionality should have explicit semantics, strong numerical behaviour,
 tests, and documented ownership characteristics before the public API is
 expanded further.
 
-`v1.0.0` is the current stable API baseline. There is no committed post-v1
-feature milestone; new API remains driven by concrete consumers and must
-respect the source-compatibility policy defined for the `1.x` series.
+`v1.0.0` is the current stable API baseline. The `1.x` series remains governed
+by the source-compatibility and deprecation policy defined in ADR-0018.
 
-Features listed beyond the stable v1 release are candidates rather than
-commitments.
+`v2.0.0` is a planned API-family migration milestone. It intentionally
+reopens API design so that the established 2D API can form a coherent family
+with the planned separate `geo3-d` library while `geo-d` itself remains
+exclusively responsible for coordinate-system-agnostic Euclidean 2D geometry.
+
+This v2 migration is not a blanket feature-expansion milestone. New geometry
+capabilities remain driven by concrete consumers and research evidence.
+
+Features listed beyond the stable v1 release remain candidates rather than
+commitments. The v2 migration changes API organisation and compatibility
+policy; it does not by itself admit new geometry functionality.
 
 ## v0.1.0 — Initial public foundation
 
@@ -479,8 +487,15 @@ The purpose of the audit is to identify:
 - concrete geometry requirements of downstream consumers;
 - opportunities for stronger independent verification.
 
-Any resulting API proposal must still pass the ordinary `1.x`
-source-compatibility, scope, semantic, numerical, and ownership review.
+Any resulting API proposal intended for the `1.x` series must still pass the
+ordinary `1.x` source-compatibility, scope, semantic, numerical, and ownership
+review.
+
+API-family migration proposals may instead target `v2.0.0` under ADR-0019.
+They still require explicit semantic, numerical, ownership, overload, UFCS,
+and migration analysis. Existing v1 source forms should remain available as
+deprecated aliases or forwarding overloads where doing so remains correct and
+unambiguous.
 
 ### Cross-platform and cross-architecture portability
 
@@ -768,6 +783,136 @@ conventional.
 The preferred outcome remains the smallest public API that makes `geo-d`
 broadly useful while preserving explicit semantics, numerical robustness,
 predictable memory behaviour, and clear workspace boundaries.
+
+
+## v2.0.0 — 2D/3D API-family alignment
+
+`v2.0.0` is an intentional API-design migration rather than a change to the
+scope of `geo-d`.
+
+`geo-d` remains the coordinate-system-agnostic Euclidean 2D library. The
+planned `geo3-d` library is a separate future sibling.
+
+Architecture decision:
+
+- [x] [`ADR-0019`](docs/adr/ADR-0019-geo-d-v2-api-family-migration.md) defines
+      the v2 API-family migration policy.
+
+The public API executable-example audit remains useful pre-migration work
+because it establishes an executable and documented baseline for the complete
+v1 surface before canonical v2 forms are introduced.
+
+### Complete v1 surface audit
+
+Before the v2 API is frozen:
+
+- [ ] audit every public v1 top-level declaration;
+- [ ] audit public members of exported types;
+- [ ] audit overload sets and template constraints;
+- [ ] audit callable parameter names and argument order;
+- [ ] audit natural UFCS receiver choice for public free-function families;
+- [ ] record the canonical v2 form for every changed public declaration;
+- [ ] define the corresponding v1 compatibility form or document why it
+      cannot safely be retained.
+
+The audit is broader than the 41 package-level names frozen for `v1.0.0`.
+
+### Dimensional naming
+
+Review intrinsically two-dimensional public types for explicit dimensional
+names.
+
+Initial candidates are:
+
+- `PolylineView` -> `Polyline2View`;
+- `LinearRingView` -> `LinearRing2View`;
+- `PolygonView` -> `Polygon2View`.
+
+Where semantics and overload resolution permit, the v1 names should remain as
+deprecated aliases throughout the v2 line.
+
+### Shared operation families
+
+Prefer dimension-independent operation names where the mathematical operation
+is genuinely shared.
+
+Review at least:
+
+- [ ] `distance`;
+- [ ] `orientation`;
+- [ ] `tryBounds`;
+- [ ] `tryNearestPoint`;
+- [ ] `tryPointSegmentDistance`;
+- [ ] all additional shared families identified by the full-surface audit.
+
+For every shared concept, write down the corresponding plausible `geo3-d`
+signature before the `geo-d` v2 API is frozen.
+
+This is a design-validation requirement, not a requirement to implement
+`geo3-d`.
+
+### UFCS and argument ordering
+
+Review related free-function signatures as API families rather than
+independently.
+
+Required:
+
+- [ ] identify the natural UFCS receiver for each public free-function family;
+- [ ] standardise related argument ordering where justified;
+- [ ] identify v1 signatures that conflict with the canonical v2 ordering;
+- [ ] retain deprecated forwarding overloads where resolution remains
+      unambiguous;
+- [ ] reject compatibility overloads that would introduce ambiguity or
+      preserve incorrect semantics.
+
+### Orientation
+
+`orientation` requires a dedicated dimensional-semantics review.
+
+Resolve independently:
+
+- [ ] operation name;
+- [ ] 2D and plausible 3D argument arity;
+- [ ] result type;
+- [ ] result-value terminology;
+- [ ] robust determinant implementation requirements.
+
+Mathematical semantics take precedence over superficial dimensional symmetry.
+
+### v1 compatibility surface
+
+The intended lifecycle is:
+
+- `v1.x`: existing API;
+- `v2.0`: canonical v2 API plus deprecated v1 compatibility surface;
+- `v2.x`: deprecated v1 compatibility remains functional;
+- `v3.0`: earliest normal removal point.
+
+Required:
+
+- [ ] deprecated type names alias canonical implementations;
+- [ ] deprecated function signatures forward to canonical implementations;
+- [ ] separate compatibility tests compile supported v1 source forms;
+- [ ] canonical v2 tests and examples use no deprecated API;
+- [ ] canonical v2 external-consumer tests compile without deprecation
+      warnings;
+- [ ] every compatibility exception has an explicit migration note.
+
+### v2 API freeze gate
+
+The v2 API must not be frozen until:
+
+- [ ] the complete v1 public surface has been audited;
+- [ ] the 2D/3D naming grammar has been applied consistently;
+- [ ] UFCS and argument ordering have been reviewed;
+- [ ] orientation semantics have been resolved;
+- [ ] deprecated compatibility coverage has been defined;
+- [ ] canonical v2 consumer tests compile without deprecation warnings;
+- [ ] plausible `geo3-d` signatures exist for every shared concept.
+
+No `geo3-d` implementation is required for this gate. A compile-only or
+design-level 3D API model is sufficient to validate API-family symmetry.
 
 
 ## Post-v1 numerical work

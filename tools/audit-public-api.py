@@ -807,12 +807,25 @@ def build_surface(
         list
     )
 
+    reflected_by_name = defaultdict(
+        list
+    )
+
     for record in reflection:
         reflected[
             (
                 record["owner"],
                 record["name"],
                 record["line"],
+            )
+        ].append(
+            record
+        )
+
+        reflected_by_name[
+            (
+                record["owner"],
+                record["name"],
             )
         ].append(
             record
@@ -833,6 +846,8 @@ def build_surface(
     )
 
     enum_member_count = 0
+
+    relocated_reflection_matches = 0
 
     module_order: dict[
         str,
@@ -979,6 +994,39 @@ def build_surface(
                             [],
                         )
                     )
+
+                    if not evidence:
+                        relocated = (
+                            reflected_by_name.get(
+                                (
+                                    export_name,
+                                    name,
+                                ),
+                                [],
+                            )
+                        )
+
+                        if len(relocated) == 1:
+                            evidence = relocated
+
+                            relocated_reflection_matches += 1
+
+                        elif len(relocated) > 1:
+                            locations = ", ".join(
+                                (
+                                    f"{item['line']}:"
+                                    f"{item['visibility']}:"
+                                    f"{item['mode']}"
+                                )
+                                for item in relocated
+                            )
+
+                            die(
+                                "ambiguous relocated reflection "
+                                "evidence for "
+                                f"{export_name}.{name}: "
+                                + locations
+                            )
 
                     public_evidence = [
                         item
@@ -1188,6 +1236,8 @@ def build_surface(
             private_member_count,
         "enum_members":
             enum_member_count,
+        "relocated_reflection_matches":
+            relocated_reflection_matches,
         "audit_declarations":
             len(rows),
     }
@@ -1396,6 +1446,10 @@ def write_outputs(
         (
             "enum members:                "
             f"{counts['enum_members']}"
+        ),
+        (
+            "relocated reflection matches:"
+            f" {counts['relocated_reflection_matches']}"
         ),
         (
             "total audit declarations:    "
@@ -1627,6 +1681,11 @@ def main() -> int:
     print(
         "enum members:                "
         f"{counts['enum_members']}"
+    )
+
+    print(
+        "relocated reflection matches:"
+        f" {counts['relocated_reflection_matches']}"
     )
 
     print(

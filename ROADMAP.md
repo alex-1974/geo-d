@@ -967,7 +967,7 @@ The public-API migration audit is complete. That does not itself freeze v2.
 
 Remaining integration gates:
 
-- [ ] align the remaining permanent project documentation with the implemented
+- [x] align the remaining permanent project documentation with the implemented
       v2 decisions;
 - [ ] retain required consumer/coexistence evidence as durable reproducible
       tests where it currently exists only as temporary research or

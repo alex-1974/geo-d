@@ -10,6 +10,23 @@ cd "$root"
 
 ddox_version="0.16.24"
 
+compiler="dmd"
+
+mapfile -t import_paths < <(
+    PYTHONDONTWRITEBYTECODE=1 \
+        python3 \
+        "$root/tools/dub-import-paths.py" \
+        --compiler "$compiler"
+)
+
+import_flags=()
+
+for import_path in "${import_paths[@]}"; do
+    import_flags+=(
+        "-I$import_path"
+    )
+done
+
 work_dir="build/ddox"
 site_dir="$work_dir/site"
 json_file="$work_dir/docs.json"
@@ -73,13 +90,13 @@ echo
 
 echo "Generating ddox input for ${#public_sources[@]} public modules..."
 
-dmd \
+"$compiler" \
     -o- \
     -w \
     -Xf"$json_file" \
     -Df"$dummy_file" \
     -version=Have_geo_d \
-    -Isource \
+    "${import_flags[@]}" \
     -preview=dip1000 \
     -vcolumns \
     "${public_sources[@]}"

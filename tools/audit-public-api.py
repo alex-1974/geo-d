@@ -412,10 +412,51 @@ def row_for(
     }
 
 
+def resolved_import_paths(
+    root: Path,
+    compiler: str,
+) -> list[str]:
+    helper = (
+        root
+        / "tools"
+        / "dub-import-paths.py"
+    )
+
+    if not helper.is_file():
+        die(
+            "DUB import-path helper not found: "
+            + str(helper)
+        )
+
+    result = run(
+        [
+            sys.executable,
+            str(helper),
+            "--compiler",
+            compiler,
+        ],
+        cwd=root,
+    )
+
+    paths = [
+        line.strip()
+        for line in result.stdout.splitlines()
+        if line.strip()
+    ]
+
+    if not paths:
+        die(
+            "DUB import-path helper returned no paths"
+        )
+
+    return paths
+
+
 def generate_raw_dmd_json(
     root: Path,
     out_dir: Path,
     compiler: str,
+    import_paths: list[str],
 ) -> tuple[Path, list[Path]]:
     source_dir = (
         root
@@ -450,7 +491,10 @@ def generate_raw_dmd_json(
         f"-Xf{raw_json}",
         f"-Df{dummy}",
         "-version=Have_geo_d",
-        "-Isource",
+        *[
+            f"-I{path}"
+            for path in import_paths
+        ],
         "-preview=dip1000",
         "-vcolumns",
         *[
@@ -618,6 +662,7 @@ def generate_reflection_probe(
     root: Path,
     out_dir: Path,
     compiler: str,
+    import_paths: list[str],
     aggregates: list[
         tuple[str, str]
     ],
@@ -788,7 +833,10 @@ mixin template DumpMembers(
             "-o-",
             "-c",
             "-verrors=0",
-            "-Isource",
+            *[
+                f"-I{path}"
+                for path in import_paths
+            ],
             "-preview=dip1000",
             str(probe),
         ],
@@ -1674,6 +1722,13 @@ def main() -> int:
         )
     )
 
+    import_paths = (
+        resolved_import_paths(
+            root,
+            compiler,
+        )
+    )
+
     (
         raw_path,
         public_sources,
@@ -1681,6 +1736,7 @@ def main() -> int:
         root,
         out_dir,
         compiler,
+        import_paths,
     )
 
     raw = json.loads(
@@ -1729,6 +1785,7 @@ def main() -> int:
         root,
         out_dir,
         compiler,
+        import_paths,
         aggregates,
     )
 

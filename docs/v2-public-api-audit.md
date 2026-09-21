@@ -2,13 +2,20 @@
 
 ## Status
 
-Working document for the `v2.0.0` API-family migration defined by
-ADR-0019.
+Completed public-API migration audit for the `v2.0.0` integration defined by
+ADR-0019 and ADR-0020.
 
-This document audits the complete supported `geo-d` v1 public surface before
-the v2 API is frozen.
+This document records the complete frozen `geo-d` v1 public surface, the
+declaration-by-declaration v1-to-v2 disposition, and the reproducible
+implemented v2 public surface.
 
-It does not by itself add new geometry functionality.
+Completion of this audit does not by itself declare the v2 API frozen and
+does not add new geometry functionality.
+
+The family-decision sections intentionally preserve parts of the chronological
+review process. Earlier wording such as candidate, review, or future probe is
+superseded where a later family-result section, package-coexistence result, or
+the implemented v2 audit result below records the final decision.
 
 ## Scope
 
@@ -51,6 +58,75 @@ total audit declarations:   146
 The 12 private aggregate members are verification evidence only and are not
 part of the 146-row public audit surface.
 
+## Implemented v2 audit result
+
+The implemented v2 surface was re-audited at repository commit:
+
+~~~text
+b633ed63476d1de3c0146b9fdea6168c6d9ed4ca
+~~~
+
+The API implementation itself had reached the integrated shared-core and
+direct-compiler-tooling state by:
+
+~~~text
+441293d5ba53d105b363345295ac63337ee61379
+~~~
+
+The intervening commits through the audit run are documentation-only and do
+not alter the public source API.
+
+The current auditor reports:
+
+~~~text
+public modules:               18
+package exports:              45
+top-level declarations:       58
+public aggregate members:     69
+private aggregate members:    12
+enum members:                 24
+relocated reflection matches:  4
+unresolved members:            0
+total audit declarations:    151
+~~~
+
+The normalized v2 surface fingerprint is:
+
+~~~text
+a0ab854fd577c84f26dd1f41f86dda8c60d9de4fe31420d0d4d4ba5c6f315e7f
+~~~
+
+As with the v1 audit, the 12 private aggregate members are verification
+evidence and are not additional public audit rows.
+
+The four relocated reflection matches are auditor attribution evidence for
+declarations whose implementation origin moved to the shared core. They are
+not four additional public declarations and therefore do not increase the
+151-row total.
+
+The public-surface delta is:
+
+~~~text
+                              v1    v2   delta
+package exports                41    45     +4
+top-level declarations         53    58     +5
+public aggregate members       69    69      0
+enum members                   24    24      0
+total audit declarations      146   151     +5
+~~~
+
+The net five top-level additions are migration effects rather than new
+geometry functionality:
+
+1. four deprecated v1 compatibility aliases remain beside their renamed
+   canonical v2 declarations:
+   `PolylineView`, `LinearRingView`, `PolygonView`, and `Orientation`;
+2. the deprecated v1 point-first `tryPointSegmentDistance` overload remains as
+   a forwarding overload beside the canonical v2 segment-first overload.
+
+The frozen v1 counts and fingerprint above remain the migration baseline.
+They must not be rewritten to match the resulting v2 surface.
+
 ## Audit sources
 
 The inventory combines three independent views of the source:
@@ -69,7 +145,7 @@ versioned.
 `geo-d` remains a coordinate-system-agnostic Euclidean 2D library.
 
 The v2 migration exists to make the established 2D API form a predictable
-family with the planned independent `geo3-d` library.
+family with the independent `geo3-d` sibling library.
 
 This requires consistency in:
 
@@ -3897,29 +3973,31 @@ make the 3D library conceptually subordinate to it.
 
 ### Consumer-driven common origin
 
-No third common library or package is introduced by this audit.
+The coexistence review established that a shared declaration origin is
+justified only when a second real sibling library requires the same public
+contract with the same D declaration identity.
 
-A common origin becomes justified only when a second real library needs one of
-the affected public contracts.
+That condition is now met for the seven contracts identified below.
 
-At that point the shared declaration may be extracted to an appropriately
-scoped lower-level package or library and re-exported by both dimensional
-packages.
+The integration therefore uses the narrowly scoped lower-level support
+package `euclid-core-d`, as formalized by ADR-0020. Both dimensional sibling
+libraries obtain the affected declarations from that common origin.
 
-That extraction is therefore:
+The extraction remains:
 
 ~~~text
 consumer-driven
 not speculative
-required before duplicate root export
+required for common declaration identity
 ~~~
 
-The exact future package/repository name is intentionally not frozen here.
+`euclid-core-d` is not a third consumer-facing geometry API and does not make
+either dimensional sibling depend on the other.
 
-### Compatibility during later extraction
+### Compatibility of shared-origin extraction
 
-A future common-origin extraction must preserve the existing public
-`geo-d` import surface where practical.
+The implemented common-origin extraction preserves the existing public
+`geo-d` import surface.
 
 For example, code using:
 
@@ -3930,13 +4008,14 @@ SegmentIntersectionKind kind;
 RingValidationResult result;
 ~~~
 
-must continue to refer to the canonical shared declarations after extraction.
+continues to refer to the canonical shared declarations after extraction.
 
-Likewise, existing supported module-level imports should be preserved through
-aliases or re-exports where source compatibility requires them.
+Supported module-level imports are preserved through aliases or re-exports
+where source compatibility requires them.
 
-The common declaration itself must have one identity; compatibility layers
-must not create structurally identical but distinct replacement types.
+The common declaration itself has one runtime identity; compatibility and
+documentation facades must not create structurally identical but distinct
+runtime replacement types.
 
 ### Shared-origin-required contracts
 
@@ -3989,20 +4068,17 @@ its numerical requirements are known.
 
 ### Root-package coexistence invariant
 
-Before the v2 API can be considered frozen, compile-only coexistence coverage
-must exercise at least:
+The integration probes exercise simultaneous root imports:
 
 ~~~d
 import geo;
 import geo3;
 ~~~
 
-with representative calls from both dimensional operation families.
+with representative calls from both dimensional operation families and with
+common-origin declaration identity checks.
 
-The future test must also exercise every common-origin public root exported by
-both packages.
-
-The intended invariant is:
+The probes establish the intended invariant:
 
 ~~~text
 same mathematical operation
@@ -4015,6 +4091,10 @@ dimension-specific concept
     -> dimension-bearing type or 2D/3D-specific API as appropriate
 ~~~
 
+This resolves the API-design question. Where coexistence evidence currently
+exists only as temporary research or integration probes, the remaining freeze
+work is to retain equivalent coverage as durable reproducible tests.
+
 ### Result
 
 The previous `COLLISION-REVIEW` state is fully resolved.
@@ -4023,17 +4103,25 @@ No independently duplicated same-name neutral root contract is permitted.
 
 No permanent `geo3-d -> geo-d` ownership dependency is introduced.
 
-No speculative common library is introduced.
+The shared `euclid-core-d` package is not speculative: it contains only
+neutral contracts for which the second concrete sibling consumer established
+a common-declaration-identity requirement.
 
-Common-origin extraction occurs only when the second concrete consumer makes
-it necessary.
+Common-origin extraction has occurred only where that second concrete
+consumer made it necessary.
 
 ## Complete v1 declaration inventory
 
 The table below is generated from the frozen v1 audit.
 
-`Decision`, `geo3-d analogue`, and `Compatibility` intentionally begin as
-`TBD`; they are filled only after family-level review.
+It intentionally remains a 146-row inventory of the v1 surface rather than
+being rewritten as a v2 inventory.
+
+`Decision`, `geo3-d analogue`, and `Compatibility` record the completed
+family-level review and the disposition of every frozen v1 declaration.
+
+The separate implemented-v2 result near the start of this document records
+the resulting 151-row v2 surface.
 
 | # | Family | Module | Surface | Symbol | Overload | Kind | First parameter | Decision | geo3-d analogue | Compatibility |
 |---:|---|---|---|---|---:|---|---|---|---|---|
@@ -4184,16 +4272,36 @@ The table below is generated from the frozen v1 audit.
 | 145 | simplification | `geo.simplification` | top-level | `douglasPeuckerWorkspaceSize` | 1 | function | `pointCount: <compiler-derived>` | KEEP + SHARED-ORIGIN-REQUIRED | same declaration identity required before geo3-d root re-export | none |
 | 146 | simplification | `geo.simplification` | top-level | `trySimplifyDouglasPeuckerInto` | 1 | template/function | `polyline: PolylineView!T` | KEEP + SHARED-FAMILY | `trySimplifyDouglasPeuckerInto(Polyline3View, tolerance, Point3[], size_t[], written)` | v1 parameter spelling via deprecated `PolylineView` alias |
 
-## Freeze checklist
+## Audit completion checklist
 
-- [ ] all 146 v1 declarations have an explicit disposition;
-- [ ] dimensional type naming is internally consistent;
-- [ ] every free-function family has an intentional UFCS receiver;
-- [ ] public parameter names/order have been reviewed;
-- [ ] `orientation` semantics are resolved;
-- [ ] simultaneous `geo` / `geo3` import behaviour is validated;
-- [ ] deprecated compatibility coverage is defined;
-- [ ] compatibility overloads are proven unambiguous;
-- [ ] canonical v2 consumer code uses no deprecated API;
-- [ ] plausible `geo3-d` signatures exist for shared concepts;
-- [ ] the final canonical v2 surface has a reproducible audit.
+- [x] all 146 frozen v1 declarations have an explicit disposition;
+- [x] dimensional type naming is internally consistent;
+- [x] every free-function family has an intentional UFCS receiver;
+- [x] public parameter names/order have been reviewed;
+- [x] `orientation` semantics are resolved;
+- [x] simultaneous `geo` / `geo3` import behaviour has been validated locally;
+- [x] deprecated compatibility coverage is defined;
+- [x] compatibility overloads are proven unambiguous locally;
+- [x] canonical v2 consumer code has been verified without deprecated API;
+- [x] plausible `geo3-d` signatures exist for shared concepts;
+- [x] the canonical v2 surface has a reproducible 151-row audit and fingerprint.
+
+The public-API migration audit is therefore complete.
+
+## Remaining v2 integration and freeze gates
+
+Completion of the audit is not the v2 freeze.
+
+Before the v2 API is frozen, the integration must still:
+
+- [ ] align the remaining permanent project documentation with the implemented
+  decisions;
+- [ ] retain required consumer/coexistence evidence as durable reproducible
+  tests where it currently exists only as temporary research or integration
+  probes;
+- [ ] rerun the complete local verification gate after documentation
+  integration;
+- [ ] obtain current CI evidence for the integration state;
+- [ ] resolve release packaging of the shared `euclid-core-d` dependency.
+
+No additional geometry functionality is required merely to close these gates.

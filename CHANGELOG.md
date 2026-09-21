@@ -6,13 +6,57 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Added the normative `docs/v2-api-conventions.md` specification for the
+  2D/3D Euclidean API family.
+- Added ADR-0020 defining `euclid-core-d` as the narrowly scoped common
+  declaration origin for neutral contracts shared by `geo-d` and `geo3-d`.
+- Added reproducible v2 public-surface auditing while preserving the frozen
+  v1 audit baseline.
+
 ### Changed
 
+- Aligned the v2 API with the independent `geo3-d` sibling through
+  dimension-explicit geometry type names and dimension-neutral operation
+  families.
+- Renamed the canonical view types to `Polyline2View`, `LinearRing2View`, and
+  `Polygon2View`, with their v1 names retained as deprecated compatibility
+  aliases.
+- Renamed the canonical orientation result type to `Orientation2` while
+  preserving its established value and initialization semantics.
+- Standardised `tryPointSegmentDistance` on the segment-first canonical v2
+  order and retained the v1 point-first form as a deprecated forwarding
+  overload.
+- Moved the common declaration origin of `isGeoScalar`, `MetricScalar`,
+  `IntersectionScalar`, `SegmentIntersectionKind`, `RingValidationIssue`,
+  `RingValidationResult`, and `douglasPeuckerWorkspaceSize` to
+  `euclid-core-d`.
+- Kept `AreaScalar` owned by `geo-d`; no speculative 3D area or
+  `Polygon3View` API was introduced.
+- Preserved canonical `import geo;` under strict deprecation checking by
+  defining root compatibility aliases locally.
+- Updated direct compiler tooling to resolve dependency import paths through
+  DUB instead of hard-coding the shared-core workspace path.
 - Aligned repository documentation with the `d-geospatial-workspace`
   reorganization and current sibling-library boundaries.
 - Made benchmark helpers resolve the repository location relative to their
   scripts while retaining an explicit path override.
 - Refreshed benchmark documentation to reflect the completed v1 coverage.
+
+### Verification
+
+- Completed declaration-by-declaration disposition of all 146 frozen v1
+  public audit declarations.
+- Reproduced the implemented v2 surface at 45 package exports and 151 public
+  audit declarations with zero unresolved members.
+- Verified simultaneous `geo` / `geo3` use and common declaration identity
+  locally.
+- Verified canonical v2 consumers without deprecated API and supported v1
+  compatibility forms separately.
+- Verified generated public documentation without unintended
+  `euclid_core.*` leakage.
+- Verified DMD and LDC tests and release builds for the integrated v2 state.
 
 ## [1.0.0] - 2026-09-13
 

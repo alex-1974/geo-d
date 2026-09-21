@@ -20,10 +20,10 @@
 module geo.bounding_box;
 
 import geo.bounds : Bounds2;
-import geo.linear_ring_view : LinearRingView;
+import geo.linear_ring_view : LinearRing2View;
 import geo.point : Point2;
-import geo.polygon_view : PolygonView;
-import geo.polyline_view : PolylineView;
+import geo.polygon_view : Polygon2View;
+import geo.polyline_view : Polyline2View;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
 
@@ -161,7 +161,7 @@ if (isGeoScalar!T)
  *     space O(1)
  */
 bool tryBounds(T)(
-    scope PolylineView!T polyline,
+    scope Polyline2View!T polyline,
     out Bounds2!T result
 )
     pure nothrow @safe @nogc
@@ -203,7 +203,7 @@ if (isGeoScalar!T)
  *     space O(1)
  */
 bool tryBounds(T)(
-    scope LinearRingView!T ring,
+    scope LinearRing2View!T ring,
     out Bounds2!T result
 )
     pure nothrow @safe @nogc
@@ -245,7 +245,7 @@ if (isGeoScalar!T)
  *     space O(1)
  */
 bool tryBounds(T)(
-    scope PolygonView!T polygon,
+    scope Polygon2View!T polygon,
     out Bounds2!T result
 )
     pure nothrow @safe @nogc
@@ -284,7 +284,7 @@ if (isGeoScalar!T)
     ];
 
     const polyline =
-        PolylineView!int(points[]);
+        Polyline2View!int(points[]);
 
     Bounds2!int bounds;
 
@@ -315,9 +315,9 @@ if (isGeoScalar!T)
                 alias P = Point2!T;
             alias B = Bounds2!T;
             alias S = Segment2!T;
-            alias L = PolylineView!T;
-            alias R = LinearRingView!T;
-            alias G = PolygonView!T;
+            alias L = Polyline2View!T;
+            alias R = LinearRing2View!T;
+            alias G = Polygon2View!T;
 
 
             /*

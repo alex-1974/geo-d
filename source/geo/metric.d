@@ -17,7 +17,7 @@ module geo.metric;
 
 static import euclid_core.scalar;
 
-import geo.polyline_view : PolylineView;
+import geo.polyline_view : Polyline2View;
 
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
@@ -617,8 +617,8 @@ if (isGeoScalar!T)
  *     O(1) time and O(1) auxiliary space.
  */
 bool tryPointSegmentDistance(T, R)(
-    Point2!T point,
     Segment2!T segment,
+    Point2!T point,
     out R result
 )
     pure nothrow @safe @nogc
@@ -776,6 +776,34 @@ if (
     return true;
 }
 
+/**
+ * Deprecated v1 point-first overload.
+ *
+ * Use `tryPointSegmentDistance(segment, point, result)` so that the segment
+ * is the UFCS receiver consistently with `tryNearestPoint`.
+ */
+deprecated(
+    "Use tryPointSegmentDistance(segment, point, result)"
+)
+bool tryPointSegmentDistance(T, R)(
+    Point2!T point,
+    Segment2!T segment,
+    out R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    return tryPointSegmentDistance(
+        segment,
+        point,
+        result
+    );
+}
+
+
 
 /// Example computing point-to-segment distance and handling failure.
 @safe unittest
@@ -795,8 +823,8 @@ if (
 
     assert(
         tryPointSegmentDistance(
-            P(5.0, 3.0),
             segment,
+            P(5.0, 3.0),
             result
         )
     );
@@ -807,8 +835,8 @@ if (
 
     assert(
         !tryPointSegmentDistance(
-            P(double.nan, 0.0),
             segment,
+            P(double.nan, 0.0),
             result
         )
     );
@@ -1075,7 +1103,7 @@ if (isGeoScalar!T)
  * Complexity:
  *     O(n) time and O(1) auxiliary space for n stored points.
  */
-MetricScalar!T polylineLength(T)(PolylineView!T polyline)
+MetricScalar!T polylineLength(T)(Polyline2View!T polyline)
     pure nothrow @safe @nogc
 if (isGeoScalar!T)
 {
@@ -1138,7 +1166,7 @@ if (isGeoScalar!T)
     ];
 
     const polyline =
-        PolylineView!double(points[]);
+        Polyline2View!double(points[]);
 
     assert(polylineLength(polyline) == 10.0);
 }
@@ -1230,11 +1258,11 @@ if (isGeoScalar!T)
 
         assert(
             tryPointSegmentDistance(
-                PD(5.0, 3.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(10.0, 0.0)
                 ),
+                PD(5.0, 3.0),
                 d
             )
         );
@@ -1249,11 +1277,11 @@ if (isGeoScalar!T)
          */
         assert(
             tryPointSegmentDistance(
-                PD(2.0, 0.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(4.0, 0.0)
                 ),
+                PD(2.0, 0.0),
                 d
             )
         );
@@ -1261,11 +1289,11 @@ if (isGeoScalar!T)
 
         assert(
             tryPointSegmentDistance(
-                PD(3.0, 0.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(4.0, 0.0)
                 ),
+                PD(3.0, 0.0),
                 d
             )
         );
@@ -1276,11 +1304,11 @@ if (isGeoScalar!T)
          */
         assert(
             tryPointSegmentDistance(
-                PD(-3.0, 4.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(10.0, 0.0)
                 ),
+                PD(-3.0, 4.0),
                 d
             )
         );
@@ -1291,11 +1319,11 @@ if (isGeoScalar!T)
          */
         assert(
             tryPointSegmentDistance(
-                PD(13.0, 4.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(10.0, 0.0)
                 ),
+                PD(13.0, 4.0),
                 d
             )
         );
@@ -1306,11 +1334,11 @@ if (isGeoScalar!T)
          */
         assert(
             tryPointSegmentDistance(
-                PD(4.0, 6.0),
                 SD(
                     PD(1.0, 2.0),
                     PD(1.0, 2.0)
                 ),
+                PD(4.0, 6.0),
                 d
             )
         );
@@ -1329,11 +1357,11 @@ if (isGeoScalar!T)
 
         assert(
             tryPointSegmentDistance(
-                PL(long.max - 1, 1),
                 SL(
                     PL(long.max - 2, 0),
                     PL(long.max, 0)
                 ),
+                PL(long.max - 1, 1),
                 d
             )
         );
@@ -1344,11 +1372,11 @@ if (isGeoScalar!T)
          */
         assert(
             tryPointSegmentDistance(
-                PL(0, 1),
                 SL(
                     PL(long.min, 0),
                     PL(long.max, 0)
                 ),
+                PL(0, 1),
                 d
             )
         );
@@ -1367,11 +1395,11 @@ if (isGeoScalar!T)
 
         assert(
             !tryPointSegmentDistance(
-                PD(double.nan, 0.0),
                 SD(
                     PD(0.0, 0.0),
                     PD(1.0, 0.0)
                 ),
+                PD(double.nan, 0.0),
                 d
             )
         );
@@ -1395,11 +1423,11 @@ if (isGeoScalar!T)
 
         assert(
             !tryPointSegmentDistance(
-                PD(0.0, 1.0),
                 SD(
                     PD(-double.max, 0.0),
                     PD( double.max, 0.0)
                 ),
+                PD(0.0, 1.0),
                 d
             )
         );
@@ -1416,8 +1444,8 @@ if (isGeoScalar!T)
             typeof({
                 double value;
                 tryPointSegmentDistance(
-                    Point2!int.init,
                     Segment2!int.init,
+                    Point2!int.init,
                     value
                 );
                 return value;
@@ -1430,8 +1458,8 @@ if (isGeoScalar!T)
             typeof({
                 real value;
                 tryPointSegmentDistance(
-                    Point2!real.init,
                     Segment2!real.init,
+                    Point2!real.init,
                     value
                 );
                 return value;
@@ -1774,7 +1802,7 @@ if (isGeoScalar!T)
      * Polyline length is the sum of consecutive segment lengths.
      */
     {
-        import geo.polyline_view : PolylineView;
+        import geo.polyline_view : Polyline2View;
 
         alias PP = Point2!double;
 
@@ -1785,7 +1813,7 @@ if (isGeoScalar!T)
         ];
 
         auto polyline =
-            PolylineView!double(points[]);
+            Polyline2View!double(points[]);
 
         assert(polyline.segmentCount == 2);
         assert(polylineLength(polyline) == 10.0);
@@ -1836,7 +1864,7 @@ if (isGeoScalar!T)
 
         const length =
             polylineLength(
-                PolylineView!double(points[])
+                Polyline2View!double(points[])
             );
 
         assert(length == expected);
@@ -1857,7 +1885,7 @@ if (isGeoScalar!T)
 
         assert(
             polylineLength(
-                PolylineView!double(
+                Polyline2View!double(
                     infinitePoints[]
                 )
             ) ==
@@ -1872,7 +1900,7 @@ if (isGeoScalar!T)
 
         const nanLength =
             polylineLength(
-                PolylineView!double(
+                Polyline2View!double(
                     nanPoints[]
                 )
             );
@@ -1894,7 +1922,7 @@ if (isGeoScalar!T)
 
         assert(
             polylineLength(
-                PolylineView!double(
+                Polyline2View!double(
                     overflowPoints[]
                 )
             ) ==
@@ -1907,12 +1935,12 @@ if (isGeoScalar!T)
      * Empty and singleton polylines have zero length.
      */
     {
-        import geo.polyline_view : PolylineView;
+        import geo.polyline_view : Polyline2View;
 
         Point2!int[] emptyPoints;
 
         auto empty =
-            PolylineView!int(emptyPoints);
+            Polyline2View!int(emptyPoints);
 
         assert(polylineLength(empty) == 0.0);
 
@@ -1921,7 +1949,7 @@ if (isGeoScalar!T)
         ];
 
         auto singleton =
-            PolylineView!int(
+            Polyline2View!int(
                 singletonPoints[]
             );
 
@@ -1935,31 +1963,31 @@ if (isGeoScalar!T)
      */
     static assert(
         is(typeof(polylineLength(
-            PolylineView!int.init
+            Polyline2View!int.init
         )) == double)
     );
 
     static assert(
         is(typeof(polylineLength(
-            PolylineView!long.init
+            Polyline2View!long.init
         )) == double)
     );
 
     static assert(
         is(typeof(polylineLength(
-            PolylineView!float.init
+            Polyline2View!float.init
         )) == double)
     );
 
     static assert(
         is(typeof(polylineLength(
-            PolylineView!double.init
+            Polyline2View!double.init
         )) == double)
     );
 
     static assert(
         is(typeof(polylineLength(
-            PolylineView!real.init
+            Polyline2View!real.init
         )) == real)
     );
 

@@ -21,7 +21,7 @@ import geo.metric :
     MetricScalar,
     tryPointSegmentDistance;
 import geo.point : Point2;
-import geo.polyline_view : PolylineView;
+import geo.polyline_view : Polyline2View;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
 
@@ -117,7 +117,7 @@ alias douglasPeuckerWorkspaceSize =
  *     O(n^2) time in the worst case for n stored input points.
  */
 bool trySimplifyDouglasPeuckerInto(T, R)(
-    scope PolylineView!T polyline,
+    scope Polyline2View!T polyline,
     R tolerance,
     scope Point2!T[] destination,
     scope size_t[] workspace,
@@ -212,8 +212,8 @@ if (
 
             if (
                 !tryPointSegmentDistance(
-                    polyline[index],
                     baseline,
+                    polyline[index],
                     pointDistance
                 )
             )
@@ -275,7 +275,7 @@ if (
     import geo;
 
     alias P = Point2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
     P[5] input = [
         P(0.0, 0.0),
@@ -326,7 +326,7 @@ if (
 
 
     alias P = Point2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
 
     /*
@@ -874,7 +874,7 @@ if (
      */
     {
         alias PI = Point2!long;
-        alias VI = PolylineView!long;
+        alias VI = Polyline2View!long;
 
         PI[3] input = [
             PI(long.max - 2, 0),
@@ -915,7 +915,7 @@ if (
                 size_t[1] workspace;
 
                 auto polyline =
-                    PolylineView!real(input[]);
+                    Polyline2View!real(input[]);
 
                 size_t written;
 

@@ -15,7 +15,7 @@
  */
 module geo.polygon_view;
 
-import geo.linear_ring_view : LinearRingView;
+import geo.linear_ring_view : LinearRing2View;
 import geo.scalar : isGeoScalar;
 
 
@@ -24,31 +24,31 @@ import geo.scalar : isGeoScalar;
  *
  * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
  *
- * `PolygonView.init` is an empty polygon view.
+ * `Polygon2View.init` is an empty polygon view.
  *
- * PolygonView does not allocate or copy ring descriptors or point data.
+ * Polygon2View does not allocate or copy ring descriptors or point data.
  * The caller retains ownership of both the backing ring-descriptor storage
  * and the point storage referenced by those descriptors. The ring-descriptor
- * storage must remain valid for the lifetime of the PolygonView. Point
+ * storage must remain valid for the lifetime of the Polygon2View. Point
  * storage referenced by a stored ring descriptor must remain valid for as
- * long as that descriptor can be accessed through the PolygonView.
+ * long as that descriptor can be accessed through the Polygon2View.
  *
  * The view aliases this backing storage. Changes made through the owners of
  * mutable ring-descriptor or point storage remain visible through an
- * existing PolygonView. Mutation is not exposed through PolygonView itself.
+ * existing Polygon2View. Mutation is not exposed through Polygon2View itself.
  *
  * For a non-empty polygon, ring zero is the exterior ring. Subsequent rings
  * are interior rings. Ring roles are structural and do not depend on
  * winding direction.
  *
- * PolygonView does not validate topology or normalize ring orientation.
- * Empty and degenerate rings remain representable through LinearRingView.
+ * Polygon2View does not validate topology or normalize ring orientation.
+ * Empty and degenerate rings remain representable through LinearRing2View.
  */
-struct PolygonView(T)
+struct Polygon2View(T)
 if (isGeoScalar!T)
 {
 private:
-    const(LinearRingView!T)[] _rings;
+    const(LinearRing2View!T)[] _rings;
 
 public:
     /**
@@ -58,7 +58,7 @@ public:
      * is performed.
      */
     this(
-        return scope const(LinearRingView!T)[] rings
+        return scope const(LinearRing2View!T)[] rings
     )
         pure nothrow @safe @nogc
     {
@@ -99,7 +99,7 @@ public:
      *
      * Ring zero is the exterior ring. Subsequent rings are interior rings.
      */
-    const(LinearRingView!T) opIndex(size_t index) const
+    const(LinearRing2View!T) opIndex(size_t index) const
         pure nothrow @safe @nogc
     {
         return _rings[index];
@@ -112,7 +112,7 @@ public:
      * The polygon must be non-empty. Invalid access retains normal D
      * bounds semantics.
      */
-    @property const(LinearRingView!T) exterior() const
+    @property const(LinearRing2View!T) exterior() const
         pure nothrow @safe @nogc
     {
         return _rings[0];
@@ -126,7 +126,7 @@ public:
      *
      *     0 .. holeCount
      */
-    const(LinearRingView!T) hole(size_t index) const
+    const(LinearRing2View!T) hole(size_t index) const
         pure nothrow @safe @nogc
     {
         /*
@@ -143,8 +143,8 @@ public:
     import geo;
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias G = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias G = Polygon2View!double;
 
     P[4] exteriorPoints = [
         P(0.0, 0.0),
@@ -189,6 +189,13 @@ public:
 }
 
 
+/**
+ * Deprecated v1 spelling of `Polygon2View`.
+ */
+deprecated("Use Polygon2View")
+alias PolygonView = Polygon2View;
+
+
 @safe unittest
 {
     import geo.point : Point2;
@@ -196,28 +203,28 @@ public:
 
 
     /*
-     * PolygonView follows the LinearRingView scalar domain.
+     * Polygon2View follows the LinearRing2View scalar domain.
      */
     static foreach (T; AliasSeq!(int, long, float, double, real))
     {
-        static assert(PolygonView!T.init.length == 0);
-        static assert(PolygonView!T.init.empty);
-        static assert(PolygonView!T.init.holeCount == 0);
+        static assert(Polygon2View!T.init.length == 0);
+        static assert(Polygon2View!T.init.empty);
+        static assert(Polygon2View!T.init.holeCount == 0);
     }
 
 
     /*
      * Unsupported scalar types remain unavailable.
      */
-    static assert(!__traits(compiles, PolygonView!byte));
-    static assert(!__traits(compiles, PolygonView!short));
-    static assert(!__traits(compiles, PolygonView!uint));
-    static assert(!__traits(compiles, PolygonView!ulong));
+    static assert(!__traits(compiles, Polygon2View!byte));
+    static assert(!__traits(compiles, Polygon2View!short));
+    static assert(!__traits(compiles, Polygon2View!uint));
+    static assert(!__traits(compiles, Polygon2View!ulong));
 
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias V = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias V = Polygon2View!double;
 
 
     /*
@@ -356,7 +363,7 @@ public:
 
 
     /*
-     * Mutation of ring descriptors is not exposed through PolygonView.
+     * Mutation of ring descriptors is not exposed through Polygon2View.
      */
     static assert(
         !__traits(

@@ -23,7 +23,7 @@ import geo.point :
     Point2;
 
 import geo.polygon_view :
-    PolygonView;
+    Polygon2View;
 
 
 /**
@@ -80,7 +80,7 @@ enum PointPolygonLocation : ubyte
  *     rings.
  */
 bool tryClassifyPointInPolygon(T)(
-    scope PolygonView!T polygon,
+    scope Polygon2View!T polygon,
     Point2!T point,
     out PointPolygonLocation location
 )
@@ -208,8 +208,8 @@ if (
     import geo;
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias V = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias V = Polygon2View!double;
 
     P[4] points = [
         P(0.0, 0.0),
@@ -271,7 +271,7 @@ if (
 @safe unittest
 {
     import geo.linear_ring_view :
-        LinearRingView;
+        LinearRing2View;
 
     import std.meta :
         AliasSeq;
@@ -284,8 +284,8 @@ if (
     {
         {
             alias P = Point2!T;
-            alias R = LinearRingView!T;
-            alias V = PolygonView!T;
+            alias R = LinearRing2View!T;
+            alias V = Polygon2View!T;
 
             P[4] exteriorPoints = [
                 P(T(0), T(0)),
@@ -355,7 +355,7 @@ if (
         !__traits(
             compiles,
             {
-                PolygonView!real polygon;
+                Polygon2View!real polygon;
                 Point2!real point;
                 PointPolygonLocation location;
 
@@ -370,8 +370,8 @@ if (
 
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias V = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias V = Polygon2View!double;
 
 
     /*
@@ -713,8 +713,8 @@ if (
      */
     {
         alias LP = Point2!long;
-        alias LR = LinearRingView!long;
-        alias LV = PolygonView!long;
+        alias LR = LinearRing2View!long;
+        alias LV = Polygon2View!long;
 
         LP[3] exteriorPoints = [
             LP(long.min, long.min),

@@ -6,6 +6,35 @@
 updated after the coordinated workspace reorganization; the `geo-d` scope
 decision itself is unchanged.
 
+**Amended:** 2026-09-21 — ADR-0020 supersedes the blanket prohibition on a
+common foundation package where a small neutral package is required to give
+independent Euclidean sibling libraries one declaration identity for genuinely
+shared contracts. The domain boundaries established by this ADR remain
+unchanged; ADR-0020 narrows only the dependency rule.
+
+### 2026-09-21 dependency clarification
+
+The statements in section 11 (**Dependency policy**), under
+**Architectural relationship**, and in the rejected shared-foundation
+alternative were written before the `geo-d` / `geo3-d` coexistence work exposed
+a D declaration-identity requirement.
+
+ADR-0020 now permits one narrowly scoped exception:
+
+- `geo-d` and `geo3-d` remain independent public sibling libraries;
+- neither sibling depends on the other;
+- `euclid-core-d` may own only neutral contracts whose common declaration
+  identity is required for the siblings to coexist as one API family;
+- implementation reuse alone is not sufficient reason to move code into the
+  shared core;
+- the shared core does not acquire CRS, geodesy, raster, spatial-index,
+  application, or generic N-dimensional geometry responsibilities.
+
+Accordingly, the older statements rejecting *any* common foundation package
+are historical where they conflict with ADR-0020. Their original purpose —
+preventing incidental coupling and a generic catch-all base library — remains
+in force.
+
 ## Context
 
 `d-geospatial-workspace` coordinates independent, reusable D libraries. Each library must represent a coherent domain, remain independently useful, and avoid dependencies that exist only for incidental code sharing.

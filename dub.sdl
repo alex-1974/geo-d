@@ -12,5 +12,6 @@ sourcePaths "source"
 
 dflags "-preview=dip1000"
 
-# Experimental shared-contract architecture probe.
+# Shared declaration identity for neutral geo-d / geo3-d contracts.
+# The workspace path is temporary until the v2 release-packaging gate is closed.
 dependency "euclid-core-d" path="../../euclid-core-d"

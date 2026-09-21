@@ -11,10 +11,19 @@ import geo;
 Applications should normally use that package module rather than depend on
 implementation modules.
 
-## Installation from the DUB registry
+This guide follows the current canonical v2 integration surface.
 
-For a `geo-d` release available through the public DUB registry, create or
-enter a DUB project and add the package:
+The stable public release is still v1. Until v2 is released, the v2-only
+names used by the examples below belong to the current repository integration
+state rather than to the public registry package. When using a published
+release, use documentation matching that release.
+
+The stable v1 API uses the older view and orientation type names; v2 retains
+those source forms as deprecated compatibility aliases.
+
+## Stable v1 installation from the DUB registry
+
+Create or enter a DUB project and add the released package:
 
 ```sh
 dub init my-geometry-app
@@ -24,9 +33,13 @@ dub add geo-d
 
 DUB records the dependency in the application's package configuration.
 
-The repository release process separately verifies installation and the
-minimal example below against the actually published DUB package. Repository
-path dependencies are not a substitute for that release verification.
+Until v2 is released, do not combine this registry installation with the
+v2-only examples below and expect them to compile unchanged.
+
+The repository release process separately verifies installation and its
+release-matched minimal consumer against the actually published DUB package.
+Repository path dependencies are not a substitute for that release
+verification.
 
 ## DMD and LDC
 
@@ -87,14 +100,18 @@ void main()
             P(0.0, 0.0),
             P(1.0, 0.0),
             P(0.0, 1.0)
-        ) == Orientation.left
+        ) == Orientation2.left
     );
 }
 ```
 
 The repository-local external-consumer test also depends on `geo-d` as a
-separate DUB package and imports only `geo`. Release verification additionally
-tests a clean consumer against the published registry package.
+separate DUB package, imports only `geo`, and verifies the current repository
+integration state.
+
+Release verification separately tests a release-matched clean consumer
+against the published registry package. Until v2 is released, the v2 minimal
+program above is therefore not the stable-v1 registry smoke test.
 
 ## Point and vector algebra
 
@@ -156,7 +173,7 @@ auto result =
         P(1.0, 1.0)
     );
 
-assert(result == Orientation.left);
+assert(result == Orientation2.left);
 ```
 
 Robust topology currently supports `int`, `long`, `float`, and `double`.
@@ -203,7 +220,7 @@ Variable-size geometry uses non-owning read-only views.
 import geo;
 
 alias P = Point2!double;
-alias V = PolylineView!double;
+alias V = Polyline2View!double;
 
 P[] points = [
     P(0.0, 0.0),
@@ -235,8 +252,8 @@ end. Closure is implicit.
 import geo;
 
 alias P = Point2!double;
-alias R = LinearRingView!double;
-alias G = PolygonView!double;
+alias R = LinearRing2View!double;
+alias G = Polygon2View!double;
 
 P[] exteriorPoints = [
     P(0.0, 0.0),
@@ -260,10 +277,10 @@ auto polygon =
     );
 ```
 
-For `PolygonView`, ring 0 is the exterior and subsequent rings are holes.
+For `Polygon2View`, ring 0 is the exterior and subsequent rings are holes.
 Winding direction does not assign those roles.
 
-Both `LinearRingView` and `PolygonView` are non-owning. In the example above,
+Both `LinearRing2View` and `Polygon2View` are non-owning. In the example above,
 both `exteriorPoints` and `rings` must outlive their corresponding views.
 
 ## Area
@@ -274,8 +291,8 @@ Ring area is signed. Polygon area uses structural exterior/hole roles.
 import geo;
 
 alias P = Point2!double;
-alias R = LinearRingView!double;
-alias G = PolygonView!double;
+alias R = LinearRing2View!double;
+alias G = Polygon2View!double;
 
 P[] exteriorPoints = [
     P(0.0, 0.0),
@@ -319,8 +336,8 @@ Classification distinguishes outside, boundary, and inside.
 import geo;
 
 alias P = Point2!double;
-alias R = LinearRingView!double;
-alias G = PolygonView!double;
+alias R = LinearRing2View!double;
+alias G = Polygon2View!double;
 
 P[] exteriorPoints = [
     P(0.0, 0.0),
@@ -364,8 +381,8 @@ Representation and validation are separate operations.
 import geo;
 
 alias P = Point2!double;
-alias R = LinearRingView!double;
-alias G = PolygonView!double;
+alias R = LinearRing2View!double;
+alias G = Polygon2View!double;
 
 P[] exteriorPoints = [
     P(0.0, 0.0),
@@ -411,7 +428,7 @@ storage.
 import geo;
 
 alias P = Point2!double;
-alias V = PolylineView!double;
+alias V = Polyline2View!double;
 
 P[] input = [
     P(0.0, 0.0),
@@ -458,14 +475,37 @@ example are caller-owned setup. Callers may instead reuse existing buffers.
 Douglas-Peucker simplification is metric simplification only; it does not
 claim topology preservation for rings or polygons.
 
+## v1 source compatibility in v2
+
+Code migrating from v1 may continue to use these deprecated aliases during
+the v2 line:
+
+~~~text
+PolylineView     -> Polyline2View
+LinearRingView   -> LinearRing2View
+PolygonView      -> Polygon2View
+Orientation      -> Orientation2
+~~~
+
+New code should use the right-hand canonical v2 names.
+
+The canonical v2 point-to-segment distance call is:
+
+~~~d
+tryPointSegmentDistance(segment, point, result);
+~~~
+
+The former v1 point-first order remains available only as a deprecated
+forwarding overload.
+
 ## Ownership and lifetime summary
 
 The variable-size geometry types are views:
 
 ```text
-PolylineView
-LinearRingView
-PolygonView
+Polyline2View
+LinearRing2View
+Polygon2View
 ```
 
 They are non-owning and read-only.

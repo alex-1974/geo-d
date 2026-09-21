@@ -15,7 +15,9 @@
  */
 module geo.simplification;
 
-static import euclid_core.simplification;
+private import euclid_core.simplification :
+    CoreDouglasPeuckerWorkspaceSize =
+        douglasPeuckerWorkspaceSize;
 
 import geo.metric :
     MetricScalar,
@@ -28,29 +30,75 @@ import geo.segment : Segment2;
 import std.math.traits : isFinite;
 
 
-/**
- * Returns the maximum workspace length required by
- * trySimplifyDouglasPeuckerInto() for a polyline containing pointCount
- * stored points.
- *
- * Empty, singleton, and two-point polylines require no auxiliary
- * workspace.
- *
- * For larger inputs, the iterative Douglas-Peucker implementation may
- * defer at most one right-hand section for each intermediate input
- * vertex.
- *
- * Returns:
- *
- *     max(pointCount - 2, 0)
- *
- * No allocation is performed.
- *
- * Complexity:
- *     O(1) time and O(1) auxiliary space.
- */
-alias douglasPeuckerWorkspaceSize =
-    euclid_core.simplification.douglasPeuckerWorkspaceSize;
+version (D_Ddoc)
+{
+    /**
+     * Returns the maximum workspace length required by
+     * trySimplifyDouglasPeuckerInto() for a polyline containing pointCount
+     * stored points.
+     *
+     * Empty, singleton, and two-point polylines require no auxiliary
+     * workspace.
+     *
+     * For larger inputs, the iterative Douglas-Peucker implementation may
+     * defer at most one right-hand section for each intermediate input
+     * vertex.
+     *
+     * Returns:
+     *
+     *     max(pointCount - 2, 0)
+     *
+     * No allocation is performed.
+     *
+     * Complexity:
+     *     O(1) time and O(1) auxiliary space.
+     */
+    size_t douglasPeuckerWorkspaceSize(
+        size_t pointCount
+    )
+        pure nothrow @safe @nogc
+    {
+        return
+            pointCount > 2
+                ? pointCount - 2
+                : 0;
+    }
+
+    static assert(
+        douglasPeuckerWorkspaceSize(0) ==
+        CoreDouglasPeuckerWorkspaceSize(0)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(1) ==
+        CoreDouglasPeuckerWorkspaceSize(1)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(2) ==
+        CoreDouglasPeuckerWorkspaceSize(2)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(3) ==
+        CoreDouglasPeuckerWorkspaceSize(3)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(10) ==
+        CoreDouglasPeuckerWorkspaceSize(10)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(size_t.max) ==
+        CoreDouglasPeuckerWorkspaceSize(size_t.max)
+    );
+}
+else
+{
+    alias douglasPeuckerWorkspaceSize =
+        CoreDouglasPeuckerWorkspaceSize;
+}
 
 
 /**

@@ -15,7 +15,8 @@
  */
 module geo.metric;
 
-static import euclid_core.scalar;
+private import euclid_core.scalar :
+    CoreMetricScalar = MetricScalar;
 
 import geo.polyline_view : Polyline2View;
 
@@ -28,20 +29,69 @@ import std.math.exponential : ilogb, scalbn;
 import std.math.traits : isFinite;
 
 
-/**
- * Floating-point computation type used by elementary metric operations.
- *
- * Storage precision and metric computation precision are deliberately
- * separate:
- *
- *     int     -> double
- *     long    -> double
- *     float   -> double
- *     double  -> double
- *     real    -> real
- */
-alias MetricScalar =
-    euclid_core.scalar.MetricScalar;
+version (D_Ddoc)
+{
+    /**
+     * Floating-point computation type used by elementary metric operations.
+     *
+     * Storage precision and metric computation precision are deliberately
+     * separate:
+     *
+     *     int     -> double
+     *     long    -> double
+     *     float   -> double
+     *     double  -> double
+     *     real    -> real
+     */
+    template MetricScalar(T)
+    if (isGeoScalar!T)
+    {
+        static if (is(T == real))
+            alias MetricScalar = real;
+        else
+            alias MetricScalar = double;
+    }
+
+    static assert(
+        is(
+            MetricScalar!int ==
+            CoreMetricScalar!int
+        )
+    );
+
+    static assert(
+        is(
+            MetricScalar!long ==
+            CoreMetricScalar!long
+        )
+    );
+
+    static assert(
+        is(
+            MetricScalar!float ==
+            CoreMetricScalar!float
+        )
+    );
+
+    static assert(
+        is(
+            MetricScalar!double ==
+            CoreMetricScalar!double
+        )
+    );
+
+    static assert(
+        is(
+            MetricScalar!real ==
+            CoreMetricScalar!real
+        )
+    );
+}
+else
+{
+    alias MetricScalar =
+        CoreMetricScalar;
+}
 
 
 /// Example inspecting the metric computation scalar policy.

@@ -15,7 +15,9 @@
  */
 module geo.topology_validation;
 
-static import euclid_core.ring_validation;
+private import euclid_core.ring_validation :
+    CoreRingValidationIssue = RingValidationIssue,
+    CoreRingValidationResult = RingValidationResult;
 
 import geo.bounding_box :
     tryBounds;
@@ -50,26 +52,195 @@ import std.algorithm.sorting :
     sort;
 
 
-/**
- * Validation issue detected in a LinearRing2View.
- */
-alias RingValidationIssue =
-    euclid_core.ring_validation.RingValidationIssue;
+version (D_Ddoc)
+{
+    /**
+     * Validation issue detected in a LinearRing2View.
+     */
+    enum RingValidationIssue : ubyte
+    {
+        /// No validation issue was detected.
+        none,
+
+        /// The ring stores fewer than three vertices.
+        tooFewVertices,
+
+        /// At least one stored coordinate is non-finite.
+        nonFiniteCoordinate,
+
+        /// At least one implicit ring edge has zero length.
+        zeroLengthEdge,
+
+        /// Non-adjacent ring edges intersect at a point.
+        selfIntersection,
+
+        /// Ring edges overlap over positive length.
+        selfOverlap,
+    }
+
+    static assert(
+        RingValidationIssue.sizeof ==
+        CoreRingValidationIssue.sizeof
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.none ==
+        cast(ubyte) CoreRingValidationIssue.none
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.tooFewVertices ==
+        cast(ubyte) CoreRingValidationIssue.tooFewVertices
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.nonFiniteCoordinate ==
+        cast(ubyte) CoreRingValidationIssue.nonFiniteCoordinate
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.zeroLengthEdge ==
+        cast(ubyte) CoreRingValidationIssue.zeroLengthEdge
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.selfIntersection ==
+        cast(ubyte) CoreRingValidationIssue.selfIntersection
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.selfOverlap ==
+        cast(ubyte) CoreRingValidationIssue.selfOverlap
+    );
+}
+else
+{
+    alias RingValidationIssue =
+        CoreRingValidationIssue;
+}
 
 
-/**
- * Result of validating one LinearRing2View.
- *
- * Ring edge index i denotes the implicit segment from vertex i to vertex
- * (i + 1) % length.
- *
- * size_t.max denotes an index that does not apply to the reported issue.
- *
- * RingValidationResult.init represents a valid ring result with issue
- * RingValidationIssue.none and both diagnostic indices set to size_t.max.
- */
-alias RingValidationResult =
-    euclid_core.ring_validation.RingValidationResult;
+version (D_Ddoc)
+{
+    /**
+     * Result of validating one LinearRing2View.
+     *
+     * Ring edge index i denotes the implicit segment from vertex i to vertex
+     * (i + 1) % length.
+     *
+     * size_t.max denotes an index that does not apply to the reported issue.
+     *
+     * RingValidationResult.init represents a valid ring result with issue
+     * RingValidationIssue.none and both diagnostic indices set to size_t.max.
+     */
+    struct RingValidationResult
+    {
+        /// Detected validation issue.
+        RingValidationIssue issue =
+            RingValidationIssue.none;
+
+        /// Primary involved vertex or edge index.
+        size_t primaryIndex =
+            size_t.max;
+
+        /// Secondary involved edge index where applicable.
+        size_t secondaryIndex =
+            size_t.max;
+
+        /**
+         * True when no validation issue was detected.
+         */
+        @property bool valid() const
+            pure nothrow @safe @nogc
+        {
+            return issue ==
+                RingValidationIssue.none;
+        }
+    }
+
+    static assert(
+        RingValidationResult.sizeof ==
+        CoreRingValidationResult.sizeof
+    );
+
+    static assert(
+        RingValidationResult.alignof ==
+        CoreRingValidationResult.alignof
+    );
+
+    /*
+     * The documentation enum is deliberately a distinct declaration
+     * from the runtime core enum. Compare each field against its own
+     * declared type and verify representation/layout separately.
+     */
+    static assert(
+        is(
+            typeof(RingValidationResult.init.issue) ==
+            RingValidationIssue
+        )
+    );
+
+    static assert(
+        is(
+            typeof(CoreRingValidationResult.init.issue) ==
+            CoreRingValidationIssue
+        )
+    );
+
+    static assert(
+        RingValidationResult.issue.offsetof ==
+        CoreRingValidationResult.issue.offsetof
+    );
+
+    static assert(
+        RingValidationResult.primaryIndex.offsetof ==
+        CoreRingValidationResult.primaryIndex.offsetof
+    );
+
+    static assert(
+        RingValidationResult.secondaryIndex.offsetof ==
+        CoreRingValidationResult.secondaryIndex.offsetof
+    );
+
+    static assert(
+        is(
+            typeof(RingValidationResult.init.primaryIndex) ==
+            typeof(CoreRingValidationResult.init.primaryIndex)
+        )
+    );
+
+    static assert(
+        is(
+            typeof(RingValidationResult.init.secondaryIndex) ==
+            typeof(CoreRingValidationResult.init.secondaryIndex)
+        )
+    );
+
+    static assert(
+        RingValidationResult.init.issue ==
+        RingValidationIssue.none
+    );
+
+    static assert(
+        RingValidationResult.init.primaryIndex ==
+        CoreRingValidationResult.init.primaryIndex
+    );
+
+    static assert(
+        RingValidationResult.init.secondaryIndex ==
+        CoreRingValidationResult.init.secondaryIndex
+    );
+
+    static assert(
+        RingValidationResult.init.valid ==
+        CoreRingValidationResult.init.valid
+    );
+}
+else
+{
+    alias RingValidationResult =
+        CoreRingValidationResult;
+}
 
 
 /**

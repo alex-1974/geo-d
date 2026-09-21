@@ -15,8 +15,11 @@
  */
 module geo.intersection;
 
-static import euclid_core.intersection;
-static import euclid_core.scalar;
+private import euclid_core.intersection :
+    CoreSegmentIntersectionKind = SegmentIntersectionKind;
+
+private import euclid_core.scalar :
+    CoreIntersectionScalar = IntersectionScalar;
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
@@ -37,18 +40,55 @@ import geo.segment :
     Segment2;
 
 
-/**
- * Topological classification of the intersection of two closed
- * segments.
- *
- * `point` means that the intersection contains exactly one geometric
- * point.
- *
- * `overlap` means that the intersection contains a segment of positive
- * geometric length.
- */
-alias SegmentIntersectionKind =
-    euclid_core.intersection.SegmentIntersectionKind;
+version (D_Ddoc)
+{
+    /**
+     * Topological classification of the intersection of two closed
+     * segments.
+     *
+     * `point` means that the intersection contains exactly one geometric
+     * point.
+     *
+     * `overlap` means that the intersection contains a segment of positive
+     * geometric length.
+     */
+    enum SegmentIntersectionKind : ubyte
+    {
+        /// The closed segments are disjoint.
+        none,
+
+        /// The intersection contains exactly one geometric point.
+        point,
+
+        /// The intersection contains a segment of positive length.
+        overlap,
+    }
+
+    static assert(
+        SegmentIntersectionKind.sizeof ==
+        CoreSegmentIntersectionKind.sizeof
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.none ==
+        cast(ubyte) CoreSegmentIntersectionKind.none
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.point ==
+        cast(ubyte) CoreSegmentIntersectionKind.point
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.overlap ==
+        cast(ubyte) CoreSegmentIntersectionKind.overlap
+    );
+}
+else
+{
+    alias SegmentIntersectionKind =
+        CoreSegmentIntersectionKind;
+}
 
 
 /*
@@ -62,21 +102,79 @@ private enum bool isIntersectionScalar(T) =
     is(T == double);
 
 
-/**
- * Scalar used for constructed unique segment-intersection points.
- *
- * Initial geo-d policy:
- *
- *     int     -> double
- *     long    -> double
- *     float   -> double
- *     double  -> double
- *
- * Topological classification remains exact in the input scalar domain.
- * Construction is deliberately a separate, rounded operation.
- */
-alias IntersectionScalar =
-    euclid_core.scalar.IntersectionScalar;
+version (D_Ddoc)
+{
+    /**
+     * Scalar used for constructed unique segment-intersection points.
+     *
+     * Initial geo-d policy:
+     *
+     *     int     -> double
+     *     long    -> double
+     *     float   -> double
+     *     double  -> double
+     *
+     * Topological classification remains exact in the input scalar domain.
+     * Construction is deliberately a separate, rounded operation.
+     */
+    template IntersectionScalar(T)
+    if (
+           is(T == int)
+        || is(T == long)
+        || is(T == float)
+        || is(T == double)
+    )
+    {
+        alias IntersectionScalar = double;
+    }
+
+    static assert(
+        is(
+            IntersectionScalar!int ==
+            CoreIntersectionScalar!int
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!long ==
+            CoreIntersectionScalar!long
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!float ==
+            CoreIntersectionScalar!float
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!double ==
+            CoreIntersectionScalar!double
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            IntersectionScalar!real
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            CoreIntersectionScalar!real
+        )
+    );
+}
+else
+{
+    alias IntersectionScalar =
+        CoreIntersectionScalar;
+}
 
 
 /// Example inspecting the constructed-intersection scalar policy.

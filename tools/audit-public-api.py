@@ -141,6 +141,101 @@ def parse_package_exports(
     return exports
 
 
+def include_local_package_exports(
+    exports: list[tuple[str, str]],
+    modules: dict[
+        str,
+        dict[str, Any],
+    ],
+) -> list[tuple[str, str]]:
+    """
+    Add public declarations written directly in module `geo`.
+
+    Selective `public import` names are discovered from package.d source.
+    Local root declarations are discovered from DMD JSON so aliases,
+    templates, functions, types, and future declaration forms follow the
+    compiler's semantic representation rather than a second source parser.
+    """
+
+    package_module = modules.get(
+        "geo"
+    )
+
+    if package_module is None:
+        die(
+            "missing root package module "
+            "geo in DMD JSON"
+        )
+
+    local_exports: list[
+        tuple[str, str]
+    ] = []
+
+    for node in package_module.get(
+        "members",
+        [],
+    ):
+        if not isinstance(
+            node,
+            dict,
+        ):
+            continue
+
+        if node.get("kind") == "import":
+            continue
+
+        name = node.get(
+            "name"
+        )
+
+        if not name:
+            continue
+
+        if name.startswith(
+            "__unittest"
+        ):
+            continue
+
+        if node.get(
+            "protection"
+        ) in PUBLIC_BLOCKED:
+            continue
+
+        local_exports.append(
+            (
+                "geo",
+                name,
+            )
+        )
+
+    combined = [
+        *exports,
+        *local_exports,
+    ]
+
+    names = [
+        name
+        for _, name in combined
+    ]
+
+    duplicates = sorted(
+        name
+        for name, count
+        in Counter(names).items()
+        if count > 1
+    )
+
+    if duplicates:
+        die(
+            "duplicate root package names: "
+            + ", ".join(
+                duplicates
+            )
+        )
+
+    return combined
+
+
 def template_impl(
     node: dict[str, Any],
 ) -> dict[str, Any]:
@@ -1611,6 +1706,13 @@ def main() -> int:
         and node.get("kind")
         == "module"
     }
+
+    exports = (
+        include_local_package_exports(
+            exports,
+            modules,
+        )
+    )
 
     aggregates = (
         exported_aggregate_expressions(

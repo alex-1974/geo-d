@@ -797,8 +797,9 @@ scope of `geo-d`.
 `geo3-d` is an independent coordinate-system-agnostic Euclidean 3D sibling.
 Neither dimensional sibling depends on the other.
 
-**Current status:** the API-family migration is implemented, locally
-integrated, and publicly audited. The v2 API is not yet frozen or released.
+**Current status:** the API-family migration is implemented, integrated,
+publicly audited, and uses the released `euclid-core-d 0.1.0` package through
+the public DUB registry. The v2 API is not yet frozen or released.
 
 ### Architecture and API-family decisions
 
@@ -933,6 +934,15 @@ douglasPeuckerWorkspaceSize
 These declarations are provided by the narrowly scoped `euclid-core-d`
 support package and re-exposed through the dimensional libraries.
 
+`euclid-core-d v0.1.0` is independently versioned and published through the
+public DUB registry. Both `geo-d` and `geo3-d` resolve it through the versioned
+dependency `~>0.1.0`; neither sibling depends on a workspace-relative Core
+path.
+
+Registry-backed coexistence verification resolved exactly one Core package
+instance for a simultaneous `import geo; import geo3;` consumer and preserved
+common D declaration identity for all seven shared contracts.
+
 `AreaScalar` remains owned by `geo-d`.
 
 `euclid-core-d` exists for declaration identity, not as a generic
@@ -972,10 +982,31 @@ Remaining integration gates:
 - [ ] retain required consumer/coexistence evidence as durable reproducible
       tests where it currently exists only as temporary research or
       integration probes;
-- [ ] rerun the complete local verification gate after documentation
+- [x] rerun the complete local verification gate after documentation
       integration;
-- [ ] obtain current CI evidence for the integration state;
-- [ ] resolve release packaging of the shared `euclid-core-d` dependency.
+- [x] obtain current CI evidence for the integration state;
+- [x] resolve release packaging of the shared `euclid-core-d` dependency.
+
+Release-packaging verification established that:
+
+- `euclid-core-d v0.1.0` is available from the public DUB registry;
+- both dimensional siblings resolve `euclid-core-d` through `~>0.1.0`;
+- no workspace-relative Core dependency remains in either sibling manifest;
+- a simultaneous family consumer resolves exactly one non-workspace Core
+  instance;
+- DMD and LDC family-consumer probes pass with all seven shared declaration
+  identities preserved;
+- `geo3-d` post-merge CI passes on
+  `aa64e3ae76106d3c7b15b905907a567414c31ad5`;
+- the complete `geo-d` CI matrix passes on
+  `14af8146625c75f72a6649651a2e1cf241afa5c2`, including DMD 2.111.0,
+  current DMD, current LDC, Linux ARM64, Windows x86-64, macOS x86-64,
+  macOS ARM64, compile-negative lifetime checks, the external consumer,
+  release builds, and public documentation verification.
+
+The remaining freeze work is therefore not additional geometry or release
+packaging. It is to turn the temporary cross-repository family/coexistence
+probe into durable reproducible verification.
 
 No additional geometry functionality is required merely to close the v2
 freeze gate.

@@ -28,6 +28,11 @@ Euclidean geometry library.
 The v2 API-family migration is implemented and its public surface has been
 audited, but the v2 API is not yet frozen or released.
 
+The shared declaration contracts required by both dimensional siblings are
+provided by the independently versioned `euclid-core-d` package. The current
+v2 integration state resolves released `euclid-core-d 0.1.0` through the
+public DUB registry rather than through a workspace-relative dependency.
+
 The migration focuses on dimensional naming, shared operation families, UFCS
 and argument consistency, common declaration identity where required, and
 source-compatible deprecation of v1 forms. It is not a general expansion of
@@ -454,7 +459,9 @@ For the current v2 integration examples and task-oriented guidance, see
 Release preparation independently verifies a release-matched minimal consumer
 against the public registry package. The v2 examples in the current repository
 are verified against the repository integration state until v2 itself is
-released; a workspace path dependency does not replace registry verification.
+released. Its shared Core dependency is already registry-backed through
+`euclid-core-d ~>0.1.0`; `geo-d v2` itself still requires release-matched
+registry verification once a v2 release is tagged and indexed.
 
 ## Documentation
 

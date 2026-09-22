@@ -6,6 +6,12 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Versioned GitHub Pages API documentation is built reproducibly from release
+  tags. The documentation root follows the current stable release, while
+  historical releases remain available at version-specific paths.
+
 ## [2.0.0] - 2026-09-22
 
 ### Added

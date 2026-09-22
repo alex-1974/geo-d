@@ -8,16 +8,18 @@ functionality should have explicit semantics, strong numerical behaviour,
 tests, and documented ownership characteristics before the public API is
 expanded further.
 
-`v1.0.0` is the current stable API baseline. The `1.x` series remains governed
-by the source-compatibility and deprecation policy defined in ADR-0018.
+`v2.0.0` is the current stable API baseline.
 
-`v2.0.0` is the active API-family migration milestone. The API design has
-been reopened so that the established 2D API forms a coherent family with the
-independent `geo3-d` sibling while `geo-d` itself remains exclusively
-responsible for coordinate-system-agnostic Euclidean 2D geometry.
+It aligns the established 2D API with the independent `geo3-d` sibling while
+`geo-d` itself remains exclusively responsible for coordinate-system-agnostic
+Euclidean 2D geometry.
 
-The v2 API migration is implemented and has completed its public-API audit,
-but the v2 API is not yet frozen or released.
+The v2 API migration, public-surface audit, integration gates, shared-Core
+packaging, and formal API freeze are complete.
+
+`v1.0.0` remains the historical stable v1 baseline. Its `1.x` compatibility
+policy is defined in ADR-0018; supported v1 source forms retained by v2 follow
+the migration policy in ADR-0019.
 
 This v2 migration is not a blanket feature-expansion milestone. New geometry
 capabilities remain driven by concrete consumers and research evidence.
@@ -797,10 +799,10 @@ scope of `geo-d`.
 `geo3-d` is an independent coordinate-system-agnostic Euclidean 3D sibling.
 Neither dimensional sibling depends on the other.
 
-**Current status:** the API-family migration is implemented, integrated,
-publicly audited, and uses the released `euclid-core-d 0.1.0` package through
-the public DUB registry. All v2 API freeze gates are complete. The v2 API is
-frozen for release preparation but has not yet been released.
+**Current status:** `v2.0.0` is the current stable release. The API-family
+migration is implemented, integrated, publicly audited, and uses the released
+`euclid-core-d 0.1.0` package through the public DUB registry. All v2 API
+freeze gates are complete.
 
 ### Architecture and API-family decisions
 

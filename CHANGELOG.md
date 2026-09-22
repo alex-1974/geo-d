@@ -6,6 +6,8 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-22
+
 ### Added
 
 - Added the normative `docs/v2-api-conventions.md` specification for the

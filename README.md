@@ -14,20 +14,21 @@ inside and outside GIS software.
 
 The first public release of `geo-d` was `v0.1.0`.
 
-`v1.0.0` establishes the stable v1 public API. The supported package-level
-surface is frozen at 41 top-level names exported through `import geo;`.
+`v2.0.0` is the current stable API release.
 
-The API is intentionally small. New functionality is added when concrete use
-cases justify extending the geometry model and must follow the project's
-source-compatibility and deprecation policy.
+It aligns `geo-d` with the independent `geo3-d` sibling library while
+`geo-d` remains exclusively a coordinate-system-agnostic 2D Euclidean
+geometry library.
 
-Development toward `v2.0.0` aligns `geo-d` with the independent `geo3-d`
-sibling library. `geo-d` remains exclusively a coordinate-system-agnostic 2D
-Euclidean geometry library.
+The frozen v2 package surface contains 45 package exports and 151 audited
+public declarations. Supported v1 source forms remain available in v2 as
+deprecated compatibility aliases or forwarding overloads where documented.
 
-The v2 API-family migration is implemented and its public surface has been
-audited. All v2 API freeze gates are complete, so the v2 API is frozen for
-release preparation. `v2.0.0` has not yet been released.
+`v1.0.0` remains the historical stable v1 API baseline with 41 package-level
+names exported through `import geo;`.
+
+The API is intentionally small. New functionality is added only when concrete
+consumer requirements and research justify extending the geometry model.
 
 The shared declaration contracts required by both dimensional siblings are
 provided by the independently versioned `euclid-core-d` package. The current
@@ -429,8 +430,7 @@ targets.
 
 ## Installation
 
-The public DUB registry currently provides the stable v1 release line.
-Install the released package with:
+Install the current stable release from the public DUB registry with:
 
 ~~~sh
 dub add geo-d
@@ -442,10 +442,7 @@ Then import the supported package module:
 import geo;
 ~~~
 
-The canonical examples in the current repository documentation follow the
-unreleased v2 integration surface. Until v2 is released, do not assume that
-v2-only names shown in this branch are available from the registry package.
-Use documentation matching the version you consume.
+The canonical examples in this documentation use the v2 API.
 
 DMD and LDC are both supported:
 
@@ -454,15 +451,18 @@ dub build --compiler=dmd
 dub build --compiler=ldc2
 ~~~
 
-For the current v2 integration examples and task-oriented guidance, see
+For v2 examples and task-oriented guidance, see
 [`docs/getting-started.md`](docs/getting-started.md).
 
-Release preparation independently verifies a release-matched minimal consumer
-against the public registry package. The v2 examples in the current repository
-are verified against the repository integration state until v2 itself is
-released. Its shared Core dependency is already registry-backed through
-`euclid-core-d ~>0.1.0`; `geo-d v2` itself still requires release-matched
-registry verification once a v2 release is tagged and indexed.
+Release verification includes a clean post-tag consumer test against the
+published DUB package after the release tag has been indexed. Repository path
+dependencies are not a substitute for that registry verification.
+
+The shared declaration dependency is independently published and resolved as:
+
+~~~text
+euclid-core-d ~>0.1.0
+~~~
 
 ## Documentation
 

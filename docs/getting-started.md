@@ -11,17 +11,12 @@ import geo;
 Applications should normally use that package module rather than depend on
 implementation modules.
 
-This guide follows the current canonical v2 integration surface.
+This guide follows the canonical v2 API.
 
-The stable public release is still v1. Until v2 is released, the v2-only
-names used by the examples below belong to the current repository integration
-state rather than to the public registry package. When using a published
-release, use documentation matching that release.
+`v2.0.0` is the current stable release. The v1 view and orientation spellings
+remain available in v2 as deprecated compatibility aliases where documented.
 
-The stable v1 API uses the older view and orientation type names; v2 retains
-those source forms as deprecated compatibility aliases.
-
-## Stable v1 installation from the DUB registry
+## Installation from the DUB registry
 
 Create or enter a DUB project and add the released package:
 
@@ -33,13 +28,12 @@ dub add geo-d
 
 DUB records the dependency in the application's package configuration.
 
-Until v2 is released, do not combine this registry installation with the
-v2-only examples below and expect them to compile unchanged.
+The examples below use the canonical v2 API.
 
-The repository release process separately verifies installation and its
-release-matched minimal consumer against the actually published DUB package.
-Repository path dependencies are not a substitute for that release
-verification.
+The repository release process separately verifies installation and a
+release-matched minimal consumer against the actually published DUB package
+after the release tag has been indexed. Repository path dependencies are not
+a substitute for that registry verification.
 
 ## DMD and LDC
 
@@ -110,8 +104,8 @@ separate DUB package, imports only `geo`, and verifies the current repository
 integration state.
 
 Release verification separately tests a release-matched clean consumer
-against the published registry package. Until v2 is released, the v2 minimal
-program above is therefore not the stable-v1 registry smoke test.
+against the published registry package after the release tag has been
+indexed.
 
 ## Point and vector algebra
 

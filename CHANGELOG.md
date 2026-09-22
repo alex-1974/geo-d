@@ -38,6 +38,8 @@ The project follows Semantic Versioning for published releases.
   defining root compatibility aliases locally.
 - Updated direct compiler tooling to resolve dependency import paths through
   DUB instead of hard-coding the shared-core workspace path.
+- Replaced the temporary workspace-relative `euclid-core-d` dependency with
+  the released public DUB dependency `~>0.1.0`.
 - Aligned repository documentation with the `d-geospatial-workspace`
   reorganization and current sibling-library boundaries.
 - Made benchmark helpers resolve the repository location relative to their
@@ -52,11 +54,16 @@ The project follows Semantic Versioning for published releases.
   audit declarations with zero unresolved members.
 - Verified simultaneous `geo` / `geo3` use and common declaration identity
   locally.
+- Verified registry-backed simultaneous `geo` / `geo3` consumption with no
+  direct Core override, exactly one resolved `euclid-core-d 0.1.0` instance,
+  and all seven shared declaration identities preserved.
 - Verified canonical v2 consumers without deprecated API and supported v1
   compatibility forms separately.
 - Verified generated public documentation without unintended
   `euclid_core.*` leakage.
 - Verified DMD and LDC tests and release builds for the integrated v2 state.
+- Verified the post-packaging integration state through the complete GitHub
+  Actions matrix on `14af8146625c75f72a6649651a2e1cf241afa5c2`.
 
 ## [1.0.0] - 2026-09-13
 

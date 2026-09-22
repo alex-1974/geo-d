@@ -55,6 +55,10 @@ jobs:
           cd tests/consumer
           dub run --compiler="$DC" --force
 
+      - name: Run 2D/3D family coexistence test
+        shell: bash
+        run: bash tests/family-consumer/run.sh "$DC"
+
       - name: Build release configuration
         shell: bash
         run: dub build --build=release --compiler="$DC" --force

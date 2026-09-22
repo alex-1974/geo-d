@@ -14,6 +14,9 @@ The project follows Semantic Versioning for published releases.
   declaration origin for neutral contracts shared by `geo-d` and `geo3-d`.
 - Added reproducible v2 public-surface auditing while preserving the frozen
   v1 audit baseline.
+- Added a durable cross-repository `geo-d` / `geo3-d` family consumer that
+  pins the verified sibling and Core versions and checks common declaration
+  identity for all seven shared contracts.
 
 ### Changed
 
@@ -64,6 +67,9 @@ The project follows Semantic Versioning for published releases.
 - Verified DMD and LDC tests and release builds for the integrated v2 state.
 - Verified the post-packaging integration state through the complete GitHub
   Actions matrix on `14af8146625c75f72a6649651a2e1cf241afa5c2`.
+- Promoted the temporary family/coexistence probe into ordinary compiler CI;
+  the durable test passes with DMD 2.111.0, current DMD, and current LDC.
+- Completed all v2 API freeze gates.
 
 ## [1.0.0] - 2026-09-13
 

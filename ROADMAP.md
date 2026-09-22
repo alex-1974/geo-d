@@ -799,7 +799,8 @@ Neither dimensional sibling depends on the other.
 
 **Current status:** the API-family migration is implemented, integrated,
 publicly audited, and uses the released `euclid-core-d 0.1.0` package through
-the public DUB registry. The v2 API is not yet frozen or released.
+the public DUB registry. All v2 API freeze gates are complete. The v2 API is
+frozen for release preparation but has not yet been released.
 
 ### Architecture and API-family decisions
 
@@ -979,9 +980,8 @@ Remaining integration gates:
 
 - [x] align the remaining permanent project documentation with the implemented
       v2 decisions;
-- [ ] retain required consumer/coexistence evidence as durable reproducible
-      tests where it currently exists only as temporary research or
-      integration probes;
+- [x] retain required consumer/coexistence evidence as durable reproducible
+      tests rather than only as temporary research or integration probes;
 - [x] rerun the complete local verification gate after documentation
       integration;
 - [x] obtain current CI evidence for the integration state;
@@ -1004,12 +1004,18 @@ Release-packaging verification established that:
   macOS ARM64, compile-negative lifetime checks, the external consumer,
   release builds, and public documentation verification.
 
-The remaining freeze work is therefore not additional geometry or release
-packaging. It is to turn the temporary cross-repository family/coexistence
-probe into durable reproducible verification.
+The temporary cross-repository family/coexistence probe has been promoted to
+the durable `tests/family-consumer/` verification package. The test pins the
+verified `geo3-d` sibling commit and Core release, keeps Core transitive,
+requires exactly one registry-backed Core instance, and verifies all seven
+shared declaration identities plus representative 2D/3D overload
+coexistence.
 
-No additional geometry functionality is required merely to close the v2
-freeze gate.
+The durable family test is part of the ordinary compiler CI gate and has
+passed with DMD 2.111.0, current DMD, and current LDC.
+
+All v2 API freeze gates are therefore complete. No additional geometry
+functionality is required for the v2 API freeze.
 
 
 ## Post-v1 numerical work

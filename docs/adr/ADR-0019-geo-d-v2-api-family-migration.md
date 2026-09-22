@@ -6,6 +6,9 @@
 **Amended:** 2026-09-21 — the migration decisions were updated from the
 pre-implementation design state to the implemented v2 integration state.
 
+**Freeze recorded:** 2026-09-22 — all v2 integration and packaging gates
+completed and the public API was frozen for v2.0.0 release preparation.
+
 ## Context
 
 `geo-d` v2 aligns the established two-dimensional API with the independent
@@ -341,14 +344,21 @@ The integration state has already provided local evidence for:
 These results are implementation evidence, not a declaration that the v2 API
 is already frozen.
 
-Before the v2 API is frozen, the repository must still:
+Those final integration conditions have now been completed:
 
-- align permanent project documentation with the implemented decisions;
-- make required consumer/coexistence proofs durable and reproducible where
-  they currently exist only as temporary research probes;
-- rerun the complete verification gate after the documentation integration;
-- obtain current CI evidence for the integration state;
-- resolve release packaging of the shared `euclid-core-d` dependency.
+- permanent project documentation is aligned with the implemented decisions;
+- the cross-repository family/coexistence proof is retained as the durable
+  `tests/family-consumer/` verification package;
+- the complete verification gate has been rerun after integration;
+- current CI evidence exists for the frozen integration state;
+- `euclid-core-d v0.1.0` is published and consumed through a versioned public
+  DUB dependency.
 
-The final freeze is therefore an integration gate, not a reason to add further
-geometry functionality.
+The v2 public API is therefore frozen for v2.0.0 release preparation.
+
+The freeze is recorded separately from the release because subsequent work may
+still improve verification, documentation, packaging, or fix defects without
+changing the frozen public contract.
+
+Any change to the frozen public API requires the freeze to be explicitly
+reopened and the complete API and integration audit to be repeated.

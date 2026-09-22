@@ -26,7 +26,8 @@ sibling library. `geo-d` remains exclusively a coordinate-system-agnostic 2D
 Euclidean geometry library.
 
 The v2 API-family migration is implemented and its public surface has been
-audited, but the v2 API is not yet frozen or released.
+audited. All v2 API freeze gates are complete, so the v2 API is frozen for
+release preparation. `v2.0.0` has not yet been released.
 
 The shared declaration contracts required by both dimensional siblings are
 provided by the independently versioned `euclid-core-d` package. The current

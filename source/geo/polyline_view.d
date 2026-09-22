@@ -25,19 +25,19 @@ import geo.segment : Segment2;
  *
  * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
  *
- * `PolylineView.init` is an empty view.
+ * `Polyline2View.init` is an empty view.
  *
- * PolylineView does not allocate or copy point data. The caller retains
+ * Polyline2View does not allocate or copy point data. The caller retains
  * ownership of the backing storage, which must remain valid for the
  * lifetime of the view.
  *
  * The view aliases its backing storage. Changes made to mutable backing
  * storage through its owner remain visible through an existing view.
- * Mutation is not exposed through PolylineView itself.
+ * Mutation is not exposed through Polyline2View itself.
  *
  * Empty and singleton polylines are valid.
  */
-struct PolylineView(T)
+struct Polyline2View(T)
 if (isGeoScalar!T)
 {
 private:
@@ -125,7 +125,7 @@ public:
 
     alias P = Point2!double;
     alias S = Segment2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
     P[3] points = [
         P(0.0, 0.0),
@@ -166,34 +166,41 @@ public:
 }
 
 
+/**
+ * Deprecated v1 spelling of `Polyline2View`.
+ */
+deprecated("Use Polyline2View")
+alias PolylineView = Polyline2View;
+
+
 @safe unittest
 {
     import std.meta : AliasSeq;
 
 
     /*
-     * PolylineView follows the Point2 scalar domain.
+     * Polyline2View follows the Point2 scalar domain.
      */
     static foreach (T; AliasSeq!(int, long, float, double, real))
     {
-        static assert(PolylineView!T.init.length == 0);
-        static assert(PolylineView!T.init.empty);
-        static assert(PolylineView!T.init.segmentCount == 0);
+        static assert(Polyline2View!T.init.length == 0);
+        static assert(Polyline2View!T.init.empty);
+        static assert(Polyline2View!T.init.segmentCount == 0);
     }
 
 
     /*
      * Unsupported scalar types remain unavailable.
      */
-    static assert(!__traits(compiles, PolylineView!byte));
-    static assert(!__traits(compiles, PolylineView!short));
-    static assert(!__traits(compiles, PolylineView!uint));
-    static assert(!__traits(compiles, PolylineView!ulong));
+    static assert(!__traits(compiles, Polyline2View!byte));
+    static assert(!__traits(compiles, Polyline2View!short));
+    static assert(!__traits(compiles, Polyline2View!uint));
+    static assert(!__traits(compiles, Polyline2View!ulong));
 
 
     alias P = Point2!double;
     alias S = Segment2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
 
     /*
@@ -277,7 +284,7 @@ public:
 
 
     /*
-     * Mutation is not available through PolylineView.
+     * Mutation is not available through Polyline2View.
      */
     static assert(
         !__traits(

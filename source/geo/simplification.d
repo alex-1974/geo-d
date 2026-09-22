@@ -15,44 +15,89 @@
  */
 module geo.simplification;
 
+private import euclid_core.simplification :
+    CoreDouglasPeuckerWorkspaceSize =
+        douglasPeuckerWorkspaceSize;
+
 import geo.metric :
     MetricScalar,
     tryPointSegmentDistance;
 import geo.point : Point2;
-import geo.polyline_view : PolylineView;
+import geo.polyline_view : Polyline2View;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
 
 import std.math.traits : isFinite;
 
 
-/**
- * Returns the maximum workspace length required by
- * trySimplifyDouglasPeuckerInto() for a polyline containing pointCount
- * stored points.
- *
- * Empty, singleton, and two-point polylines require no auxiliary
- * workspace.
- *
- * For larger inputs, the iterative Douglas-Peucker implementation may
- * defer at most one right-hand section for each intermediate input
- * vertex.
- *
- * Returns:
- *
- *     max(pointCount - 2, 0)
- *
- * No allocation is performed.
- *
- * Complexity:
- *     O(1) time and O(1) auxiliary space.
- */
-size_t douglasPeuckerWorkspaceSize(size_t pointCount)
-    pure nothrow @safe @nogc
+version (D_Ddoc)
 {
-    return pointCount > 2
-        ? pointCount - 2
-        : 0;
+    /**
+     * Returns the maximum workspace length required by
+     * trySimplifyDouglasPeuckerInto() for a polyline containing pointCount
+     * stored points.
+     *
+     * Empty, singleton, and two-point polylines require no auxiliary
+     * workspace.
+     *
+     * For larger inputs, the iterative Douglas-Peucker implementation may
+     * defer at most one right-hand section for each intermediate input
+     * vertex.
+     *
+     * Returns:
+     *
+     *     max(pointCount - 2, 0)
+     *
+     * No allocation is performed.
+     *
+     * Complexity:
+     *     O(1) time and O(1) auxiliary space.
+     */
+    size_t douglasPeuckerWorkspaceSize(
+        size_t pointCount
+    )
+        pure nothrow @safe @nogc
+    {
+        return
+            pointCount > 2
+                ? pointCount - 2
+                : 0;
+    }
+
+    static assert(
+        douglasPeuckerWorkspaceSize(0) ==
+        CoreDouglasPeuckerWorkspaceSize(0)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(1) ==
+        CoreDouglasPeuckerWorkspaceSize(1)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(2) ==
+        CoreDouglasPeuckerWorkspaceSize(2)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(3) ==
+        CoreDouglasPeuckerWorkspaceSize(3)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(10) ==
+        CoreDouglasPeuckerWorkspaceSize(10)
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(size_t.max) ==
+        CoreDouglasPeuckerWorkspaceSize(size_t.max)
+    );
+}
+else
+{
+    alias douglasPeuckerWorkspaceSize =
+        CoreDouglasPeuckerWorkspaceSize;
 }
 
 
@@ -120,7 +165,7 @@ size_t douglasPeuckerWorkspaceSize(size_t pointCount)
  *     O(n^2) time in the worst case for n stored input points.
  */
 bool trySimplifyDouglasPeuckerInto(T, R)(
-    scope PolylineView!T polyline,
+    scope Polyline2View!T polyline,
     R tolerance,
     scope Point2!T[] destination,
     scope size_t[] workspace,
@@ -215,8 +260,8 @@ if (
 
             if (
                 !tryPointSegmentDistance(
-                    polyline[index],
                     baseline,
+                    polyline[index],
                     pointDistance
                 )
             )
@@ -278,7 +323,7 @@ if (
     import geo;
 
     alias P = Point2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
     P[5] input = [
         P(0.0, 0.0),
@@ -329,7 +374,7 @@ if (
 
 
     alias P = Point2!double;
-    alias V = PolylineView!double;
+    alias V = Polyline2View!double;
 
 
     /*
@@ -877,7 +922,7 @@ if (
      */
     {
         alias PI = Point2!long;
-        alias VI = PolylineView!long;
+        alias VI = Polyline2View!long;
 
         PI[3] input = [
             PI(long.max - 2, 0),
@@ -918,7 +963,7 @@ if (
                 size_t[1] workspace;
 
                 auto polyline =
-                    PolylineView!real(input[]);
+                    Polyline2View!real(input[]);
 
                 size_t written;
 

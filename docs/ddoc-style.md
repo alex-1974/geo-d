@@ -161,7 +161,7 @@ Non-owning types must state explicitly:
 - whether mutation through the owner remains visible;
 - whether normalization or validation occurs.
 
-For `PolylineView`, `LinearRingView`, and `PolygonView`, this ownership contract is part of the primary type documentation.
+For `Polyline2View`, `LinearRing2View`, and `Polygon2View`, this ownership contract is part of the primary type documentation.
 
 DIP1000 is an enforcement mechanism, not a substitute for explaining the lifetime contract.
 

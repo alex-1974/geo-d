@@ -408,7 +408,7 @@ OrientationFilterResult orientationFilter(
 
 
     /*
-     * Filter result values deliberately mirror Orientation for the
+     * Filter result values deliberately mirror Orientation2 for the
      * three geometric states, while uncertain remains distinct.
      */
     static assert(

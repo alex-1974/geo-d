@@ -15,27 +15,63 @@
  */
 module geo.scalar;
 
-/**
- * True exactly for the scalar types supported by the geo-d core.
- *
- * The supported scalar domain is:
- *
- *     int
- *     long
- *     float
- *     double
- *     real
- *
- * This trait describes membership in the public scalar domain, not general
- * numeric convertibility. Qualified scalar types, enums, and user-defined
- * numeric-like types are deliberately excluded.
- */
-enum bool isGeoScalar(T) =
-       is(T == int)
-    || is(T == long)
-    || is(T == float)
-    || is(T == double)
-    || is(T == real);
+private import euclid_core.scalar :
+    CoreIsGeoScalar = isGeoScalar;
+
+version (D_Ddoc)
+{
+    /**
+     * True exactly for the scalar types supported by the geo-d core.
+     *
+     * The supported scalar domain is:
+     *
+     *     int
+     *     long
+     *     float
+     *     double
+     *     real
+     *
+     * This trait describes membership in the public scalar domain, not general
+     * numeric convertibility. Qualified scalar types, enums, and user-defined
+     * numeric-like types are deliberately excluded.
+     */
+    enum bool isGeoScalar(T) =
+           is(T == int)
+        || is(T == long)
+        || is(T == float)
+        || is(T == double)
+        || is(T == real);
+
+    static assert(
+        isGeoScalar!int ==
+        CoreIsGeoScalar!int
+    );
+
+    static assert(
+        isGeoScalar!long ==
+        CoreIsGeoScalar!long
+    );
+
+    static assert(
+        isGeoScalar!float ==
+        CoreIsGeoScalar!float
+    );
+
+    static assert(
+        isGeoScalar!double ==
+        CoreIsGeoScalar!double
+    );
+
+    static assert(
+        isGeoScalar!real ==
+        CoreIsGeoScalar!real
+    );
+}
+else
+{
+    alias isGeoScalar =
+        CoreIsGeoScalar;
+}
 
 
 /// Example checking the exact public scalar domain.

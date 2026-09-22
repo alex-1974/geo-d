@@ -50,6 +50,17 @@ Practical installation and task-oriented usage examples are collected in:
 docs/getting-started.md
 ~~~
 
+The current v2 API-family conventions and migration audit are recorded in:
+
+~~~text
+docs/v2-api-conventions.md
+docs/v2-public-api-audit.md
+~~~
+
+Canonical current documentation uses the dimension-explicit v2 names.
+Deprecated v1 names are documented only where compatibility or migration
+behaviour is the subject.
+
 
 
 ## Core geometry model
@@ -89,9 +100,9 @@ Variable-size geometry is represented initially through non-owning,
 read-only views:
 
 ~~~text
-PolylineView
-LinearRingView
-PolygonView
+Polyline2View
+LinearRing2View
+Polygon2View
 ~~~
 
 The caller owns the backing storage.
@@ -99,7 +110,7 @@ The caller owns the backing storage.
 The views do not copy point data and are designed around explicit borrowing
 and DIP1000 lifetime checking.
 
-`PolygonView` is a view over `LinearRingView` descriptors. Its rings need not
+`Polygon2View` is a view over `LinearRing2View` descriptors. Its rings need not
 share one contiguous point-storage region.
 
 Ring roles are structural:
@@ -164,9 +175,9 @@ though a particular topology algorithm may reject them.
 `orientation(a, b, c)` returns one of:
 
 ~~~text
-Orientation.right
-Orientation.collinear
-Orientation.left
+Orientation2.right
+Orientation2.collinear
+Orientation2.left
 ~~~
 
 The numerical strategies are:
@@ -344,7 +355,7 @@ connected-interior analysis and therefore does not promise `@nogc`.
 
 ## Douglas-Peucker simplification
 
-Plain metric Douglas-Peucker simplification is provided for `PolylineView`.
+Plain metric Douglas-Peucker simplification is provided for `Polyline2View`.
 
 Public operations are:
 
@@ -382,9 +393,9 @@ The operation supports:
 
 ~~~text
 Segment2
-PolylineView
-LinearRingView
-PolygonView
+Polyline2View
+LinearRing2View
+Polygon2View
 ~~~
 
 Its semantics are representation-based rather than topology-validating.
@@ -402,9 +413,9 @@ Complexity is:
 
 ~~~text
 Segment2        O(1)
-PolylineView    O(n)
-LinearRingView  O(n)
-PolygonView     O(total stored vertices)
+Polyline2View    O(n)
+LinearRing2View  O(n)
+Polygon2View     O(total stored vertices)
 ~~~
 
 The traversal cost is intentionally exposed through the `tryBounds` operation

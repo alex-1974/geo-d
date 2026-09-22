@@ -25,15 +25,15 @@ import geo.segment : Segment2;
  *
  * Supported scalar types are `int`, `long`, `float`, `double`, and `real`.
  *
- * `LinearRingView.init` is an empty ring.
+ * `LinearRing2View.init` is an empty ring.
  *
- * LinearRingView does not allocate or copy point data. The caller retains
+ * LinearRing2View does not allocate or copy point data. The caller retains
  * ownership of the backing storage, which must remain valid for the
  * lifetime of the view.
  *
  * The view aliases its backing storage. Changes made to mutable backing
  * storage through its owner remain visible through an existing view.
- * Mutation is not exposed through LinearRingView itself.
+ * Mutation is not exposed through LinearRing2View itself.
  *
  * Closure is implicit: for a non-empty ring the final stored vertex is
  * connected back to the first stored vertex.
@@ -44,7 +44,7 @@ import geo.segment : Segment2;
  *
  * Empty and degenerate rings are valid representations.
  */
-struct LinearRingView(T)
+struct LinearRing2View(T)
 if (isGeoScalar!T)
 {
 private:
@@ -147,7 +147,7 @@ public:
 
     alias P = Point2!double;
     alias S = Segment2!double;
-    alias R = LinearRingView!double;
+    alias R = LinearRing2View!double;
 
     P[3] points = [
         P(0.0, 0.0),
@@ -180,34 +180,41 @@ public:
 }
 
 
+/**
+ * Deprecated v1 spelling of `LinearRing2View`.
+ */
+deprecated("Use LinearRing2View")
+alias LinearRingView = LinearRing2View;
+
+
 @safe unittest
 {
     import std.meta : AliasSeq;
 
 
     /*
-     * LinearRingView follows the Point2 scalar domain.
+     * LinearRing2View follows the Point2 scalar domain.
      */
     static foreach (T; AliasSeq!(int, long, float, double, real))
     {
-        static assert(LinearRingView!T.init.length == 0);
-        static assert(LinearRingView!T.init.empty);
-        static assert(LinearRingView!T.init.segmentCount == 0);
+        static assert(LinearRing2View!T.init.length == 0);
+        static assert(LinearRing2View!T.init.empty);
+        static assert(LinearRing2View!T.init.segmentCount == 0);
     }
 
 
     /*
      * Unsupported scalar types remain unavailable.
      */
-    static assert(!__traits(compiles, LinearRingView!byte));
-    static assert(!__traits(compiles, LinearRingView!short));
-    static assert(!__traits(compiles, LinearRingView!uint));
-    static assert(!__traits(compiles, LinearRingView!ulong));
+    static assert(!__traits(compiles, LinearRing2View!byte));
+    static assert(!__traits(compiles, LinearRing2View!short));
+    static assert(!__traits(compiles, LinearRing2View!uint));
+    static assert(!__traits(compiles, LinearRing2View!ulong));
 
 
     alias P = Point2!double;
     alias S = Segment2!double;
-    alias R = LinearRingView!double;
+    alias R = LinearRing2View!double;
 
 
     /*
@@ -367,7 +374,7 @@ public:
 
 
     /*
-     * Mutation is not available through LinearRingView.
+     * Mutation is not available through LinearRing2View.
      */
     static assert(
         !__traits(

@@ -15,6 +15,12 @@
  */
 module geo.intersection;
 
+private import euclid_core.intersection :
+    CoreSegmentIntersectionKind = SegmentIntersectionKind;
+
+private import euclid_core.scalar :
+    CoreIntersectionScalar = IntersectionScalar;
+
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     properIntersectionExactKnownCrossing,
@@ -24,7 +30,7 @@ import geo.internal.intersection_round :
     roundIntersectionCoordinate;
 
 import geo.orientation :
-    Orientation,
+    Orientation2,
     orientation;
 
 import geo.point :
@@ -34,26 +40,54 @@ import geo.segment :
     Segment2;
 
 
-/**
- * Topological classification of the intersection of two closed
- * segments.
- *
- * `point` means that the intersection contains exactly one geometric
- * point.
- *
- * `overlap` means that the intersection contains a segment of positive
- * geometric length.
- */
-enum SegmentIntersectionKind : ubyte
+version (D_Ddoc)
 {
-    /// The closed segments have no geometric point in common.
-    none,
+    /**
+     * Topological classification of the intersection of two closed
+     * segments.
+     *
+     * `point` means that the intersection contains exactly one geometric
+     * point.
+     *
+     * `overlap` means that the intersection contains a segment of positive
+     * geometric length.
+     */
+    enum SegmentIntersectionKind : ubyte
+    {
+        /// The closed segments are disjoint.
+        none,
 
-    /// The intersection contains exactly one geometric point.
-    point,
+        /// The intersection contains exactly one geometric point.
+        point,
 
-    /// The intersection contains a segment of positive geometric length.
-    overlap
+        /// The intersection contains a segment of positive length.
+        overlap,
+    }
+
+    static assert(
+        SegmentIntersectionKind.sizeof ==
+        CoreSegmentIntersectionKind.sizeof
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.none ==
+        cast(ubyte) CoreSegmentIntersectionKind.none
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.point ==
+        cast(ubyte) CoreSegmentIntersectionKind.point
+    );
+
+    static assert(
+        cast(ubyte) SegmentIntersectionKind.overlap ==
+        cast(ubyte) CoreSegmentIntersectionKind.overlap
+    );
+}
+else
+{
+    alias SegmentIntersectionKind =
+        CoreSegmentIntersectionKind;
 }
 
 
@@ -68,28 +102,78 @@ private enum bool isIntersectionScalar(T) =
     is(T == double);
 
 
-/**
- * Scalar used for constructed unique segment-intersection points.
- *
- * Initial geo-d policy:
- *
- *     int     -> double
- *     long    -> double
- *     float   -> double
- *     double  -> double
- *
- * Topological classification remains exact in the input scalar domain.
- * Construction is deliberately a separate, rounded operation.
- */
-template IntersectionScalar(T)
-if (
-    is(T == int) ||
-    is(T == long) ||
-    is(T == float) ||
-    is(T == double)
-)
+version (D_Ddoc)
 {
-    alias IntersectionScalar = double;
+    /**
+     * Scalar used for constructed unique segment-intersection points.
+     *
+     * Initial geo-d policy:
+     *
+     *     int     -> double
+     *     long    -> double
+     *     float   -> double
+     *     double  -> double
+     *
+     * Topological classification remains exact in the input scalar domain.
+     * Construction is deliberately a separate, rounded operation.
+     */
+    template IntersectionScalar(T)
+    if (
+           is(T == int)
+        || is(T == long)
+        || is(T == float)
+        || is(T == double)
+    )
+    {
+        alias IntersectionScalar = double;
+    }
+
+    static assert(
+        is(
+            IntersectionScalar!int ==
+            CoreIntersectionScalar!int
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!long ==
+            CoreIntersectionScalar!long
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!float ==
+            CoreIntersectionScalar!float
+        )
+    );
+
+    static assert(
+        is(
+            IntersectionScalar!double ==
+            CoreIntersectionScalar!double
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            IntersectionScalar!real
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            CoreIntersectionScalar!real
+        )
+    );
+}
+else
+{
+    alias IntersectionScalar =
+        CoreIntersectionScalar;
 }
 
 
@@ -217,7 +301,7 @@ if (isIntersectionScalar!T)
             segment.a,
             segment.b,
             point
-        ) != Orientation.collinear
+        ) != Orientation2.collinear
     )
     {
         return false;
@@ -552,19 +636,19 @@ if (
  * Collinearity is deliberately not treated as opposite-side contact.
  */
 private bool oppositeSides(
-    Orientation lhs,
-    Orientation rhs
+    Orientation2 lhs,
+    Orientation2 rhs
 )
     pure nothrow @safe @nogc
 {
     return
         (
-            lhs == Orientation.left &&
-            rhs == Orientation.right
+            lhs == Orientation2.left &&
+            rhs == Orientation2.right
         ) ||
         (
-            lhs == Orientation.right &&
-            rhs == Orientation.left
+            lhs == Orientation2.right &&
+            rhs == Orientation2.left
         );
 }
 
@@ -696,28 +780,28 @@ if (isIntersectionScalar!T)
     }
 
 
-    const Orientation o1 =
+    const Orientation2 o1 =
         orientation(
             first.a,
             first.b,
             second.a
         );
 
-    const Orientation o2 =
+    const Orientation2 o2 =
         orientation(
             first.a,
             first.b,
             second.b
         );
 
-    const Orientation o3 =
+    const Orientation2 o3 =
         orientation(
             second.a,
             second.b,
             first.a
         );
 
-    const Orientation o4 =
+    const Orientation2 o4 =
         orientation(
             second.a,
             second.b,
@@ -730,10 +814,10 @@ if (isIntersectionScalar!T)
      * positive-length overlap.
      */
     if (
-        o1 == Orientation.collinear &&
-        o2 == Orientation.collinear &&
-        o3 == Orientation.collinear &&
-        o4 == Orientation.collinear
+        o1 == Orientation2.collinear &&
+        o2 == Orientation2.collinear &&
+        o3 == Orientation2.collinear &&
+        o4 == Orientation2.collinear
     )
     {
         const SegmentIntersectionKind kind =
@@ -768,7 +852,7 @@ if (isIntersectionScalar!T)
      * shared endpoints and T-junctions are touches.
      */
     if (
-        o1 == Orientation.collinear &&
+        o1 == Orientation2.collinear &&
         pointInClosedCollinearInterval(
             second.a,
             first.a,
@@ -780,7 +864,7 @@ if (isIntersectionScalar!T)
     }
 
     if (
-        o2 == Orientation.collinear &&
+        o2 == Orientation2.collinear &&
         pointInClosedCollinearInterval(
             second.b,
             first.a,
@@ -792,7 +876,7 @@ if (isIntersectionScalar!T)
     }
 
     if (
-        o3 == Orientation.collinear &&
+        o3 == Orientation2.collinear &&
         pointInClosedCollinearInterval(
             first.a,
             second.a,
@@ -804,7 +888,7 @@ if (isIntersectionScalar!T)
     }
 
     if (
-        o4 == Orientation.collinear &&
+        o4 == Orientation2.collinear &&
         pointInClosedCollinearInterval(
             first.b,
             second.a,

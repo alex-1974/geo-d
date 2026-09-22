@@ -62,14 +62,40 @@ public import geo.convert :
     truncated,
     tryConvert;
 
-public import geo.linear_ring_view : LinearRingView;
+public import geo.linear_ring_view :
+    LinearRing2View;
+
+/**
+ * Deprecated v1 spelling of `LinearRing2View`.
+ */
+deprecated("Use LinearRing2View")
+alias LinearRingView =
+    LinearRing2View;
+
 public import geo.point : Point2;
-public import geo.polygon_view : PolygonView;
+public import geo.polygon_view :
+    Polygon2View;
+
+/**
+ * Deprecated v1 spelling of `Polygon2View`.
+ */
+deprecated("Use Polygon2View")
+alias PolygonView =
+    Polygon2View;
 
 public import geo.point_in_polygon :
     PointPolygonLocation,
     tryClassifyPointInPolygon;
-public import geo.polyline_view : PolylineView;
+public import geo.polyline_view :
+    Polyline2View;
+
+/**
+ * Deprecated v1 spelling of `Polyline2View`.
+ */
+deprecated("Use Polyline2View")
+alias PolylineView =
+    Polyline2View;
+
 public import geo.scalar : isGeoScalar;
 public import geo.vector : Vector2;
 
@@ -85,8 +111,16 @@ public import geo.metric :
     tryPointSegmentDistance;
 
 public import geo.orientation :
-    Orientation,
+    Orientation2,
     orientation;
+
+/**
+ * Deprecated v1 spelling of `Orientation2`.
+ */
+deprecated("Use Orientation2")
+alias Orientation =
+    Orientation2;
+
 public import geo.intersection :
     IntersectionScalar,
     SegmentIntersectionKind,

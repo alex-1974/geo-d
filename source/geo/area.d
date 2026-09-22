@@ -33,10 +33,10 @@ import geo.internal.dyadic_round :
     roundSignedDyadicToBinary64;
 
 import geo.linear_ring_view :
-    LinearRingView;
+    LinearRing2View;
 
 import geo.polygon_view :
-    PolygonView;
+    Polygon2View;
 
 
 /**
@@ -128,7 +128,7 @@ private SignedDyadicProduct determinantFromDifferences(
  * accumulator is reset to canonical zero.
  */
 private bool tryExactRingTwiceArea(T)(
-    scope const(LinearRingView!T) ring,
+    scope const(LinearRing2View!T) ring,
     out SignedAreaAccumulator accumulator
 )
     pure nothrow @safe @nogc
@@ -321,7 +321,7 @@ if (
  *     O(n) time and O(1) auxiliary space for n stored vertices.
  */
 AreaScalar!T signedArea(T)(
-    scope LinearRingView!T ring
+    scope LinearRing2View!T ring
 )
     pure nothrow @safe @nogc
 if (
@@ -365,7 +365,7 @@ if (
     import geo;
 
     alias P = Point2!int;
-    alias R = LinearRingView!int;
+    alias R = LinearRing2View!int;
 
     P[4] counterClockwisePoints = [
         P(0, 0),
@@ -426,7 +426,7 @@ if (
  *     rings.
  */
 AreaScalar!T polygonArea(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe @nogc
 if (
@@ -511,8 +511,8 @@ if (
     import geo;
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias V = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias V = Polygon2View!double;
 
     P[4] exteriorPoints = [
         P(0.0, 0.0),
@@ -550,8 +550,8 @@ if (
 
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
-    alias V = PolygonView!double;
+    alias R = LinearRing2View!double;
+    alias V = Polygon2View!double;
 
 
     /*
@@ -722,8 +722,8 @@ if (
      */
     {
         alias LP = Point2!long;
-        alias LR = LinearRingView!long;
-        alias LV = PolygonView!long;
+        alias LR = LinearRing2View!long;
+        alias LV = Polygon2View!long;
 
         enum long large =
             1L << 53;
@@ -829,7 +829,7 @@ if (
         ];
 
         const ring =
-            LinearRingView!long(
+            LinearRing2View!long(
                 points[]
             );
 
@@ -868,7 +868,7 @@ if (
         ];
 
         const ring =
-            LinearRingView!double(
+            LinearRing2View!double(
                 points[]
             );
 
@@ -964,7 +964,7 @@ if (
         Point2!int[] none;
 
         auto empty =
-            LinearRingView!int(none);
+            LinearRing2View!int(none);
 
         assert(signedArea(empty) == 0.0);
 
@@ -973,7 +973,7 @@ if (
         ];
 
         auto singleton =
-            LinearRingView!int(
+            LinearRing2View!int(
                 singletonPoints[]
             );
 
@@ -985,7 +985,7 @@ if (
         ];
 
         auto two =
-            LinearRingView!int(
+            LinearRing2View!int(
                 twoPoints[]
             );
 
@@ -1004,7 +1004,7 @@ if (
         ];
 
         auto ccw =
-            LinearRingView!int(
+            LinearRing2View!int(
                 ccwPoints[]
             );
 
@@ -1018,7 +1018,7 @@ if (
         ];
 
         auto cw =
-            LinearRingView!int(
+            LinearRing2View!int(
                 cwPoints[]
             );
 
@@ -1045,13 +1045,13 @@ if (
 
         assert(
             signedArea(
-                LinearRingView!long(low[])
+                LinearRing2View!long(low[])
             ) == 6.0
         );
 
         assert(
             signedArea(
-                LinearRingView!long(high[])
+                LinearRing2View!long(high[])
             ) == 6.0
         );
     }
@@ -1071,7 +1071,7 @@ if (
 
         assert(
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     points[]
                 )
             ) == 6.0
@@ -1092,7 +1092,7 @@ if (
 
         const double result =
             signedArea(
-                LinearRingView!long(
+                LinearRing2View!long(
                     points[]
                 )
             );
@@ -1119,7 +1119,7 @@ if (
 
         assert(
             signedArea(
-                LinearRingView!int(
+                LinearRing2View!int(
                     points[]
                 )
             ) == 0.0
@@ -1139,7 +1139,7 @@ if (
 
         static assert(
             is(typeof(signedArea(
-                LinearRingView!float(
+                LinearRing2View!float(
                     points[]
                 )
             )) == double)
@@ -1147,7 +1147,7 @@ if (
 
         assert(
             signedArea(
-                LinearRingView!float(
+                LinearRing2View!float(
                     points[]
                 )
             ) == 0.5
@@ -1169,7 +1169,7 @@ if (
 
         const double nanResult =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     nanPoint[]
                 )
             );
@@ -1188,7 +1188,7 @@ if (
 
         const double infiniteResult =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     infinite[]
                 )
             );
@@ -1232,7 +1232,7 @@ if (
 
         const double positive =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     positivePoints[]
                 )
             );
@@ -1260,7 +1260,7 @@ if (
 
         const double negative =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     negativePoints[]
                 )
             );
@@ -1293,7 +1293,7 @@ if (
 
         const double positive =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     positivePoints[]
                 )
             );
@@ -1320,7 +1320,7 @@ if (
 
         const double negative =
             signedArea(
-                LinearRingView!double(
+                LinearRing2View!double(
                     negativePoints[]
                 )
             );
@@ -1369,7 +1369,7 @@ if (
 
         const double actual =
             signedArea(
-                LinearRingView!long(
+                LinearRing2View!long(
                     fullRange[]
                 )
             );
@@ -1401,7 +1401,7 @@ if (
 
         const double actual =
             signedArea(
-                LinearRingView!long(
+                LinearRing2View!long(
                     points[]
                 )
             );
@@ -1443,7 +1443,7 @@ if (
 
         assert(
             signedArea(
-                LinearRingView!long(
+                LinearRing2View!long(
                     points[]
                 )
             ) == 0.0
@@ -1458,7 +1458,7 @@ if (
         !__traits(
             compiles,
             signedArea(
-                LinearRingView!real.init
+                LinearRing2View!real.init
             )
         )
     );
@@ -1478,7 +1478,7 @@ unittest
         fesetround;
 
     import geo.linear_ring_view :
-        LinearRingView;
+        LinearRing2View;
 
     import geo.point :
         Point2;
@@ -1515,7 +1515,7 @@ unittest
     ];
 
     auto ring =
-        LinearRingView!double(
+        LinearRing2View!double(
             points[]
         );
 

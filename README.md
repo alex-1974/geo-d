@@ -14,25 +14,65 @@ inside and outside GIS software.
 
 The first public release of `geo-d` was `v0.1.0`.
 
-`v1.0.0` establishes the stable v1 public API. The supported package-level
-surface is frozen at 41 top-level names exported through `import geo;`.
+`v2.0.0` is the current stable API release.
 
-The API is intentionally small. New functionality is added when concrete use
-cases justify extending the geometry model and must follow the project's
-source-compatibility and deprecation policy.
+It aligns `geo-d` with the independent `geo3-d` sibling library while
+`geo-d` remains exclusively a coordinate-system-agnostic 2D Euclidean
+geometry library.
 
-Development toward `v2.0.0` intentionally reopens API design to align
-`geo-d` with the planned separate `geo3-d` sibling library. `geo-d` remains
-exclusively a coordinate-system-agnostic 2D Euclidean geometry library.
+The frozen v2 package surface contains 45 package exports and 151 audited
+public declarations. Supported v1 source forms remain available in v2 as
+deprecated compatibility aliases or forwarding overloads where documented.
 
-The v2 migration focuses on dimensional naming, shared operation families,
-UFCS and argument consistency, and source-compatible deprecation of v1 forms
-where practical. It is not a general expansion of `geo-d` into 3D or a
-blanket feature-expansion milestone.
+`v1.0.0` remains the historical stable v1 API baseline with 41 package-level
+names exported through `import geo;`.
 
-See
-[`ADR-0019`](docs/adr/ADR-0019-geo-d-v2-api-family-migration.md)
-and the v2 section of [`ROADMAP.md`](ROADMAP.md).
+The API is intentionally small. New functionality is added only when concrete
+consumer requirements and research justify extending the geometry model.
+
+The shared declaration contracts required by both dimensional siblings are
+provided by the independently versioned `euclid-core-d` package. The current
+v2 integration state resolves released `euclid-core-d 0.1.0` through the
+public DUB registry rather than through a workspace-relative dependency.
+
+The migration focuses on dimensional naming, shared operation families, UFCS
+and argument consistency, common declaration identity where required, and
+source-compatible deprecation of v1 forms. It is not a general expansion of
+`geo-d` into 3D or a blanket feature-expansion milestone.
+
+See:
+
+- [`ADR-0019`](docs/adr/ADR-0019-geo-d-v2-api-family-migration.md);
+- [`ADR-0020`](docs/adr/ADR-0020-shared-euclidean-contract-core.md);
+- [`docs/v2-api-conventions.md`](docs/v2-api-conventions.md);
+- [`docs/v2-public-api-audit.md`](docs/v2-public-api-audit.md);
+- the v2 section of [`ROADMAP.md`](ROADMAP.md).
+
+### v1 compatibility in v2
+
+Canonical v2 documentation and new code use:
+
+~~~text
+Polyline2View
+LinearRing2View
+Polygon2View
+Orientation2
+~~~
+
+The corresponding v1 spellings remain available in v2 as deprecated
+compatibility aliases:
+
+~~~text
+PolylineView     -> Polyline2View
+LinearRingView   -> LinearRing2View
+PolygonView      -> Polygon2View
+Orientation      -> Orientation2
+~~~
+
+The canonical v2 `tryPointSegmentDistance` order is segment-first. The v1
+point-first form remains a deprecated forwarding overload.
+
+Historical v1 documentation retains the v1 names where historically correct.
 
 ## Features
 
@@ -52,9 +92,9 @@ or point scaling.
 
 Variable-size geometry is represented through non-owning, read-only views:
 
-- `PolylineView!T`
-- `LinearRingView!T`
-- `PolygonView!T`
+- `Polyline2View!T`
+- `LinearRing2View!T`
+- `Polygon2View!T`
 
 Views do not allocate or copy their backing point storage. The caller retains
 ownership of that storage.
@@ -139,7 +179,7 @@ The library provides:
 - `polygonArea`
 - `tryClassifyPointInPolygon`
 
-`PolygonView` uses structural ring order:
+`Polygon2View` uses structural ring order:
 
 ~~~text
 ring 0      exterior
@@ -165,7 +205,7 @@ contact and hole containment rules.
 
 ### Polyline simplification
 
-Douglas-Peucker simplification is available for `PolylineView` through:
+Douglas-Peucker simplification is available for `Polyline2View` through:
 
 - `douglasPeuckerWorkspaceSize`
 - `trySimplifyDouglasPeuckerInto`
@@ -205,8 +245,8 @@ double d;
 
 assert(
     tryPointSegmentDistance(
-        P(0.0, 0.0),
         segment,
+        P(0.0, 0.0),
         d
     )
 );
@@ -218,7 +258,7 @@ assert(
         P(0.0, 0.0),
         P(1.0, 0.0),
         P(0.0, 1.0)
-    ) == Orientation.left
+    ) == Orientation2.left
 );
 ~~~
 
@@ -252,9 +292,9 @@ tryBounds
 `tryBounds` is provided for:
 
 - `Segment2`;
-- `PolylineView`;
-- `LinearRingView`;
-- `PolygonView`.
+- `Polyline2View`;
+- `LinearRing2View`;
+- `Polygon2View`.
 
 Empty variable-size geometry produces empty bounds successfully.
 
@@ -390,8 +430,7 @@ targets.
 
 ## Installation
 
-For a `geo-d` release available through the public DUB registry, add the
-package to a DUB project with:
+Install the current stable release from the public DUB registry with:
 
 ~~~sh
 dub add geo-d
@@ -403,6 +442,8 @@ Then import the supported package module:
 import geo;
 ~~~
 
+The canonical examples in this documentation use the v2 API.
+
 DMD and LDC are both supported:
 
 ~~~sh
@@ -410,12 +451,18 @@ dub build --compiler=dmd
 dub build --compiler=ldc2
 ~~~
 
-For a complete minimal program and task-oriented examples, see
+For v2 examples and task-oriented guidance, see
 [`docs/getting-started.md`](docs/getting-started.md).
 
-Public-registry installation and the minimal example are independently
-verified as part of release preparation; a repository path dependency does
-not replace that verification.
+Release verification includes a clean post-tag consumer test against the
+published DUB package after the release tag has been indexed. Repository path
+dependencies are not a substitute for that registry verification.
+
+The shared declaration dependency is independently published and resolved as:
+
+~~~text
+euclid-core-d ~>0.1.0
+~~~
 
 ## Documentation
 

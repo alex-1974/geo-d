@@ -195,7 +195,7 @@ This separation is necessary for:
 
 Polygon ring role must not be inferred implicitly from winding direction.
 
-For `PolygonView`:
+For `Polygon2View`:
 
 ~~~text
 ring 0      exterior

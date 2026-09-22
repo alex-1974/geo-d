@@ -8,20 +8,25 @@ functionality should have explicit semantics, strong numerical behaviour,
 tests, and documented ownership characteristics before the public API is
 expanded further.
 
-`v1.0.0` is the current stable API baseline. The `1.x` series remains governed
-by the source-compatibility and deprecation policy defined in ADR-0018.
+`v2.0.0` is the current stable API baseline.
 
-`v2.0.0` is a planned API-family migration milestone. It intentionally
-reopens API design so that the established 2D API can form a coherent family
-with the planned separate `geo3-d` library while `geo-d` itself remains
-exclusively responsible for coordinate-system-agnostic Euclidean 2D geometry.
+It aligns the established 2D API with the independent `geo3-d` sibling while
+`geo-d` itself remains exclusively responsible for coordinate-system-agnostic
+Euclidean 2D geometry.
+
+The v2 API migration, public-surface audit, integration gates, shared-Core
+packaging, and formal API freeze are complete.
+
+`v1.0.0` remains the historical stable v1 baseline. Its `1.x` compatibility
+policy is defined in ADR-0018; supported v1 source forms retained by v2 follow
+the migration policy in ADR-0019.
 
 This v2 migration is not a blanket feature-expansion milestone. New geometry
 capabilities remain driven by concrete consumers and research evidence.
 
-Features listed beyond the stable v1 release remain candidates rather than
-commitments. The v2 migration changes API organisation and compatibility
-policy; it does not by itself admit new geometry functionality.
+Features beyond the established v2 migration remain candidates rather than
+commitments. The migration changes API organisation and compatibility policy;
+it does not by itself admit new geometry functionality.
 
 ## v0.1.0 — Initial public foundation
 
@@ -790,129 +795,229 @@ predictable memory behaviour, and clear workspace boundaries.
 `v2.0.0` is an intentional API-design migration rather than a change to the
 scope of `geo-d`.
 
-`geo-d` remains the coordinate-system-agnostic Euclidean 2D library. The
-planned `geo3-d` library is a separate future sibling.
+`geo-d` remains the coordinate-system-agnostic Euclidean 2D library.
+`geo3-d` is an independent coordinate-system-agnostic Euclidean 3D sibling.
+Neither dimensional sibling depends on the other.
 
-Architecture decision:
+**Current status:** `v2.0.0` is the current stable release. The API-family
+migration is implemented, integrated, publicly audited, and uses the released
+`euclid-core-d 0.1.0` package through the public DUB registry. All v2 API
+freeze gates are complete.
 
-- [x] [`ADR-0019`](docs/adr/ADR-0019-geo-d-v2-api-family-migration.md) defines
-      the v2 API-family migration policy.
+### Architecture and API-family decisions
 
-The public API executable-example audit remains useful pre-migration work
-because it establishes an executable and documented baseline for the complete
-v1 surface before canonical v2 forms are introduced.
+Completed:
 
-### Complete v1 surface audit
+- [x] ADR-0019 defines the v2 API-family migration policy;
+- [x] ADR-0020 defines the narrowly scoped shared-contract architecture;
+- [x] `docs/v2-api-conventions.md` records the normative v2 API grammar;
+- [x] `docs/v2-public-api-audit.md` records the complete v1-to-v2 disposition
+      and reproducible implemented v2 surface.
 
-Before the v2 API is frozen:
+The family principle is:
 
-- [ ] audit every public v1 top-level declaration;
-- [ ] audit public members of exported types;
-- [ ] audit overload sets and template constraints;
-- [ ] audit callable parameter names and argument order;
-- [ ] audit natural UFCS receiver choice for public free-function families;
-- [ ] record the canonical v2 form for every changed public declaration;
-- [ ] define the corresponding v1 compatibility form or document why it
-      cannot safely be retained.
+> Symmetry where the mathematics is symmetric; specialization where it is not.
 
-The audit is broader than the 41 package-level names frozen for `v1.0.0`.
+API symmetry alone does not authorize new geometry functionality.
+
+### Complete v1-to-v2 surface audit
+
+Completed:
+
+- [x] audit all 146 frozen v1 public declarations;
+- [x] audit package exports, public members, overload sets, template
+      constraints, parameter names, and argument order;
+- [x] review natural UFCS receiver choice for public free-function families;
+- [x] record the canonical v2 form for every changed public declaration;
+- [x] define the corresponding v1 compatibility form;
+- [x] classify dimension-specific versus shared-family concepts;
+- [x] resolve package-level `geo` / `geo3` coexistence;
+- [x] reproduce the implemented v2 public surface with the API auditor.
+
+The frozen v1 baseline remains:
+
+~~~text
+package exports:             41
+total audit declarations:   146
+~~~
+
+The implemented v2 surface is:
+
+~~~text
+package exports:             45
+total audit declarations:   151
+~~~
+
+The v1 baseline is migration input and is not rewritten to match the v2
+declaration count.
 
 ### Dimensional naming
 
-Review intrinsically two-dimensional public types for explicit dimensional
-names.
+Canonical v2 type names include:
 
-Initial candidates are:
+~~~text
+Polyline2View
+LinearRing2View
+Polygon2View
+Orientation2
+~~~
 
-- `PolylineView` -> `Polyline2View`;
-- `LinearRingView` -> `LinearRing2View`;
-- `PolygonView` -> `Polygon2View`.
+The v1 spellings remain deprecated compatibility aliases:
 
-Where semantics and overload resolution permit, the v1 names should remain as
-deprecated aliases throughout the v2 line.
+~~~text
+PolylineView     -> Polyline2View
+LinearRingView   -> LinearRing2View
+PolygonView      -> Polygon2View
+Orientation      -> Orientation2
+~~~
+
+`Polygon2View` remains intentionally 2D-specific. Its existence does not
+create or require `Polygon3View`.
 
 ### Shared operation families
 
-Prefer dimension-independent operation names where the mathematical operation
-is genuinely shared.
+Completed:
 
-Review at least:
+- [x] preserve dimension-neutral operation names where the mathematics forms a
+      genuine family;
+- [x] review `distance`, `squaredDistance`, `segmentLength`,
+      `polylineLength`, `tryNearestPoint`, `tryBounds`, `tryConvert`,
+      `orientation`, `validateRing`, and simplification naming;
+- [x] verify that shared naming does not itself require a 3D counterpart;
+- [x] document plausible dimensional counterparts where they are meaningful.
 
-- [ ] `distance`;
-- [ ] `orientation`;
-- [ ] `tryBounds`;
-- [ ] `tryNearestPoint`;
-- [ ] `tryPointSegmentDistance`;
-- [ ] all additional shared families identified by the full-surface audit.
-
-For every shared concept, write down the corresponding plausible `geo3-d`
-signature before the `geo-d` v2 API is frozen.
-
-This is a design-validation requirement, not a requirement to implement
-`geo3-d`.
+New dimensional overloads remain consumer-driven and research-gated.
 
 ### UFCS and argument ordering
 
-Review related free-function signatures as API families rather than
-independently.
+Completed:
 
-Required:
+- [x] identify intentional UFCS receivers for existing public free-function
+      families;
+- [x] review related argument ordering;
+- [x] standardise `tryPointSegmentDistance` on the segment-first v2 form;
+- [x] retain the v1 point-first form as a deprecated forwarding overload;
+- [x] verify that compatibility forwarding does not maintain an independent
+      implementation.
 
-- [ ] identify the natural UFCS receiver for each public free-function family;
-- [ ] standardise related argument ordering where justified;
-- [ ] identify v1 signatures that conflict with the canonical v2 ordering;
-- [ ] retain deprecated forwarding overloads where resolution remains
-      unambiguous;
-- [ ] reject compatibility overloads that would introduce ambiguity or
-      preserve incorrect semantics.
+Canonical v2:
+
+~~~d
+tryPointSegmentDistance(segment, point, result);
+segment.tryPointSegmentDistance(point, result);
+~~~
 
 ### Orientation
 
-`orientation` requires a dedicated dimensional-semantics review.
+Completed:
 
-Resolve independently:
+- [x] retain `orientation(a, b, c)` as the canonical 2D affine predicate;
+- [x] rename the result vocabulary to `Orientation2`;
+- [x] preserve `right = -1`, `collinear = 0`, and `left = +1`;
+- [x] preserve `Orientation2.init == Orientation2.right`;
+- [x] distinguish the plausible four-point affine 3D orientation family from
+      a three-point cross product;
+- [x] reject API additions based only on superficial dimensional symmetry.
 
-- [ ] operation name;
-- [ ] 2D and plausible 3D argument arity;
-- [ ] result type;
-- [ ] result-value terminology;
-- [ ] robust determinant implementation requirements.
+### Shared declaration identity
 
-Mathematical semantics take precedence over superficial dimensional symmetry.
+Simultaneous `geo` / `geo3` use established that seven dimension-neutral
+contracts require one common D declaration identity:
+
+~~~text
+isGeoScalar
+MetricScalar
+IntersectionScalar
+SegmentIntersectionKind
+RingValidationIssue
+RingValidationResult
+douglasPeuckerWorkspaceSize
+~~~
+
+These declarations are provided by the narrowly scoped `euclid-core-d`
+support package and re-exposed through the dimensional libraries.
+
+`euclid-core-d v0.1.0` is independently versioned and published through the
+public DUB registry. Both `geo-d` and `geo3-d` resolve it through the versioned
+dependency `~>0.1.0`; neither sibling depends on a workspace-relative Core
+path.
+
+Registry-backed coexistence verification resolved exactly one Core package
+instance for a simultaneous `import geo; import geo3;` consumer and preserved
+common D declaration identity for all seven shared contracts.
+
+`AreaScalar` remains owned by `geo-d`.
+
+`euclid-core-d` exists for declaration identity, not as a generic
+N-dimensional geometry API or a general workspace utility package.
 
 ### v1 compatibility surface
 
-The intended lifecycle is:
+Completed:
 
-- `v1.x`: existing API;
-- `v2.0`: canonical v2 API plus deprecated v1 compatibility surface;
-- `v2.x`: deprecated v1 compatibility remains functional;
-- `v3.0`: earliest normal removal point.
+- [x] deprecated type names alias canonical v2 declarations;
+- [x] the deprecated point-first metric signature forwards to the canonical
+      segment-first implementation;
+- [x] root-level compatibility aliases are local so canonical `import geo;`
+      succeeds under strict deprecation checking;
+- [x] canonical v2 consumers compile without deprecated API;
+- [x] supported v1 compatibility forms have been locally verified;
+- [x] generated public documentation retains sibling-owned `geo.*` vocabulary
+      rather than leaking `euclid_core.*`.
 
-Required:
+The intended compatibility lifecycle remains:
 
-- [ ] deprecated type names alias canonical implementations;
-- [ ] deprecated function signatures forward to canonical implementations;
-- [ ] separate compatibility tests compile supported v1 source forms;
-- [ ] canonical v2 tests and examples use no deprecated API;
-- [ ] canonical v2 external-consumer tests compile without deprecation
-      warnings;
-- [ ] every compatibility exception has an explicit migration note.
+~~~text
+v1.x    existing v1 API
+v2.0    canonical v2 API plus deprecated v1 compatibility
+v2.x    deprecated v1 compatibility remains functional
+v3.0    earliest normal removal point
+~~~
 
 ### v2 API freeze gate
 
-The v2 API must not be frozen until:
+The public-API migration audit is complete. That does not itself freeze v2.
 
-- [ ] the complete v1 public surface has been audited;
-- [ ] the 2D/3D naming grammar has been applied consistently;
-- [ ] UFCS and argument ordering have been reviewed;
-- [ ] orientation semantics have been resolved;
-- [ ] deprecated compatibility coverage has been defined;
-- [ ] canonical v2 consumer tests compile without deprecation warnings;
-- [ ] plausible `geo3-d` signatures exist for every shared concept.
+Remaining integration gates:
 
-No `geo3-d` implementation is required for this gate. A compile-only or
-design-level 3D API model is sufficient to validate API-family symmetry.
+- [x] align the remaining permanent project documentation with the implemented
+      v2 decisions;
+- [x] retain required consumer/coexistence evidence as durable reproducible
+      tests rather than only as temporary research or integration probes;
+- [x] rerun the complete local verification gate after documentation
+      integration;
+- [x] obtain current CI evidence for the integration state;
+- [x] resolve release packaging of the shared `euclid-core-d` dependency.
+
+Release-packaging verification established that:
+
+- `euclid-core-d v0.1.0` is available from the public DUB registry;
+- both dimensional siblings resolve `euclid-core-d` through `~>0.1.0`;
+- no workspace-relative Core dependency remains in either sibling manifest;
+- a simultaneous family consumer resolves exactly one non-workspace Core
+  instance;
+- DMD and LDC family-consumer probes pass with all seven shared declaration
+  identities preserved;
+- `geo3-d` post-merge CI passes on
+  `aa64e3ae76106d3c7b15b905907a567414c31ad5`;
+- the complete `geo-d` CI matrix passes on
+  `14af8146625c75f72a6649651a2e1cf241afa5c2`, including DMD 2.111.0,
+  current DMD, current LDC, Linux ARM64, Windows x86-64, macOS x86-64,
+  macOS ARM64, compile-negative lifetime checks, the external consumer,
+  release builds, and public documentation verification.
+
+The temporary cross-repository family/coexistence probe has been promoted to
+the durable `tests/family-consumer/` verification package. The test pins the
+verified `geo3-d` sibling commit and Core release, keeps Core transitive,
+requires exactly one registry-backed Core instance, and verifies all seven
+shared declaration identities plus representative 2D/3D overload
+coexistence.
+
+The durable family test is part of the ordinary compiler CI gate and has
+passed with DMD 2.111.0, current DMD, and current LDC.
+
+All v2 API freeze gates are therefore complete. No additional geometry
+functionality is required for the v2 API freeze.
 
 
 ## Post-v1 numerical work

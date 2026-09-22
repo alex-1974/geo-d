@@ -1,10 +1,10 @@
 module geo.internal.ring_point_classification;
 
 import geo.linear_ring_view :
-    LinearRingView;
+    LinearRing2View;
 
 import geo.orientation :
-    Orientation,
+    Orientation2,
     orientation;
 
 import geo.point :
@@ -14,7 +14,7 @@ import geo.point :
 /*
  * INTERNAL IMPLEMENTATION MODULE.
  *
- * Exact point classification against one LinearRingView.
+ * Exact point classification against one LinearRing2View.
  *
  * This module implements representation-level even-odd semantics. It does
  * not validate ring topology.
@@ -105,7 +105,7 @@ private bool withinClosedSegmentBounds(T)(
  * intersection coordinate.
  */
 bool tryClassifyPointInRing(T)(
-    scope const(LinearRingView!T) ring,
+    scope const(LinearRing2View!T) ring,
     Point2!T point,
     out RingPointLocation location
 )
@@ -169,7 +169,7 @@ if (
             )
         )
         {
-            const Orientation side =
+            const Orientation2 side =
                 orientation(
                     previous,
                     current,
@@ -177,7 +177,7 @@ if (
                 );
 
             if (
-                side == Orientation.collinear &&
+                side == Orientation2.collinear &&
                 withinClosedSegmentBounds(
                     previous,
                     current,
@@ -195,7 +195,7 @@ if (
                 /*
                  * Upward half-open crossing.
                  */
-                if (side == Orientation.left)
+                if (side == Orientation2.left)
                     inside = !inside;
             }
             else if (
@@ -206,7 +206,7 @@ if (
                 /*
                  * Downward half-open crossing.
                  */
-                if (side == Orientation.right)
+                if (side == Orientation2.right)
                     inside = !inside;
             }
         }
@@ -230,7 +230,7 @@ if (
         )
     )
     {
-        const Orientation side =
+        const Orientation2 side =
             orientation(
                 previous,
                 first,
@@ -238,7 +238,7 @@ if (
             );
 
         if (
-            side == Orientation.collinear &&
+            side == Orientation2.collinear &&
             withinClosedSegmentBounds(
                 previous,
                 first,
@@ -253,7 +253,7 @@ if (
             point.y < first.y
         )
         {
-            if (side == Orientation.left)
+            if (side == Orientation2.left)
                 inside = !inside;
         }
         else if (
@@ -261,7 +261,7 @@ if (
             point.y < previous.y
         )
         {
-            if (side == Orientation.right)
+            if (side == Orientation2.right)
                 inside = !inside;
         }
     }
@@ -300,7 +300,7 @@ if (
     {
         {
             alias P = Point2!T;
-            alias R = LinearRingView!T;
+            alias R = LinearRing2View!T;
 
             P[3] points = [
                 P(T(0), T(0)),
@@ -362,7 +362,7 @@ if (
         !__traits(
             compiles,
             {
-                LinearRingView!real ring;
+                LinearRing2View!real ring;
                 Point2!real point;
                 RingPointLocation location;
 
@@ -377,7 +377,7 @@ if (
 
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
+    alias R = LinearRing2View!double;
 
 
     /*
@@ -740,7 +740,7 @@ if (
      */
     {
         alias LP = Point2!long;
-        alias LR = LinearRingView!long;
+        alias LR = LinearRing2View!long;
 
         LP[3] points = [
             LP(long.min, long.min),

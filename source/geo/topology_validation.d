@@ -15,6 +15,10 @@
  */
 module geo.topology_validation;
 
+private import euclid_core.ring_validation :
+    CoreRingValidationIssue = RingValidationIssue,
+    CoreRingValidationResult = RingValidationResult;
+
 import geo.bounding_box :
     tryBounds;
 
@@ -33,10 +37,10 @@ import geo.internal.ring_point_classification :
     tryClassifyPointInRing;
 
 import geo.linear_ring_view :
-    LinearRingView;
+    LinearRing2View;
 
 import geo.polygon_view :
-    PolygonView;
+    Polygon2View;
 
 import geo.point :
     Point2;
@@ -48,68 +52,199 @@ import std.algorithm.sorting :
     sort;
 
 
-/**
- * Validation issue detected in a LinearRingView.
- */
-enum RingValidationIssue : ubyte
+version (D_Ddoc)
 {
-    /// No validation issue was detected.
-    none,
-
-    /// The ring contains fewer than three stored vertices.
-    tooFewVertices,
-
-    /// A stored vertex contains a non-finite coordinate.
-    nonFiniteCoordinate,
-
-    /// An implicit ring edge has identical endpoints.
-    zeroLengthEdge,
-
-    /// Ring edges have an invalid point intersection.
-    selfIntersection,
-
-    /// Ring edges overlap over positive length.
-    selfOverlap,
-}
-
-
-/**
- * Result of validating one LinearRingView.
- *
- * Ring edge index i denotes the implicit segment from vertex i to vertex
- * (i + 1) % length.
- *
- * size_t.max denotes an index that does not apply to the reported issue.
- *
- * RingValidationResult.init represents a valid ring result with issue
- * RingValidationIssue.none and both diagnostic indices set to size_t.max.
- */
-struct RingValidationResult
-{
-    RingValidationIssue issue =
-        RingValidationIssue.none;
-
-    size_t primaryIndex =
-        size_t.max;
-
-    size_t secondaryIndex =
-        size_t.max;
-
-
     /**
-     * True when no validation issue was detected.
+     * Validation issue detected in a LinearRing2View.
      */
-    @property bool valid() const
-        pure nothrow @safe @nogc
+    enum RingValidationIssue : ubyte
     {
-        return issue ==
-            RingValidationIssue.none;
+        /// No validation issue was detected.
+        none,
+
+        /// The ring stores fewer than three vertices.
+        tooFewVertices,
+
+        /// At least one stored coordinate is non-finite.
+        nonFiniteCoordinate,
+
+        /// At least one implicit ring edge has zero length.
+        zeroLengthEdge,
+
+        /// Non-adjacent ring edges intersect at a point.
+        selfIntersection,
+
+        /// Ring edges overlap over positive length.
+        selfOverlap,
     }
+
+    static assert(
+        RingValidationIssue.sizeof ==
+        CoreRingValidationIssue.sizeof
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.none ==
+        cast(ubyte) CoreRingValidationIssue.none
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.tooFewVertices ==
+        cast(ubyte) CoreRingValidationIssue.tooFewVertices
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.nonFiniteCoordinate ==
+        cast(ubyte) CoreRingValidationIssue.nonFiniteCoordinate
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.zeroLengthEdge ==
+        cast(ubyte) CoreRingValidationIssue.zeroLengthEdge
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.selfIntersection ==
+        cast(ubyte) CoreRingValidationIssue.selfIntersection
+    );
+
+    static assert(
+        cast(ubyte) RingValidationIssue.selfOverlap ==
+        cast(ubyte) CoreRingValidationIssue.selfOverlap
+    );
+}
+else
+{
+    alias RingValidationIssue =
+        CoreRingValidationIssue;
+}
+
+
+version (D_Ddoc)
+{
+    /**
+     * Result of validating one LinearRing2View.
+     *
+     * Ring edge index i denotes the implicit segment from vertex i to vertex
+     * (i + 1) % length.
+     *
+     * size_t.max denotes an index that does not apply to the reported issue.
+     *
+     * RingValidationResult.init represents a valid ring result with issue
+     * RingValidationIssue.none and both diagnostic indices set to size_t.max.
+     */
+    struct RingValidationResult
+    {
+        /// Detected validation issue.
+        RingValidationIssue issue =
+            RingValidationIssue.none;
+
+        /// Primary involved vertex or edge index.
+        size_t primaryIndex =
+            size_t.max;
+
+        /// Secondary involved edge index where applicable.
+        size_t secondaryIndex =
+            size_t.max;
+
+        /**
+         * True when no validation issue was detected.
+         */
+        @property bool valid() const
+            pure nothrow @safe @nogc
+        {
+            return issue ==
+                RingValidationIssue.none;
+        }
+    }
+
+    static assert(
+        RingValidationResult.sizeof ==
+        CoreRingValidationResult.sizeof
+    );
+
+    static assert(
+        RingValidationResult.alignof ==
+        CoreRingValidationResult.alignof
+    );
+
+    /*
+     * The documentation enum is deliberately a distinct declaration
+     * from the runtime core enum. Compare each field against its own
+     * declared type and verify representation/layout separately.
+     */
+    static assert(
+        is(
+            typeof(RingValidationResult.init.issue) ==
+            RingValidationIssue
+        )
+    );
+
+    static assert(
+        is(
+            typeof(CoreRingValidationResult.init.issue) ==
+            CoreRingValidationIssue
+        )
+    );
+
+    static assert(
+        RingValidationResult.issue.offsetof ==
+        CoreRingValidationResult.issue.offsetof
+    );
+
+    static assert(
+        RingValidationResult.primaryIndex.offsetof ==
+        CoreRingValidationResult.primaryIndex.offsetof
+    );
+
+    static assert(
+        RingValidationResult.secondaryIndex.offsetof ==
+        CoreRingValidationResult.secondaryIndex.offsetof
+    );
+
+    static assert(
+        is(
+            typeof(RingValidationResult.init.primaryIndex) ==
+            typeof(CoreRingValidationResult.init.primaryIndex)
+        )
+    );
+
+    static assert(
+        is(
+            typeof(RingValidationResult.init.secondaryIndex) ==
+            typeof(CoreRingValidationResult.init.secondaryIndex)
+        )
+    );
+
+    static assert(
+        RingValidationResult.init.issue ==
+        RingValidationIssue.none
+    );
+
+    static assert(
+        RingValidationResult.init.primaryIndex ==
+        CoreRingValidationResult.init.primaryIndex
+    );
+
+    static assert(
+        RingValidationResult.init.secondaryIndex ==
+        CoreRingValidationResult.init.secondaryIndex
+    );
+
+    static assert(
+        RingValidationResult.init.valid ==
+        CoreRingValidationResult.init.valid
+    );
+}
+else
+{
+    alias RingValidationResult =
+        CoreRingValidationResult;
 }
 
 
 /**
- * Validation issue detected in a PolygonView.
+ * Validation issue detected in a Polygon2View.
  */
 enum PolygonValidationIssue : ubyte
 {
@@ -143,10 +278,10 @@ enum PolygonValidationIssue : ubyte
 
 
 /**
- * Result of validating one PolygonView.
+ * Result of validating one Polygon2View.
  *
  * Polygon ring index 0 denotes the exterior ring. Indices 1 and greater
- * denote interior rings in their stored PolygonView order.
+ * denote interior rings in their stored Polygon2View order.
  *
  * size_t.max denotes an index that does not apply to the reported issue.
  *
@@ -237,7 +372,7 @@ private RingValidationResult validationIssue(
  *     index < ring.length
  */
 private Segment2!T ringEdge(T)(
-    scope LinearRingView!T ring,
+    scope LinearRing2View!T ring,
     size_t index
 )
     pure nothrow @safe @nogc
@@ -356,7 +491,7 @@ if (isValidationScalar!T)
 
 
 /**
- * Validates one LinearRingView.
+ * Validates one LinearRing2View.
  *
  * Supported scalar types are `int`, `long`, `float`, and `double`.
  * `real` is deliberately outside the robust topology domain.
@@ -385,7 +520,7 @@ if (isValidationScalar!T)
  *     O(n^2) time and O(1) auxiliary space for n stored vertices.
  */
 RingValidationResult validateRing(T)(
-    scope LinearRingView!T ring
+    scope LinearRing2View!T ring
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -565,7 +700,7 @@ if (isValidationScalar!T)
 
 
 /*
- * Validates only the constituent rings of a PolygonView.
+ * Validates only the constituent rings of a Polygon2View.
  *
  * This is deliberately not the public polygon validator.
  *
@@ -584,7 +719,7 @@ if (isValidationScalar!T)
  * - connected polygon interior.
  */
 package(geo) PolygonValidationResult validatePolygonRings(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -662,8 +797,8 @@ private struct RingPairContactResult
  * Validation guarantees finite coordinates and non-empty valid rings.
  */
 private bool ringBoxesOverlap(T)(
-    scope LinearRingView!T firstRing,
-    scope LinearRingView!T secondRing
+    scope LinearRing2View!T firstRing,
+    scope LinearRing2View!T secondRing
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -716,8 +851,8 @@ if (isValidationScalar!T)
  * closed ring.
  */
 private RingPairContactResult screenRingPairContacts(T)(
-    scope LinearRingView!T firstRing,
-    scope LinearRingView!T secondRing
+    scope LinearRing2View!T firstRing,
+    scope LinearRing2View!T secondRing
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -848,7 +983,7 @@ if (isValidationScalar!T)
  * Containment and connected interior are handled by later validation stages.
  */
 package(geo) PolygonValidationResult validatePolygonPairContacts(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -977,8 +1112,8 @@ private enum RingRelativeLocation : ubyte
 
 
 private RingRelativeLocation classifyRingRelativeToRing(T)(
-    scope LinearRingView!T subject,
-    scope LinearRingView!T reference
+    scope LinearRing2View!T subject,
+    scope LinearRing2View!T reference
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -1040,7 +1175,7 @@ if (isValidationScalar!T)
  *     secondaryRingIndex = containing interior ring
  */
 package(geo) PolygonValidationResult validatePolygonContainment(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe @nogc
 if (isValidationScalar!T)
@@ -1244,8 +1379,8 @@ private bool ringContactLess(T)(
  * tangential contact point.
  */
 private bool tryRingPairTouchPoint(T)(
-    scope LinearRingView!T firstRing,
-    scope LinearRingView!T secondRing,
+    scope LinearRing2View!T firstRing,
+    scope LinearRing2View!T secondRing,
     out Point2!T point
 )
     pure nothrow @safe @nogc
@@ -1435,7 +1570,7 @@ private bool unionContactNodes(
  */
 package(geo) PolygonValidationResult
 validatePolygonConnectedInterior(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe
 if (isValidationScalar!T)
@@ -1654,7 +1789,7 @@ if (isValidationScalar!T)
 
 
 /**
- * Validates one PolygonView for polygon topology.
+ * Validates one Polygon2View for polygon topology.
  *
  * Supported scalar types are `int`, `long`, `float`, and `double`.
  * `real` is deliberately outside the robust topology domain.
@@ -1678,7 +1813,7 @@ if (isValidationScalar!T)
  * Validation is exact for topology. No epsilon or rounded intersection
  * coordinate is used.
  *
- * An empty PolygonView is valid.
+ * An empty Polygon2View is valid.
  *
  * The first detected issue is returned deterministically.
  *
@@ -1694,7 +1829,7 @@ if (isValidationScalar!T)
  *     O(n^2 log n) time in the worst case.
  */
 PolygonValidationResult validatePolygon(T)(
-    scope PolygonView!T polygon
+    scope Polygon2View!T polygon
 )
     pure nothrow @safe
 if (isValidationScalar!T)
@@ -1748,7 +1883,7 @@ if (isValidationScalar!T)
     {
         {
             alias P = Point2!T;
-            alias R = LinearRingView!T;
+            alias R = LinearRing2View!T;
 
             P[4] points = [
                 P(T(0), T(0)),
@@ -1780,7 +1915,7 @@ if (isValidationScalar!T)
         !__traits(
             compiles,
             {
-                LinearRingView!real ring;
+                LinearRing2View!real ring;
 
                 validateRing(ring);
             }
@@ -1789,7 +1924,7 @@ if (isValidationScalar!T)
 
 
     alias P = Point2!double;
-    alias R = LinearRingView!double;
+    alias R = LinearRing2View!double;
 
 
     /*
@@ -2088,7 +2223,7 @@ if (isValidationScalar!T)
      */
     {
         alias LP = Point2!long;
-        alias LR = LinearRingView!long;
+        alias LR = LinearRing2View!long;
 
         LP[3] points = [
             LP(long.min, long.min),
@@ -2112,7 +2247,7 @@ if (isValidationScalar!T)
         R[] rings;
 
         auto polygon =
-            PolygonView!double(rings);
+            Polygon2View!double(rings);
 
         const result =
             validatePolygonRings(polygon);
@@ -2163,7 +2298,7 @@ if (isValidationScalar!T)
         ];
 
         auto polygon =
-            PolygonView!double(rings[]);
+            Polygon2View!double(rings[]);
 
         assert(
             validatePolygonRings(polygon).valid
@@ -2190,7 +2325,7 @@ if (isValidationScalar!T)
         ];
 
         auto polygon =
-            PolygonView!double(rings[]);
+            Polygon2View!double(rings[]);
 
         const result =
             validatePolygonRings(polygon);
@@ -2255,7 +2390,7 @@ if (isValidationScalar!T)
         ];
 
         auto polygon =
-            PolygonView!double(rings[]);
+            Polygon2View!double(rings[]);
 
         const result =
             validatePolygonRings(polygon);
@@ -2291,8 +2426,8 @@ if (isValidationScalar!T)
      */
     {
         alias PP = Point2!double;
-        alias PR = LinearRingView!double;
-        alias PV = PolygonView!double;
+        alias PR = LinearRing2View!double;
+        alias PV = Polygon2View!double;
 
         PP[4] exteriorPoints = [
             PP(0.0, 0.0),
@@ -2333,8 +2468,8 @@ if (isValidationScalar!T)
      */
     {
         alias PP = Point2!double;
-        alias PR = LinearRingView!double;
-        alias PV = PolygonView!double;
+        alias PR = LinearRing2View!double;
+        alias PV = Polygon2View!double;
 
         PP[4] exteriorPoints = [
             PP(0.0, 0.0),
@@ -2388,8 +2523,8 @@ if (isValidationScalar!T)
      */
     {
         alias PP = Point2!double;
-        alias PR = LinearRingView!double;
-        alias PV = PolygonView!double;
+        alias PR = LinearRing2View!double;
+        alias PV = Polygon2View!double;
 
         PP[4] exteriorPoints = [
             PP(0.0, 0.0),
@@ -2440,8 +2575,8 @@ if (isValidationScalar!T)
      */
     {
         alias PP = Point2!double;
-        alias PR = LinearRingView!double;
-        alias PV = PolygonView!double;
+        alias PR = LinearRing2View!double;
+        alias PV = Polygon2View!double;
 
         PP[4] exteriorPoints = [
             PP(0.0, 0.0),
@@ -2482,8 +2617,8 @@ if (isValidationScalar!T)
      */
     {
         alias PP = Point2!double;
-        alias PR = LinearRingView!double;
-        alias PV = PolygonView!double;
+        alias PR = LinearRing2View!double;
+        alias PV = Polygon2View!double;
 
         PP[4] exteriorPoints = [
             PP(0.0, 0.0),
@@ -2534,8 +2669,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2576,8 +2711,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2627,8 +2762,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2669,8 +2804,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2716,8 +2851,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2779,8 +2914,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2832,8 +2967,8 @@ if (isValidationScalar!T)
      */
     {
         alias CP = Point2!double;
-        alias CR = LinearRingView!double;
-        alias CV = PolygonView!double;
+        alias CR = LinearRing2View!double;
+        alias CV = Polygon2View!double;
 
         CP[4] exteriorPoints = [
             CP(0.0, 0.0),
@@ -2893,8 +3028,8 @@ if (isValidationScalar!T)
      */
     {
         alias DP = Point2!double;
-        alias DR = LinearRingView!double;
-        alias DV = PolygonView!double;
+        alias DR = LinearRing2View!double;
+        alias DV = Polygon2View!double;
 
         DP[4] exteriorPoints = [
             DP(0.0, 0.0),
@@ -2937,8 +3072,8 @@ if (isValidationScalar!T)
      */
     {
         alias DP = Point2!double;
-        alias DR = LinearRingView!double;
-        alias DV = PolygonView!double;
+        alias DR = LinearRing2View!double;
+        alias DV = Polygon2View!double;
 
         DP[4] exteriorPoints = [
             DP(0.0, 0.0),
@@ -2997,8 +3132,8 @@ if (isValidationScalar!T)
      */
     {
         alias DP = Point2!double;
-        alias DR = LinearRingView!double;
-        alias DV = PolygonView!double;
+        alias DR = LinearRing2View!double;
+        alias DV = Polygon2View!double;
 
         DP[4] exteriorPoints = [
             DP(0.0, 0.0),
@@ -3067,8 +3202,8 @@ if (isValidationScalar!T)
      */
     {
         alias DP = Point2!double;
-        alias DR = LinearRingView!double;
-        alias DV = PolygonView!double;
+        alias DR = LinearRing2View!double;
+        alias DV = Polygon2View!double;
 
         DP[4] exteriorPoints = [
             DP(0.0, 0.0),
@@ -3170,8 +3305,8 @@ if (isValidationScalar!T)
      */
     {
         alias AP = Point2!double;
-        alias AR = LinearRingView!double;
-        alias AV = PolygonView!double;
+        alias AR = LinearRing2View!double;
+        alias AV = Polygon2View!double;
 
         AP[4] points = [
             AP(0.0, 0.0),
@@ -3218,8 +3353,8 @@ if (isValidationScalar!T)
      */
     {
         alias AP = Point2!double;
-        alias AR = LinearRingView!double;
-        alias AV = PolygonView!double;
+        alias AR = LinearRing2View!double;
+        alias AV = Polygon2View!double;
 
         AP[4] exteriorPoints = [
             AP(0.0, 0.0),

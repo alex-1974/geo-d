@@ -15,6 +15,21 @@ trap 'rm -rf "$TMP"' EXIT
 
 cd "$ROOT"
 
+mapfile -t IMPORT_PATHS < <(
+    PYTHONDONTWRITEBYTECODE=1 \
+        python3 \
+        "$ROOT/tools/dub-import-paths.py" \
+        --compiler "$DC"
+)
+
+IMPORT_FLAGS=()
+
+for import_path in "${IMPORT_PATHS[@]}"; do
+    IMPORT_FLAGS+=(
+        "-I$import_path"
+    )
+done
+
 failures=0
 
 
@@ -27,7 +42,7 @@ compile_positive()
 
     if "$DC" \
         -preview=dip1000 \
-        -Isource \
+        "${IMPORT_FLAGS[@]}" \
         -c "$source" \
         "-of=$object" \
         >"$log" 2>&1
@@ -50,7 +65,7 @@ compile_negative()
 
     if "$DC" \
         -preview=dip1000 \
-        -Isource \
+        "${IMPORT_FLAGS[@]}" \
         -c "$source" \
         "-of=$object" \
         >"$log" 2>&1

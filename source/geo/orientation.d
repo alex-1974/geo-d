@@ -32,12 +32,12 @@ import geo.internal.orientation_robust :
     tryOrientationRobustDoubleFallback;
 
 /**
- * Orientation of a point relative to the directed line a -> b.
+ * 2D orientation of a point relative to the directed line a -> b.
  *
- * `Orientation.init` is `Orientation.right`. This is a valid but
- * non-neutral default and is part of the stable 1.x source contract.
+ * `Orientation2.init` is `Orientation2.right`. This deliberately preserves
+ * the non-neutral default of the v1 `Orientation` contract.
  */
-enum Orientation : byte
+enum Orientation2 : byte
 {
     /// c lies to the right of the directed line a -> b.
     right     = -1,
@@ -448,16 +448,16 @@ private int differenceSign(
 }
 
 
-private Orientation fromDeterminantSign(int sign)
+private Orientation2 fromDeterminantSign(int sign)
     pure nothrow @safe @nogc
 {
     if (sign > 0)
-        return Orientation.left;
+        return Orientation2.left;
 
     if (sign < 0)
-        return Orientation.right;
+        return Orientation2.right;
 
-    return Orientation.collinear;
+    return Orientation2.collinear;
 }
 
 
@@ -478,7 +478,7 @@ private Orientation fromDeterminantSign(int sign)
  * Complexity:
  *     O(1) time and O(1) auxiliary space.
  */
-Orientation orientation(
+Orientation2 orientation(
     Point2!int a,
     Point2!int b,
     Point2!int c
@@ -517,7 +517,7 @@ Orientation orientation(
  * Complexity:
  *     O(1) time and O(1) auxiliary space.
  */
-Orientation orientation(
+Orientation2 orientation(
     Point2!long a,
     Point2!long b,
     Point2!long c
@@ -563,7 +563,7 @@ Orientation orientation(
  * Complexity:
  *     O(1) time and O(1) auxiliary space.
  */
-Orientation orientation(
+Orientation2 orientation(
     Point2!double a,
     Point2!double b,
     Point2!double c
@@ -584,13 +584,13 @@ Orientation orientation(
     final switch (filtered)
     {
         case OrientationFilterResult.right:
-            return Orientation.right;
+            return Orientation2.right;
 
         case OrientationFilterResult.collinear:
-            return Orientation.collinear;
+            return Orientation2.collinear;
 
         case OrientationFilterResult.left:
-            return Orientation.left;
+            return Orientation2.left;
 
         case OrientationFilterResult.uncertain:
             break;
@@ -637,7 +637,7 @@ Orientation orientation(
  * Complexity:
  *     O(1) time and O(1) auxiliary space.
  */
-Orientation orientation(
+Orientation2 orientation(
     Point2!float a,
     Point2!float b,
     Point2!float c
@@ -677,7 +677,7 @@ Orientation orientation(
             P(0.0, 0.0),
             P(1.0, 0.0),
             P(0.0, 1.0)
-        ) == Orientation.left
+        ) == Orientation2.left
     );
 
     assert(
@@ -685,9 +685,16 @@ Orientation orientation(
             P(0.0, 0.0),
             P(1.0, 0.0),
             P(0.5, 0.0)
-        ) == Orientation.collinear
+        ) == Orientation2.collinear
     );
 }
+
+
+/**
+ * Deprecated v1 spelling of `Orientation2`.
+ */
+deprecated("Use Orientation2")
+alias Orientation = Orientation2;
 
 
 version(unittest)
@@ -705,36 +712,36 @@ version(unittest)
      */
 
 
-    private Orientation oracleOrientationFromDeterminant(
+    private Orientation2 oracleOrientationFromDeterminant(
         ref const BigInt determinant
     )
         @safe
     {
         if (determinant > 0)
-            return Orientation.left;
+            return Orientation2.left;
 
         if (determinant < 0)
-            return Orientation.right;
+            return Orientation2.right;
 
-        return Orientation.collinear;
+        return Orientation2.collinear;
     }
 
 
-    private Orientation oppositeOrientation(
-        Orientation value
+    private Orientation2 oppositeOrientation(
+        Orientation2 value
     )
         pure nothrow @safe @nogc
     {
         final switch (value)
         {
-            case Orientation.left:
-                return Orientation.right;
+            case Orientation2.left:
+                return Orientation2.right;
 
-            case Orientation.collinear:
-                return Orientation.collinear;
+            case Orientation2.collinear:
+                return Orientation2.collinear;
 
-            case Orientation.right:
-                return Orientation.left;
+            case Orientation2.right:
+                return Orientation2.left;
         }
     }
 
@@ -745,7 +752,7 @@ version(unittest)
      * All subtraction and multiplication happens in BigInt, so this
      * does not share geo-d's fixed-width integer orientation machinery.
      */
-    private Orientation oracleIntegerOrientation(T)(
+    private Orientation2 oracleIntegerOrientation(T)(
         Point2!T a,
         Point2!T b,
         Point2!T c
@@ -855,7 +862,7 @@ version(unittest)
     }
 
 
-    private Orientation oracleDoubleOrientation(
+    private Orientation2 oracleDoubleOrientation(
         Point2!double a,
         Point2!double b,
         Point2!double c
@@ -910,7 +917,7 @@ version(unittest)
      * binary32 -> binary64 is exact, so the binary64 BigInt oracle is
      * also an independent exact oracle for Point2!float.
      */
-    private Orientation oracleFloatOrientation(
+    private Orientation2 oracleFloatOrientation(
         Point2!float a,
         Point2!float b,
         Point2!float c
@@ -1104,7 +1111,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
     }
 
@@ -1128,7 +1135,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
     }
 
@@ -1162,7 +1169,7 @@ version(unittest)
                     randomOracleInt(state)
                 );
 
-            const Orientation expected =
+            const Orientation2 expected =
                 oracleIntegerOrientation(
                     a,
                     b,
@@ -1225,7 +1232,7 @@ version(unittest)
                     randomOracleLong(state)
                 );
 
-            const Orientation expected =
+            const Orientation2 expected =
                 oracleIntegerOrientation(
                     a,
                     b,
@@ -1282,7 +1289,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
     }
 
@@ -1306,7 +1313,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
     }
 
@@ -1337,12 +1344,12 @@ version(unittest)
                 a,
                 b,
                 c
-            ) == Orientation.collinear
+            ) == Orientation2.collinear
         );
 
         assert(
             orientation(a, b, c) ==
-            Orientation.collinear
+            Orientation2.collinear
         );
     }
 
@@ -1372,7 +1379,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
     }
 
@@ -1413,7 +1420,7 @@ version(unittest)
             assert(b.isFinite);
             assert(c.isFinite);
 
-            const Orientation expected =
+            const Orientation2 expected =
                 oracleDoubleOrientation(
                     a,
                     b,
@@ -1474,7 +1481,7 @@ version(unittest)
             assert(b.isFinite);
             assert(c.isFinite);
 
-            const Orientation expected =
+            const Orientation2 expected =
                 oracleFloatOrientation(
                     a,
                     b,
@@ -1510,7 +1517,7 @@ version(unittest)
                 P(0.0f, 0.0f),
                 P(10.0f, 0.0f),
                 P(5.0f, 1.0f)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
 
         assert(
@@ -1518,7 +1525,7 @@ version(unittest)
                 P(0.0f, 0.0f),
                 P(10.0f, 0.0f),
                 P(5.0f, -1.0f)
-            ) == Orientation.right
+            ) == Orientation2.right
         );
 
         assert(
@@ -1526,7 +1533,7 @@ version(unittest)
                 P(0.0f, 0.0f),
                 P(10.0f, 10.0f),
                 P(5.0f, 5.0f)
-            ) == Orientation.collinear
+            ) == Orientation2.collinear
         );
     }
 
@@ -1547,7 +1554,7 @@ version(unittest)
                 P(0.0f, 0.0f),
                 P(2.0f, 2.0f),
                 P(1.0f, aboveOne)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
     }
 
@@ -1564,7 +1571,7 @@ version(unittest)
                 P(-float.max, 0.0f),
                 P( float.max, 0.0f),
                 P(0.0f, 1.0f)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
     }
 
@@ -1587,7 +1594,7 @@ version(unittest)
                 P(0.0f, 0.0f),
                 P(minSubnormal, 0.0f),
                 P(0.0f, minSubnormal)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
     }
 
@@ -1621,7 +1628,7 @@ version(unittest)
                 P(0.0, 0.0),
                 P(10.0, 0.0),
                 P(5.0, 1.0)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
 
         assert(
@@ -1629,7 +1636,7 @@ version(unittest)
                 P(0.0, 0.0),
                 P(10.0, 0.0),
                 P(5.0, -1.0)
-            ) == Orientation.right
+            ) == Orientation2.right
         );
 
         assert(
@@ -1637,7 +1644,7 @@ version(unittest)
                 P(0.0, 0.0),
                 P(10.0, 10.0),
                 P(5.0, 5.0)
-            ) == Orientation.collinear
+            ) == Orientation2.collinear
         );
     }
 
@@ -1656,7 +1663,7 @@ version(unittest)
                     5.0,
                     0x1.4000000000001p+2
                 )
-            ) == Orientation.left
+            ) == Orientation2.left
         );
     }
 
@@ -1672,7 +1679,7 @@ version(unittest)
                 P(-double.max, 0.0),
                 P( double.max, 0.0),
                 P(0.0, 1.0)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
 
         enum double minSubnormal =
@@ -1683,7 +1690,7 @@ version(unittest)
                 P(0.0, 0.0),
                 P(minSubnormal, 0.0),
                 P(0.0, minSubnormal)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
     }
 
@@ -1738,15 +1745,15 @@ version(unittest)
      * Public enum contract.
      */
     static assert(
-        cast(byte) Orientation.right == -1
+        cast(byte) Orientation2.right == -1
     );
 
     static assert(
-        cast(byte) Orientation.collinear == 0
+        cast(byte) Orientation2.collinear == 0
     );
 
     static assert(
-        cast(byte) Orientation.left == 1
+        cast(byte) Orientation2.left == 1
     );
 
 
@@ -1761,17 +1768,17 @@ version(unittest)
 
         assert(
             orientation(a, b, P(5, 1)) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(a, b, P(5, -1)) ==
-            Orientation.right
+            Orientation2.right
         );
 
         assert(
             orientation(a, b, P(5, 0)) ==
-            Orientation.collinear
+            Orientation2.collinear
         );
     }
 
@@ -1786,12 +1793,12 @@ version(unittest)
 
         assert(
             orientation(a, a, P(100, 200)) ==
-            Orientation.collinear
+            Orientation2.collinear
         );
 
         assert(
             orientation(a, a, a) ==
-            Orientation.collinear
+            Orientation2.collinear
         );
     }
 
@@ -1809,27 +1816,27 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(b, c, a) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(c, a, b) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(a, c, b) ==
-            Orientation.right
+            Orientation2.right
         );
 
         assert(
             orientation(c, b, a) ==
-            Orientation.right
+            Orientation2.right
         );
     }
 
@@ -1849,12 +1856,12 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(a, c, b) ==
-            Orientation.right
+            Orientation2.right
         );
     }
 
@@ -1874,12 +1881,12 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(a, c, b) ==
-            Orientation.right
+            Orientation2.right
         );
     }
 
@@ -1908,12 +1915,12 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.left
+            Orientation2.left
         );
 
         assert(
             orientation(a, c, b) ==
-            Orientation.right
+            Orientation2.right
         );
     }
 
@@ -1930,7 +1937,7 @@ version(unittest)
 
         assert(
             orientation(a, b, c) ==
-            Orientation.collinear
+            Orientation2.collinear
         );
     }
 
@@ -1946,7 +1953,7 @@ version(unittest)
                 P(long.min, 0),
                 P(long.max, 0),
                 P(0, long.max)
-            ) == Orientation.left
+            ) == Orientation2.left
         );
 
         assert(
@@ -1954,7 +1961,7 @@ version(unittest)
                 P(0, long.min),
                 P(0, long.max),
                 P(long.max, 0)
-            ) == Orientation.right
+            ) == Orientation2.right
         );
     }
 }

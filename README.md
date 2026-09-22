@@ -466,9 +466,23 @@ euclid-core-d ~>0.1.0
 
 ## Documentation
 
-The generated public API reference is published at:
+The generated public API reference for the current stable release is published
+at:
 
 https://alex-1974.github.io/geo-d/
+
+Published release documentation is also retained at version-specific paths:
+
+~~~text
+https://alex-1974.github.io/geo-d/v2.0.0/
+https://alex-1974.github.io/geo-d/v1.0.0/
+~~~
+
+The root documentation is built from the current stable release tag rather
+than from the development state of `main`. Available documentation versions
+are listed at:
+
+https://alex-1974.github.io/geo-d/versions.html
 
 Architecture decisions are maintained under:
 

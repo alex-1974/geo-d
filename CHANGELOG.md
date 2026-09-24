@@ -8,6 +8,13 @@ The project follows Semantic Versioning for published releases.
 
 ### Changed
 
+- Standardised the Linux x86-64 DMD/LDC compiler matrix across frontend
+  generations 2.111, 2.112, and 2.113, fixed controlled comparisons to DUB
+  1.40.0, and retained current DMD/LDC targets as rolling compatibility
+  canaries.
+- Added a reproducible local compiler-matrix harness covering unit tests,
+  lifetime probes, external consumption, 2D/3D family coexistence, and release
+  builds.
 - Versioned GitHub Pages API documentation is built reproducibly from release
   tags. The documentation root follows the current stable release, while
   historical releases remain available at version-specific paths.

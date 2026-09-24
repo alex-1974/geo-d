@@ -504,7 +504,16 @@ unambiguous.
 
 ### Cross-platform and cross-architecture portability
 
-The current Linux x86-64 compiler matrix remains the baseline.
+The Linux x86-64 compiler matrix remains the baseline. Its controlled
+compiler generations are DMD `2.111.0`, `2.112.1`, and `2.113.0`, paired with
+LDC `1.41.0`, `1.42.0`, and `1.43.0`. Controlled comparisons use DUB `1.40.0`;
+`dmd-latest` and `ldc-latest` remain rolling compatibility canaries.
+
+The six-compiler baseline passed all 30 unit-test, lifetime, external-consumer,
+family-consumer, and release-build gates on
+`9ce6d1c90e7a65a8208b030cb064b73daf522510`.
+The durable policy and local harness are documented in
+`docs/compiler-matrix.md`.
 
 Expand verification to other operating systems and architectures supported
 by practical CI infrastructure.

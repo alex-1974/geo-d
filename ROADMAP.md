@@ -562,65 +562,56 @@ These are research targets rather than current support commitments.
 
 ### Public API executable-example audit
 
-Audit the complete supported public API exported through `import geo;`.
+Audit the complete supported v2 public API exported through `import geo;`.
 
 The audit covers:
 
-- the 41 frozen v1 top-level public names;
-- public methods and properties of exported types;
+- canonical v2 top-level public names;
+- retained deprecated v1 compatibility aliases and forwarding forms;
+- public methods, properties, and diagnostic fields of exported types;
 - templates and overload families;
 - failure-oriented APIs whose correct use is not obvious from the signature.
 
-For every user-facing public declaration, determine whether it has an
-appropriate documented `unittest` example that appears in the generated
-DDox documentation.
+For every user-facing public DDox symbol page, determine whether it has an
+appropriate documented `unittest` example or is deliberately covered by an
+owning type or API-family example.
 
-The desired state is:
+The desired state is complete:
 
 - [x] inventory every public declaration requiring an example
-- [ ] add documented `unittest` examples where useful
-- [ ] ensure examples use the supported consumer surface through
+- [x] add documented `unittest` examples where useful
+- [x] ensure examples use the supported consumer surface through
       `import geo;`
-- [ ] ensure every example is compiled as part of ordinary verification
-- [ ] verify that DDox actually publishes the example
-- [ ] add automated documentation-example coverage checking where practical
+- [x] ensure every example is compiled as part of ordinary verification
+- [x] verify that DDox actually publishes the example
+- [x] add automated documentation-example coverage checking
 
-Tiny accessors, enum members, or closely related overloads do not require
-artificial duplicate examples when one documented example clearly
-demonstrates the complete public API family.
+Tiny accessors, enum members, compatibility aliases, or closely related
+overloads do not require artificial duplicate examples when one documented
+example clearly demonstrates the complete public API family.
 
-Any omission should therefore be deliberate and auditable rather than
-accidental.
+The original v1 baseline contained 92 public DDox symbol pages. The current
+v2 documentation surface contains 103:
 
-The existing representative documented unittests remain valid; this audit
-raises the post-v1 goal from representative coverage to systematic public
-API example coverage.
+- 38 pages render their own `Example`;
+- 65 pages are deliberately family-covered;
+- no page remains classified as requiring an example.
 
+The eleven-page increase from the v1 audit baseline consists of four
+canonical v2 type pages retained alongside their deprecated v1 module
+aliases, four root-level deprecated compatibility alias pages, and three
+public `RingValidationResult` diagnostic-field pages.
 
-The baseline inventory is recorded in
-`docs/public-api-example-audit.md`. The DDox output generated from commit
-`4b3b246` contains 92 public symbol pages: seven already render an `Example`,
-31 are classified for a dedicated example, and 54 are deliberately covered
-by an owning type or API-family example. Completing the inventory does not
-mark the example implementation or DDox-verification tasks complete.
+The inventory is recorded in `docs/public-api-example-audit.md`.
 
+`tools/verify-public-api-examples.py` compares that inventory with generated
+DDox output. The ordinary documentation build fails when a public symbol page
+is missing from the inventory, an audited page disappears, an **existing**
+example stops rendering, a **family** page gains an unrecorded dedicated
+example, or an unresolved **add** entry remains.
 
-Baseline audit of the documentation generated from commit `4b3b246` found
-92 public DDox symbol pages. Seven currently contain a rendered `Example`
-section:
-
-- `polygonArea`;
-- `tryConvert`;
-- `trySegmentIntersectionPoint`;
-- `distance`;
-- `orientation`;
-- `tryClassifyPointInPolygon`;
-- `trySimplifyDouglasPeuckerInto`.
-
-This count is a baseline, not the target coverage metric. The next step is
-to classify the complete public surface by whether a declaration needs its
-own example, is adequately represented by an API-family example, or is
-sufficiently trivial that a separate example would add no useful information.
+This makes systematic executable-example coverage part of the normal
+documentation CI gate rather than a one-time manual audit.
 
 ### Geometry-library landscape inventory
 

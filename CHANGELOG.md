@@ -11,6 +11,8 @@ The project follows Semantic Versioning for published releases.
 - Versioned GitHub Pages API documentation is built reproducibly from release
   tags. The documentation root follows the current stable release, while
   historical releases remain available at version-specific paths.
+- Completed systematic executable-example coverage for the v2 public DDox
+  surface and added automated audit enforcement to documentation builds.
 
 ## [2.0.0] - 2026-09-22
 

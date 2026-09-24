@@ -181,5 +181,13 @@ fi
 echo "PASS: public-only ddox documentation"
 
 echo
+echo "Verifying public API example audit..."
+
+python3 \
+    "$root/tools/verify-public-api-examples.py" \
+    "$root/docs/public-api-example-audit.md" \
+    "$site_dir"
+
+echo
 echo "Documentation generated:"
 echo "  $site_dir/index.html"

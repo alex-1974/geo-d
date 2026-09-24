@@ -699,6 +699,52 @@ if (isValidationScalar!T)
 }
 
 
+/// Example validating a ring through the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias R = LinearRing2View!int;
+
+    P[4] squarePoints = [
+        P(0, 0),
+        P(4, 0),
+        P(4, 4),
+        P(0, 4)
+    ];
+
+    const valid =
+        validateRing(
+            R(squarePoints[])
+        );
+
+    assert(valid.valid);
+
+    assert(
+        valid.issue ==
+        RingValidationIssue.none
+    );
+
+    P[2] shortPoints = [
+        P(0, 0),
+        P(1, 0)
+    ];
+
+    const invalid =
+        validateRing(
+            R(shortPoints[])
+        );
+
+    assert(!invalid.valid);
+
+    assert(
+        invalid.issue ==
+        RingValidationIssue.tooFewVertices
+    );
+}
+
+
 /*
  * Validates only the constituent rings of a Polygon2View.
  *
@@ -1836,6 +1882,51 @@ if (isValidationScalar!T)
 {
     return validatePolygonConnectedInterior(
         polygon
+    );
+}
+
+
+/// Example validating a polygon with one interior ring.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias R = LinearRing2View!int;
+    alias G = Polygon2View!int;
+
+    P[4] exteriorPoints = [
+        P(0, 0),
+        P(10, 0),
+        P(10, 10),
+        P(0, 10)
+    ];
+
+    P[4] holePoints = [
+        P(2, 2),
+        P(4, 2),
+        P(4, 4),
+        P(2, 4)
+    ];
+
+    R[2] rings = [
+        R(exteriorPoints[]),
+        R(holePoints[])
+    ];
+
+    auto polygon =
+        G(rings[]);
+
+    const result =
+        validatePolygon(
+            polygon
+        );
+
+    assert(result.valid);
+
+    assert(
+        result.issue ==
+        PolygonValidationIssue.none
     );
 }
 

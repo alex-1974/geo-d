@@ -101,6 +101,32 @@ else
 }
 
 
+/// Example sizing caller-owned Douglas-Peucker workspace.
+@safe unittest
+{
+    import geo;
+
+    static assert(
+        douglasPeuckerWorkspaceSize(0) == 0
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(2) == 0
+    );
+
+    static assert(
+        douglasPeuckerWorkspaceSize(5) == 3
+    );
+
+    size_t[3] workspace;
+
+    assert(
+        workspace.length ==
+        douglasPeuckerWorkspaceSize(5)
+    );
+}
+
+
 /**
  * Simplifies a polyline using the Douglas-Peucker algorithm.
  *

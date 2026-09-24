@@ -1,8 +1,8 @@
 # Public API Example Audit
 
-**Status:** Batch 5 complete; audit in progress
-**Baseline:** DDox output generated from commit `4b3b246`  
-**Public DDox symbol pages:** 92
+**Status:** Batches 1 through 7 complete; v2 audit complete
+**Baseline:** DDox output generated from v2 main commit `3b99a048882571a4fd562e305dfb58aba86144ad`
+**Public DDox symbol pages:** 103
 
 ## Purpose
 
@@ -14,7 +14,7 @@ The goal is systematic user-facing example coverage without creating
 mechanical duplicate examples for trivial accessors, operators, enum values,
 or tightly related members.
 
-The audit does not change the frozen v1 public API.
+The audit does not change the frozen v2 public API.
 
 ## Classification
 
@@ -29,16 +29,31 @@ Each public DDox symbol page is assigned one of three states:
 Examples should use `import geo;` where practical and remain focused on
 ordinary public usage rather than exhaustive regression testing.
 
-## Baseline summary
+## v2 documentation-surface summary
+
+The original audit baseline covered the 92 public DDox symbol pages generated
+for the v1 API.
+
+The v2 documentation surface contains 103 public symbol pages.
+
+The net increase of eleven pages is accounted for by:
+
+- four canonical v2 type pages while the corresponding deprecated v1 module
+  aliases remain documented;
+- four root-level deprecated v1 compatibility alias pages; and
+- the three public diagnostic fields `issue`, `primaryIndex`, and
+  `secondaryIndex` of `RingValidationResult`.
+
+After Batches 1 through 7, the validated v2 DDox state is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 7 |
-| Dedicated examples to add | 31 |
-| Deliberately family-covered declarations | 54 |
-| **Total public symbol pages** | **92** |
+| Existing rendered examples | 38 |
+| Dedicated examples still to add | 0 |
+| Deliberately family-covered declarations | 65 |
+| **Total public symbol pages** | **103** |
 
-The seven existing rendered examples are:
+The seven examples already present before the systematic audit were:
 
 - `polygonArea`;
 - `tryConvert`;
@@ -48,30 +63,14 @@ The seven existing rendered examples are:
 - `tryClassifyPointInPolygon`;
 - `trySimplifyDouglasPeuckerInto`.
 
-## Current progress
-
-Batches 1 through 5 add documented executable examples for the core value
-types, non-owning geometry views, scalar policies, explicit quantisation,
-bounds, metric operations, and segment-intersection classification and
-overlap construction.
-
-Current validated DDox state:
-
-| Classification | Count |
-| --- | ---: |
-| Existing rendered examples | 35 |
-| Dedicated examples still to add | 3 |
-| Deliberately family-covered declarations | 54 |
-| **Total public symbol pages** | **92** |
-
 The six Batch 1 examples are:
 
 - `Point2`;
 - `Vector2`;
 - `Segment2`;
-- `PolylineView`;
-- `LinearRingView`;
-- `PolygonView`.
+- `Polyline2View`;
+- `LinearRing2View`;
+- `Polygon2View`.
 
 The eight Batch 2 examples are:
 
@@ -107,8 +106,26 @@ The Batch 5 example is:
 
 - `signedArea`.
 
-All twenty-eight audit-added examples compile through the supported public
+The two Batch 6 examples are:
+
+- `validateRing`;
+- `validatePolygon`.
+
+The Batch 7 example is:
+
+- `douglasPeuckerWorkspaceSize`.
+
+All thirty-one audit-added examples compile through the supported public
 package surface with `import geo;` and render as `Example` sections in DDox.
+
+## `geo` package compatibility aliases
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `PolylineView` | **family** | deprecated v1 root alias; Polyline2View |
+| `LinearRingView` | **family** | deprecated v1 root alias; LinearRing2View |
+| `PolygonView` | **family** | deprecated v1 root alias; Polygon2View |
+| `Orientation` | **family** | deprecated v1 root alias; Orientation2 |
 
 ## `geo.area`
 
@@ -165,13 +182,14 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `LinearRingView` | **existing** | Batch 1 rendered Example |
-| `LinearRingView.this` | **family** | LinearRingView |
-| `LinearRingView.length` | **family** | LinearRingView |
-| `LinearRingView.empty` | **family** | LinearRingView |
-| `LinearRingView.segmentCount` | **family** | LinearRingView |
-| `LinearRingView.segment` | **family** | LinearRingView |
-| `LinearRingView.opIndex` | **family** | LinearRingView |
+| `LinearRing2View` | **existing** | Batch 1 rendered Example |
+| `LinearRingView` | **family** | deprecated v1 module alias; LinearRing2View |
+| `LinearRing2View.this` | **family** | LinearRingView |
+| `LinearRing2View.length` | **family** | LinearRingView |
+| `LinearRing2View.empty` | **family** | LinearRingView |
+| `LinearRing2View.segmentCount` | **family** | LinearRingView |
+| `LinearRing2View.segment` | **family** | LinearRingView |
+| `LinearRing2View.opIndex` | **family** | LinearRingView |
 
 ## `geo.metric`
 
@@ -189,7 +207,8 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `Orientation` | **family** | orientation |
+| `Orientation2` | **family** | orientation |
+| `Orientation` | **family** | deprecated v1 module alias; Orientation2 |
 | `orientation` | **existing** | existing rendered Example |
 
 ## `geo.point`
@@ -216,26 +235,28 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `PolygonView` | **existing** | Batch 1 rendered Example |
-| `PolygonView.this` | **family** | PolygonView |
-| `PolygonView.length` | **family** | PolygonView |
-| `PolygonView.empty` | **family** | PolygonView |
-| `PolygonView.opIndex` | **family** | PolygonView |
-| `PolygonView.exterior` | **family** | PolygonView |
-| `PolygonView.holeCount` | **family** | PolygonView |
-| `PolygonView.hole` | **family** | PolygonView |
+| `Polygon2View` | **existing** | Batch 1 rendered Example |
+| `PolygonView` | **family** | deprecated v1 module alias; Polygon2View |
+| `Polygon2View.this` | **family** | PolygonView |
+| `Polygon2View.length` | **family** | PolygonView |
+| `Polygon2View.empty` | **family** | PolygonView |
+| `Polygon2View.opIndex` | **family** | PolygonView |
+| `Polygon2View.exterior` | **family** | PolygonView |
+| `Polygon2View.holeCount` | **family** | PolygonView |
+| `Polygon2View.hole` | **family** | PolygonView |
 
 ## `geo.polyline_view`
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `PolylineView` | **existing** | Batch 1 rendered Example |
-| `PolylineView.this` | **family** | PolylineView |
-| `PolylineView.length` | **family** | PolylineView |
-| `PolylineView.empty` | **family** | PolylineView |
-| `PolylineView.segmentCount` | **family** | PolylineView |
-| `PolylineView.segment` | **family** | PolylineView |
-| `PolylineView.opIndex` | **family** | PolylineView |
+| `Polyline2View` | **existing** | Batch 1 rendered Example |
+| `PolylineView` | **family** | deprecated v1 module alias; Polyline2View |
+| `Polyline2View.this` | **family** | PolylineView |
+| `Polyline2View.length` | **family** | PolylineView |
+| `Polyline2View.empty` | **family** | PolylineView |
+| `Polyline2View.segmentCount` | **family** | PolylineView |
+| `Polyline2View.segment` | **family** | PolylineView |
+| `Polyline2View.opIndex` | **family** | PolylineView |
 
 ## `geo.scalar`
 
@@ -257,7 +278,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
-| `douglasPeuckerWorkspaceSize` | **add** | dedicated workspace-sizing example |
+| `douglasPeuckerWorkspaceSize` | **existing** | Batch 7 rendered Example |
 | `trySimplifyDouglasPeuckerInto` | **existing** | existing rendered Example |
 
 ## `geo.topology_validation`
@@ -266,12 +287,15 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `RingValidationIssue` | **family** | validateRing |
 | `RingValidationResult` | **family** | validateRing |
+| `RingValidationResult.issue` | **family** | validateRing |
+| `RingValidationResult.primaryIndex` | **family** | validateRing |
+| `RingValidationResult.secondaryIndex` | **family** | validateRing |
 | `RingValidationResult.valid` | **family** | validateRing |
-| `validateRing` | **add** | dedicated validation example |
+| `validateRing` | **existing** | Batch 6 rendered Example |
 | `PolygonValidationIssue` | **family** | validatePolygon |
 | `PolygonValidationResult` | **family** | validatePolygon |
 | `PolygonValidationResult.valid` | **family** | validatePolygon |
-| `validatePolygon` | **add** | dedicated validation example |
+| `validatePolygon` | **existing** | Batch 6 rendered Example |
 
 ## `geo.vector`
 
@@ -287,36 +311,39 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Vector2.opBinaryRight` | **family** | Vector2 |
 | `Vector2.opOpAssign` | **family** | Vector2 |
 
-## Implementation order
+## Completed implementation batches
 
-The example work should proceed in small reviewable groups:
+The example work was completed in small reviewable groups:
 
-1. core value types and views;
-2. scalar policy and conversion;
-3. bounds and metric operations;
-4. orientation and intersection;
-5. area and point-in-polygon;
-6. topology validation;
-7. simplification and workspace sizing.
+- [x] core value types and views;
+- [x] scalar policy and conversion;
+- [x] bounds and metric operations;
+- [x] orientation and intersection;
+- [x] area and point-in-polygon;
+- [x] topology validation;
+- [x] simplification and workspace sizing.
 
-After each group:
-
-- run DMD and LDC unittests;
-- build the external consumer;
-- build DDox documentation;
-- verify that every intended new `Example` section is actually rendered.
+Each batch is verified through ordinary compilation and generated DDox
+documentation.
 
 ## Completion criteria
 
-The audit is complete when:
+The v2 executable-example audit is complete when:
 
-- every one of the 92 current public DDox symbol pages remains classified;
-- all declarations marked **add** have a documented executable example;
-- all declarations marked **existing** remain rendered;
-- family-covered declarations are exercised by the declared family example;
-- examples compile through the public package surface where practical;
-- DDox rendering is checked automatically or by an equivalent reproducible
-  verification step.
+- all 103 current public DDox symbol pages are classified;
+- no declaration remains classified as **add**;
+- all 38 declarations classified as **existing** render an `Example`;
+- all 65 declarations classified as **family** are intentionally covered by
+  their named type or API-family example;
+- examples compile through the supported `import geo;` consumer surface where
+  practical; and
+- generated DDox output is checked automatically against this inventory.
 
-Adding a public symbol in a future compatible release should require updating
-this inventory as part of its documentation review.
+`tools/verify-public-api-examples.py` enforces the inventory against generated
+DDox output. It fails when a public symbol page is unclassified, an audited
+page disappears, an **existing** page loses its rendered `Example`, a
+**family** page unexpectedly gains one without reclassification, or any
+**add** entry remains.
+
+Adding a public symbol in a future compatible release therefore requires
+updating this inventory as part of its documentation review.

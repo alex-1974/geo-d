@@ -425,8 +425,16 @@ The minimum supported D frontend version is:
 ~~~
 
 This requirement applies to the D frontend used by supported compiler
-families. Newer frontend versions are covered by the current DMD and LDC CI
-targets.
+families.
+
+The reproducible Linux x86-64 compiler baseline covers DMD `2.111.0`,
+`2.112.1`, and `2.113.0`, plus LDC `1.41.0`, `1.42.0`, and `1.43.0`.
+`dmd-latest` and `ldc-latest` remain rolling forward-compatibility canaries.
+Compiler-comparison CI fixes DUB at `1.40.0`.
+
+The complete matrix, local reproducibility procedure, and
+compiler-specific-workaround policy are documented in
+[`docs/compiler-matrix.md`](docs/compiler-matrix.md).
 
 ## Installation
 

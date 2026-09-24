@@ -102,13 +102,24 @@ DMD and LDC are the required compiler families.
 
 The minimum supported D frontend version is `2.111.0`.
 
-Before submitting a change, run:
+The controlled Linux x86-64 baseline covers:
 
-~~~sh
-dub test --compiler=dmd --force
-dub test --compiler=ldc2 --force
-dub build --build=release --compiler=ldc2 --force
-~~~
+- DMD `2.111.0`, `2.112.1`, and `2.113.0`;
+- LDC `1.41.0`, `1.42.0`, and `1.43.0`;
+- DUB `1.40.0` for controlled comparisons.
+
+Run the complete local baseline with:
+
+    bash tools/test-compiler-matrix.sh
+
+For ordinary focused development, at minimum run:
+
+    dub test --compiler=dmd --force
+    dub test --compiler=ldc2 --force
+    dub build --build=release --compiler=ldc2 --force
+
+See `docs/compiler-matrix.md` for the exact matrix, rolling CI canaries,
+reproducibility rules, and compiler-specific-workaround policy.
 
 GDC support is best effort unless explicitly stated otherwise.
 

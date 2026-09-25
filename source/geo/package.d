@@ -16,7 +16,7 @@
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
- * - distance and nearest-point operations;
+ * - distance, vector metric/directional, and nearest-point operations;
  * - robust orientation and segment-intersection predicates;
  * - signed and polygon area;
  * - point-in-polygon classification;
@@ -44,7 +44,7 @@
  *     MIT
  *
  * Date:
- *     September 12, 2026
+ *     September 25, 2026
  */
 module geo;
 
@@ -97,18 +97,25 @@ alias PolylineView =
     Polyline2View;
 
 public import geo.scalar : isGeoScalar;
-public import geo.vector : Vector2;
+public import geo.vector :
+    Vector2,
+    perpendicularCCW;
 
 public import geo.segment : Segment2;
 
 public import geo.metric :
     MetricScalar,
     distance,
+    dot,
+    norm,
     polylineLength,
     segmentLength,
     squaredDistance,
+    squaredNorm,
     tryNearestPoint,
-    tryPointSegmentDistance;
+    tryNormalize,
+    tryPointSegmentDistance,
+    trySignedAngle;
 
 public import geo.orientation :
     Orientation2,

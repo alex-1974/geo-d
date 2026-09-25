@@ -186,6 +186,50 @@ static assert(__traits(compiles,
 
 
 /*
+ * A1 vector metric and directional primitives.
+ */
+static assert(__traits(compiles,
+    dot(
+        a: V.init,
+        b: V.init
+    )));
+
+static assert(__traits(compiles,
+    squaredNorm(
+        vector: V.init
+    )));
+
+static assert(__traits(compiles,
+    norm(
+        vector: V.init
+    )));
+
+static assert(__traits(compiles, {
+    Vector2!double result;
+
+    tryNormalize(
+        vector: V.init,
+        result: result
+    );
+}));
+
+static assert(__traits(compiles, {
+    double result;
+
+    trySignedAngle(
+        from: V.init,
+        to: V.init,
+        result: result
+    );
+}));
+
+static assert(__traits(compiles,
+    perpendicularCCW(
+        vector: V.init
+    )));
+
+
+/*
  * Robust orientation.
  */
 static assert(__traits(compiles,

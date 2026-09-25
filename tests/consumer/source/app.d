@@ -87,6 +87,27 @@ static foreach (name; frozenPublicNames)
 
 
 /*
+ * Consumer-driven vector primitive family added after the v2.0 freeze.
+ */
+enum string[] a1VectorPrimitiveNames = [
+    "dot",
+    "squaredNorm",
+    "norm",
+    "tryNormalize",
+    "trySignedAngle",
+    "perpendicularCCW",
+];
+
+static foreach (name; a1VectorPrimitiveNames)
+{
+    static assert(
+        __traits(hasMember, geo, name),
+        "A1 public name missing from import geo: " ~ name
+    );
+}
+
+
+/*
  * Representative type and policy instantiation through import geo.
  */
 static assert(isGeoScalar!int);

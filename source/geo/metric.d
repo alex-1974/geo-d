@@ -11,7 +11,7 @@
  *     MIT
  *
  * Date:
- *     September 12, 2026
+ *     September 25, 2026
  */
 module geo.metric;
 
@@ -23,9 +23,13 @@ import geo.polyline_view : Polyline2View;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 import geo.segment : Segment2;
+import geo.vector : Vector2;
 
-import std.math.algebraic : hypot;
-import std.math.exponential : ilogb, scalbn;
+private import euclid_core.internal.metric :
+    metricHypot,
+    metricScalbn;
+import std.math.trigonometry : atan2;
+import std.math.exponential : ilogb;
 import std.math.traits : isFinite;
 
 
@@ -104,6 +108,512 @@ else
     static assert(is(MetricScalar!float == double));
     static assert(is(MetricScalar!double == double));
     static assert(is(MetricScalar!real == real));
+}
+
+
+/**
+ * Computes the Euclidean dot product of two vectors.
+ *
+ * Both vectors use the same storage scalar type.
+ *
+ * Returns:
+ *     The dot product in `MetricScalar!T`.
+ *
+ * Integral components are converted to `MetricScalar!T` before
+ * multiplication. The operation therefore follows ordinary floating-point
+ * metric arithmetic and does not promise exact integral accumulation.
+ *
+ * Floating-point NaN and infinity follow ordinary floating-point arithmetic.
+ *
+ * This is a numerical vector operation, not a robust exact predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+MetricScalar!T dot(T)(
+    Vector2!T a,
+    Vector2!T b
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    return
+        cast(M) a.x * cast(M) b.x +
+        cast(M) a.y * cast(M) b.y;
+}
+
+
+/// Example computing a vector dot product through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto a = Vector2!int(1, 2);
+    auto b = Vector2!int(3, 4);
+
+    static assert(
+        is(typeof(dot(a, b)) == double)
+    );
+
+    assert(dot(a, b) == 11.0);
+}
+
+
+/**
+ * Computes the squared Euclidean norm of a vector.
+ *
+ * Returns:
+ *     The squared norm in `MetricScalar!T`.
+ *
+ * The numerical construction is the same as `dot(vector, vector)`.
+ * Integral input is therefore metric floating-point arithmetic rather than
+ * exact integral accumulation.
+ *
+ * Very large finite input may produce infinity. NaN and infinity otherwise
+ * follow ordinary floating-point arithmetic.
+ *
+ * This is a numerical vector operation, not a robust exact predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+MetricScalar!T squaredNorm(T)(
+    Vector2!T vector
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    return dot(vector, vector);
+}
+
+
+/// Example computing a squared vector norm through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto vector = Vector2!int(3, 4);
+
+    static assert(
+        is(typeof(squaredNorm(vector)) == double)
+    );
+
+    assert(squaredNorm(vector) == 25.0);
+}
+
+
+/**
+ * Computes the Euclidean norm of a vector.
+ *
+ * Returns:
+ *     The norm in `MetricScalar!T`.
+ *
+ * Components are converted to the metric computation type and evaluated
+ * with the shared Core `hypot`-compatible metric helper. The operation
+ * deliberately does not compute `sqrt(squaredNorm(vector))`, avoiding
+ * unnecessary intermediate square overflow and underflow.
+ *
+ * Floating-point NaN and infinity follow the corresponding `hypot`
+ * semantics.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+MetricScalar!T norm(T)(
+    Vector2!T vector
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    alias M = MetricScalar!T;
+
+    return metricHypot(
+        cast(M) vector.x,
+        cast(M) vector.y
+    );
+}
+
+
+/// Example computing a vector norm through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto vector = Vector2!int(3, 4);
+
+    static assert(
+        is(typeof(norm(vector)) == double)
+    );
+
+    assert(norm(vector) == 5.0);
+}
+
+
+/**
+ * Constructs the unit direction of a finite non-zero vector.
+ *
+ * Params:
+ *     vector = Source vector.
+ *     result = Unit vector in `MetricScalar!T`.
+ *
+ * Returns:
+ *     `true` when a finite unit direction is produced; otherwise `false`.
+ *
+ * Returns `false` when either component is non-finite or when the vector is
+ * exactly zero. No epsilon is used.
+ *
+ * On failure, `result` is `Vector2!R.init`.
+ *
+ * Components are converted to the metric computation type before absolute
+ * magnitude is formed. The converted vector is then scaled by its largest
+ * absolute component before `hypot` is evaluated. This avoids signed
+ * integral `T.min` negation and avoids unnecessary overflow or underflow
+ * for extreme finite vectors.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+bool tryNormalize(T, R)(
+    Vector2!T vector,
+    out Vector2!R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    alias M = MetricScalar!T;
+
+    result = Vector2!R.init;
+
+    const M x =
+        cast(M) vector.x;
+
+    const M y =
+        cast(M) vector.y;
+
+    if (
+        !isFinite(x) ||
+        !isFinite(y)
+    )
+    {
+        return false;
+    }
+
+    const M absX =
+        x < M(0)
+            ? -x
+            : x;
+
+    const M absY =
+        y < M(0)
+            ? -y
+            : y;
+
+    const M scale =
+        absX > absY
+            ? absX
+            : absY;
+
+    if (scale == M(0))
+        return false;
+
+    const M scaledX =
+        x / scale;
+
+    const M scaledY =
+        y / scale;
+
+    const M length =
+        metricHypot(
+            scaledX,
+            scaledY
+        );
+
+    if (
+        !isFinite(length) ||
+        length == M(0)
+    )
+    {
+        return false;
+    }
+
+    const M normalizedX =
+        scaledX / length;
+
+    const M normalizedY =
+        scaledY / length;
+
+    if (
+        !isFinite(normalizedX) ||
+        !isFinite(normalizedY)
+    )
+    {
+        return false;
+    }
+
+    result =
+        Vector2!R(
+            normalizedX,
+            normalizedY
+        );
+
+    return true;
+}
+
+
+/// Example normalizing a vector through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto vector = Vector2!int(3, 4);
+    Vector2!double unit;
+
+    assert(
+        tryNormalize(
+            vector,
+            unit
+        )
+    );
+
+    assert(
+        unit ==
+        Vector2!double(
+            0.6,
+            0.8
+        )
+    );
+}
+
+
+/**
+ * Computes the canonical signed angle from one vector to another.
+ *
+ * Params:
+ *     from = Starting direction.
+ *     to = Target direction.
+ *     result = Signed angle in radians.
+ *
+ * Returns:
+ *     `true` when both vectors are finite and exactly non-zero; otherwise
+ *     `false`.
+ *
+ * On success the result lies in `$(LPAREN)-pi, pi]`.
+ *
+ * Positive angles correspond to a positive two-dimensional determinant and
+ * therefore to counter-clockwise rotation in the conventional Cartesian
+ * x-right/y-up orientation.
+ *
+ * Both vectors are converted to `MetricScalar!T` and independently
+ * power-of-two scaled before determinant and dot terms are formed. This
+ * avoids avoidable product overflow and underflow while preserving the
+ * direction represented by each finite vector.
+ *
+ * If the computed determinant is exactly zero, the branch cut is
+ * canonicalized from the computed dot value:
+ *
+ * - dot >= 0 produces positive zero;
+ * - dot < 0 produces positive pi.
+ *
+ * This is a numerical directional measurement, not a robust orientation or
+ * collinearity predicate. No epsilon is used.
+ *
+ * On failure, `result` is zero.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+bool trySignedAngle(T, R)(
+    Vector2!T from,
+    Vector2!T to,
+    out R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    alias M = MetricScalar!T;
+
+    result = R(0);
+
+    const M fromX =
+        cast(M) from.x;
+
+    const M fromY =
+        cast(M) from.y;
+
+    const M toX =
+        cast(M) to.x;
+
+    const M toY =
+        cast(M) to.y;
+
+    if (
+        !isFinite(fromX) ||
+        !isFinite(fromY) ||
+        !isFinite(toX) ||
+        !isFinite(toY)
+    )
+    {
+        return false;
+    }
+
+    const M absFromX =
+        fromX < M(0)
+            ? -fromX
+            : fromX;
+
+    const M absFromY =
+        fromY < M(0)
+            ? -fromY
+            : fromY;
+
+    const M absToX =
+        toX < M(0)
+            ? -toX
+            : toX;
+
+    const M absToY =
+        toY < M(0)
+            ? -toY
+            : toY;
+
+    const M maxFrom =
+        absFromX > absFromY
+            ? absFromX
+            : absFromY;
+
+    const M maxTo =
+        absToX > absToY
+            ? absToX
+            : absToY;
+
+    if (
+        maxFrom == M(0) ||
+        maxTo == M(0)
+    )
+    {
+        return false;
+    }
+
+    const int exponentFrom =
+        ilogb(maxFrom);
+
+    const int exponentTo =
+        ilogb(maxTo);
+
+    const M scaledFromX =
+        metricScalbn(
+            fromX,
+            -exponentFrom
+        );
+
+    const M scaledFromY =
+        metricScalbn(
+            fromY,
+            -exponentFrom
+        );
+
+    const M scaledToX =
+        metricScalbn(
+            toX,
+            -exponentTo
+        );
+
+    const M scaledToY =
+        metricScalbn(
+            toY,
+            -exponentTo
+        );
+
+    const M determinant =
+        scaledFromX * scaledToY -
+        scaledFromY * scaledToX;
+
+    const M dotValue =
+        scaledFromX * scaledToX +
+        scaledFromY * scaledToY;
+
+    M angle;
+
+    if (determinant == M(0))
+    {
+        if (dotValue < M(0))
+        {
+            /*
+             * atan2(+0, -1) provides the positive branch-cut value +pi.
+             */
+            angle =
+                atan2(
+                    M(0),
+                    M(-1)
+                );
+        }
+        else
+        {
+            /*
+             * Construct positive zero explicitly rather than retaining
+             * a possible negative-zero determinant.
+             */
+            angle =
+                M(0);
+        }
+    }
+    else
+    {
+        angle =
+            atan2(
+                determinant,
+                dotValue
+            );
+    }
+
+    if (!isFinite(angle))
+        return false;
+
+    result =
+        cast(R) angle;
+
+    return true;
+}
+
+
+/// Example computing a signed angle through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto from = Vector2!int(1, 0);
+    auto to = Vector2!int(0, 1);
+
+    double angle;
+
+    assert(
+        trySignedAngle(
+            from,
+            to,
+            angle
+        )
+    );
+
+    assert(angle > 1.57);
+    assert(angle < 1.58);
 }
 
 
@@ -307,7 +817,7 @@ private M directPerpendicularDistance(M)(
 
     return
         absCross /
-        hypot(
+        metricHypot(
             dx,
             dy
         );
@@ -325,7 +835,7 @@ private M directPerpendicularDistance(M)(
  *
  * d and r are scaled independently by powers of two. Because binary
  * scaling is exact, the projection ratio can then be reconstructed
- * with scalbn().
+ * with the shared Core power-of-two scaling helper.
  *
  * Preconditions:
  *
@@ -387,11 +897,11 @@ if (isGeoScalar!T)
      * After this scaling, the largest absolute component in each
      * vector lies in [1, 2), so products and sums cannot overflow.
      */
-    const M ndx = scalbn(dx, -expD);
-    const M ndy = scalbn(dy, -expD);
+    const M ndx = metricScalbn(dx, -expD);
+    const M ndy = metricScalbn(dy, -expD);
 
-    const M nrx = scalbn(rx, -expR);
-    const M nry = scalbn(ry, -expR);
+    const M nrx = metricScalbn(rx, -expR);
+    const M nry = metricScalbn(ry, -expR);
 
     const M numerator =
         nrx * ndx + nry * ndy;
@@ -412,7 +922,7 @@ if (isGeoScalar!T)
      *
      *     t = normalizedRatio * 2^(expR-expD)
      */
-    return scalbn(
+    return metricScalbn(
         normalizedRatio,
         expR - expD
     );
@@ -519,7 +1029,7 @@ if (isGeoScalar!T)
     const M dx = signedMetricDifference(a.x, b.x);
     const M dy = signedMetricDifference(a.y, b.y);
 
-    return hypot(dx, dy);
+    return metricHypot(dx, dy);
 }
 
 
@@ -606,11 +1116,11 @@ if (isGeoScalar!T)
     const int expD = ilogb(maxD);
     const int expR = ilogb(maxR);
 
-    const M ndx = scalbn(dx, -expD);
-    const M ndy = scalbn(dy, -expD);
+    const M ndx = metricScalbn(dx, -expD);
+    const M ndy = metricScalbn(dy, -expD);
 
-    const M nrx = scalbn(rx, -expR);
-    const M nry = scalbn(ry, -expR);
+    const M nrx = metricScalbn(rx, -expR);
+    const M nry = metricScalbn(ry, -expR);
 
     const M cross =
         ndx * nry - ndy * nrx;
@@ -619,19 +1129,17 @@ if (isGeoScalar!T)
         cross < M(0) ? -cross : cross;
 
     /*
-     * Preserve exact zero explicitly.
-     *
-     * Apart from avoiding unnecessary work, this prevents compiler /
-     * runtime-library differences in scalbn() from turning a zero
-     * perpendicular distance into the smallest positive subnormal value.
+     * Preserve exact zero explicitly and avoid unnecessary norm/rescaling
+     * work. Core metricScalbn also preserves zero for every scaling call
+     * in this path.
      */
     if (absCross == M(0))
         return M(0);
 
     const M normalizedDistance =
-        absCross / hypot(ndx, ndy);
+        absCross / metricHypot(ndx, ndy);
 
-    return scalbn(
+    return metricScalbn(
         normalizedDistance,
         expR
     );
@@ -723,7 +1231,7 @@ if (
      */
     if (dx == M(0) && dy == M(0))
     {
-        result = hypot(rx, ry);
+        result = metricHypot(rx, ry);
         if (!isFinite(result))
         {
             result = M(0);
@@ -762,7 +1270,7 @@ if (
      */
     if (t <= M(0))
     {
-        result = hypot(rx, ry);
+        result = metricHypot(rx, ry);
         if (!isFinite(result))
         {
             result = M(0);
@@ -789,7 +1297,7 @@ if (
         if (!isFinite(bx) || !isFinite(by))
             return false;
 
-        result = hypot(bx, by);
+        result = metricHypot(bx, by);
         if (!isFinite(result))
         {
             result = M(0);
@@ -1323,7 +1831,7 @@ if (isGeoScalar!T)
          * internal power-of-two rescaling uses a positive exponent.
          *
          * This guards against a compiler/runtime-library difference in
-         * scalbn(0, positiveExponent).
+         * zero-preserving power-of-two rescaling.
          */
         assert(
             tryPointSegmentDistance(
@@ -2041,4 +2549,588 @@ if (isGeoScalar!T)
         )) == real)
     );
 
+}
+
+// A1 vector metric and directional contract regression coverage.
+@safe unittest
+{
+    import geo.vector : Vector2;
+
+    alias VI = Vector2!int;
+    alias VL = Vector2!long;
+    alias VF = Vector2!float;
+    alias VD = Vector2!double;
+    alias VR = Vector2!real;
+
+
+    /*
+     * Public result scalar policy.
+     */
+    static assert(
+        is(typeof(dot(VI.init, VI.init)) == double)
+    );
+
+    static assert(
+        is(typeof(dot(VL.init, VL.init)) == double)
+    );
+
+    static assert(
+        is(typeof(dot(VF.init, VF.init)) == double)
+    );
+
+    static assert(
+        is(typeof(dot(VD.init, VD.init)) == double)
+    );
+
+    static assert(
+        is(typeof(dot(VR.init, VR.init)) == real)
+    );
+
+    static assert(
+        is(typeof(squaredNorm(VI.init)) == double)
+    );
+
+    static assert(
+        is(typeof(squaredNorm(VR.init)) == real)
+    );
+
+    static assert(
+        is(typeof(norm(VI.init)) == double)
+    );
+
+    static assert(
+        is(typeof(norm(VR.init)) == real)
+    );
+
+
+    /*
+     * Mixed scalar vectors remain explicit conversions.
+     */
+    static assert(
+        !__traits(
+            compiles,
+            dot(
+                VI.init,
+                VD.init
+            )
+        )
+    );
+
+
+    /*
+     * try... output type follows MetricScalar.
+     */
+    Vector2!double normalizedInt;
+    Vector2!real normalizedReal;
+
+    static assert(
+        __traits(
+            compiles,
+            tryNormalize(
+                VI.init,
+                normalizedInt
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryNormalize(
+                VR.init,
+                normalizedReal
+            )
+        )
+    );
+
+    Vector2!float wrongNormalized;
+
+    static assert(
+        !__traits(
+            compiles,
+            tryNormalize(
+                VI.init,
+                wrongNormalized
+            )
+        )
+    );
+
+    double angleInt;
+    real angleReal;
+
+    static assert(
+        __traits(
+            compiles,
+            trySignedAngle(
+                VI.init,
+                VI.init,
+                angleInt
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            trySignedAngle(
+                VR.init,
+                VR.init,
+                angleReal
+            )
+        )
+    );
+
+    float wrongAngle;
+
+    static assert(
+        !__traits(
+            compiles,
+            trySignedAngle(
+                VI.init,
+                VI.init,
+                wrongAngle
+            )
+        )
+    );
+
+
+    /*
+     * Basic dot and squared-norm behaviour.
+     */
+    assert(
+        dot(
+            VI(3, 4),
+            VI(-2, 5)
+        ) == 14.0
+    );
+
+    assert(
+        squaredNorm(
+            VI(3, 4)
+        ) == 25.0
+    );
+
+    assert(
+        squaredNorm(
+            VI(3, 4)
+        ) ==
+        dot(
+            VI(3, 4),
+            VI(3, 4)
+        )
+    );
+
+
+    /*
+     * Integral dot uses MetricScalar arithmetic rather than
+     * exact-before-round integer accumulation.
+     *
+     * 2^53 + 1 and 2^53 map to the same binary64 value.
+     */
+    enum long twoTo53 =
+        1L << 53;
+
+    assert(
+        dot(
+            VL(
+                twoTo53 + 1,
+                twoTo53
+            ),
+            VL(
+                1,
+                -1
+            )
+        ) == 0.0
+    );
+
+
+    /*
+     * Non-finite dot/squaredNorm behaviour follows ordinary
+     * floating-point arithmetic.
+     */
+    assert(
+        squaredNorm(
+            VD(
+                double.infinity,
+                0.0
+            )
+        ) ==
+        double.infinity
+    );
+
+    const nanSquaredNorm =
+        squaredNorm(
+            VD(
+                double.nan,
+                0.0
+            )
+        );
+
+    assert(
+        nanSquaredNorm !=
+        nanSquaredNorm
+    );
+
+
+    /*
+     * norm uses hypot directly instead of sqrt(squaredNorm).
+     */
+    const hugeAxis =
+        VD(
+            double.max,
+            1.0
+        );
+
+    assert(
+        squaredNorm(hugeAxis) ==
+        double.infinity
+    );
+
+    assert(
+        norm(hugeAxis) ==
+        double.max
+    );
+
+    enum double smallestSubnormal =
+        0x1p-1074;
+
+    /*
+     * Phobos 2.111 incorrectly returns the internally scaled value
+     * for hypot(smallestSubnormal, 0). geo-d must preserve the
+     * mathematical metric result at its supported compiler floor.
+     */
+    assert(
+        norm(
+            VD(
+                smallestSubnormal,
+                0.0
+            )
+        ) ==
+        smallestSubnormal
+    );
+
+    assert(
+        distance(
+            Point2!double.init,
+            Point2!double(
+                smallestSubnormal,
+                0.0
+            )
+        ) ==
+        smallestSubnormal
+    );
+
+
+    /*
+     * Ordinary normalization.
+     */
+    Vector2!double normalized;
+
+    assert(
+        tryNormalize(
+            VD(3.0, 4.0),
+            normalized
+        )
+    );
+
+    assert(
+        normalized.x > 0.599999999999999
+        && normalized.x < 0.600000000000001
+    );
+
+    assert(
+        normalized.y > 0.799999999999999
+        && normalized.y < 0.800000000000001
+    );
+
+
+    /*
+     * Scale-first normalization remains usable even when the
+     * unscaled norm is not representable as a finite double.
+     */
+    assert(
+        tryNormalize(
+            VD(
+                double.max,
+                double.max
+            ),
+            normalized
+        )
+    );
+
+    assert(normalized.isFinite);
+    assert(normalized.x > 0.70);
+    assert(normalized.x < 0.71);
+    assert(normalized.y > 0.70);
+    assert(normalized.y < 0.71);
+
+
+    /*
+     * Subnormal components are scaled before the direction is
+     * constructed. A naive unscaled normalization can lose this.
+     */
+    assert(
+        tryNormalize(
+            VD(
+                smallestSubnormal,
+                smallestSubnormal
+            ),
+            normalized
+        )
+    );
+
+    assert(normalized.isFinite);
+    assert(normalized.x > 0.70);
+    assert(normalized.x < 0.71);
+    assert(normalized.y > 0.70);
+    assert(normalized.y < 0.71);
+
+
+    /*
+     * Integral T.min is converted before absolute magnitude is formed.
+     */
+    assert(
+        tryNormalize(
+            VL(
+                long.min,
+                0
+            ),
+            normalized
+        )
+    );
+
+    assert(
+        normalized ==
+        VD(-1.0, 0.0)
+    );
+
+
+    /*
+     * Normalization failure resets the out result.
+     */
+    normalized =
+        VD(9.0, 9.0);
+
+    assert(
+        !tryNormalize(
+            VD.init,
+            normalized
+        )
+    );
+
+    assert(
+        normalized ==
+        VD.init
+    );
+
+    normalized =
+        VD(9.0, 9.0);
+
+    assert(
+        !tryNormalize(
+            VD(
+                double.nan,
+                1.0
+            ),
+            normalized
+        )
+    );
+
+    assert(
+        normalized ==
+        VD.init
+    );
+
+    normalized =
+        VD(9.0, 9.0);
+
+    assert(
+        !tryNormalize(
+            VD(
+                double.infinity,
+                1.0
+            ),
+            normalized
+        )
+    );
+
+    assert(
+        normalized ==
+        VD.init
+    );
+
+
+    /*
+     * Signed-angle orientation and canonical branch cut.
+     */
+    enum double halfPi =
+        1.57079632679489661923;
+
+    enum double pi =
+        3.14159265358979323846;
+
+    const xAxis =
+        VD(1.0, 0.0);
+
+    const yAxis =
+        VD(0.0, 1.0);
+
+    const negativeXAxis =
+        VD(-1.0, 0.0);
+
+    double angle =
+        123.0;
+
+    assert(
+        trySignedAngle(
+            xAxis,
+            yAxis,
+            angle
+        )
+    );
+
+    assert(
+        angle > halfPi - 1.0e-15
+        && angle < halfPi + 1.0e-15
+    );
+
+    assert(
+        trySignedAngle(
+            yAxis,
+            xAxis,
+            angle
+        )
+    );
+
+    assert(
+        angle > -halfPi - 1.0e-15
+        && angle < -halfPi + 1.0e-15
+    );
+
+    assert(
+        trySignedAngle(
+            xAxis,
+            negativeXAxis,
+            angle
+        )
+    );
+
+    assert(
+        angle > pi - 1.0e-15
+        && angle <= pi
+    );
+
+    assert(
+        trySignedAngle(
+            xAxis,
+            xAxis,
+            angle
+        )
+    );
+
+    assert(angle == 0.0);
+
+    /*
+     * Canonical same-direction result is positive zero.
+     */
+    assert(
+        1.0 / angle ==
+        double.infinity
+    );
+
+
+    /*
+     * Independent scaling avoids determinant/dot overflow for
+     * large finite directions.
+     */
+    assert(
+        trySignedAngle(
+            VD(
+                double.max,
+                double.max
+            ),
+            VD(
+                -double.max,
+                double.max
+            ),
+            angle
+        )
+    );
+
+    assert(
+        angle > halfPi - 1.0e-15
+        && angle < halfPi + 1.0e-15
+    );
+
+
+    /*
+     * The same directional construction works for subnormal vectors.
+     */
+    assert(
+        trySignedAngle(
+            VD(
+                smallestSubnormal,
+                0.0
+            ),
+            VD(
+                0.0,
+                smallestSubnormal
+            ),
+            angle
+        )
+    );
+
+    assert(
+        angle > halfPi - 1.0e-15
+        && angle < halfPi + 1.0e-15
+    );
+
+
+    /*
+     * Zero and non-finite vectors fail and reset the out result.
+     */
+    angle =
+        123.0;
+
+    assert(
+        !trySignedAngle(
+            VD.init,
+            xAxis,
+            angle
+        )
+    );
+
+    assert(angle == 0.0);
+
+    angle =
+        123.0;
+
+    assert(
+        !trySignedAngle(
+            VD(
+                double.nan,
+                0.0
+            ),
+            xAxis,
+            angle
+        )
+    );
+
+    assert(angle == 0.0);
+
+    angle =
+        123.0;
+
+    assert(
+        !trySignedAngle(
+            VD(
+                double.infinity,
+                0.0
+            ),
+            xAxis,
+            angle
+        )
+    );
+
+    assert(angle == 0.0);
 }

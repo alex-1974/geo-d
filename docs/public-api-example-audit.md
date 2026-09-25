@@ -1,8 +1,8 @@
 # Public API Example Audit
 
-**Status:** Batches 1 through 7 complete; v2 audit complete
+**Status:** v2 audit complete; post-v2 A1 vector primitives documented
 **Baseline:** DDox output generated from v2 main commit `3b99a048882571a4fd562e305dfb58aba86144ad`
-**Public DDox symbol pages:** 103
+**v2 public DDox symbol pages:** 103
 
 ## Purpose
 
@@ -15,6 +15,29 @@ mechanical duplicate examples for trivial accessors, operators, enum values,
 or tightly related members.
 
 The audit does not change the frozen v2 public API.
+
+## Post-v2 development surface
+
+A1 vector metric and directional primitives add six public DDox symbol pages
+without changing the frozen v2.0.0 API record:
+
+- `dot`;
+- `squaredNorm`;
+- `norm`;
+- `tryNormalize`;
+- `trySignedAngle`;
+- `perpendicularCCW`.
+
+The current development documentation surface is:
+
+| Classification | Count |
+| --- | ---: |
+| Existing rendered examples | 44 |
+| Dedicated examples still to add | 0 |
+| Deliberately family-covered declarations | 65 |
+| **Total public symbol pages** | **109** |
+
+The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
 ## Classification
 
@@ -196,6 +219,11 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
 | `MetricScalar` | **existing** | Batch 2 rendered Example |
+| `dot` | **existing** | A1 rendered Example |
+| `squaredNorm` | **existing** | A1 rendered Example |
+| `norm` | **existing** | A1 rendered Example |
+| `tryNormalize` | **existing** | A1 rendered Example |
+| `trySignedAngle` | **existing** | A1 rendered Example |
 | `distance` | **existing** | existing rendered Example |
 | `squaredDistance` | **existing** | Batch 3 rendered Example |
 | `segmentLength` | **existing** | Batch 3 rendered Example |
@@ -302,6 +330,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
 | `Vector2` | **existing** | Batch 1 rendered Example |
+| `perpendicularCCW` | **existing** | A1 rendered Example |
 | `Vector2.this` | **family** | Vector2 |
 | `Vector2.x` | **family** | Vector2 |
 | `Vector2.y` | **family** | Vector2 |
@@ -328,9 +357,9 @@ documentation.
 
 ## Completion criteria
 
-The v2 executable-example audit is complete when:
+The v2 executable-example audit was completed with:
 
-- all 103 current public DDox symbol pages are classified;
+- all 103 v2 public DDox symbol pages classified;
 - no declaration remains classified as **add**;
 - all 38 declarations classified as **existing** render an `Example`;
 - all 65 declarations classified as **family** are intentionally covered by
@@ -344,6 +373,10 @@ DDox output. It fails when a public symbol page is unclassified, an audited
 page disappears, an **existing** page loses its rendered `Example`, a
 **family** page unexpectedly gains one without reclassification, or any
 **add** entry remains.
+
+For the post-v2 A1 development surface, the same verifier now enforces
+109 public symbol pages: 44 with rendered examples, 65 family-covered, and
+zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires
 updating this inventory as part of its documentation review.

@@ -11,7 +11,7 @@
  *     MIT
  *
  * Date:
- *     September 12, 2026
+ *     September 25, 2026
  */
 module geo.vector;
 
@@ -258,6 +258,58 @@ public:
 }
 
 
+/**
+ * Rotates a vector counter-clockwise by 90 degrees.
+ *
+ * The algebraic transformation is:
+ *
+ *     (x, y) -> (-y, x)
+ *
+ * The scalar type is preserved. This is ordinary `Vector2` algebra rather
+ * than a metric computation, so no `MetricScalar` promotion is performed.
+ *
+ * Signed-integral negation follows the same scalar semantics as existing
+ * unary vector negation; this operation does not promise overflow-free
+ * mathematical negation for `T.min`.
+ *
+ * Floating-point NaN and infinity propagate through ordinary component
+ * arithmetic.
+ *
+ * Returns:
+ *     A `Vector2!T` representing the counter-clockwise quarter turn.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+Vector2!T perpendicularCCW(T)(
+    Vector2!T vector
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    return Vector2!T(
+        -vector.y,
+        vector.x
+    );
+}
+
+
+/// Example rotating a vector counter-clockwise through the public package API.
+@safe unittest
+{
+    import geo;
+
+    auto vector = Vector2!int(2, 3);
+
+    assert(
+        perpendicularCCW(vector) ==
+        Vector2!int(-3, 2)
+    );
+}
+
+
 @safe unittest
 {
     static assert(!__traits(compiles, Vector2!byte));
@@ -321,4 +373,62 @@ public:
 
     auto infiniteVector = V(double.infinity, 0.0);
     assert(!infiniteVector.isFinite);
+}
+
+// A1 perpendicular quarter-turn contract regression coverage.
+@safe unittest
+{
+    static foreach (T; AliasSeq!(int, long, float, double, real))
+    {
+        static assert(
+            is(
+                typeof(
+                    perpendicularCCW(
+                        Vector2!T.init
+                    )
+                ) ==
+                Vector2!T
+            )
+        );
+    }
+
+    alias V = Vector2!int;
+
+    auto vector =
+        V(3, 4);
+
+    assert(
+        perpendicularCCW(vector) ==
+        V(-4, 3)
+    );
+
+    assert(
+        -perpendicularCCW(vector) ==
+        V(4, -3)
+    );
+
+    assert(
+        perpendicularCCW(V.init) ==
+        V.init
+    );
+
+    auto rotated =
+        vector;
+
+    rotated =
+        perpendicularCCW(rotated);
+
+    rotated =
+        perpendicularCCW(rotated);
+
+    rotated =
+        perpendicularCCW(rotated);
+
+    rotated =
+        perpendicularCCW(rotated);
+
+    assert(
+        rotated ==
+        vector
+    );
 }

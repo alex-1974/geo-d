@@ -6,5 +6,3 @@ targetType "executable"
 targetPath "../../build/consumer"
 
 dependency "geo-d" path="../.."
-
-dflags "-preview=dip1000"

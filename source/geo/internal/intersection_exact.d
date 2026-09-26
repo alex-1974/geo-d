@@ -4,12 +4,13 @@ import geo.internal.dyadic :
     DyadicProductMagnitude,
     SignedDyadicCoordinate,
     SignedDyadicProduct,
-    decodeDyadicCoordinate,
-    dyadicCoordinateLimbs,
-    dyadicProductLimbs;
+    decodeDyadicCoordinate;
+
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator,
+    exactCoordinateNumeratorLimbs;
 
 import geo.internal.fixed_uint :
-    UIntFixed,
     addUnsigned,
     compareUnsigned,
     multiplyUnsigned,
@@ -53,41 +54,6 @@ private enum bool isExactIntersectionScalar(T) =
     is(T == double);
 
 
-/*
- * Maximum width of:
- *
- *     orientation-weight * coordinate
- *
- *     132 limbs + 66 limbs = 198 limbs
- *
- * The exact bounds are tighter than these storage widths, leaving
- * enough room for addition of the two weighted terms.
- */
-enum size_t intersectionNumeratorLimbs =
-    dyadicProductLimbs +
-    dyadicCoordinateLimbs;
-
-
-alias IntersectionNumeratorMagnitude =
-    UIntFixed!intersectionNumeratorLimbs;
-
-
-/**
- * Signed exact numerator for one constructed coordinate.
- *
- * The corresponding geometric coordinate is:
- *
- *     numerator / denominator * 2^-1074
- *
- * where denominator is stored by ExactProperIntersection.
- */
-struct SignedIntersectionNumerator
-{
-    int sign;
-    IntersectionNumeratorMagnitude magnitude;
-}
-
-
 /**
  * Exact rational construction data for one proper segment crossing.
  *
@@ -95,8 +61,8 @@ struct SignedIntersectionNumerator
  */
 struct ExactProperIntersection
 {
-    SignedIntersectionNumerator xNumerator;
-    SignedIntersectionNumerator yNumerator;
+    SignedExactCoordinateNumerator xNumerator;
+    SignedExactCoordinateNumerator yNumerator;
 
     DyadicProductMagnitude denominator;
 }
@@ -109,7 +75,7 @@ struct ExactProperIntersection
  *
  * Both weights are non-negative exact orientation magnitudes.
  */
-private SignedIntersectionNumerator weightedCoordinate(
+private SignedExactCoordinateNumerator weightedCoordinate(
     ref const DyadicProductMagnitude weightA,
     ref const SignedDyadicCoordinate a,
     ref const DyadicProductMagnitude weightB,
@@ -117,7 +83,7 @@ private SignedIntersectionNumerator weightedCoordinate(
 )
     pure nothrow @safe @nogc
 {
-    SignedIntersectionNumerator result;
+    SignedExactCoordinateNumerator result;
 
     const auto magnitudeA =
         multiplyUnsigned(
@@ -719,6 +685,6 @@ if (isExactIntersectionScalar!T)
     assert(exact.yNumerator.magnitude.isZero);
 
     static assert(
-        intersectionNumeratorLimbs == 198
+        exactCoordinateNumeratorLimbs == 198
     );
 }

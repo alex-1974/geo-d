@@ -2372,7 +2372,18 @@ if (
         enum double expected =
             -0x1.000000000000ap-107;
 
-        assert(a * b == c * c);
+        /*
+         * D permits floating-point intermediates and constant folding at
+         * greater precision than the nominal operand type. Force the two
+         * products to binary64 before checking the intended rounding
+         * collision.
+         */
+        import core.math : toPrec;
+
+        assert(
+            toPrec!double(a * b) ==
+            toPrec!double(c * c)
+        );
 
         const pv =
             L(

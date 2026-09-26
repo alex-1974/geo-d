@@ -15,7 +15,7 @@ Architecture decisions are recorded under:
 docs/adr/
 ~~~
 
-The ADRs define the stable semantic contracts for:
+The ADRs define stable semantic contracts and proposed architecture decisions for:
 
 - library scope and boundaries;
 - scalar and core geometry types;
@@ -26,7 +26,12 @@ The ADRs define the stable semantic contracts for:
 - area semantics;
 - point-in-polygon classification;
 - topology validation;
-- polyline simplification.
+- polyline simplification;
+- proposed polygon-union exact-overlay and result semantics in
+  `ADR-0023-polygon-union-exact-overlay-and-result-contract.md`.
+
+ADR status is authoritative: a Proposed ADR is a design gate, not production
+API authorization.
 
 Performance-specific material is documented under:
 

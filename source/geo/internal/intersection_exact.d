@@ -8,7 +8,9 @@ import geo.internal.dyadic :
 
 import geo.internal.exact_coordinate :
     SignedExactCoordinateNumerator,
-    exactCoordinateNumeratorLimbs;
+    compareExactCoordinates,
+    exactCoordinateNumeratorLimbs,
+    exactCoordinatesEqual;
 
 import geo.internal.fixed_uint :
     addUnsigned,
@@ -65,6 +67,93 @@ struct ExactProperIntersection
     SignedExactCoordinateNumerator yNumerator;
 
     DyadicProductMagnitude denominator;
+}
+
+
+/*
+ * Exact equality of two proper-intersection events.
+ *
+ * The two exact constructions may have different denominators because the
+ * same mathematical point can be reached from differently scaled segment
+ * pairs. Equality therefore uses cross-denominator exact rational comparison.
+ */
+bool exactProperIntersectionsEqual(
+    ref const ExactProperIntersection lhs,
+    ref const ExactProperIntersection rhs
+)
+    pure nothrow @safe @nogc
+{
+    return
+        exactCoordinatesEqual(
+            lhs.xNumerator,
+            lhs.denominator,
+            rhs.xNumerator,
+            rhs.denominator
+        ) &&
+        exactCoordinatesEqual(
+            lhs.yNumerator,
+            lhs.denominator,
+            rhs.yNumerator,
+            rhs.denominator
+        );
+}
+
+
+/*
+ * Orders two exact proper-intersection events along one non-degenerate source
+ * segment.
+ *
+ * A non-vertical source segment is strictly monotone in x. A vertical source
+ * segment is strictly monotone in y. Comparing the corresponding exact
+ * rational coordinate therefore orders the events by the source segment's
+ * parameter without constructing or rounding that parameter.
+ *
+ * Returns:
+ *
+ *     -1 lhs occurs before rhs from source.a toward source.b
+ *      0 both events are the same exact point
+ *      1 lhs occurs after rhs
+ */
+int compareProperIntersectionsAlongSegment(T)(
+    Segment2!T source,
+    ref const ExactProperIntersection lhs,
+    ref const ExactProperIntersection rhs
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    int comparison;
+
+    if (source.a.x != source.b.x)
+    {
+        comparison =
+            compareExactCoordinates(
+                lhs.xNumerator,
+                lhs.denominator,
+                rhs.xNumerator,
+                rhs.denominator
+            );
+
+        return
+            source.a.x < source.b.x
+                ? comparison
+                : -comparison;
+    }
+
+    assert(source.a.y != source.b.y);
+
+    comparison =
+        compareExactCoordinates(
+            lhs.yNumerator,
+            lhs.denominator,
+            rhs.yNumerator,
+            rhs.denominator
+        );
+
+    return
+        source.a.y < source.b.y
+            ? comparison
+            : -comparison;
 }
 
 
@@ -687,4 +776,310 @@ if (isExactIntersectionScalar!T)
     static assert(
         exactCoordinateNumeratorLimbs == 198
     );
+}
+
+
+@safe unittest
+{
+    import geo.internal.exact_coordinate_round :
+        roundExactCoordinateBinary64;
+
+    import geo.point : Point2;
+
+
+    /*
+     * The same exact event can be constructed with different denominators.
+     *
+     * Scaling the crossing segment changes the orientation weights while
+     * leaving the mathematical intersection at (5, 0).
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const shortCrossing =
+            S(
+                P(5, -1),
+                P(5, 1)
+            );
+
+        const longCrossing =
+            S(
+                P(5, -3),
+                P(5, 7)
+            );
+
+        ExactProperIntersection first;
+        ExactProperIntersection second;
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                shortCrossing,
+                first
+            )
+        );
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                longCrossing,
+                second
+            )
+        );
+
+        assert(
+            first.denominator.limb !=
+            second.denominator.limb
+        );
+
+        assert(
+            exactProperIntersectionsEqual(
+                first,
+                second
+            )
+        );
+
+        assert(
+            compareProperIntersectionsAlongSegment(
+                source,
+                first,
+                second
+            ) == 0
+        );
+    }
+
+
+    /*
+     * Exact rational events are ordered without constructing binary64
+     * coordinates.
+     *
+     * The crossings occur at x = 1/3 and x = 2/3.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const sourceReversed =
+            S(
+                P(10, 0),
+                P(0, 0)
+            );
+
+        const oneThirdCrossing =
+            S(
+                P(0, -1),
+                P(1, 2)
+            );
+
+        const twoThirdCrossing =
+            S(
+                P(0, -2),
+                P(1, 1)
+            );
+
+        ExactProperIntersection first;
+        ExactProperIntersection second;
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                oneThirdCrossing,
+                first
+            )
+        );
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                twoThirdCrossing,
+                second
+            )
+        );
+
+        assert(
+            compareProperIntersectionsAlongSegment(
+                source,
+                first,
+                second
+            ) < 0
+        );
+
+        assert(
+            compareProperIntersectionsAlongSegment(
+                sourceReversed,
+                first,
+                second
+            ) > 0
+        );
+
+        assert(
+            !exactProperIntersectionsEqual(
+                first,
+                second
+            )
+        );
+    }
+
+
+    /*
+     * Vertical source segments use exact y ordering.
+     */
+    {
+        alias P = Point2!int;
+        alias S = Segment2!int;
+
+        const source =
+            S(
+                P(0, 0),
+                P(0, 10)
+            );
+
+        const lowerCrossing =
+            S(
+                P(-1, 2),
+                P(1, 2)
+            );
+
+        const upperCrossing =
+            S(
+                P(-1, 7),
+                P(1, 7)
+            );
+
+        ExactProperIntersection lower;
+        ExactProperIntersection upper;
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                lowerCrossing,
+                lower
+            )
+        );
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                upperCrossing,
+                upper
+            )
+        );
+
+        assert(
+            compareProperIntersectionsAlongSegment(
+                source,
+                lower,
+                upper
+            ) < 0
+        );
+    }
+
+
+    /*
+     * Distinct exact arrangement events can collapse to one binary64 point.
+     *
+     * For a crossing segment from (0,-a) to (1,b), the intersection with
+     * y=0 occurs at x = a / (a + b).
+     *
+     *     a0 = b = 2^-10              -> x0 = 1/2
+     *     a1 = nextBinary64(a0)       -> x1 > 1/2 exactly
+     *
+     * x0 and x1 are mathematically distinct, but both correctly round to
+     * binary64 0.5. Rounded construction therefore cannot be used as the
+     * authoritative arrangement-event key.
+     */
+    {
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        enum double a0 =
+            0x1p-10;
+
+        enum double a1 =
+            0x1.0000000000001p-10;
+
+        enum double b =
+            0x1p-10;
+
+        const source =
+            S(
+                P(0.0, 0.0),
+                P(1.0, 0.0)
+            );
+
+        const firstCrossing =
+            S(
+                P(0.0, -a0),
+                P(1.0, b)
+            );
+
+        const secondCrossing =
+            S(
+                P(0.0, -a1),
+                P(1.0, b)
+            );
+
+        ExactProperIntersection first;
+        ExactProperIntersection second;
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                firstCrossing,
+                first
+            )
+        );
+
+        assert(
+            tryProperIntersectionExact(
+                source,
+                secondCrossing,
+                second
+            )
+        );
+
+        assert(
+            compareProperIntersectionsAlongSegment(
+                source,
+                first,
+                second
+            ) < 0
+        );
+
+        assert(
+            !exactProperIntersectionsEqual(
+                first,
+                second
+            )
+        );
+
+        const double firstRounded =
+            roundExactCoordinateBinary64(
+                first.xNumerator,
+                first.denominator
+            );
+
+        const double secondRounded =
+            roundExactCoordinateBinary64(
+                second.xNumerator,
+                second.denominator
+            );
+
+        assert(firstRounded == 0.5);
+        assert(secondRounded == 0.5);
+        assert(firstRounded == secondRounded);
+    }
 }

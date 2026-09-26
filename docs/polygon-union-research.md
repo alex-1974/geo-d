@@ -572,6 +572,70 @@ Geometric equality for these tests must not be reduced to sequence equality of
 ring arrays unless the output contract deliberately canonicalizes sequence
 representation.
 
+## 11. Executable exact-event evidence
+
+The research branch now contains an executable internal prototype that reuses
+the existing fixed-width exact-construction machinery rather than introducing
+a second arbitrary-precision subsystem.
+
+The prototype adds internal-only helpers for:
+
+- exact cross-denominator comparison of constructed rational coordinates;
+- exact equality of proper-intersection events whose raw denominators differ;
+- exact ordering of proper-intersection events along a non-degenerate source
+  segment;
+- vertical-source ordering through the y coordinate;
+- preservation of `pure nothrow @safe @nogc`.
+
+The key regression fixture demonstrates the failure mode that motivates an
+exact arrangement representation.
+
+For a horizontal source segment from `(0,0)` to `(1,0)`, consider two
+crossing segments from `x=0` to `x=1`:
+
+~~~text
+a0 = b = 0x1p-10
+a1 = 0x1.0000000000001p-10
+~~~
+
+where the first crossing uses y endpoints `(-a0, b)` and the second uses
+`(-a1, b)`.
+
+Their exact x coordinates are:
+
+~~~text
+x0 = a0 / (a0 + b) = 1/2
+x1 = a1 / (a1 + b) > 1/2
+~~~
+
+The exact comparator proves `x0 < x1`, but the existing correctly-rounded
+binary64 constructor produces:
+
+~~~text
+round(x0) = 0.5
+round(x1) = 0.5
+~~~
+
+Therefore two distinct mathematical arrangement vertices can collapse to one
+binary64 construction point. This is executable evidence that rounded
+construction coordinates cannot serve as authoritative overlay-event identity
+or ordering.
+
+The prototype also verifies that the same exact event constructed from
+differently scaled crossing segments compares equal despite different raw
+denominators.
+
+CI evidence for commit
+`af488e7c28f583529ab9e251fec35d49d1c82543`:
+
+- DMD 2.111.0 unit tests: PASS;
+- current DMD canary unit tests: PASS;
+- LDC 1.41.0 unit tests: PASS;
+- current LDC canary unit tests: PASS.
+
+The prototype remains internal research evidence. It does not add package
+exports or authorize a polygon-union public API.
+
 ## 11. Recommended architecture
 
 Current research recommendation:
@@ -632,7 +696,7 @@ Current status:
 - [x] independent oracle strategy identified;
 - [x] recommendation recorded: proceed to an exact-arrangement
       design/prototype gate;
-- [ ] exact-event representation validated by executable prototype/evidence;
+- [x] exact-event representation validated by executable prototype/evidence;
 - [ ] public API remains blocked pending a separate design/ADR decision.
 
 ## 14. Primary references

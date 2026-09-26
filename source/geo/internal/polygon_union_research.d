@@ -14,11 +14,17 @@ import geo.orientation :
     Orientation2,
     orientation;
 
+import geo.linear_ring_view :
+    LinearRing2View;
+
 import geo.point :
     Point2;
 
 import geo.segment :
     Segment2;
+
+import geo.topology_validation :
+    validateRing;
 
 
 /*
@@ -1600,6 +1606,103 @@ private size_t nextUnionBoundaryOutgoing(
                 2,
                 boundary[]
             ) == size_t.max
+        );
+    }
+}
+
+
+
+@safe unittest
+{
+    /*
+     * Topology-safe materialization needs more than distinct rounded
+     * vertices.
+     *
+     * This ring is valid over exact signed-long coordinates near 2^53.
+     * Converting each vertex independently to binary64 keeps all four
+     * vertices distinct, but introduces a non-adjacent point contact.
+     *
+     * Therefore exact-vertex injectivity after rounding is necessary but not
+     * sufficient. The materialized result must also pass topology checks.
+     */
+    enum long n =
+        9_007_199_254_740_992L;
+
+    alias LP = Point2!long;
+    alias LR = LinearRing2View!long;
+
+    LP[4] exactPoints = [
+        LP(n,     n - 3),
+        LP(n - 2, n - 4),
+        LP(n + 3, n - 1),
+        LP(n + 4, n - 2),
+    ];
+
+    const exactValidation =
+        validateRing(
+            LR(exactPoints[])
+        );
+
+    assert(exactValidation.valid);
+
+
+    alias DP = Point2!double;
+    alias DR = LinearRing2View!double;
+
+    DP[4] roundedPoints;
+
+    foreach (i; 0 .. exactPoints.length)
+    {
+        roundedPoints[i] =
+            DP(
+                cast(double)
+                    exactPoints[i].x,
+                cast(double)
+                    exactPoints[i].y
+            );
+    }
+
+    foreach (i; 0 .. roundedPoints.length)
+    {
+        foreach (j; i + 1 .. roundedPoints.length)
+        {
+            assert(
+                roundedPoints[i] !=
+                roundedPoints[j]
+            );
+        }
+    }
+
+    const roundedValidation =
+        validateRing(
+            DR(roundedPoints[])
+        );
+
+    assert(!roundedValidation.valid);
+
+
+    /*
+     * Distinct represented integral vertices can also collapse outright
+     * during construction-scalar conversion.
+     */
+    {
+        const LP first =
+            LP(
+                long.max,
+                0
+            );
+
+        const LP second =
+            LP(
+                long.max - 1,
+                0
+            );
+
+        assert(first != second);
+
+        assert(
+            cast(double) first.x ==
+            cast(double) second.x
         );
     }
 }

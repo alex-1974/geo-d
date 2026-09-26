@@ -26,8 +26,8 @@ import geo.internal.intersection_exact :
     properIntersectionExactKnownCrossing,
     tryProperIntersectionExact;
 
-import geo.internal.intersection_round :
-    roundIntersectionCoordinate;
+import geo.internal.exact_coordinate_round :
+    roundExactCoordinateBinary64;
 
 import geo.orientation :
     Orientation2,
@@ -1411,11 +1411,11 @@ if (
 
     point =
         Point2!R(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 exact.xNumerator,
                 exact.denominator
             ),
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 exact.yNumerator,
                 exact.denominator
             )

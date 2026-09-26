@@ -1,13 +1,14 @@
-module geo.internal.intersection_round;
+module geo.internal.exact_coordinate_round;
 
 import geo.internal.fixed_uint :
     UIntFixed,
     compareUnsigned;
 
-import geo.internal.intersection_exact :
-    IntersectionNumeratorMagnitude,
-    SignedIntersectionNumerator,
-    intersectionNumeratorLimbs;
+import geo.internal.exact_coordinate :
+    ExactCoordinateNumeratorMagnitude,
+    SignedExactCoordinateNumerator,
+    exactCoordinateNumeratorLimbs,
+    roundsToFiniteBinary64;
 
 import geo.internal.dyadic :
     DyadicProductMagnitude,
@@ -20,10 +21,10 @@ import std.bitmanip :
 /*
  * INTERNAL IMPLEMENTATION MODULE.
  *
- * Correctly rounded binary64 construction of one exact intersection
+ * Correctly rounded binary64 construction of one exact rational
  * coordinate.
  *
- * ExactProperIntersection represents a coordinate as:
+ * The shared exact-coordinate representation uses:
  *
  *     numerator
  *     ----------- * 2^-1074
@@ -74,15 +75,15 @@ private size_t bitLength(size_t Limbs)(
  * Widens denominator and shifts it left inside numerator storage.
  *
  * The exact-intersection bounds guarantee that every shift used by
- * this module fits in IntersectionNumeratorMagnitude.
+ * this module fits in ExactCoordinateNumeratorMagnitude.
  */
-private IntersectionNumeratorMagnitude shiftedDenominator(
+private ExactCoordinateNumeratorMagnitude shiftedDenominator(
     ref const DyadicProductMagnitude denominator,
     size_t shift
 )
     pure nothrow @safe @nogc
 {
-    IntersectionNumeratorMagnitude result;
+    ExactCoordinateNumeratorMagnitude result;
 
     const size_t wordShift =
         shift / 32;
@@ -103,7 +104,7 @@ private IntersectionNumeratorMagnitude shiftedDenominator(
 
         assert(
             target <
-            intersectionNumeratorLimbs
+            exactCoordinateNumeratorLimbs
         );
 
         const ulong shifted =
@@ -120,7 +121,7 @@ private IntersectionNumeratorMagnitude shiftedDenominator(
         {
             assert(
                 target + 1 <
-                intersectionNumeratorLimbs
+                exactCoordinateNumeratorLimbs
             );
 
             result.limb[target + 1] |=
@@ -135,16 +136,16 @@ private IntersectionNumeratorMagnitude shiftedDenominator(
 /*
  * Exact multiplication by two inside numerator storage.
  */
-private IntersectionNumeratorMagnitude doubled(
-    ref const IntersectionNumeratorMagnitude value
+private ExactCoordinateNumeratorMagnitude doubled(
+    ref const ExactCoordinateNumeratorMagnitude value
 )
     pure nothrow @safe @nogc
 {
-    IntersectionNumeratorMagnitude result;
+    ExactCoordinateNumeratorMagnitude result;
 
     uint carry = 0;
 
-    foreach (i; 0 .. intersectionNumeratorLimbs)
+    foreach (i; 0 .. exactCoordinateNumeratorLimbs)
     {
         const uint word =
             value.limb[i];
@@ -158,8 +159,8 @@ private IntersectionNumeratorMagnitude doubled(
     }
 
     /*
-     * Exact proper-intersection coordinate bounds leave sufficient
-     * headroom for every remainder doubled by this module.
+     * Established exact-coordinate bounds leave sufficient headroom
+     * for every remainder doubled by this module.
      */
     assert(carry == 0);
 
@@ -193,12 +194,12 @@ private size_t firstNonZeroDenominatorLimb(
  * Returns zero for zero.
  */
 private size_t pastLastNonZeroNumeratorLimb(
-    ref const IntersectionNumeratorMagnitude value
+    ref const ExactCoordinateNumeratorMagnitude value
 )
     pure nothrow @safe @nogc
 {
     for (
-        size_t i = intersectionNumeratorLimbs;
+        size_t i = exactCoordinateNumeratorLimbs;
         i != 0;
         --i
     )
@@ -267,7 +268,7 @@ private uint shiftedDenominatorWord(
  * without materialising the shifted denominator.
  */
 private int compareShiftedDenominator(
-    ref const IntersectionNumeratorMagnitude value,
+    ref const ExactCoordinateNumeratorMagnitude value,
     size_t valueEnd,
     ref const DyadicProductMagnitude denominator,
     size_t denominatorBits,
@@ -331,7 +332,7 @@ private int compareShiftedDenominator(
  * denominator. Returns the updated active upper limb bound.
  */
 private size_t subtractShiftedDenominator(
-    ref IntersectionNumeratorMagnitude value,
+    ref ExactCoordinateNumeratorMagnitude value,
     size_t valueEnd,
     ref const DyadicProductMagnitude denominator,
     size_t denominatorFirst,
@@ -436,13 +437,13 @@ private size_t subtractShiftedDenominator(
  * 2^53 is possible after rounding and is handled by normalisation.
  */
 private ulong roundedQuotient(
-    ref const IntersectionNumeratorMagnitude numerator,
+    ref const ExactCoordinateNumeratorMagnitude numerator,
     ref const DyadicProductMagnitude denominator,
     size_t denominatorShift
 )
     pure nothrow @safe @nogc
 {
-    IntersectionNumeratorMagnitude remainder =
+    ExactCoordinateNumeratorMagnitude remainder =
         numerator;
 
     ulong quotient = 0;
@@ -569,8 +570,7 @@ private double makeBinary64(
 
 
 /**
- * Correctly rounds one exact proper-intersection coordinate to
- * binary64.
+ * Correctly rounds one exact rational coordinate to binary64.
  *
  * Rounding mode is fixed by the algorithm:
  *
@@ -580,13 +580,19 @@ private double makeBinary64(
  *
  * The denominator must be positive.
  */
-double roundIntersectionCoordinate(
-    ref const SignedIntersectionNumerator numerator,
+double roundExactCoordinateBinary64(
+    ref const SignedExactCoordinateNumerator numerator,
     ref const DyadicProductMagnitude denominator
 )
     pure nothrow @safe @nogc
 {
     assert(!denominator.isZero);
+    assert(
+        roundsToFiniteBinary64(
+            numerator,
+            denominator
+        )
+    );
 
     if (
         numerator.sign == 0 ||
@@ -761,9 +767,9 @@ double roundIntersectionCoordinate(
 
 
     /*
-     * Exact intersection points lie in the closed convex hull of finite
-     * input endpoints, so a valid construction cannot round beyond
-     * finite binary64.
+     * roundsToFiniteBinary64() is a precondition for this generic
+     * constructor, therefore the exact value cannot round beyond the
+     * finite binary64 range.
      *
      * rawExponent =
      *
@@ -810,13 +816,13 @@ double roundIntersectionCoordinate(
      *     1 * 2^-1074
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
 
         numerator.sign = 1;
         numerator.magnitude.limb[0] = 1;
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 one
             ) ==
@@ -834,7 +840,7 @@ double roundIntersectionCoordinate(
      * round to +0.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
         numerator.magnitude.limb[0] = 1;
 
@@ -842,7 +848,7 @@ double roundIntersectionCoordinate(
         denominator.limb[0] = 2;
 
         const double result =
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 denominator
             );
@@ -861,7 +867,7 @@ double roundIntersectionCoordinate(
      * the exact sign.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = -1;
         numerator.magnitude.limb[0] = 1;
 
@@ -869,7 +875,7 @@ double roundIntersectionCoordinate(
         denominator.limb[0] = 2;
 
         const double result =
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 denominator
             );
@@ -888,7 +894,7 @@ double roundIntersectionCoordinate(
      * Ties-to-even chooses 2.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
         numerator.magnitude.limb[0] = 3;
 
@@ -896,7 +902,7 @@ double roundIntersectionCoordinate(
         denominator.limb[0] = 2;
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 denominator
             ) ==
@@ -910,7 +916,7 @@ double roundIntersectionCoordinate(
      * Ties-to-even chooses 2.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
         numerator.magnitude.limb[0] = 5;
 
@@ -918,7 +924,7 @@ double roundIntersectionCoordinate(
         denominator.limb[0] = 2;
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 denominator
             ) ==
@@ -936,7 +942,7 @@ double roundIntersectionCoordinate(
      * significand, so ties-to-even chooses min-normal.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
 
         const ulong magnitude =
@@ -954,7 +960,7 @@ double roundIntersectionCoordinate(
         denominator.limb[0] = 2;
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 denominator
             ) ==
@@ -969,7 +975,7 @@ double roundIntersectionCoordinate(
      *     2^1074 / 1 * 2^-1074
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
 
         enum size_t bit = 1074;
@@ -980,7 +986,7 @@ double roundIntersectionCoordinate(
             1U << (bit % 32);
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 one
             ) ==
@@ -998,7 +1004,7 @@ double roundIntersectionCoordinate(
      * 1.0 has the even significand and must win.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
 
         numerator.magnitude.limb[
@@ -1012,7 +1018,7 @@ double roundIntersectionCoordinate(
             1U << (1021 % 32);
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 one
             ) ==
@@ -1030,7 +1036,7 @@ double roundIntersectionCoordinate(
      * rounds upward to the even candidate.
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
 
         numerator.magnitude.limb[
@@ -1049,7 +1055,7 @@ double roundIntersectionCoordinate(
             1U << (1021 % 32);
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 one
             ) ==
@@ -1066,7 +1072,7 @@ double roundIntersectionCoordinate(
      *     (2^53 - 1) << 2045
      */
     {
-        SignedIntersectionNumerator numerator;
+        SignedExactCoordinateNumerator numerator;
         numerator.sign = 1;
 
         enum ulong mantissa =
@@ -1096,7 +1102,7 @@ double roundIntersectionCoordinate(
         }
 
         assert(
-            roundIntersectionCoordinate(
+            roundExactCoordinateBinary64(
                 numerator,
                 one
             ) ==

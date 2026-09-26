@@ -1,11 +1,16 @@
 module geo.internal.polygon_union_research;
 
 import geo.internal.dyadic :
+    DyadicProductMagnitude,
     SignedDyadicDifference,
     decodeDyadicCoordinate,
     multiplyDyadicDifferences,
     subtractDyadicCoordinates,
     subtractDyadicProducts;
+
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator,
+    compareExactCoordinates;
 
 import geo.intersection :
     trySegmentIntersectionOverlap;
@@ -1982,4 +1987,345 @@ private OwnedPolygonSetResearch buildOwnedPolygonSetResearch(
         copy.component(1).exterior[0] ==
         P(20.0, 20.0)
     );
+}
+
+
+
+private struct ExactOverlayPoint
+{
+    SignedExactCoordinateNumerator xNumerator;
+    SignedExactCoordinateNumerator yNumerator;
+    DyadicProductMagnitude denominator;
+}
+
+
+/*
+ * Lifts one represented input coordinate into the common exact rational
+ * construction model:
+ *
+ *     representedScaledInteger / 1 * 2^-1074
+ */
+private SignedExactCoordinateNumerator liftRepresentedCoordinate(T)(
+    T value
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    const auto coordinate =
+        decodeDyadicCoordinate(value);
+
+    SignedExactCoordinateNumerator result;
+    result.sign = coordinate.sign;
+
+    foreach (i, limb; coordinate.magnitude.limb)
+    {
+        result.magnitude.limb[i] =
+            limb;
+    }
+
+    return result;
+}
+
+
+private ExactOverlayPoint exactOverlayPoint(T)(
+    Point2!T point
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    ExactOverlayPoint result;
+
+    result.xNumerator =
+        liftRepresentedCoordinate(
+            point.x
+        );
+
+    result.yNumerator =
+        liftRepresentedCoordinate(
+            point.y
+        );
+
+    result.denominator.limb[0] = 1;
+
+    return result;
+}
+
+
+private int compareExactOverlayPoints(
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+)
+    pure nothrow @safe @nogc
+{
+    const int xComparison =
+        compareExactCoordinates(
+            lhs.xNumerator,
+            lhs.denominator,
+            rhs.xNumerator,
+            rhs.denominator
+        );
+
+    if (xComparison != 0)
+        return xComparison;
+
+    return
+        compareExactCoordinates(
+            lhs.yNumerator,
+            lhs.denominator,
+            rhs.yNumerator,
+            rhs.denominator
+        );
+}
+
+
+private size_t canonicalCycleStart(
+    scope const(ExactOverlayPoint)[] cycle
+)
+    pure nothrow @safe @nogc
+{
+    assert(cycle.length > 0);
+
+    size_t best = 0;
+
+    foreach (i; 1 .. cycle.length)
+    {
+        if (
+            compareExactOverlayPoints(
+                cycle[i],
+                cycle[best]
+            ) < 0
+        )
+        {
+            best = i;
+        }
+    }
+
+    return best;
+}
+
+
+/*
+ * Lexicographic comparison of two already interior-left oriented cycles,
+ * independent of their stored starting vertex.
+ */
+private int compareCanonicalCycles(
+    scope const(ExactOverlayPoint)[] lhs,
+    scope const(ExactOverlayPoint)[] rhs
+)
+    pure nothrow @safe @nogc
+{
+    if (lhs.length == 0)
+        return rhs.length == 0 ? 0 : -1;
+
+    if (rhs.length == 0)
+        return 1;
+
+    const size_t lhsStart =
+        canonicalCycleStart(lhs);
+
+    const size_t rhsStart =
+        canonicalCycleStart(rhs);
+
+    const size_t commonLength =
+        lhs.length < rhs.length
+            ? lhs.length
+            : rhs.length;
+
+    foreach (offset; 0 .. commonLength)
+    {
+        const size_t lhsIndex =
+            (
+                lhsStart +
+                offset
+            ) %
+            lhs.length;
+
+        const size_t rhsIndex =
+            (
+                rhsStart +
+                offset
+            ) %
+            rhs.length;
+
+        const int comparison =
+            compareExactOverlayPoints(
+                lhs[lhsIndex],
+                rhs[rhsIndex]
+            );
+
+        if (comparison != 0)
+            return comparison;
+    }
+
+    if (lhs.length < rhs.length)
+        return -1;
+
+    if (lhs.length > rhs.length)
+        return 1;
+
+    return 0;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!int;
+
+
+    /*
+     * The same represented point lifted from integral and binary64 storage
+     * receives the same exact overlay identity.
+     */
+    {
+        auto integerPoint =
+            exactOverlayPoint(
+                P(1, -2)
+            );
+
+        auto floatingPoint =
+            exactOverlayPoint(
+                Point2!double(
+                    1.0,
+                    -2.0
+                )
+            );
+
+        assert(
+            compareExactOverlayPoints(
+                integerPoint,
+                floatingPoint
+            ) == 0
+        );
+    }
+
+
+    /*
+     * Canonical ring start is exact and independent of stored start rotation.
+     */
+    {
+        ExactOverlayPoint[4] first = [
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(4, 0)),
+            exactOverlayPoint(P(4, 3)),
+            exactOverlayPoint(P(0, 3)),
+        ];
+
+        ExactOverlayPoint[4] rotated = [
+            exactOverlayPoint(P(4, 3)),
+            exactOverlayPoint(P(0, 3)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(4, 0)),
+        ];
+
+        assert(canonicalCycleStart(first[]) == 0);
+        assert(canonicalCycleStart(rotated[]) == 2);
+
+        assert(
+            compareCanonicalCycles(
+                first[],
+                rotated[]
+            ) == 0
+        );
+    }
+
+
+    /*
+     * When two cycles share a canonical start, the complete exact sequence is
+     * a deterministic structural tie breaker.
+     */
+    {
+        ExactOverlayPoint[3] first = [
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(2, 0)),
+            exactOverlayPoint(P(0, 2)),
+        ];
+
+        ExactOverlayPoint[3] second = [
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(3, 0)),
+            exactOverlayPoint(P(0, 1)),
+        ];
+
+        assert(
+            compareCanonicalCycles(
+                first[],
+                second[]
+            ) < 0
+        );
+    }
+
+
+    /*
+     * Reversing source storage does not change an atomic half-edge direction
+     * when the half-edge itself is oriented identically.
+     */
+    {
+        const Segment2!int forward =
+            Segment2!int(
+                P(-3, 2),
+                P(7, 5)
+            );
+
+        const Segment2!int reversed =
+            Segment2!int(
+                forward.b,
+                forward.a
+            );
+
+        auto firstDirection =
+            sourceDirection(
+                forward,
+                true
+            );
+
+        auto secondDirection =
+            sourceDirection(
+                reversed,
+                false
+            );
+
+        assert(
+            compareSourceDirectionsCCW(
+                firstDirection,
+                secondDirection
+            ) == 0
+        );
+    }
+
+
+    /*
+     * Operand-label exchange leaves union membership unchanged.
+     */
+    {
+        assert(
+            unionInterior(
+                RegionLabel(true, false)
+            ) ==
+            unionInterior(
+                RegionLabel(false, true)
+            )
+        );
+
+        assert(
+            unionInterior(
+                RegionLabel(true, true)
+            )
+        );
+
+        assert(
+            !unionInterior(
+                RegionLabel(false, false)
+            )
+        );
+    }
 }

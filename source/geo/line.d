@@ -15,6 +15,11 @@
  */
 module geo.line;
 
+import geo.internal.dyadic :
+    SignedDyadicDifference,
+    decodeDyadicCoordinate,
+    subtractDyadicCoordinates;
+
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 import geo.vector : Vector2;
@@ -32,6 +37,19 @@ private enum Line2StorageForm : ubyte
     points,
     pointDirection,
 }
+
+
+/*
+ * Scalar domain supported by the exact dyadic line backend.
+ *
+ * `real` remains a valid Line2 storage scalar but is deliberately excluded
+ * from robust exact topology.
+ */
+private enum bool isExactLineScalar(T) =
+       is(T == int)
+    || is(T == long)
+    || is(T == float)
+    || is(T == double);
 
 
 /**
@@ -171,6 +189,110 @@ public:
      * for the private tagged representation.
      */
     @disable bool opEquals(ref const Line2 rhs) const;
+}
+
+
+/*
+ * Exact scalar difference used by the package-internal line bridge.
+ *
+ * No ordinary signed subtraction or floating-point arithmetic participates.
+ */
+private SignedDyadicDifference exactLineScalarDifference(T)(
+    T lhs,
+    T rhs
+)
+    pure nothrow @safe @nogc
+if (isExactLineScalar!T)
+{
+    const auto left =
+        decodeDyadicCoordinate(lhs);
+
+    const auto right =
+        decodeDyadicCoordinate(rhs);
+
+    return subtractDyadicCoordinates(
+        left,
+        right
+    );
+}
+
+
+/*
+ * Package-internal reference-point access.
+ *
+ * This is deliberately not public API. It exposes neither the retained
+ * PP/PV storage tag nor a representation-dependent public accessor.
+ */
+package(geo) void lineReferencePointComponents(T)(
+    ref const Line2!T line,
+    out T x,
+    out T y
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T)
+{
+    x = line._point.x;
+    y = line._point.y;
+}
+
+
+/*
+ * Derives the exact mathematical direction without canonicalising the stored
+ * Line2 into the other source representation.
+ *
+ * For PP storage:
+ *
+ *     secondPoint - point
+ *
+ * For PV storage:
+ *
+ *     direction - zero
+ *
+ * The represented line must be finite because the dyadic decoder accepts
+ * finite floating-point coordinates only.
+ */
+package(geo) void lineExactDirection(T)(
+    ref const Line2!T line,
+    out SignedDyadicDifference x,
+    out SignedDyadicDifference y
+)
+    pure nothrow @safe @nogc
+if (isExactLineScalar!T)
+{
+    assert(line.isFinite);
+
+    final switch (line._form)
+    {
+    case Line2StorageForm.points:
+        x =
+            exactLineScalarDifference(
+                line._payload.secondPoint.x,
+                line._point.x
+            );
+
+        y =
+            exactLineScalarDifference(
+                line._payload.secondPoint.y,
+                line._point.y
+            );
+
+        return;
+
+    case Line2StorageForm.pointDirection:
+        x =
+            exactLineScalarDifference(
+                line._payload.direction.x,
+                T(0)
+            );
+
+        y =
+            exactLineScalarDifference(
+                line._payload.direction.y,
+                T(0)
+            );
+
+        return;
+    }
 }
 
 

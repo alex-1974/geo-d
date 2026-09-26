@@ -1,5 +1,5 @@
 /**
- * Robust segment-intersection classification and construction.
+ * Robust segment and unbounded-line intersection classification and construction.
   *
  * Authors:
  *     Alexander Bernardi
@@ -29,6 +29,19 @@ import geo.internal.intersection_exact :
 import geo.internal.exact_coordinate_round :
     roundExactCoordinateBinary64;
 
+import geo.internal.dyadic :
+    SignedDyadicDifference,
+    SignedDyadicProduct,
+    decodeDyadicCoordinate,
+    multiplyDyadicDifferences,
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
+
+import geo.line :
+    Line2,
+    lineExactDirection,
+    lineReferencePointComponents;
+
 import geo.orientation :
     Orientation2,
     orientation;
@@ -38,6 +51,9 @@ import geo.point :
 
 import geo.segment :
     Segment2;
+
+import geo.vector :
+    Vector2;
 
 
 version (D_Ddoc)
@@ -88,6 +104,32 @@ else
 {
     alias SegmentIntersectionKind =
         CoreSegmentIntersectionKind;
+}
+
+
+/**
+ * Topological classification of the intersection of two valid unbounded
+ * lines.
+ *
+ * `none` means the two lines are distinct and parallel.
+ *
+ * `point` means the two lines contain exactly one common point.
+ *
+ * `coincident` means both values describe the same unbounded geometric line.
+ *
+ * Finite, nondegenerate inputs are required. The classification is exact and
+ * does not use a tolerance or epsilon.
+ */
+enum LineIntersectionKind : ubyte
+{
+    /// The valid lines are distinct and parallel.
+    none,
+
+    /// The valid lines contain exactly one common point.
+    point,
+
+    /// Both values describe the same unbounded geometric line.
+    coincident,
 }
 
 
@@ -211,6 +253,557 @@ static assert(
 static assert(
     is(IntersectionScalar!double == double)
 );
+
+
+/*
+ * Exact two-component direction used by unbounded-line topology.
+ */
+private struct ExactLineDirection
+{
+    SignedDyadicDifference x;
+    SignedDyadicDifference y;
+}
+
+
+/*
+ * Exact scalar difference in the common dyadic coordinate scale.
+ */
+private SignedDyadicDifference exactLineCoordinateDifference(T)(
+    T lhs,
+    T rhs
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    const auto left =
+        decodeDyadicCoordinate(lhs);
+
+    const auto right =
+        decodeDyadicCoordinate(rhs);
+
+    return subtractDyadicCoordinates(
+        left,
+        right
+    );
+}
+
+
+/*
+ * Derives one exact direction through geo.line's package-internal bridge.
+ */
+private ExactLineDirection exactIntersectionLineDirection(T)(
+    ref const Line2!T line
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    ExactLineDirection result;
+
+    lineExactDirection(
+        line,
+        result.x,
+        result.y
+    );
+
+    return result;
+}
+
+
+/*
+ * Exact displacement from the first line's retained reference point to the
+ * second line's retained reference point.
+ */
+private ExactLineDirection exactLineAnchorOffset(T)(
+    ref const Line2!T first,
+    ref const Line2!T second
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    T firstX;
+    T firstY;
+    T secondX;
+    T secondY;
+
+    lineReferencePointComponents(
+        first,
+        firstX,
+        firstY
+    );
+
+    lineReferencePointComponents(
+        second,
+        secondX,
+        secondY
+    );
+
+    ExactLineDirection result;
+
+    result.x =
+        exactLineCoordinateDifference(
+            secondX,
+            firstX
+        );
+
+    result.y =
+        exactLineCoordinateDifference(
+            secondY,
+            firstY
+        );
+
+    return result;
+}
+
+
+/*
+ * Exact two-dimensional determinant:
+ *
+ *     a.x * b.y - a.y * b.x
+ */
+private SignedDyadicProduct exactLineCross(
+    ref const ExactLineDirection a,
+    ref const ExactLineDirection b
+)
+    pure nothrow @safe @nogc
+{
+    const auto firstProduct =
+        multiplyDyadicDifferences(
+            a.x,
+            b.y
+        );
+
+    const auto secondProduct =
+        multiplyDyadicDifferences(
+            a.y,
+            b.x
+        );
+
+    return subtractDyadicProducts(
+        firstProduct,
+        secondProduct
+    );
+}
+
+
+/**
+ * Classifies the exact topological relationship of two unbounded lines.
+ *
+ * Preconditions:
+ *
+ * - `first` is finite and nondegenerate;
+ * - `second` is finite and nondegenerate.
+ *
+ * The operation is exact over `int`, `long`, `float`, and `double`.
+ * `real` is deliberately outside the robust-topology scalar domain.
+ *
+ * Returns:
+ *     `LineIntersectionKind.none` for distinct parallel lines,
+ *     `LineIntersectionKind.point` for a unique intersection, and
+ *     `LineIntersectionKind.coincident` for the same unbounded line.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+LineIntersectionKind lineIntersectionKind(T)(
+    Line2!T first,
+    Line2!T second
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    assert(first.isFinite);
+    assert(second.isFinite);
+    assert(!first.isDegenerate);
+    assert(!second.isDegenerate);
+
+    const auto firstDirection =
+        exactIntersectionLineDirection(first);
+
+    const auto secondDirection =
+        exactIntersectionLineDirection(second);
+
+    const auto directionCross =
+        exactLineCross(
+            firstDirection,
+            secondDirection
+        );
+
+    if (directionCross.sign != 0)
+        return LineIntersectionKind.point;
+
+    const auto offset =
+        exactLineAnchorOffset(
+            first,
+            second
+        );
+
+    const auto offsetCross =
+        exactLineCross(
+            offset,
+            firstDirection
+        );
+
+    if (offsetCross.sign == 0)
+        return LineIntersectionKind.coincident;
+
+    return LineIntersectionKind.none;
+}
+
+
+/// Example classifying unbounded lines through the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!double;
+    alias V = Vector2!double;
+    alias L = Line2!double;
+
+    auto horizontal =
+        L(
+            P(0.0, 0.0),
+            P(10.0, 0.0)
+        );
+
+    auto vertical =
+        L(
+            P(5.0, -10.0),
+            V(0.0, 20.0)
+        );
+
+    assert(
+        lineIntersectionKind(
+            horizontal,
+            vertical
+        ) ==
+        LineIntersectionKind.point
+    );
+
+    assert(
+        lineIntersectionKind(
+            horizontal,
+            L(
+                P(0.0, 2.0),
+                V(-20.0, 0.0)
+            )
+        ) ==
+        LineIntersectionKind.none
+    );
+
+    assert(
+        lineIntersectionKind(
+            horizontal,
+            L(
+                P(3.0, 0.0),
+                V(-7.0, 0.0)
+            )
+        ) ==
+        LineIntersectionKind.coincident
+    );
+}
+
+
+@safe unittest
+{
+    import std.meta : AliasSeq;
+
+    /*
+     * Public classifier scalar domain.
+     */
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {
+        {
+        alias P = Point2!T;
+        alias V = Vector2!T;
+        alias L = Line2!T;
+
+        auto horizontalPP =
+            L(
+                P(T(0), T(0)),
+                P(T(10), T(0))
+            );
+
+        auto horizontalPV =
+            L(
+                P(T(0), T(0)),
+                V(T(10), T(0))
+            );
+
+        auto verticalPP =
+            L(
+                P(T(5), T(-10)),
+                P(T(5), T(10))
+            );
+
+        auto verticalPV =
+            L(
+                P(T(5), T(-10)),
+                V(T(0), T(20))
+            );
+
+        /*
+         * All four storage-form combinations classify identically.
+         */
+        assert(
+            lineIntersectionKind(
+                horizontalPP,
+                verticalPP
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPP,
+                verticalPV
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPV,
+                verticalPP
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPV,
+                verticalPV
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        auto parallelPP =
+            L(
+                P(T(0), T(2)),
+                P(T(10), T(2))
+            );
+
+        auto parallelPV =
+            L(
+                P(T(0), T(2)),
+                V(T(-20), T(0))
+            );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPP,
+                parallelPP
+            ) ==
+            LineIntersectionKind.none
+        );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPV,
+                parallelPV
+            ) ==
+            LineIntersectionKind.none
+        );
+
+        auto coincidentPP =
+            L(
+                P(T(3), T(0)),
+                P(T(7), T(0))
+            );
+
+        auto coincidentPV =
+            L(
+                P(T(3), T(0)),
+                V(T(-7), T(0))
+            );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPP,
+                coincidentPP
+            ) ==
+            LineIntersectionKind.coincident
+        );
+
+        assert(
+            lineIntersectionKind(
+                horizontalPV,
+                coincidentPV
+            ) ==
+            LineIntersectionKind.coincident
+        );
+
+        /*
+         * Classification is symmetric.
+         */
+        assert(
+            lineIntersectionKind(
+                verticalPV,
+                horizontalPP
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        assert(
+            lineIntersectionKind(
+                coincidentPV,
+                horizontalPP
+            ) ==
+            LineIntersectionKind.coincident
+        );
+        }
+    }
+
+
+    /*
+     * real remains a representable Line2 scalar but is not part of exact
+     * topology.
+     */
+    Line2!real realLine;
+
+    static assert(
+        !__traits(
+            compiles,
+            lineIntersectionKind(
+                realLine,
+                realLine
+            )
+        )
+    );
+
+
+    /*
+     * Full-range signed-integral point differences must not overflow.
+     */
+    {
+        alias P = Point2!long;
+        alias V = Vector2!long;
+        alias L = Line2!long;
+
+        auto fullRange =
+            L(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        auto vertical =
+            L(
+                P(0, -1),
+                V(0, 1)
+            );
+
+        assert(
+            lineIntersectionKind(
+                fullRange,
+                vertical
+            ) ==
+            LineIntersectionKind.point
+        );
+    }
+
+
+    /*
+     * binary64 representability boundary.
+     *
+     * Converting the first line to PP storage would lose the x increment
+     * because 2^53 + 1 rounds back to 2^53. The retained PV direction must
+     * therefore remain authoritative.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double twoTo53 = 0x1p53;
+
+        auto diagonal =
+            L(
+                P(twoTo53, 0.0),
+                V(1.0, 1.0)
+            );
+
+        auto vertical =
+            L(
+                P(twoTo53, -1.0),
+                P(twoTo53, 1.0)
+            );
+
+        assert(
+            lineIntersectionKind(
+                diagonal,
+                vertical
+            ) ==
+            LineIntersectionKind.point
+        );
+    }
+
+
+    /*
+     * Subnormal directions remain exact.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double subnormal =
+            0x0.0000000000001p-1022;
+
+        auto tinyDiagonal =
+            L(
+                P(0.0, 0.0),
+                V(subnormal, subnormal)
+            );
+
+        auto horizontal =
+            L(
+                P(0.0, 1.0),
+                V(1.0, 0.0)
+            );
+
+        assert(
+            lineIntersectionKind(
+                tinyDiagonal,
+                horizontal
+            ) ==
+            LineIntersectionKind.point
+        );
+    }
+
+
+    /*
+     * Directions separated by one binary64 ULP remain distinguishable.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        auto first =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 1.0)
+            );
+
+        auto second =
+            L(
+                P(0.0, 1.0),
+                V(
+                    1.0,
+                    0x1.0000000000001p0
+                )
+            );
+
+        assert(
+            lineIntersectionKind(
+                first,
+                second
+            ) ==
+            LineIntersectionKind.point
+        );
+    }
+}
 
 
 /*

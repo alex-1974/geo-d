@@ -17,7 +17,7 @@
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
  * - distance, vector metric/directional, and nearest-point operations;
- * - robust orientation and segment-intersection predicates;
+ * - robust orientation and segment/line intersection predicates;
  * - signed and polygon area;
  * - point-in-polygon classification;
  * - ring and polygon topology validation;
@@ -131,7 +131,9 @@ alias Orientation =
 
 public import geo.intersection :
     IntersectionScalar,
+    LineIntersectionKind,
     SegmentIntersectionKind,
+    lineIntersectionKind,
     segmentIntersectionKind,
     trySegmentIntersectionOverlap,
     trySegmentIntersectionPoint;

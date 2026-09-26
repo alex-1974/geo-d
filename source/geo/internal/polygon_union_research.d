@@ -1397,3 +1397,209 @@ private bool tryPropagateRegionLabels(
         );
     }
 }
+
+
+
+/*
+ * Research-only local continuation rule for a union boundary cycle.
+ *
+ * outgoingBoundaryLeft[i] describes one outgoing arrangement half-edge in
+ * exact counter-clockwise angular order around a vertex. true means that
+ * this half-edge is a selected union boundary oriented with union interior on
+ * its left.
+ *
+ * twinIndex is the outgoing twin of the selected half-edge by which the trace
+ * arrived at the vertex. That twin has union interior on its right and is not
+ * itself the forward continuation.
+ *
+ * To keep the same union-interior sector on the left, select the first
+ * forward union-boundary half-edge encountered clockwise from the twin.
+ *
+ * Returns size_t.max when no continuation exists.
+ */
+private size_t nextUnionBoundaryOutgoing(
+    size_t twinIndex,
+    scope const(bool)[] outgoingBoundaryLeft
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        outgoingBoundaryLeft.length == 0 ||
+        twinIndex >= outgoingBoundaryLeft.length
+    )
+    {
+        return size_t.max;
+    }
+
+    size_t index = twinIndex;
+
+    foreach (_; 0 .. outgoingBoundaryLeft.length - 1)
+    {
+        index =
+            index == 0
+                ? outgoingBoundaryLeft.length - 1
+                : index - 1;
+
+        if (outgoingBoundaryLeft[index])
+            return index;
+    }
+
+    return size_t.max;
+}
+
+
+@safe unittest
+{
+    /*
+     * Indices represent exact CCW angular order:
+     *
+     *     0 east
+     *     1 north
+     *     2 west
+     *     3 south
+     */
+
+
+    /*
+     * Ordinary corner.
+     *
+     * Arrival along east means the outgoing twin is west (2).
+     * The next boundary is north (1).
+     */
+    {
+        const bool[4] boundary = [
+            false,
+            true,
+            false,
+            false,
+        ];
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                2,
+                boundary[]
+            ) == 1
+        );
+    }
+
+
+    /*
+     * A T-junction branch inside the union is not a selected boundary.
+     *
+     * The tracer skips it and continues along the next actual union edge.
+     */
+    {
+        const bool[4] boundary = [
+            true,
+            false,
+            false,
+            false,
+        ];
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                2,
+                boundary[]
+            ) == 0
+        );
+    }
+
+
+    /*
+     * Two polygon interiors touch only at the vertex.
+     *
+     * NE component:
+     *     incoming edge has outbound twin north (1)
+     *     continuation is east (0)
+     *
+     * SW component:
+     *     incoming edge has outbound twin south (3)
+     *     continuation is west (2)
+     *
+     * The local clockwise rule therefore keeps the two boundary cycles
+     * separate instead of switching components at the shared point.
+     */
+    {
+        const bool[4] boundary = [
+            true,
+            false,
+            true,
+            false,
+        ];
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                1,
+                boundary[]
+            ) == 0
+        );
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                3,
+                boundary[]
+            ) == 2
+        );
+    }
+
+
+    /*
+     * Four independent interior sectors at one exact vertex pair locally by
+     * angular adjacency. The rule remains deterministic.
+     */
+    {
+        const bool[8] boundary = [
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+        ];
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                1,
+                boundary[]
+            ) == 0
+        );
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                3,
+                boundary[]
+            ) == 2
+        );
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                5,
+                boundary[]
+            ) == 4
+        );
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                7,
+                boundary[]
+            ) == 6
+        );
+    }
+
+
+    /*
+     * No selected outgoing boundary is an explicit broken-cycle condition.
+     */
+    {
+        const bool[4] boundary;
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                2,
+                boundary[]
+            ) == size_t.max
+        );
+    }
+}

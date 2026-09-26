@@ -26,10 +26,21 @@ import geo.internal.intersection_exact :
     properIntersectionExactKnownCrossing,
     tryProperIntersectionExact;
 
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator,
+    addExactCoordinateNumerators,
+    exactCoordinateNumeratorLimbs,
+    multiplyCoordinateProduct,
+    multiplyDifferenceProduct,
+    negateExactCoordinateNumerator,
+    roundsToFiniteBinary64;
+
 import geo.internal.exact_coordinate_round :
     roundExactCoordinateBinary64;
 
 import geo.internal.dyadic :
+    DyadicProductMagnitude,
+    SignedDyadicCoordinate,
     SignedDyadicDifference,
     SignedDyadicProduct,
     decodeDyadicCoordinate,
@@ -801,6 +812,653 @@ if (isIntersectionScalar!T)
                 second
             ) ==
             LineIntersectionKind.point
+        );
+    }
+}
+
+
+/*
+ * Exact rational data for one unique unbounded-line intersection.
+ *
+ * Each represented coordinate is:
+ *
+ *     numerator / denominator * 2^-1074
+ *
+ * The denominator is always positive.
+ */
+private struct ExactLineIntersection
+{
+    SignedExactCoordinateNumerator xNumerator;
+    SignedExactCoordinateNumerator yNumerator;
+
+    DyadicProductMagnitude denominator;
+}
+
+
+static assert(
+    exactCoordinateNumeratorLimbs == 198
+);
+
+
+/*
+ * Builds one exact coordinate numerator:
+ *
+ *     anchor * denominator +
+ *     direction * parameterNumerator
+ */
+private SignedExactCoordinateNumerator lineCoordinateNumerator(
+    ref const SignedDyadicCoordinate anchor,
+    ref const SignedDyadicDifference direction,
+    ref const SignedDyadicProduct denominator,
+    ref const SignedDyadicProduct parameterNumerator
+)
+    pure nothrow @safe @nogc
+{
+    const auto anchorTerm =
+        multiplyCoordinateProduct(
+            anchor,
+            denominator
+        );
+
+    const auto directionTerm =
+        multiplyDifferenceProduct(
+            direction,
+            parameterNumerator
+        );
+
+    return addExactCoordinateNumerators(
+        anchorTerm,
+        directionTerm
+    );
+}
+
+
+/*
+ * Constructs exact rational coordinates for a pair already known to have
+ * exactly one geometric intersection.
+ *
+ * first:
+ *
+ *     p + t*d
+ *
+ * second:
+ *
+ *     q + u*e
+ *
+ * with:
+ *
+ *     denominator        = cross(d, e)
+ *     parameterNumerator = cross(q - p, e)
+ *
+ * No same-T PP/PV canonicalization is performed.
+ */
+private void lineIntersectionExactKnownPoint(T)(
+    ref const Line2!T first,
+    ref const Line2!T second,
+    out ExactLineIntersection result
+)
+    pure nothrow @safe @nogc
+if (isIntersectionScalar!T)
+{
+    const auto firstDirection =
+        exactIntersectionLineDirection(first);
+
+    const auto secondDirection =
+        exactIntersectionLineDirection(second);
+
+    const auto offset =
+        exactLineAnchorOffset(
+            first,
+            second
+        );
+
+    const auto denominator =
+        exactLineCross(
+            firstDirection,
+            secondDirection
+        );
+
+    assert(denominator.sign != 0);
+    assert(!denominator.magnitude.isZero);
+
+    const auto parameterNumerator =
+        exactLineCross(
+            offset,
+            secondDirection
+        );
+
+    T anchorXValue;
+    T anchorYValue;
+
+    lineReferencePointComponents(
+        first,
+        anchorXValue,
+        anchorYValue
+    );
+
+    const auto anchorX =
+        decodeDyadicCoordinate(
+            anchorXValue
+        );
+
+    const auto anchorY =
+        decodeDyadicCoordinate(
+            anchorYValue
+        );
+
+    result.xNumerator =
+        lineCoordinateNumerator(
+            anchorX,
+            firstDirection.x,
+            denominator,
+            parameterNumerator
+        );
+
+    result.yNumerator =
+        lineCoordinateNumerator(
+            anchorY,
+            firstDirection.y,
+            denominator,
+            parameterNumerator
+        );
+
+    /*
+     * The neutral rational-coordinate rounder requires a positive
+     * denominator.
+     */
+    if (denominator.sign < 0)
+    {
+        negateExactCoordinateNumerator(
+            result.xNumerator
+        );
+
+        negateExactCoordinateNumerator(
+            result.yNumerator
+        );
+    }
+
+    result.denominator =
+        denominator.magnitude;
+}
+
+
+/**
+ * Constructs the unique intersection point of two valid unbounded lines.
+ *
+ * Topological classification remains authoritative and exact.
+ *
+ * Preconditions:
+ *
+ * - `first` is finite and nondegenerate;
+ * - `second` is finite and nondegenerate.
+ *
+ * Supported input scalar types:
+ *
+ *     int
+ *     long
+ *     float
+ *     double
+ *
+ * The constructed point uses `IntersectionScalar!T`, which is currently
+ * `double` for every supported input scalar.
+ *
+ * Returns true exactly when:
+ *
+ * - `lineIntersectionKind(first, second) == LineIntersectionKind.point`; and
+ * - both exact coordinates round to finite values in the construction scalar.
+ *
+ * Returns false for:
+ *
+ * - distinct parallel lines;
+ * - coincident lines;
+ * - a mathematically unique intersection whose rounded public coordinate is
+ *   not finite.
+ *
+ * Every false path leaves `point == Point2!R.init`.
+ *
+ * No floating-point arithmetic participates before the final correctly
+ * rounded binary64 conversion.
+ *
+ * The returned point is construction data and must not be used as evidence
+ * for topology already established by `lineIntersectionKind`.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *
+ *     time  O(1)
+ *     space O(1)
+ */
+bool tryLineIntersectionPoint(T, R)(
+    Line2!T first,
+    Line2!T second,
+    out Point2!R point
+)
+    pure nothrow @safe @nogc
+if (
+    isIntersectionScalar!T &&
+    is(R == IntersectionScalar!T)
+)
+{
+    point = Point2!R.init;
+
+    assert(first.isFinite);
+    assert(second.isFinite);
+    assert(!first.isDegenerate);
+    assert(!second.isDegenerate);
+
+    if (
+        lineIntersectionKind(
+            first,
+            second
+        ) != LineIntersectionKind.point
+    )
+    {
+        return false;
+    }
+
+    ExactLineIntersection exact;
+
+    lineIntersectionExactKnownPoint(
+        first,
+        second,
+        exact
+    );
+
+    if (
+        !roundsToFiniteBinary64(
+            exact.xNumerator,
+            exact.denominator
+        ) ||
+        !roundsToFiniteBinary64(
+            exact.yNumerator,
+            exact.denominator
+        )
+    )
+    {
+        return false;
+    }
+
+    point =
+        Point2!R(
+            cast(R)
+                roundExactCoordinateBinary64(
+                    exact.xNumerator,
+                    exact.denominator
+                ),
+            cast(R)
+                roundExactCoordinateBinary64(
+                    exact.yNumerator,
+                    exact.denominator
+                )
+        );
+
+    assert(point.isFinite);
+
+    return true;
+}
+
+
+/// Example constructing an unbounded-line intersection through the public API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias V = Vector2!int;
+    alias L = Line2!int;
+
+    auto first =
+        L(
+            P(0, 0),
+            P(10, 10)
+        );
+
+    auto second =
+        L(
+            P(0, 10),
+            V(10, -10)
+        );
+
+    Point2!double point;
+
+    assert(
+        tryLineIntersectionPoint(
+            first: first,
+            second: second,
+            point: point
+        )
+    );
+
+    assert(
+        point ==
+        Point2!double(
+            5.0,
+            5.0
+        )
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * Public construction scalar domain.
+     */
+    Point2!double compilePoint;
+    Point2!real compileRealPoint;
+
+    static assert(
+        __traits(
+            compiles,
+            tryLineIntersectionPoint(
+                Line2!int.init,
+                Line2!int.init,
+                compilePoint
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryLineIntersectionPoint(
+                Line2!long.init,
+                Line2!long.init,
+                compilePoint
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryLineIntersectionPoint(
+                Line2!float.init,
+                Line2!float.init,
+                compilePoint
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryLineIntersectionPoint(
+                Line2!double.init,
+                Line2!double.init,
+                compilePoint
+            )
+        )
+    );
+
+    static assert(
+        !__traits(
+            compiles,
+            tryLineIntersectionPoint(
+                Line2!real.init,
+                Line2!real.init,
+                compileRealPoint
+            )
+        )
+    );
+
+
+    /*
+     * Distinct parallel lines have no unique point and reset the out value.
+     */
+    {
+        alias P = Point2!int;
+        alias V = Vector2!int;
+        alias L = Line2!int;
+
+        auto first =
+            L(
+                P(0, 0),
+                V(1, 0)
+            );
+
+        auto second =
+            L(
+                P(0, 1),
+                V(1, 0)
+            );
+
+        Point2!double point =
+            Point2!double(
+                7.0,
+                9.0
+            );
+
+        assert(
+            !tryLineIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double.init
+        );
+    }
+
+
+    /*
+     * Coincident lines likewise have no unique constructed point.
+     */
+    {
+        alias P = Point2!int;
+        alias V = Vector2!int;
+        alias L = Line2!int;
+
+        auto first =
+            L(
+                P(0, 0),
+                V(1, 1)
+            );
+
+        auto second =
+            L(
+                P(2, 2),
+                V(-3, -3)
+            );
+
+        Point2!double point =
+            Point2!double(
+                7.0,
+                9.0
+            );
+
+        assert(
+            !tryLineIntersectionPoint(
+                first,
+                second,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double.init
+        );
+    }
+
+
+    /*
+     * Full signed-long endpoint spans must remain exact without narrowing
+     * either PP direction into Vector2!long.
+     */
+    {
+        alias P = Point2!long;
+        alias L = Line2!long;
+
+        auto horizontal =
+            L(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        auto vertical =
+            L(
+                P(0, long.min),
+                P(0, long.max)
+            );
+
+        Point2!double point;
+
+        assert(
+            tryLineIntersectionPoint(
+                horizontal,
+                vertical,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double(
+                0.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * The smallest positive binary64 subnormal survives exact construction
+     * and final rounding.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double tiny =
+            0x0.0000000000001p-1022;
+
+        auto horizontal =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 0.0)
+            );
+
+        auto vertical =
+            L(
+                P(tiny, 1.0),
+                V(0.0, -1.0)
+            );
+
+        Point2!double point;
+
+        assert(
+            tryLineIntersectionPoint(
+                horizontal,
+                vertical,
+                point
+            )
+        );
+
+        assert(point.x == tiny);
+        assert(point.y == 0.0);
+    }
+
+
+    /*
+     * The largest finite binary64 coordinate remains constructible.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        auto horizontal =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 0.0)
+            );
+
+        auto vertical =
+            L(
+                P(double.max, 1.0),
+                V(0.0, -1.0)
+            );
+
+        Point2!double point;
+
+        assert(
+            tryLineIntersectionPoint(
+                horizontal,
+                vertical,
+                point
+            )
+        );
+
+        assert(point.x == double.max);
+        assert(point.y == 0.0);
+    }
+
+
+    /*
+     * Finite input lines can have a mathematically unique intersection
+     * outside finite binary64:
+     *
+     *     y = 0
+     *
+     * and
+     *
+     *     (0, 1) + t * (1, -2^-1074)
+     *
+     * intersect at x = 2^1074.
+     *
+     * Topology therefore remains `point`, while construction must fail.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double tiny =
+            0x0.0000000000001p-1022;
+
+        auto horizontal =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 0.0)
+            );
+
+        auto steep =
+            L(
+                P(0.0, 1.0),
+                V(1.0, -tiny)
+            );
+
+        assert(
+            lineIntersectionKind(
+                horizontal,
+                steep
+            ) ==
+            LineIntersectionKind.point
+        );
+
+        Point2!double point =
+            Point2!double(
+                7.0,
+                9.0
+            );
+
+        assert(
+            !tryLineIntersectionPoint(
+                horizontal,
+                steep,
+                point
+            )
+        );
+
+        assert(
+            point ==
+            Point2!double.init
         );
     }
 }

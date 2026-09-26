@@ -135,6 +135,7 @@ public import geo.intersection :
     SegmentIntersectionKind,
     lineIntersectionKind,
     segmentIntersectionKind,
+    tryLineIntersectionPoint,
     trySegmentIntersectionOverlap,
     trySegmentIntersectionPoint;
 

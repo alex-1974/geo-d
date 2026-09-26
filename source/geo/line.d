@@ -20,6 +20,11 @@ import geo.internal.dyadic :
     decodeDyadicCoordinate,
     subtractDyadicCoordinates;
 
+import geo.internal.scaled_metric :
+    ScaledMetricComponent,
+    scaledMetricDifference,
+    scaledMetricValue;
+
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 import geo.vector : Vector2;
@@ -289,6 +294,62 @@ if (isExactLineScalar!T)
             exactLineScalarDifference(
                 line._payload.direction.y,
                 T(0)
+            );
+
+        return;
+    }
+}
+
+
+
+/*
+ * Derives a numerically scaled direction for the extended-precision `real`
+ * metric path without exposing the retained PP/PV storage representation.
+ *
+ * For PP storage each component is formed as an exponent-aware exact binary
+ * subtraction of the two finite stored coordinates.
+ *
+ * For PV storage each already-stored direction component is normalized
+ * directly.
+ *
+ * This bridge is package-internal and deliberately specialized to `real`;
+ * int/long/float/double use the exact dyadic Line2 backend instead.
+ */
+package(geo) void lineScaledRealDirection(
+    ref const Line2!real line,
+    out ScaledMetricComponent!real x,
+    out ScaledMetricComponent!real y
+)
+    pure nothrow @safe @nogc
+{
+    assert(line.isFinite);
+
+    final switch (line._form)
+    {
+    case Line2StorageForm.points:
+        x =
+            scaledMetricDifference(
+                line._payload.secondPoint.x,
+                line._point.x
+            );
+
+        y =
+            scaledMetricDifference(
+                line._payload.secondPoint.y,
+                line._point.y
+            );
+
+        return;
+
+    case Line2StorageForm.pointDirection:
+        x =
+            scaledMetricValue(
+                line._payload.direction.x
+            );
+
+        y =
+            scaledMetricValue(
+                line._payload.direction.y
             );
 
         return;

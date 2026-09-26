@@ -18,6 +18,43 @@ module geo.metric;
 private import euclid_core.scalar :
     CoreMetricScalar = MetricScalar;
 
+import geo.internal.dyadic :
+    SignedDyadicCoordinate,
+    SignedDyadicDifference,
+    SignedDyadicProduct,
+    decodeDyadicCoordinate,
+    multiplyDyadicDifferences,
+    subtractDyadicCoordinates;
+
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator,
+    addExactCoordinateNumerators,
+    exactCoordinateNumeratorLimbs,
+    multiplyCoordinateProduct,
+    multiplyDifferenceProduct,
+    roundsToFiniteBinary64;
+
+import geo.internal.exact_coordinate_round :
+    roundExactCoordinateBinary64;
+
+import geo.internal.fixed_uint :
+    addUnsigned,
+    compareUnsigned,
+    subtractUnsigned;
+
+import geo.internal.scaled_metric :
+    ScaledMetricVector,
+    projectedMetricComponent,
+    scaledMetricDifference,
+    scaledMetricDot,
+    scaledMetricSquaredNorm;
+
+import geo.line :
+    Line2,
+    lineExactDirection,
+    lineReferencePointComponents,
+    lineScaledRealDirection;
+
 import geo.polyline_view : Polyline2View;
 
 import geo.point : Point2;
@@ -1586,6 +1623,1138 @@ if (
             0.0
         )
     );
+}
+
+
+
+/*
+ * Exact two-component vector used only by the binary64-backed Line2
+ * projection path.
+ */
+private struct ExactMetricLineVector
+{
+    SignedDyadicDifference x;
+    SignedDyadicDifference y;
+}
+
+
+/*
+ * Exact signed addition of two products in the common 2^-2148 dyadic scale.
+ *
+ * ADR-0022's Line2 projection range proof establishes that the two-dimensional
+ * dot-product sum fits in the existing DyadicProductMagnitude width.
+ */
+private SignedDyadicProduct addMetricDyadicProducts(
+    ref const SignedDyadicProduct lhs,
+    ref const SignedDyadicProduct rhs
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        lhs.sign == 0 ||
+        lhs.magnitude.isZero
+    )
+    {
+        return rhs;
+    }
+
+    if (
+        rhs.sign == 0 ||
+        rhs.magnitude.isZero
+    )
+    {
+        return lhs;
+    }
+
+    SignedDyadicProduct result;
+
+    if (lhs.sign == rhs.sign)
+    {
+        result.sign = lhs.sign;
+
+        result.magnitude =
+            addUnsigned(
+                lhs.magnitude,
+                rhs.magnitude
+            );
+
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            lhs.magnitude,
+            rhs.magnitude
+        );
+
+    if (comparison == 0)
+        return result;
+
+    if (comparison > 0)
+    {
+        result.sign = lhs.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                lhs.magnitude,
+                rhs.magnitude
+            );
+    }
+    else
+    {
+        result.sign = rhs.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                rhs.magnitude,
+                lhs.magnitude
+            );
+    }
+
+    return result;
+}
+
+
+/*
+ * Exact mathematical Line2 direction without PP/PV canonicalization.
+ */
+private ExactMetricLineVector exactMetricLineDirection(T)(
+    ref const Line2!T line
+)
+    pure nothrow @safe @nogc
+if (
+       is(T == int)
+    || is(T == long)
+    || is(T == float)
+    || is(T == double)
+)
+{
+    ExactMetricLineVector result;
+
+    lineExactDirection(
+        line,
+        result.x,
+        result.y
+    );
+
+    return result;
+}
+
+
+/*
+ * Exact point - line reference-point displacement.
+ */
+private ExactMetricLineVector exactMetricLineOffset(T)(
+    Point2!T point,
+    ref const Line2!T line
+)
+    pure nothrow @safe @nogc
+if (
+       is(T == int)
+    || is(T == long)
+    || is(T == float)
+    || is(T == double)
+)
+{
+    T anchorX;
+    T anchorY;
+
+    lineReferencePointComponents(
+        line,
+        anchorX,
+        anchorY
+    );
+
+    const auto pointX =
+        decodeDyadicCoordinate(point.x);
+
+    const auto pointY =
+        decodeDyadicCoordinate(point.y);
+
+    const auto exactAnchorX =
+        decodeDyadicCoordinate(anchorX);
+
+    const auto exactAnchorY =
+        decodeDyadicCoordinate(anchorY);
+
+    ExactMetricLineVector result;
+
+    result.x =
+        subtractDyadicCoordinates(
+            pointX,
+            exactAnchorX
+        );
+
+    result.y =
+        subtractDyadicCoordinates(
+            pointY,
+            exactAnchorY
+        );
+
+    return result;
+}
+
+
+/*
+ * Exact two-dimensional dot product in the common dyadic-product scale.
+ */
+private SignedDyadicProduct exactMetricDot(
+    ref const ExactMetricLineVector lhs,
+    ref const ExactMetricLineVector rhs
+)
+    pure nothrow @safe @nogc
+{
+    const auto xProduct =
+        multiplyDyadicDifferences(
+            lhs.x,
+            rhs.x
+        );
+
+    const auto yProduct =
+        multiplyDyadicDifferences(
+            lhs.y,
+            rhs.y
+        );
+
+    return
+        addMetricDyadicProducts(
+            xProduct,
+            yProduct
+        );
+}
+
+
+/*
+ * Builds one exact projected coordinate:
+ *
+ *     anchor +
+ *         direction * dot(offset, direction)
+ *                   / dot(direction, direction)
+ *
+ * represented as the shared rational coordinate
+ *
+ *     numerator / denominator * 2^-1074.
+ */
+private SignedExactCoordinateNumerator
+exactMetricProjectionCoordinateNumerator(
+    ref const SignedDyadicCoordinate anchor,
+    ref const SignedDyadicDifference direction,
+    ref const SignedDyadicProduct denominator,
+    ref const SignedDyadicProduct parameterNumerator
+)
+    pure nothrow @safe @nogc
+{
+    const auto anchorTerm =
+        multiplyCoordinateProduct(
+            anchor,
+            denominator
+        );
+
+    const auto projectedTerm =
+        multiplyDifferenceProduct(
+            direction,
+            parameterNumerator
+        );
+
+    return
+        addExactCoordinateNumerators(
+            anchorTerm,
+            projectedTerm
+        );
+}
+
+
+static assert(
+    exactCoordinateNumeratorLimbs == 198
+);
+
+
+/**
+ * Finds the nearest point on an unbounded `Line2`.
+ *
+ * The public result type follows the established metric family:
+ *
+ *     R == MetricScalar!T
+ *
+ * For `int`, `long`, `float`, and `double`, projection is constructed exactly
+ * through the rational-coordinate stage. Only the final binary64 coordinate
+ * conversion is rounded, using round-to-nearest, ties-to-even.
+ *
+ * `real` remains part of the metric scalar family. Because the exact dyadic
+ * backend intentionally covers only binary64-backed topology scalars, the
+ * `real` overload path uses exponent-aware floating-point construction.
+ *
+ * Returns false for:
+ *
+ * - a non-finite line;
+ * - a non-finite query point;
+ * - a degenerate line; or
+ * - a projected coordinate that cannot be represented finitely in
+ *   `MetricScalar!T`.
+ *
+ * Every failure path leaves `result == Point2!R.init`.
+ *
+ * Unlike segment projection, an unbounded line never clamps to stored source
+ * points. The retained PP/PV construction form is not exposed and is not
+ * canonicalized through the public scalar type.
+ *
+ * This is numerical construction, not a topological predicate.
+ *
+ * No allocation is performed.
+ *
+ * Complexity:
+ *     O(1) time and O(1) auxiliary space.
+ */
+bool tryNearestPoint(T, R)(
+    Line2!T line,
+    Point2!T point,
+    out Point2!R result
+)
+    pure nothrow @safe @nogc
+if (
+    isGeoScalar!T &&
+    is(R == MetricScalar!T)
+)
+{
+    result = Point2!R.init;
+
+    if (
+        !line.isFinite ||
+        !point.isFinite ||
+        line.isDegenerate
+    )
+    {
+        return false;
+    }
+
+    static if (is(T == real))
+    {
+        alias M = MetricScalar!T;
+
+        ScaledMetricVector!M direction;
+
+        lineScaledRealDirection(
+            line,
+            direction.x,
+            direction.y
+        );
+
+        if (direction.isZero)
+            return false;
+
+        T anchorXValue;
+        T anchorYValue;
+
+        lineReferencePointComponents(
+            line,
+            anchorXValue,
+            anchorYValue
+        );
+
+        const M anchorX =
+            cast(M) anchorXValue;
+
+        const M anchorY =
+            cast(M) anchorYValue;
+
+        ScaledMetricVector!M offset;
+
+        offset.x =
+            scaledMetricDifference(
+                cast(M) point.x,
+                anchorX
+            );
+
+        offset.y =
+            scaledMetricDifference(
+                cast(M) point.y,
+                anchorY
+            );
+
+        if (offset.isZero)
+        {
+            result =
+                Point2!R(
+                    cast(R) anchorX,
+                    cast(R) anchorY
+                );
+
+            return true;
+        }
+
+        const auto parameterNumerator =
+            scaledMetricDot!M(
+                offset,
+                direction
+            );
+
+        const auto denominator =
+            scaledMetricSquaredNorm!M(
+                direction
+            );
+
+        assert(!denominator.isZero);
+        assert(denominator.significand > M(0));
+
+        const M projectedX =
+            projectedMetricComponent!M(
+                direction.x,
+                parameterNumerator,
+                denominator
+            );
+
+        const M projectedY =
+            projectedMetricComponent!M(
+                direction.y,
+                parameterNumerator,
+                denominator
+            );
+
+        if (
+            !isFinite(projectedX) ||
+            !isFinite(projectedY)
+        )
+        {
+            return false;
+        }
+
+        result =
+            Point2!R(
+                cast(R)(anchorX + projectedX),
+                cast(R)(anchorY + projectedY)
+            );
+
+        if (!result.isFinite)
+        {
+            result = Point2!R.init;
+            return false;
+        }
+
+        return true;
+    }
+    else
+    {
+        const auto direction =
+            exactMetricLineDirection(line);
+
+        assert(
+            direction.x.sign != 0 ||
+            direction.y.sign != 0
+        );
+
+        const auto offset =
+            exactMetricLineOffset(
+                point,
+                line
+            );
+
+        const auto parameterNumerator =
+            exactMetricDot(
+                offset,
+                direction
+            );
+
+        const auto denominator =
+            exactMetricDot(
+                direction,
+                direction
+            );
+
+        assert(denominator.sign == 1);
+        assert(!denominator.magnitude.isZero);
+
+        T anchorXValue;
+        T anchorYValue;
+
+        lineReferencePointComponents(
+            line,
+            anchorXValue,
+            anchorYValue
+        );
+
+        const auto anchorX =
+            decodeDyadicCoordinate(
+                anchorXValue
+            );
+
+        const auto anchorY =
+            decodeDyadicCoordinate(
+                anchorYValue
+            );
+
+        const auto xNumerator =
+            exactMetricProjectionCoordinateNumerator(
+                anchorX,
+                direction.x,
+                denominator,
+                parameterNumerator
+            );
+
+        const auto yNumerator =
+            exactMetricProjectionCoordinateNumerator(
+                anchorY,
+                direction.y,
+                denominator,
+                parameterNumerator
+            );
+
+        if (
+            !roundsToFiniteBinary64(
+                xNumerator,
+                denominator.magnitude
+            ) ||
+            !roundsToFiniteBinary64(
+                yNumerator,
+                denominator.magnitude
+            )
+        )
+        {
+            return false;
+        }
+
+        const double x =
+            roundExactCoordinateBinary64(
+                xNumerator,
+                denominator.magnitude
+            );
+
+        const double y =
+            roundExactCoordinateBinary64(
+                yNumerator,
+                denominator.magnitude
+            );
+
+        assert(isFinite(x));
+        assert(isFinite(y));
+
+        result =
+            Point2!R(
+                cast(R) x,
+                cast(R) y
+            );
+
+        return true;
+    }
+}
+
+
+/// Example projecting onto an unbounded line through the public package API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias L = Line2!int;
+
+    const line =
+        L(
+            P(0, 0),
+            P(10, 0)
+        );
+
+    Point2!double nearest;
+
+    assert(
+        tryNearestPoint(
+            line: line,
+            point: P(3, 4),
+            result: nearest
+        )
+    );
+
+    assert(
+        nearest ==
+        Point2!double(
+            3.0,
+            0.0
+        )
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * Public overload shape follows MetricScalar for every geo scalar.
+     */
+    Point2!double doubleResult;
+    Point2!real realResult;
+
+    static assert(
+        __traits(
+            compiles,
+            tryNearestPoint(
+                Line2!int.init,
+                Point2!int.init,
+                doubleResult
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryNearestPoint(
+                Line2!long.init,
+                Point2!long.init,
+                doubleResult
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryNearestPoint(
+                Line2!float.init,
+                Point2!float.init,
+                doubleResult
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryNearestPoint(
+                Line2!double.init,
+                Point2!double.init,
+                doubleResult
+            )
+        )
+    );
+
+    static assert(
+        __traits(
+            compiles,
+            tryNearestPoint(
+                Line2!real.init,
+                Point2!real.init,
+                realResult
+            )
+        )
+    );
+
+
+    /*
+     * PP and PV representations of the same ordinary line.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        const pp =
+            L(
+                P(0.0, 0.0),
+                P(10.0, 0.0)
+            );
+
+        const pv =
+            L(
+                P(0.0, 0.0),
+                V(10.0, 0.0)
+            );
+
+        P ppResult;
+        P pvResult;
+
+        assert(
+            tryNearestPoint(
+                pp,
+                P(3.0, 4.0),
+                ppResult
+            )
+        );
+
+        assert(
+            tryNearestPoint(
+                pv,
+                P(3.0, 4.0),
+                pvResult
+            )
+        );
+
+        assert(ppResult == P(3.0, 0.0));
+        assert(pvResult == ppResult);
+    }
+
+
+    /*
+     * Line2 is unbounded: stored PP endpoints never clamp projection.
+     */
+    {
+        alias P = Point2!double;
+        alias L = Line2!double;
+
+        const line =
+            L(
+                P(0.0, 0.0),
+                P(10.0, 0.0)
+            );
+
+        P result;
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(-5.0, 2.0),
+                result
+            )
+        );
+
+        assert(result == P(-5.0, 0.0));
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(15.0, 2.0),
+                result
+            )
+        );
+
+        assert(result == P(15.0, 0.0));
+    }
+
+
+    /*
+     * A smallest-subnormal direction gives an unrepresentable conventional
+     * parameter t, while the projected point itself remains finite.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double tiny =
+            0x1p-1074;
+
+        const line =
+            L(
+                P(0.0, 0.0),
+                V(tiny, 0.0)
+            );
+
+        P result;
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(1.0, 2.0),
+                result
+            )
+        );
+
+        assert(result == P(1.0, 0.0));
+    }
+
+
+    /*
+     * Product-rounding cancellation:
+     *
+     * ordinary binary64 multiplication makes a*b == c*c, while the exact
+     * dot-product residue is -2^-106.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double a =
+            0x1.fffffffffffecp-1;
+
+        enum double b =
+            0x1.fffffffffffeep-1;
+
+        enum double c =
+            0x1.fffffffffffedp-1;
+
+        enum double expected =
+            -0x1.000000000000ap-107;
+
+        assert(a * b == c * c);
+
+        const pv =
+            L(
+                P(0.0, 0.0),
+                V(a, c)
+            );
+
+        const pp =
+            L(
+                P(0.0, 0.0),
+                P(a, c)
+            );
+
+        const query =
+            P(
+                b,
+                -c
+            );
+
+        P pvResult;
+        P ppResult;
+
+        assert(
+            tryNearestPoint(
+                pv,
+                query,
+                pvResult
+            )
+        );
+
+        assert(
+            tryNearestPoint(
+                pp,
+                query,
+                ppResult
+            )
+        );
+
+        assert(pvResult.x == expected);
+        assert(pvResult.y == expected);
+        assert(ppResult == pvResult);
+    }
+
+
+    /*
+     * Near cancellation in dot(offset,direction) retains its exact residue.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double belowOne =
+            0x1.fffffffffffffp-1;
+
+        enum double expected =
+            0x1p-54;
+
+        const line =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 1.0)
+            );
+
+        P result;
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(1.0, -belowOne),
+                result
+            )
+        );
+
+        assert(result.x == expected);
+        assert(result.y == expected);
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(-1.0, belowOne),
+                result
+            )
+        );
+
+        assert(result.x == -expected);
+        assert(result.y == -expected);
+    }
+
+
+    /*
+     * Extreme component-scale separation must retain the tiny direction
+     * contribution through exact projection.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        enum double tiny =
+            0x1p-1074;
+
+        const xDominant =
+            L(
+                P(0.0, 0.0),
+                V(double.max, tiny)
+            );
+
+        P result;
+
+        assert(
+            tryNearestPoint(
+                xDominant,
+                P(0.0, double.max),
+                result
+            )
+        );
+
+        assert(result.x == tiny);
+        assert(result.y == 0.0);
+
+        const yDominant =
+            L(
+                P(0.0, 0.0),
+                V(tiny, double.max)
+            );
+
+        assert(
+            tryNearestPoint(
+                yDominant,
+                P(double.max, 0.0),
+                result
+            )
+        );
+
+        assert(result.x == 0.0);
+        assert(result.y == tiny);
+    }
+
+
+    /*
+     * Direction scale does not alter the geometric projection.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        const ordinary =
+            L(
+                P(0.0, 0.0),
+                V(1.0, 0.0)
+            );
+
+        const huge =
+            L(
+                P(0.0, 0.0),
+                V(double.max, 0.0)
+            );
+
+        P a;
+        P b;
+
+        assert(
+            tryNearestPoint(
+                ordinary,
+                P(1.0, 2.0),
+                a
+            )
+        );
+
+        assert(
+            tryNearestPoint(
+                huge,
+                P(1.0, 2.0),
+                b
+            )
+        );
+
+        assert(a == P(1.0, 0.0));
+        assert(b == a);
+    }
+
+
+    /*
+     * Equivalent horizontal PP/PV geometry remains representation-neutral
+     * even though the PP component difference is outside finite binary64.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        const pp =
+            L(
+                P(-double.max, 0.0),
+                P(double.max, 0.0)
+            );
+
+        const pv =
+            L(
+                P(-double.max, 0.0),
+                V(double.max, 0.0)
+            );
+
+        P ppResult;
+        P pvResult;
+
+        assert(
+            tryNearestPoint(
+                pp,
+                P(0.0, 1.0),
+                ppResult
+            )
+        );
+
+        assert(
+            tryNearestPoint(
+                pv,
+                P(0.0, 1.0),
+                pvResult
+            )
+        );
+
+        assert(ppResult == P(0.0, 0.0));
+        assert(pvResult == ppResult);
+    }
+
+
+    /*
+     * Full signed-long PP span remains exact before final double rounding.
+     */
+    {
+        alias P = Point2!long;
+        alias L = Line2!long;
+
+        const line =
+            L(
+                P(long.min, 0),
+                P(long.max, 0)
+            );
+
+        Point2!double result;
+
+        assert(
+            tryNearestPoint(
+                line,
+                P(0, 1),
+                result
+            )
+        );
+
+        assert(
+            result ==
+            Point2!double(
+                0.0,
+                0.0
+            )
+        );
+    }
+
+
+    /*
+     * Finite inputs may project outside finite MetricScalar output.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        const line =
+            L(
+                P(double.max, 0.0),
+                V(1.0, 1.0)
+            );
+
+        P result =
+            P(
+                7.0,
+                9.0
+            );
+
+        assert(
+            !tryNearestPoint(
+                line,
+                P(double.max, double.max),
+                result
+            )
+        );
+
+        assert(result == P.init);
+    }
+
+
+    /*
+     * Degenerate/non-finite inputs are fallible and reset the result.
+     */
+    {
+        alias P = Point2!double;
+        alias V = Vector2!double;
+        alias L = Line2!double;
+
+        P result =
+            P(
+                7.0,
+                9.0
+            );
+
+        assert(
+            !tryNearestPoint(
+                L(
+                    P(1.0, 1.0),
+                    V(0.0, 0.0)
+                ),
+                P(2.0, 3.0),
+                result
+            )
+        );
+
+        assert(result == P.init);
+
+        result = P(7.0, 9.0);
+
+        assert(
+            !tryNearestPoint(
+                L(
+                    P(0.0, 0.0),
+                    V(double.infinity, 0.0)
+                ),
+                P(2.0, 3.0),
+                result
+            )
+        );
+
+        assert(result == P.init);
+
+        result = P(7.0, 9.0);
+
+        assert(
+            !tryNearestPoint(
+                L(
+                    P(0.0, 0.0),
+                    V(1.0, 0.0)
+                ),
+                P(double.nan, 3.0),
+                result
+            )
+        );
+
+        assert(result == P.init);
+    }
+
+
+    /*
+     * real remains in the public MetricScalar family.
+     */
+    {
+        alias P = Point2!real;
+        alias V = Vector2!real;
+        alias L = Line2!real;
+
+        P result;
+
+        assert(
+            tryNearestPoint(
+                L(
+                    P(0.0L, 0.0L),
+                    V(1.0L, 0.0L)
+                ),
+                P(3.0L, 4.0L),
+                result
+            )
+        );
+
+        assert(
+            result ==
+            P(
+                3.0L,
+                0.0L
+            )
+        );
+    }
 }
 
 

@@ -13,7 +13,10 @@ import geo.internal.exact_coordinate :
     compareExactCoordinates;
 
 import geo.intersection :
-    trySegmentIntersectionOverlap;
+    SegmentContactKind,
+    segmentContactKind,
+    trySegmentIntersectionOverlap,
+    trySegmentTouchPoint;
 
 import geo.orientation :
     Orientation2,
@@ -25,6 +28,10 @@ import geo.linear_ring_view :
 import geo.point :
     Point2;
 
+import geo.point_in_polygon :
+    PointPolygonLocation,
+    tryClassifyPointInPolygon;
+
 import geo.polygon_view :
     Polygon2View;
 
@@ -35,6 +42,7 @@ import std.exception :
     assumeUnique;
 
 import geo.topology_validation :
+    validatePolygon,
     validateRing;
 
 
@@ -2325,6 +2333,535 @@ private int compareCanonicalCycles(
         assert(
             !unionInterior(
                 RegionLabel(false, false)
+            )
+        );
+    }
+}
+
+
+
+private struct MaterializedBoundaryEdge
+{
+    size_t firstVertex;
+    size_t secondVertex;
+}
+
+
+/*
+ * Verifies that materialization preserves the exact boundary-incidence graph.
+ *
+ * The points slice is indexed by the already deduplicated exact arrangement
+ * vertex ID. Different indices therefore denote different mathematical exact
+ * points, while equal indices denote the same exact point/contact.
+ *
+ * The check requires:
+ *
+ * - every materialized point finite;
+ * - exact vertex identity remains injective after rounding;
+ * - every boundary edge remains nondegenerate;
+ * - edge pairs with no shared exact vertex remain disjoint;
+ * - edge pairs with one shared exact vertex remain one touch at exactly that
+ *   materialized vertex;
+ * - duplicate boundary edges are rejected.
+ *
+ * This rules out new/lost boundary crossings, overlaps, and point contacts.
+ */
+private bool materializedBoundaryIncidencePreserved(
+    scope const(Point2!double)[] points,
+    scope const(MaterializedBoundaryEdge)[] edges
+)
+    pure nothrow @safe @nogc
+{
+    foreach (i; 0 .. points.length)
+    {
+        if (!points[i].isFinite)
+            return false;
+
+        foreach (j; i + 1 .. points.length)
+        {
+            if (points[i] == points[j])
+                return false;
+        }
+    }
+
+    foreach (edge; edges)
+    {
+        if (
+            edge.firstVertex >= points.length ||
+            edge.secondVertex >= points.length ||
+            edge.firstVertex == edge.secondVertex
+        )
+        {
+            return false;
+        }
+
+        if (
+            points[edge.firstVertex] ==
+            points[edge.secondVertex]
+        )
+        {
+            return false;
+        }
+    }
+
+    foreach (i; 0 .. edges.length)
+    {
+        const auto firstEdge =
+            Segment2!double(
+                points[
+                    edges[i].firstVertex
+                ],
+                points[
+                    edges[i].secondVertex
+                ]
+            );
+
+        foreach (j; i + 1 .. edges.length)
+        {
+            const auto secondEdge =
+                Segment2!double(
+                    points[
+                        edges[j].firstVertex
+                    ],
+                    points[
+                        edges[j].secondVertex
+                    ]
+                );
+
+            size_t sharedCount = 0;
+            size_t sharedVertex = size_t.max;
+
+            if (
+                edges[i].firstVertex ==
+                    edges[j].firstVertex ||
+                edges[i].firstVertex ==
+                    edges[j].secondVertex
+            )
+            {
+                ++sharedCount;
+                sharedVertex =
+                    edges[i].firstVertex;
+            }
+
+            if (
+                edges[i].secondVertex ==
+                    edges[j].firstVertex ||
+                edges[i].secondVertex ==
+                    edges[j].secondVertex
+            )
+            {
+                ++sharedCount;
+                sharedVertex =
+                    edges[i].secondVertex;
+            }
+
+            if (sharedCount > 1)
+                return false;
+
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    firstEdge,
+                    secondEdge
+                );
+
+            if (sharedCount == 0)
+            {
+                if (
+                    contact !=
+                    SegmentContactKind.none
+                )
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (
+                contact !=
+                SegmentContactKind.touch
+            )
+            {
+                return false;
+            }
+
+            Point2!double touch;
+
+            if (
+                !trySegmentTouchPoint(
+                    firstEdge,
+                    secondEdge,
+                    touch
+                ) ||
+                touch != points[sharedVertex]
+            )
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+/*
+ * Structural post-materialization component check.
+ *
+ * Each component must independently satisfy the existing polygon validity
+ * contract.
+ *
+ * For each pair, every exterior vertex of either component must not be inside
+ * the other polygon. Combined with exact boundary-incidence preservation,
+ * this excludes newly created interior overlap/containment while still
+ * allowing:
+ *
+ * - isolated exact point contacts (boundary);
+ * - one component located inside a hole of another (outside).
+ */
+private bool materializedComponentsRemainDisjoint(
+    scope const(Polygon2View!double)[] components
+)
+    pure nothrow @safe @nogc
+{
+    foreach (component; components)
+    {
+        if (!validatePolygon(component).valid)
+            return false;
+    }
+
+    foreach (i; 0 .. components.length)
+    {
+        foreach (j; i + 1 .. components.length)
+        {
+            const auto first =
+                components[i];
+
+            const auto second =
+                components[j];
+
+            if (
+                first.empty ||
+                second.empty
+            )
+            {
+                continue;
+            }
+
+            PointPolygonLocation location;
+
+            foreach (k; 0 .. first.exterior.length)
+            {
+                if (
+                    !tryClassifyPointInPolygon(
+                        second,
+                        first.exterior[k],
+                        location
+                    ) ||
+                    location ==
+                        PointPolygonLocation.inside
+                )
+                {
+                    return false;
+                }
+            }
+
+            foreach (k; 0 .. second.exterior.length)
+            {
+                if (
+                    !tryClassifyPointInPolygon(
+                        first,
+                        second.exterior[k],
+                        location
+                    ) ||
+                    location ==
+                        PointPolygonLocation.inside
+                )
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!double;
+    alias E = MaterializedBoundaryEdge;
+
+
+    /*
+     * One ordinary simple square preserves its exact boundary incidence.
+     */
+    {
+        const P[4] points = [
+            P(0.0, 0.0),
+            P(4.0, 0.0),
+            P(4.0, 3.0),
+            P(0.0, 3.0),
+        ];
+
+        const E[4] edges = [
+            E(0, 1),
+            E(1, 2),
+            E(2, 3),
+            E(3, 0),
+        ];
+
+        assert(
+            materializedBoundaryIncidencePreserved(
+                points[],
+                edges[]
+            )
+        );
+    }
+
+
+    /*
+     * Two result components may meet at one exact vertex ID.
+     *
+     * The materialized contact remains exactly that shared vertex and does
+     * not splice the cycles into one self-touching ring.
+     */
+    {
+        const P[7] points = [
+            P(0.0, 0.0),
+            P(2.0, 0.0),
+            P(2.0, 2.0),
+            P(0.0, 2.0),
+            P(4.0, 2.0),
+            P(4.0, 4.0),
+            P(2.0, 4.0),
+        ];
+
+        const E[8] edges = [
+            E(0, 1),
+            E(1, 2),
+            E(2, 3),
+            E(3, 0),
+            E(2, 4),
+            E(4, 5),
+            E(5, 6),
+            E(6, 2),
+        ];
+
+        assert(
+            materializedBoundaryIncidencePreserved(
+                points[],
+                edges[]
+            )
+        );
+
+        LinearRing2View!double[2] rings = [
+            LinearRing2View!double(
+                points[0 .. 4]
+            ),
+            LinearRing2View!double.init,
+        ];
+
+        P[4] secondPoints = [
+            points[2],
+            points[4],
+            points[5],
+            points[6],
+        ];
+
+        rings[1] =
+            LinearRing2View!double(
+                secondPoints[]
+            );
+
+        Polygon2View!double[2] components = [
+            Polygon2View!double(
+                rings[0 .. 1]
+            ),
+            Polygon2View!double(
+                rings[1 .. 2]
+            ),
+        ];
+
+        assert(
+            materializedComponentsRemainDisjoint(
+                components[]
+            )
+        );
+    }
+
+
+    /*
+     * Separate exact vertex IDs that collapse to one binary64 point fail the
+     * injective materialization check before edge topology is considered.
+     */
+    {
+        const P[2] points = [
+            P(
+                cast(double) long.max,
+                0.0
+            ),
+            P(
+                cast(double) (long.max - 1),
+                0.0
+            ),
+        ];
+
+        assert(points[0] == points[1]);
+
+        const E[0] noEdges;
+
+        assert(
+            !materializedBoundaryIncidencePreserved(
+                points[],
+                noEdges[]
+            )
+        );
+    }
+
+
+    /*
+     * This is the signed-long 2^53 regression used by the earlier
+     * materialization test.
+     *
+     * All four rounded vertices remain distinct, but two non-adjacent exact
+     * edges acquire a new rounded contact. Boundary-incidence verification
+     * rejects the result directly, before polygon validation.
+     */
+    {
+        enum long n =
+            9_007_199_254_740_992L;
+
+        const Point2!long[4] exactPoints = [
+            Point2!long(n,     n - 3),
+            Point2!long(n - 2, n - 4),
+            Point2!long(n + 3, n - 1),
+            Point2!long(n + 4, n - 2),
+        ];
+
+        P[4] roundedPoints;
+
+        foreach (i; 0 .. exactPoints.length)
+        {
+            roundedPoints[i] =
+                P(
+                    cast(double)
+                        exactPoints[i].x,
+                    cast(double)
+                        exactPoints[i].y
+                );
+        }
+
+        const E[4] edges = [
+            E(0, 1),
+            E(1, 2),
+            E(2, 3),
+            E(3, 0),
+        ];
+
+        assert(
+            !materializedBoundaryIncidencePreserved(
+                roundedPoints[],
+                edges[]
+            )
+        );
+    }
+
+
+    /*
+     * Component nesting inside a hole remains disjoint polygon interior.
+     */
+    {
+        P[4] outerPoints = [
+            P(0.0, 0.0),
+            P(10.0, 0.0),
+            P(10.0, 10.0),
+            P(0.0, 10.0),
+        ];
+
+        P[4] holePoints = [
+            P(3.0, 3.0),
+            P(3.0, 7.0),
+            P(7.0, 7.0),
+            P(7.0, 3.0),
+        ];
+
+        P[4] islandPoints = [
+            P(4.0, 4.0),
+            P(6.0, 4.0),
+            P(6.0, 6.0),
+            P(4.0, 6.0),
+        ];
+
+        LinearRing2View!double[3] rings = [
+            LinearRing2View!double(
+                outerPoints[]
+            ),
+            LinearRing2View!double(
+                holePoints[]
+            ),
+            LinearRing2View!double(
+                islandPoints[]
+            ),
+        ];
+
+        Polygon2View!double[2] components = [
+            Polygon2View!double(
+                rings[0 .. 2]
+            ),
+            Polygon2View!double(
+                rings[2 .. 3]
+            ),
+        ];
+
+        assert(
+            materializedComponentsRemainDisjoint(
+                components[]
+            )
+        );
+    }
+
+
+    /*
+     * Newly created component containment is rejected.
+     */
+    {
+        P[4] outerPoints = [
+            P(0.0, 0.0),
+            P(10.0, 0.0),
+            P(10.0, 10.0),
+            P(0.0, 10.0),
+        ];
+
+        P[4] innerPoints = [
+            P(2.0, 2.0),
+            P(4.0, 2.0),
+            P(4.0, 4.0),
+            P(2.0, 4.0),
+        ];
+
+        LinearRing2View!double[2] rings = [
+            LinearRing2View!double(
+                outerPoints[]
+            ),
+            LinearRing2View!double(
+                innerPoints[]
+            ),
+        ];
+
+        Polygon2View!double[2] components = [
+            Polygon2View!double(
+                rings[0 .. 1]
+            ),
+            Polygon2View!double(
+                rings[1 .. 2]
+            ),
+        ];
+
+        assert(
+            !materializedComponentsRemainDisjoint(
+                components[]
             )
         );
     }

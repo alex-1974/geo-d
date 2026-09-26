@@ -20,8 +20,14 @@ import geo.linear_ring_view :
 import geo.point :
     Point2;
 
+import geo.polygon_view :
+    Polygon2View;
+
 import geo.segment :
     Segment2;
+
+import std.exception :
+    assumeUnique;
 
 import geo.topology_validation :
     validateRing;
@@ -1705,4 +1711,275 @@ private size_t nextUnionBoundaryOutgoing(
             cast(double) second.x
         );
     }
+}
+
+
+
+/*
+ * Research-only ownership prototype for variable-size polygon-union output.
+ *
+ * Backing arrays are immutable after construction. Copying this descriptor
+ * therefore shares read-only GC-managed backing instead of deep-copying it.
+ *
+ * Public naming/layout are deliberately not proposed here.
+ */
+private struct OwnedPolygonSetResearch
+{
+private:
+    immutable(Point2!double)[] _points;
+
+    immutable(LinearRing2View!double)[] _rings;
+
+    immutable(size_t)[] _componentRingOffsets;
+
+public:
+    @property size_t componentCount() const
+        pure nothrow @safe @nogc
+    {
+        return
+            _componentRingOffsets.length > 0
+                ? _componentRingOffsets.length - 1
+                : 0;
+    }
+
+
+    Polygon2View!double component(
+        size_t index
+    ) const
+        pure nothrow @safe @nogc
+    {
+        assert(index < componentCount);
+
+        const size_t begin =
+            _componentRingOffsets[index];
+
+        const size_t end =
+            _componentRingOffsets[index + 1];
+
+        return
+            Polygon2View!double(
+                _rings[begin .. end]
+            );
+    }
+}
+
+
+/*
+ * Builds one immutable owning research result.
+ *
+ * points and componentRingOffsets are consumed. assumeUnique nulls the
+ * mutable source slices and transfers the only mutable access path into
+ * immutable backing without a second element copy.
+ *
+ * ringPointOffsets is caller-owned build metadata and is not retained.
+ *
+ * @trusted is deliberately narrow: the uniqueness proof is local because
+ * the consumed arrays are required to have no mutable aliases when passed.
+ * This helper is research-only and not a public contract.
+ */
+private OwnedPolygonSetResearch buildOwnedPolygonSetResearch(
+    ref Point2!double[] points,
+    scope const(size_t)[] ringPointOffsets,
+    ref size_t[] componentRingOffsets
+)
+    @trusted
+{
+    assert(ringPointOffsets.length > 0);
+    assert(ringPointOffsets[0] == 0);
+    assert(ringPointOffsets[$ - 1] == points.length);
+
+    foreach (i; 1 .. ringPointOffsets.length)
+    {
+        assert(
+            ringPointOffsets[i - 1] <=
+            ringPointOffsets[i]
+        );
+    }
+
+    const size_t ringCount =
+        ringPointOffsets.length - 1;
+
+    assert(componentRingOffsets.length > 0);
+    assert(componentRingOffsets[0] == 0);
+    assert(componentRingOffsets[$ - 1] == ringCount);
+
+    foreach (i; 1 .. componentRingOffsets.length)
+    {
+        assert(
+            componentRingOffsets[i - 1] <=
+            componentRingOffsets[i]
+        );
+    }
+
+    auto frozenPoints =
+        assumeUnique(points);
+
+    assert(points is null);
+
+    auto rings =
+        new LinearRing2View!double[
+            ringCount
+        ];
+
+    foreach (i; 0 .. ringCount)
+    {
+        rings[i] =
+            LinearRing2View!double(
+                frozenPoints[
+                    ringPointOffsets[i] ..
+                    ringPointOffsets[i + 1]
+                ]
+            );
+    }
+
+    auto frozenRings =
+        assumeUnique(rings);
+
+    assert(rings is null);
+
+    auto frozenComponentRingOffsets =
+        assumeUnique(
+            componentRingOffsets
+        );
+
+    assert(componentRingOffsets is null);
+
+    return
+        OwnedPolygonSetResearch(
+            frozenPoints,
+            frozenRings,
+            frozenComponentRingOffsets
+        );
+}
+
+
+@safe unittest
+{
+    alias P = Point2!double;
+
+    /*
+     * Two components:
+     *
+     * component 0
+     *     exterior + one hole
+     *
+     * component 1
+     *     exterior only
+     */
+    P[] points = [
+        P(0.0, 0.0),
+        P(10.0, 0.0),
+        P(10.0, 10.0),
+        P(0.0, 10.0),
+
+        P(2.0, 2.0),
+        P(2.0, 4.0),
+        P(4.0, 4.0),
+        P(4.0, 2.0),
+
+        P(20.0, 20.0),
+        P(22.0, 20.0),
+        P(22.0, 22.0),
+        P(20.0, 22.0),
+    ];
+
+    const size_t[4] ringPointOffsets = [
+        0,
+        4,
+        8,
+        12,
+    ];
+
+    size_t[] componentRingOffsets = [
+        0,
+        2,
+        3,
+    ];
+
+    auto result =
+        buildOwnedPolygonSetResearch(
+            points,
+            ringPointOffsets[],
+            componentRingOffsets
+        );
+
+    assert(points is null);
+    assert(componentRingOffsets is null);
+
+    assert(result.componentCount == 2);
+
+    const auto first =
+        result.component(0);
+
+    const auto second =
+        result.component(1);
+
+    assert(first.length == 2);
+    assert(first.holeCount == 1);
+    assert(first.exterior.length == 4);
+    assert(first.hole(0).length == 4);
+
+    assert(second.length == 1);
+    assert(second.holeCount == 0);
+    assert(second.exterior.length == 4);
+
+    assert(
+        first.exterior[0] ==
+        P(0.0, 0.0)
+    );
+
+    assert(
+        second.exterior[2] ==
+        P(22.0, 22.0)
+    );
+
+
+    /*
+     * Ordinary descriptor copy shares immutable backing and performs no deep
+     * copy.
+     */
+    auto copy = result;
+
+    assert(copy._points is result._points);
+    assert(copy._rings is result._rings);
+
+    assert(
+        copy._componentRingOffsets is
+        result._componentRingOffsets
+    );
+
+
+    /*
+     * A Polygon2View obtained from the result keeps references to GC-managed
+     * immutable ring/point backing. Dropping the owning descriptor does not
+     * create a stack-lifetime escape.
+     */
+    auto retainedView =
+        result.component(0);
+
+    result =
+        OwnedPolygonSetResearch.init;
+
+    assert(retainedView.length == 2);
+
+    assert(
+        retainedView.exterior[1] ==
+        P(10.0, 0.0)
+    );
+
+    assert(
+        retainedView.hole(0)[2] ==
+        P(4.0, 4.0)
+    );
+
+
+    /*
+     * The copied descriptor remains fully usable as well.
+     */
+    assert(copy.componentCount == 2);
+
+    assert(
+        copy.component(1).exterior[0] ==
+        P(20.0, 20.0)
+    );
 }

@@ -7,6 +7,16 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates,
     subtractDyadicProducts;
 
+import geo.intersection :
+    trySegmentIntersectionOverlap;
+
+import geo.orientation :
+    Orientation2,
+    orientation;
+
+import geo.point :
+    Point2;
+
 import geo.segment :
     Segment2;
 
@@ -454,6 +464,430 @@ private int compareSourceDirectionsCCW(
                 lowerDirection,
                 upperDirection
             ) < 0
+        );
+    }
+}
+
+
+
+private enum ubyte operandABoundary = 1;
+private enum ubyte operandBBoundary = 2;
+
+
+private struct CollinearAtomicSpan(T)
+{
+    Segment2!T segment;
+    ubyte operandMask;
+}
+
+
+/*
+ * Exact lexicographic ordering for finite represented input points.
+ *
+ * Collinear overlap endpoints are input endpoints, so no constructed
+ * coordinate participates in this ordering.
+ */
+private int compareRepresentedPoints(T)(
+    Point2!T lhs,
+    Point2!T rhs
+)
+    pure nothrow @safe @nogc
+{
+    if (lhs.x < rhs.x)
+        return -1;
+
+    if (rhs.x < lhs.x)
+        return 1;
+
+    if (lhs.y < rhs.y)
+        return -1;
+
+    if (rhs.y < lhs.y)
+        return 1;
+
+    return 0;
+}
+
+
+/*
+ * Research-only collinear noding for one segment from each operand.
+ *
+ * The four represented endpoints are sorted exactly, consecutive non-empty
+ * intervals are tested against both source segments, and each atomic interval
+ * records the operand-boundary membership mask.
+ *
+ * This is deliberately a semantic probe, not the production overlay noder.
+ */
+private size_t buildCollinearAtomicSpans(T)(
+    Segment2!T first,
+    Segment2!T second,
+    out CollinearAtomicSpan!T[3] spans
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    assert(first.a != first.b);
+    assert(second.a != second.b);
+
+    assert(
+        orientation(
+            first.a,
+            first.b,
+            second.a
+        ) == Orientation2.collinear
+    );
+
+    assert(
+        orientation(
+            first.a,
+            first.b,
+            second.b
+        ) == Orientation2.collinear
+    );
+
+    Point2!T[4] endpoints = [
+        first.a,
+        first.b,
+        second.a,
+        second.b,
+    ];
+
+    foreach (i; 1 .. endpoints.length)
+    {
+        const Point2!T value =
+            endpoints[i];
+
+        size_t j = i;
+
+        while (
+            j > 0 &&
+            compareRepresentedPoints(
+                value,
+                endpoints[j - 1]
+            ) < 0
+        )
+        {
+            endpoints[j] =
+                endpoints[j - 1];
+
+            --j;
+        }
+
+        endpoints[j] = value;
+    }
+
+    Point2!T[4] uniqueEndpoints;
+    size_t uniqueCount = 0;
+
+    foreach (point; endpoints)
+    {
+        if (
+            uniqueCount == 0 ||
+            compareRepresentedPoints(
+                uniqueEndpoints[uniqueCount - 1],
+                point
+            ) != 0
+        )
+        {
+            uniqueEndpoints[uniqueCount++] =
+                point;
+        }
+    }
+
+    size_t count = 0;
+
+    foreach (i; 0 .. uniqueCount - 1)
+    {
+        const Segment2!T candidate =
+            Segment2!T(
+                uniqueEndpoints[i],
+                uniqueEndpoints[i + 1]
+            );
+
+        if (candidate.a == candidate.b)
+            continue;
+
+        ubyte mask = 0;
+        Segment2!T overlap;
+
+        if (
+            trySegmentIntersectionOverlap(
+                candidate,
+                first,
+                overlap
+            ) &&
+            overlap == candidate
+        )
+        {
+            mask |= operandABoundary;
+        }
+
+        if (
+            trySegmentIntersectionOverlap(
+                candidate,
+                second,
+                overlap
+            ) &&
+            overlap == candidate
+        )
+        {
+            mask |= operandBBoundary;
+        }
+
+        if (mask == 0)
+            continue;
+
+        assert(count < spans.length);
+
+        spans[count++] =
+            CollinearAtomicSpan!T(
+                candidate,
+                mask
+            );
+    }
+
+    return count;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!int;
+    alias S = Segment2!int;
+    alias A = CollinearAtomicSpan!int;
+
+    enum ubyte both =
+        operandABoundary |
+        operandBBoundary;
+
+
+    /*
+     * Identical shared edge: source direction does not affect membership.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(4, 0)
+            );
+
+        const S second =
+            S(
+                P(0, 0),
+                P(4, 0)
+            );
+
+        A[3] spans;
+
+        const size_t count =
+            buildCollinearAtomicSpans(
+                first,
+                second,
+                spans
+            );
+
+        assert(count == 1);
+        assert(spans[0].segment == first);
+        assert(spans[0].operandMask == both);
+
+
+        A[3] reverseSpans;
+
+        const size_t reverseCount =
+            buildCollinearAtomicSpans(
+                first,
+                S(second.b, second.a),
+                reverseSpans
+            );
+
+        assert(reverseCount == 1);
+        assert(reverseSpans[0].segment == first);
+        assert(reverseSpans[0].operandMask == both);
+    }
+
+
+    /*
+     * Partial overlap:
+     *
+     *     A: 0-----------4
+     *     B:       2-----------6
+     *
+     * Atomic membership becomes A / AB / B.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(4, 0)
+            );
+
+        const S second =
+            S(
+                P(2, 0),
+                P(6, 0)
+            );
+
+        A[3] spans;
+
+        const size_t count =
+            buildCollinearAtomicSpans(
+                first,
+                second,
+                spans
+            );
+
+        assert(count == 3);
+
+        assert(
+            spans[0] ==
+            A(
+                S(
+                    P(0, 0),
+                    P(2, 0)
+                ),
+                operandABoundary
+            )
+        );
+
+        assert(
+            spans[1] ==
+            A(
+                S(
+                    P(2, 0),
+                    P(4, 0)
+                ),
+                both
+            )
+        );
+
+        assert(
+            spans[2] ==
+            A(
+                S(
+                    P(4, 0),
+                    P(6, 0)
+                ),
+                operandBBoundary
+            )
+        );
+    }
+
+
+    /*
+     * One source interval contained in the other:
+     *
+     * Atomic membership becomes A / AB / A.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const S second =
+            S(
+                P(3, 0),
+                P(7, 0)
+            );
+
+        A[3] spans;
+
+        const size_t count =
+            buildCollinearAtomicSpans(
+                first,
+                second,
+                spans
+            );
+
+        assert(count == 3);
+        assert(spans[0].operandMask == operandABoundary);
+        assert(spans[1].operandMask == both);
+        assert(spans[2].operandMask == operandABoundary);
+
+        assert(
+            spans[1].segment ==
+            S(
+                P(3, 0),
+                P(7, 0)
+            )
+        );
+    }
+
+
+    /*
+     * Endpoint-only contact creates one shared vertex but no AB edge.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(2, 0)
+            );
+
+        const S second =
+            S(
+                P(2, 0),
+                P(4, 0)
+            );
+
+        A[3] spans;
+
+        const size_t count =
+            buildCollinearAtomicSpans(
+                first,
+                second,
+                spans
+            );
+
+        assert(count == 2);
+        assert(spans[0].operandMask == operandABoundary);
+        assert(spans[1].operandMask == operandBBoundary);
+        assert(spans[0].segment.b == spans[1].segment.a);
+    }
+
+
+    /*
+     * Vertical collinear overlap uses the same endpoint-only noding model.
+     */
+    {
+        const S first =
+            S(
+                P(5, -4),
+                P(5, 4)
+            );
+
+        const S second =
+            S(
+                P(5, 1),
+                P(5, 9)
+            );
+
+        A[3] spans;
+
+        const size_t count =
+            buildCollinearAtomicSpans(
+                first,
+                second,
+                spans
+            );
+
+        assert(count == 3);
+
+        assert(
+            spans[1] ==
+            A(
+                S(
+                    P(5, 1),
+                    P(5, 4)
+                ),
+                both
+            )
         );
     }
 }

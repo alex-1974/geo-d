@@ -200,6 +200,18 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `segmentIntersectionKind` | **existing** | Batch 4 rendered Example |
 | `trySegmentIntersectionPoint` | **existing** | existing rendered Example |
 | `trySegmentIntersectionOverlap` | **existing** | Batch 4 rendered Example |
+| `LineIntersectionKind` | **family** | lineIntersectionKind / construction examples |
+| `lineIntersectionKind` | **existing** | A2 rendered Example |
+| `tryLineIntersectionPoint` | **existing** | A2 rendered Example |
+
+## `geo.line`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Line2` | **existing** | A2 rendered Example |
+| `Line2.this` | **family** | Line2 |
+| `Line2.isFinite` | **family** | Line2 |
+| `Line2.isDegenerate` | **family** | Line2 |
 
 ## `geo.linear_ring_view`
 

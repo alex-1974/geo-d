@@ -758,31 +758,67 @@ struct MemberProbe(
                 memberName
             );
 
-        pragma(
-            msg,
-            "VIS\\t",
-            label,
-            "\\t",
-            memberName,
-            "\\t",
+        static if (
             __traits(
-                getVisibility,
-                member
-            ),
-            "\\t",
-            __traits(
-                getLocation,
-                member
-            )[1],
-            "\\tmember\\t",
-            typeof(member).stringof,
-            "\\t",
-            __traits(
-                getMember,
-                T.init,
-                memberName
+                compiles,
+                typeof(member)
             )
-        );
+        )
+        {{
+            pragma(
+                msg,
+                "VIS\\t",
+                label,
+                "\\t",
+                memberName,
+                "\\t",
+                __traits(
+                    getVisibility,
+                    member
+                ),
+                "\\t",
+                __traits(
+                    getLocation,
+                    member
+                )[1],
+                "\\tmember\\t",
+                typeof(member).stringof,
+                "\\t",
+                __traits(
+                    getMember,
+                    T.init,
+                    memberName
+                )
+            );
+        }}
+        else
+        {{
+            /*
+             * A nested type declaration is a member symbol but not a value
+             * expression. Record its visibility for aggregate-surface
+             * verification without applying typeof() or T.init member access.
+             */
+            pragma(
+                msg,
+                "VIS\\t",
+                label,
+                "\\t",
+                memberName,
+                "\\t",
+                __traits(
+                    getVisibility,
+                    member
+                ),
+                "\\t",
+                __traits(
+                    getLocation,
+                    member
+                )[1],
+                "\\ttype\\t",
+                member.stringof,
+                "\\t"
+            );
+        }}
     }}
     else
     {{

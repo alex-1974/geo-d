@@ -2,6 +2,14 @@
 
 Contributions to `geo-d` are welcome.
 
+## Branch workflow
+
+Normal development and pull requests target `develop`.
+
+`main` is reserved for qualified release states. Topic branches normally
+start from `develop` and return to `develop`; release qualification is handled
+separately before changes reach `main`.
+
 The library aims to remain small, robust, explicit about numerical semantics, and useful independently of any particular GIS application.
 
 ## Development principles

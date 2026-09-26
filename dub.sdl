@@ -10,7 +10,5 @@ toolchainRequirements frontend=">=2.111.0"
 targetType "library"
 sourcePaths "source"
 
-dflags "-preview=dip1000"
-
 # Shared declaration identity for neutral geo-d / geo3-d contracts.
 dependency "euclid-core-d" version="~>0.1.2"

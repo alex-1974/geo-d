@@ -78,8 +78,9 @@ D lifetime annotations such as scope and return shall be used where
 they correctly strengthen this contract and are supported by the
 required compilers.
 
-The geo-d build enables `-preview=dip1000` so that these escape
-relationships are compiler-enforced rather than merely documentary.
+The published geo-d package does not require consumers to enable DIP1000
+package-wide. These escape relationships are compiler-enforced in dedicated
+positive/negative compile fixtures run explicitly with `-preview=dip1000`.
 
 The initial `PolylineView` lifetime model was verified with both DMD
 and LDC: a local backing array may be viewed within its lifetime, while

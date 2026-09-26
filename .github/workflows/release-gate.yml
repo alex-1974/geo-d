@@ -1,20 +1,20 @@
-name: CI
+name: Release Gate
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     branches:
-      - develop
+      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  fast:
-    name: Fast / ${{ matrix.compiler }}
+  compiler-gate:
+    name: Release / ${{ matrix.compiler }}
     runs-on: ubuntu-24.04
 
     strategy:
@@ -22,7 +22,11 @@ jobs:
       matrix:
         compiler:
           - dmd-2.111.0
+          - dmd-2.112.1
+          - dmd-2.113.0
           - ldc-1.41.0
+          - ldc-1.42.0
+          - ldc-1.43.0
 
     steps:
       - name: Check out repository
@@ -68,16 +72,22 @@ jobs:
         shell: bash
         run: bash tools/build-docs.sh
 
-  canary:
-    name: Canary / ${{ matrix.compiler }}
-    runs-on: ubuntu-24.04
+  portability:
+    name: Release portability / ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        compiler:
-          - dmd-latest
-          - ldc-latest
+        include:
+          - name: Linux ARM64 / LDC latest
+            os: ubuntu-24.04-arm
+          - name: Windows x64 / LDC latest
+            os: windows-latest
+          - name: macOS Intel / LDC latest
+            os: macos-15-intel
+          - name: macOS ARM64 / LDC latest
+            os: macos-latest
 
     steps:
       - name: Check out repository
@@ -86,12 +96,14 @@ jobs:
       - name: Install D compiler
         uses: dlang-community/setup-dlang@v2
         with:
-          compiler: ${{ matrix.compiler }}
-          dub: 1.40.0
+          compiler: ldc-latest
 
-      - name: Compiler versions
+      - name: Platform and compiler information
         shell: bash
         run: |
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "RUNNER_ARCH=$RUNNER_ARCH"
+          uname -a || true
           echo "DC=$DC"
           "$DC" --version
           dub --version
@@ -100,25 +112,11 @@ jobs:
         shell: bash
         run: dub test --compiler="$DC" --force
 
-      - name: Run lifetime compile-negative tests
-        shell: bash
-        run: bash tests/compile-negative/run.sh "$DC"
-
       - name: Run external consumer test
         shell: bash
-        run: |
-          cd tests/consumer
-          dub run --compiler="$DC" --force
-
-      - name: Run 2D/3D family coexistence test
-        shell: bash
-        run: bash tests/family-consumer/run.sh "$DC"
+        working-directory: tests/consumer
+        run: dub run --compiler="$DC" --force
 
       - name: Build release configuration
         shell: bash
         run: dub build --build=release --compiler="$DC" --force
-
-      - name: Build and verify public API documentation
-        if: matrix.compiler == 'dmd-latest'
-        shell: bash
-        run: bash tools/build-docs.sh

@@ -414,7 +414,9 @@ Build the release configuration with LDC:
 dub build --build=release --compiler=ldc2 --force
 ~~~
 
-The package currently builds with DIP1000 enabled.
+The published package does not impose a preview language mode on consumers.
+Borrowed-view lifetime contracts are verified separately under
+`-preview=dip1000` with DMD and LDC.
 
 DMD and LDC are the required compiler families.
 
@@ -487,7 +489,7 @@ https://alex-1974.github.io/geo-d/v1.0.0/
 ~~~
 
 The root documentation is built from the current stable release tag rather
-than from the development state of `main`. Available documentation versions
+than from the development state of `develop`. Available documentation versions
 are listed at:
 
 https://alex-1974.github.io/geo-d/versions.html

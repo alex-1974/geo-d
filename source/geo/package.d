@@ -12,7 +12,7 @@
  *
  * The public API includes:
  *
- * - points, vectors, segments, and bounds;
+ * - points, vectors, segments, unbounded lines, and bounds;
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
@@ -73,6 +73,7 @@ alias LinearRingView =
     LinearRing2View;
 
 public import geo.point : Point2;
+public import geo.line : Line2;
 public import geo.polygon_view :
     Polygon2View;
 

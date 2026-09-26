@@ -835,25 +835,51 @@ Issue #36 and research PR #37 establish:
 
 The research CI completed successfully before this design promotion.
 
+Subsequent executable design probes on draft PR #37 additionally establish:
+
+- exact source-direction angular ordering without subtracting rational overlay
+  vertices; CI run #72 passed DMD 2.111.0, LDC 1.41.0, and both rolling
+  canaries;
+- exact shared/partial-collinear noding into atomic A/B/AB boundary spans;
+  CI run #73 passed the same four jobs;
+- dual-cell `(insideA, insideB)` parity propagation for disjoint, nested,
+  overlapping, identical, and adjacent cases; CI run #74 passed;
+- local point-contact boundary continuation by exact angular face-following;
+  CI run #75 passed, while full cycle reconstruction remains a separate gate;
+- two independent binary64 materialization hazards: exact-vertex collapse and
+  a valid exact signed-long ring that retains four distinct rounded vertices
+  yet becomes topologically invalid after rounding; CI run #76 passed;
+- an immutable GC-backed owning-result prototype whose descriptor copies share
+  immutable point/ring/component backing and whose `Polygon2View` access
+  remains usable after the original owner descriptor is dropped; CI run #77
+  passed;
+- exact canonical cycle-start/sequence comparison independent of stored ring
+  start, source-segment storage reversal for an identically oriented
+  half-edge, and A/B label exchange for union membership; CI run #78 passed.
+
+These probes remain research-only implementation evidence. They are not
+production source or package exports.
+
 ## Acceptance gates
 
 This ADR remains **Proposed** until all of the following are resolved with
 executable evidence or an explicit proof:
 
-- [ ] exact source-direction angular ordering is prototyped for crossing,
+- [x] exact source-direction angular ordering is prototyped for crossing,
       T-junction, shared-edge, opposite-ray, and multi-edge vertices;
-- [ ] shared-edge and partial-collinear-overlap noding fixtures produce the
+- [x] shared-edge and partial-collinear-overlap noding fixtures produce the
       required operand-boundary membership;
-- [ ] exact region labeling is demonstrated for connected, disconnected, and
+- [x] exact region labeling is demonstrated for connected, disconnected, and
       nested arrangement components;
 - [ ] exact cycle reconstruction handles point-only contacts without creating
       self-touching rings;
 - [ ] the topology-preserving binary64 materialization check set is proven
       sufficient for the selected result contract;
-- [ ] the owning immutable result/lifetime model is prototyped with DMD and
+- [x] the owning immutable result/lifetime model is prototyped with DMD and
       LDC;
-- [ ] deterministic canonicalization is verified under operand swap, source
-      reversal, and ring start rotation;
+- [x] deterministic canonicalization primitives are verified under A/B label
+      exchange, source reversal, and ring start rotation; full overlay-level
+      permutation invariance remains part of production/property verification;
 - [ ] complexity, allocation, and failure behavior are documented against the
       executable candidate;
 - [ ] Issue #38 records the final disposition of every open design question.

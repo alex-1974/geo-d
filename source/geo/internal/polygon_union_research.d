@@ -891,3 +891,509 @@ if (
         );
     }
 }
+
+
+
+private struct RegionLabel
+{
+    bool insideA;
+    bool insideB;
+}
+
+
+private struct RegionTransition
+{
+    size_t firstCell;
+    size_t secondCell;
+    ubyte operandMask;
+}
+
+
+/*
+ * Crossing one exact atomic arrangement edge toggles the inside parity for
+ * every operand whose boundary contributes to that edge.
+ */
+private RegionLabel crossBoundary(
+    RegionLabel source,
+    ubyte operandMask
+)
+    pure nothrow @safe @nogc
+{
+    assert(
+        (
+            operandMask &
+            ~(
+                operandABoundary |
+                operandBBoundary
+            )
+        ) == 0
+    );
+
+    if (
+        (
+            operandMask &
+            operandABoundary
+        ) != 0
+    )
+    {
+        source.insideA =
+            !source.insideA;
+    }
+
+    if (
+        (
+            operandMask &
+            operandBBoundary
+        ) != 0
+    )
+    {
+        source.insideB =
+            !source.insideB;
+    }
+
+    return source;
+}
+
+
+private bool unionInterior(
+    RegionLabel label
+)
+    pure nothrow @safe @nogc
+{
+    return
+        label.insideA ||
+        label.insideB;
+}
+
+
+private bool unionBoundaryBetween(
+    RegionLabel first,
+    RegionLabel second
+)
+    pure nothrow @safe @nogc
+{
+    return
+        unionInterior(first) !=
+        unionInterior(second);
+}
+
+
+/*
+ * Research-only exact parity propagation over an already constructed dual
+ * arrangement graph.
+ *
+ * Cell zero is the unbounded exterior and is seeded as outside both operands.
+ *
+ * The graph itself is topological: no coordinate arithmetic participates in
+ * region propagation. Boundary membership masks are exact consequences of
+ * noding/source provenance.
+ *
+ * Repeated relaxation is intentionally simple. Production code may use a
+ * queue/stack traversal once the arrangement representation is selected.
+ */
+private bool tryPropagateRegionLabels(
+    scope const(RegionTransition)[] transitions,
+    scope RegionLabel[] labels,
+    scope bool[] assigned
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        labels.length == 0 ||
+        assigned.length != labels.length
+    )
+    {
+        return false;
+    }
+
+    foreach (i; 0 .. labels.length)
+    {
+        labels[i] =
+            RegionLabel.init;
+
+        assigned[i] = false;
+    }
+
+    assigned[0] = true;
+
+    bool changed;
+
+    do
+    {
+        changed = false;
+
+        foreach (transition; transitions)
+        {
+            if (
+                transition.firstCell >= labels.length ||
+                transition.secondCell >= labels.length ||
+                transition.operandMask == 0 ||
+                (
+                    transition.operandMask &
+                    ~(
+                        operandABoundary |
+                        operandBBoundary
+                    )
+                ) != 0
+            )
+            {
+                return false;
+            }
+
+            const bool firstAssigned =
+                assigned[
+                    transition.firstCell
+                ];
+
+            const bool secondAssigned =
+                assigned[
+                    transition.secondCell
+                ];
+
+            if (
+                firstAssigned &&
+                !secondAssigned
+            )
+            {
+                labels[
+                    transition.secondCell
+                ] =
+                    crossBoundary(
+                        labels[
+                            transition.firstCell
+                        ],
+                        transition.operandMask
+                    );
+
+                assigned[
+                    transition.secondCell
+                ] = true;
+
+                changed = true;
+            }
+            else if (
+                !firstAssigned &&
+                secondAssigned
+            )
+            {
+                labels[
+                    transition.firstCell
+                ] =
+                    crossBoundary(
+                        labels[
+                            transition.secondCell
+                        ],
+                        transition.operandMask
+                    );
+
+                assigned[
+                    transition.firstCell
+                ] = true;
+
+                changed = true;
+            }
+            else if (
+                firstAssigned &&
+                secondAssigned
+            )
+            {
+                if (
+                    crossBoundary(
+                        labels[
+                            transition.firstCell
+                        ],
+                        transition.operandMask
+                    ) !=
+                    labels[
+                        transition.secondCell
+                    ]
+                )
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    while (changed);
+
+    foreach (isAssigned; assigned)
+    {
+        if (!isAssigned)
+            return false;
+    }
+
+    return true;
+}
+
+
+@safe unittest
+{
+    alias T = RegionTransition;
+
+    enum ubyte both =
+        operandABoundary |
+        operandBBoundary;
+
+
+    /*
+     * Disjoint arrangement components share one unbounded exterior face.
+     *
+     *     cell 0 = outside both
+     *     cell 1 = inside A
+     *     cell 2 = inside B
+     */
+    {
+        const T[2] transitions = [
+            T(0, 1, operandABoundary),
+            T(0, 2, operandBBoundary),
+        ];
+
+        RegionLabel[3] labels;
+        bool[3] assigned;
+
+        assert(
+            tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+
+        assert(
+            labels[0] ==
+            RegionLabel(false, false)
+        );
+
+        assert(
+            labels[1] ==
+            RegionLabel(true, false)
+        );
+
+        assert(
+            labels[2] ==
+            RegionLabel(false, true)
+        );
+
+        assert(
+            unionBoundaryBetween(
+                labels[0],
+                labels[1]
+            )
+        );
+
+        assert(
+            unionBoundaryBetween(
+                labels[0],
+                labels[2]
+            )
+        );
+    }
+
+
+    /*
+     * B nested strictly inside A with no boundary intersection:
+     *
+     *     outside --A--> A-only --B--> A+B
+     *
+     * The B boundary is not a union boundary because both adjacent cells are
+     * inside the union.
+     */
+    {
+        const T[2] transitions = [
+            T(0, 1, operandABoundary),
+            T(1, 2, operandBBoundary),
+        ];
+
+        RegionLabel[3] labels;
+        bool[3] assigned;
+
+        assert(
+            tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+
+        assert(
+            labels[1] ==
+            RegionLabel(true, false)
+        );
+
+        assert(
+            labels[2] ==
+            RegionLabel(true, true)
+        );
+
+        assert(
+            !unionBoundaryBetween(
+                labels[1],
+                labels[2]
+            )
+        );
+    }
+
+
+    /*
+     * Ordinary overlap has all four parity cells.
+     *
+     * The transition cycle must be algebraically consistent.
+     */
+    {
+        const T[4] transitions = [
+            T(0, 1, operandABoundary),
+            T(0, 2, operandBBoundary),
+            T(1, 3, operandBBoundary),
+            T(2, 3, operandABoundary),
+        ];
+
+        RegionLabel[4] labels;
+        bool[4] assigned;
+
+        assert(
+            tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+
+        assert(
+            labels[0] ==
+            RegionLabel(false, false)
+        );
+
+        assert(
+            labels[1] ==
+            RegionLabel(true, false)
+        );
+
+        assert(
+            labels[2] ==
+            RegionLabel(false, true)
+        );
+
+        assert(
+            labels[3] ==
+            RegionLabel(true, true)
+        );
+
+        assert(
+            !unionBoundaryBetween(
+                labels[1],
+                labels[3]
+            )
+        );
+
+        assert(
+            !unionBoundaryBetween(
+                labels[2],
+                labels[3]
+            )
+        );
+    }
+
+
+    /*
+     * Identical boundaries toggle both operand parities together.
+     */
+    {
+        const T[1] transitions = [
+            T(0, 1, both),
+        ];
+
+        RegionLabel[2] labels;
+        bool[2] assigned;
+
+        assert(
+            tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+
+        assert(
+            labels[1] ==
+            RegionLabel(true, true)
+        );
+
+        assert(
+            unionBoundaryBetween(
+                labels[0],
+                labels[1]
+            )
+        );
+    }
+
+
+    /*
+     * Adjacent polygons sharing an edge:
+     *
+     *     outside --A--> A-only
+     *     outside --B--> B-only
+     *     A-only --AB--> B-only
+     *
+     * The shared AB edge separates two union-interior cells and is therefore
+     * removed from the union boundary.
+     */
+    {
+        const T[3] transitions = [
+            T(0, 1, operandABoundary),
+            T(0, 2, operandBBoundary),
+            T(1, 2, both),
+        ];
+
+        RegionLabel[3] labels;
+        bool[3] assigned;
+
+        assert(
+            tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+
+        assert(
+            labels[1] ==
+            RegionLabel(true, false)
+        );
+
+        assert(
+            labels[2] ==
+            RegionLabel(false, true)
+        );
+
+        assert(
+            !unionBoundaryBetween(
+                labels[1],
+                labels[2]
+            )
+        );
+    }
+
+
+    /*
+     * An inconsistent dual graph is detected rather than silently assigning
+     * contradictory topology.
+     */
+    {
+        const T[3] transitions = [
+            T(0, 1, operandABoundary),
+            T(1, 2, operandBBoundary),
+            T(0, 2, operandABoundary),
+        ];
+
+        RegionLabel[3] labels;
+        bool[3] assigned;
+
+        assert(
+            !tryPropagateRegionLabels(
+                transitions[],
+                labels[],
+                assigned[]
+            )
+        );
+    }
+}

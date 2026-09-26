@@ -61,7 +61,15 @@ Canonical current documentation uses the dimension-explicit v2 names.
 Deprecated v1 names are documented only where compatibility or migration
 behaviour is the subject.
 
+Consumer-backed future geometry research is recorded separately from stable
+API contracts. The current polygon-union research gate is documented in:
 
+~~~text
+docs/polygon-union-research.md
+~~~
+
+That document compares robust overlay architectures and validation oracles.
+It does not authorize a public API or production implementation.
 
 ## Core geometry model
 

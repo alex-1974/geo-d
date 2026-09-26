@@ -2522,7 +2522,7 @@ private bool materializedBoundaryIncidencePreserved(
 private bool materializedComponentsRemainDisjoint(
     scope const(Polygon2View!double)[] components
 )
-    pure nothrow @safe @nogc
+    pure nothrow @safe
 {
     foreach (component; components)
     {

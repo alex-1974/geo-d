@@ -53,6 +53,8 @@ if (isPolygonUnionArrangementScalar!T)
 
     Segment2!T source;
     bool canonicalFollowsSource;
+
+    ubyte interiorLeftMask;
 }
 
 
@@ -336,7 +338,8 @@ if (isPolygonUnionArrangementScalar!T)
                 second,
                 atomic.operandMask,
                 atomic.source,
-                atomic.canonicalFollowsSource
+                atomic.canonicalFollowsSource,
+                atomic.interiorLeftMask
             );
     }
 
@@ -605,6 +608,7 @@ int compareExactSourceDirectionsCCW(
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 atomic[0 .. 2],
                 firstAtomicCount
@@ -615,6 +619,7 @@ int compareExactSourceDirectionsCCW(
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 atomic[2 .. 4],
                 secondAtomicCount
@@ -736,6 +741,7 @@ int compareExactSourceDirectionsCCW(
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 atomic[0 .. 2],
                 firstAtomicCount
@@ -746,6 +752,7 @@ int compareExactSourceDirectionsCCW(
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 atomic[2 .. 4],
                 secondAtomicCount
@@ -828,7 +835,8 @@ int compareExactSourceDirectionsCCW(
             1,
             polygonUnionOperandA,
             east,
-            true
+            true,
+            polygonUnionOperandA
         );
 
     const E northEdge =
@@ -837,7 +845,8 @@ int compareExactSourceDirectionsCCW(
             2,
             polygonUnionOperandA,
             north,
-            true
+            true,
+            polygonUnionOperandA
         );
 
     const auto eastDirection =
@@ -914,7 +923,8 @@ int compareExactSourceDirectionsCCW(
             1,
             polygonUnionOperandA,
             east,
-            true
+            true,
+            polygonUnionOperandA
         );
 
     const E northEastEdge =
@@ -923,7 +933,8 @@ int compareExactSourceDirectionsCCW(
             2,
             polygonUnionOperandA,
             northEast,
-            true
+            true,
+            polygonUnionOperandA
         );
 
     const E northEdge =
@@ -932,7 +943,8 @@ int compareExactSourceDirectionsCCW(
             3,
             polygonUnionOperandA,
             north,
-            true
+            true,
+            polygonUnionOperandA
         );
 
     const auto eastDirection =

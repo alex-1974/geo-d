@@ -1033,6 +1033,30 @@ Investigate a platform-aware exact or certified arithmetic backend for:
 No public assumption may be made about the representation, precision, or
 layout of D `real`.
 
+## Polygon union — accepted design, implementation pending
+
+The OSM-editor consumer audit established polygon union as a concrete
+consumer-backed missing geometry construction.
+
+ADR-0023 is Accepted and defines the implementation contract:
+
+- regularized union of valid 2D polygons;
+- exact noded-arrangement topology;
+- exact event identity/order for the supported robust scalar domain;
+- `IntersectionScalar!T` construction coordinates;
+- topology-preserving all-or-nothing binary64 materialization;
+- deterministic component/ring construction;
+- an explicit immutable owning result;
+- correctness-first P1 semantics before scalable candidate-discovery work.
+
+Production implementation may now proceed, but no polygon-union package export
+or final public API spelling exists yet. The implementation/API PR must satisfy
+the normal public-surface, documentation, external-consumer, compiler, and
+numerical verification gates.
+
+The broader Boolean-overlay family remains unpromoted publicly; intersection,
+difference, and symmetric difference still require separate evidence.
+
 ## Candidate future geometry
 
 These are possible future areas, not a committed version plan.

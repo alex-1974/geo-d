@@ -843,11 +843,23 @@ bool tryMaterializeExactUnionBoundary(
     );
 
     /*
-     * The unused slots remain non-result scratch and are deliberately not
-     * required to be finite or injective.
+     * The unused slots are non-result scratch. Their representation is
+     * deliberately unspecified; only their absence from the selected
+     * incidence graph matters.
      */
-    assert(!materialized[2].isFinite);
-    assert(!materialized[3].isFinite);
+    Point2!double[4] fullMaterialization;
+
+    assert(
+        tryMaterializeExactOverlayVertices(
+            exactVertices[],
+            fullMaterialization[]
+        )
+    );
+
+    assert(
+        fullMaterialization[2] ==
+        fullMaterialization[3]
+    );
 }
 
 

@@ -1518,3 +1518,73 @@ Benchmark harness commit:
 Absolute timings are machine-, compiler-, build-, and workload-dependent and
 are not part of the public API or performance contract.
 
+
+## Polygon-union P1 benchmark
+
+`polygon_union_bench.d` establishes the correctness-first P1 baseline for the
+public `polygonUnion()` operation before any P3 candidate-discovery
+acceleration is considered.
+
+Coverage includes:
+
+- disjoint integral rectangles;
+- ordinary overlapping integral rectangles;
+- a shared-edge union;
+- point-only contact, which intentionally retains two 2D-interior components;
+- a polygon with a hole plus an island inside that hole;
+- an ordinary overlapping binary64 rectangle case;
+- overlapping convex binary64 rings with 16, 64, and 128 vertices per input.
+
+The two alternating inputs for each workload are fully constructed before
+timing. Each benchmark performs a warm-up, seven measured repetitions, sorts
+the samples, and reports the median nanoseconds per public union operation.
+The result shape contributes to a global sink to prevent dead-code
+elimination.
+
+Unlike caller-buffer algorithms, polygon union necessarily allocates
+variable-size exact-overlay workspace and immutable result storage. Those
+allocations remain inside the timed operation because they are part of the
+public P1 contract.
+
+The scaling cases are diagnostic rather than an asymptotic proof. P1 is
+allowed to use pairwise candidate discovery, and its post-materialization
+topology verification may itself be quadratic in result boundary size. The
+baseline exists to record actual behavior before optimization, not to justify
+a particular acceleration in advance.
+
+### Build
+
+LDC:
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/polygon_union_bench.d \
+        -of=/tmp/geo-d-polygon-union-bench-ldc
+
+    /tmp/geo-d-polygon-union-bench-ldc
+
+DMD:
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        -Isource \
+        benchmarks/polygon_union_bench.d \
+        -of=/tmp/geo-d-polygon-union-bench-dmd
+
+    /tmp/geo-d-polygon-union-bench-dmd
+
+The initial P1 timing table is intentionally recorded only after the harness
+has been compiled and run on the controlled local benchmark machine with both
+baseline compilers. No P3 optimization should be implemented before that
+measurement is committed.
+
+Absolute timings are machine-, compiler-, build-, workload-, and GC-dependent
+and are not part of the public API or performance contract.

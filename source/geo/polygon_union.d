@@ -277,6 +277,59 @@ if (isPolygonUnionScalar!T)
 }
 
 
+/// Example constructing a polygon union through the public owning result API.
+@safe unittest
+{
+    import geo;
+
+    alias P = Point2!int;
+    alias R = LinearRing2View!int;
+    alias G = Polygon2View!int;
+
+    P[4] outerPoints = [
+        P(0, 0),
+        P(8, 0),
+        P(8, 8),
+        P(0, 8),
+    ];
+
+    P[4] innerPoints = [
+        P(2, 2),
+        P(4, 2),
+        P(4, 4),
+        P(2, 4),
+    ];
+
+    R[1] outerRings = [
+        R(outerPoints[])
+    ];
+
+    R[1] innerRings = [
+        R(innerPoints[])
+    ];
+
+    const result =
+        polygonUnion(
+            first: G(outerRings[]),
+            second: G(innerRings[])
+        );
+
+    assert(result.succeeded);
+    assert(result.status == PolygonUnionStatus.success);
+    assert(result.length == 1);
+
+    const component =
+        result[0];
+
+    assert(component.holeCount == 0);
+
+    assert(
+        component.exterior[0] ==
+        Point2!double(0.0, 0.0)
+    );
+}
+
+
 @safe unittest
 {
     import geo.linear_ring_view :

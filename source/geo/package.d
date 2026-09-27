@@ -21,6 +21,7 @@
  * - signed and polygon area;
  * - point-in-polygon classification;
  * - ring and polygon topology validation;
+ * - regularized polygon-union construction with immutable owning results;
  * - Douglas-Peucker polyline simplification.
  *
  * Numerical topology is deliberately separated from rounded geometric
@@ -30,9 +31,11 @@
  * ellipsoidal or geodesic calculations, raster processing, spatial indexes,
  * or geospatial file-format support.
  *
- * Variable-size geometry is represented by non-owning views. Low-level
- * numerical operations avoid hidden allocation; algorithms requiring
- * variable temporary storage document that requirement explicitly.
+ * Input variable-size geometry is represented by non-owning views.
+ * Constructed operations may return explicit owning immutable results when
+ * output size is data dependent. Low-level numerical operations avoid hidden
+ * allocation; algorithms requiring variable temporary storage document that
+ * requirement explicitly.
   *
  * Authors:
  *     Alexander Bernardi
@@ -44,7 +47,7 @@
  *     MIT
  *
  * Date:
- *     September 25, 2026
+ *     September 27, 2026
  */
 module geo;
 
@@ -87,6 +90,12 @@ alias PolygonView =
 public import geo.point_in_polygon :
     PointPolygonLocation,
     tryClassifyPointInPolygon;
+
+public import geo.polygon_union :
+    PolygonUnionResult,
+    PolygonUnionStatus,
+    polygonUnion;
+
 public import geo.polyline_view :
     Polyline2View;
 

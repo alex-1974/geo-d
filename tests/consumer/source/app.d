@@ -108,6 +108,24 @@ static foreach (name; a1VectorPrimitiveNames)
 
 
 /*
+ * Consumer-backed polygon-union surface added after the v2.0 freeze.
+ */
+enum string[] polygonUnionPublicNames = [
+    "PolygonUnionStatus",
+    "PolygonUnionResult",
+    "polygonUnion",
+];
+
+static foreach (name; polygonUnionPublicNames)
+{
+    static assert(
+        __traits(hasMember, geo, name),
+        "polygon-union public name missing from import geo: " ~ name
+    );
+}
+
+
+/*
  * Representative type and policy instantiation through import geo.
  */
 static assert(isGeoScalar!int);
@@ -127,6 +145,7 @@ static assert(is(typeof(Bounds2!double.init) == Bounds2!double));
 static assert(is(typeof(PolylineView!double.init) == PolylineView!double));
 static assert(is(typeof(LinearRingView!double.init) == LinearRingView!double));
 static assert(is(typeof(PolygonView!double.init) == PolygonView!double));
+static assert(is(typeof(PolygonUnionResult.init) == PolygonUnionResult));
 
 
 /*
@@ -338,6 +357,45 @@ static assert(
 );
 
 
+/*
+ * Polygon union follows the robust topology input domain and therefore
+ * supports int | long | float | double while deliberately excluding real.
+ */
+static assert(__traits(compiles,
+    polygonUnion(
+        Polygon2View!int.init,
+        Polygon2View!int.init
+    )));
+
+static assert(__traits(compiles,
+    polygonUnion(
+        Polygon2View!long.init,
+        Polygon2View!long.init
+    )));
+
+static assert(__traits(compiles,
+    polygonUnion(
+        Polygon2View!float.init,
+        Polygon2View!float.init
+    )));
+
+static assert(__traits(compiles,
+    polygonUnion(
+        Polygon2View!double.init,
+        Polygon2View!double.init
+    )));
+
+static assert(
+    !__traits(
+        compiles,
+        polygonUnion(
+            Polygon2View!real.init,
+            Polygon2View!real.init
+        )
+    )
+);
+
+
 @safe void main()
 {
     alias P = Point2!double;
@@ -462,6 +520,22 @@ static assert(
         validatePolygon(polygon);
 
     assert(polygonValidation.valid);
+
+
+    /*
+     * Polygon-union owning-result surface.
+     */
+    const unionResult =
+        polygonUnion(
+            first: Polygon2View!double(rings[]),
+            second: Polygon2View!double.init
+        );
+
+    assert(unionResult.succeeded);
+    assert(unionResult.status == PolygonUnionStatus.success);
+    assert(unionResult.length == 1);
+    assert(!unionResult.empty);
+    assert(unionResult[0].exterior.length == 4);
 
 
     /*

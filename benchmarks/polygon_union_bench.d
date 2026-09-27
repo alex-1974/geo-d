@@ -727,10 +727,15 @@ private void runBenchmark(alias operation)(
     if (warmupIterations == 0)
         warmupIterations = 1;
 
-    ulong localSink;
+    ulong localSink = 1;
 
     foreach (i; 0 .. warmupIterations)
-        localSink ^= operation(i);
+    {
+        localSink =
+            localSink * 1_000_003UL +
+            operation(i) +
+            cast(ulong)(i + 1);
+    }
 
     long[repetitions] samples;
 
@@ -740,7 +745,12 @@ private void runBenchmark(alias operation)(
         stopwatch.start();
 
         foreach (i; 0 .. iterations)
-            localSink ^= operation(i);
+        {
+            localSink =
+                localSink * 1_000_003UL +
+                operation(i) +
+                cast(ulong)(i + 1);
+        }
 
         stopwatch.stop();
 
@@ -748,7 +758,8 @@ private void runBenchmark(alias operation)(
             stopwatch.peek.total!"nsecs";
     }
 
-    benchmarkSink ^=
+    benchmarkSink =
+        benchmarkSink * 1_000_033UL +
         localSink;
 
     sort(samples[]);

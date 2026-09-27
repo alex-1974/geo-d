@@ -5,6 +5,7 @@ import geo.internal.polygon_union_exact :
     appendSegmentPairNodingEvents,
     compareExactOverlayPoints,
     compareExactOverlayPointsAlongSegment,
+    exactOverlayPoint,
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
     sortUniqueExactEdgeEvents;

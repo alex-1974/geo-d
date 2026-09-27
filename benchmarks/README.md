@@ -1554,14 +1554,28 @@ a particular acceleration in advance.
 
 ### Build
 
+Resolve the complete package-graph import paths through DUB before invoking a
+compiler directly. This keeps the benchmark valid after the shared
+`euclid-core-d` declarations moved to their independently versioned package.
+
 LDC:
+
+    mapfile -t import_paths < <(
+        python3 tools/dub-import-paths.py --compiler=ldc2
+    )
+
+    import_flags=()
+
+    for path in "${import_paths[@]}"; do
+        import_flags+=("-I$path")
+    done
 
     ldc2 \
         -O3 \
         -release \
         -boundscheck=off \
         -i \
-        -Isource \
+        "${import_flags[@]}" \
         benchmarks/polygon_union_bench.d \
         -of=/tmp/geo-d-polygon-union-bench-ldc
 
@@ -1569,13 +1583,23 @@ LDC:
 
 DMD:
 
+    mapfile -t import_paths < <(
+        python3 tools/dub-import-paths.py --compiler=dmd
+    )
+
+    import_flags=()
+
+    for path in "${import_paths[@]}"; do
+        import_flags+=("-I$path")
+    done
+
     dmd \
         -O \
         -release \
         -inline \
         -boundscheck=off \
         -i \
-        -Isource \
+        "${import_flags[@]}" \
         benchmarks/polygon_union_bench.d \
         -of=/tmp/geo-d-polygon-union-bench-dmd
 

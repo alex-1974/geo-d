@@ -2,11 +2,20 @@ module geo.internal.polygon_union_exact;
 
 import geo.internal.dyadic :
     DyadicProductMagnitude,
-    decodeDyadicCoordinate;
+    decodeDyadicCoordinate,
+    dyadicProductLimbs;
 
 import geo.internal.exact_coordinate :
     SignedExactCoordinateNumerator,
-    compareExactCoordinates;
+    compareExactCoordinates,
+    exactCoordinateNumeratorLimbs;
+
+import geo.internal.fixed_uint :
+    UIntFixed,
+    addUnsigned,
+    compareUnsigned,
+    multiplyUnsigned,
+    subtractUnsigned;
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
@@ -135,6 +144,375 @@ ExactOverlayPoint exactOverlayPoint(
             intersection.denominator
         );
 }
+
+
+/*
+ * One homogeneous orientation term contains two exact coordinate numerators
+ * and one positive exact denominator:
+ *
+ *     198 + 198 + 132 = 528 32-bit limbs.
+ *
+ * A 3x3 determinant contains six signed terms. One additional limb provides
+ * more than the required three bits of accumulation headroom.
+ */
+private enum size_t exactOverlayOrientationTermLimbs =
+    exactCoordinateNumeratorLimbs * 2 +
+    dyadicProductLimbs;
+
+private enum size_t exactOverlayOrientationAccumulatorLimbs =
+    exactOverlayOrientationTermLimbs + 1;
+
+private alias ExactOverlayOrientationTermMagnitude =
+    UIntFixed!exactOverlayOrientationTermLimbs;
+
+private alias ExactOverlayOrientationAccumulatorMagnitude =
+    UIntFixed!exactOverlayOrientationAccumulatorLimbs;
+
+
+private struct ExactOverlayOrientationAccumulator
+{
+    int sign;
+    ExactOverlayOrientationAccumulatorMagnitude magnitude;
+}
+
+
+private ExactOverlayOrientationAccumulatorMagnitude
+widenOverlayOrientationTerm(
+    ref const ExactOverlayOrientationTermMagnitude term
+)
+    pure nothrow @safe @nogc
+{
+    ExactOverlayOrientationAccumulatorMagnitude result;
+
+    foreach (i; 0 .. exactOverlayOrientationTermLimbs)
+        result.limb[i] = term.limb[i];
+
+    return result;
+}
+
+
+private void addOverlayOrientationTerm(
+    ref ExactOverlayOrientationAccumulator accumulator,
+    int termSign,
+    ref const ExactOverlayOrientationTermMagnitude term
+)
+    pure nothrow @safe @nogc
+{
+    assert(
+        termSign == -1 ||
+        termSign == 0 ||
+        termSign == 1
+    );
+
+    if (
+        termSign == 0 ||
+        term.isZero
+    )
+    {
+        return;
+    }
+
+    const auto widened =
+        widenOverlayOrientationTerm(
+            term
+        );
+
+    if (
+        accumulator.sign == 0 ||
+        accumulator.magnitude.isZero
+    )
+    {
+        accumulator.sign =
+            termSign;
+
+        accumulator.magnitude =
+            widened;
+
+        return;
+    }
+
+    if (
+        accumulator.sign ==
+        termSign
+    )
+    {
+        accumulator.magnitude =
+            addUnsigned(
+                accumulator.magnitude,
+                widened
+            );
+
+        return;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            accumulator.magnitude,
+            widened
+        );
+
+    if (comparison == 0)
+    {
+        accumulator =
+            ExactOverlayOrientationAccumulator.init;
+
+        return;
+    }
+
+    if (comparison > 0)
+    {
+        accumulator.magnitude =
+            subtractUnsigned(
+                accumulator.magnitude,
+                widened
+            );
+
+        return;
+    }
+
+    accumulator.magnitude =
+        subtractUnsigned(
+            widened,
+            accumulator.magnitude
+        );
+
+    accumulator.sign =
+        termSign;
+}
+
+
+private ExactOverlayOrientationTermMagnitude
+multiplyExactNumeratorsAndDenominator(
+    ref const SignedExactCoordinateNumerator first,
+    ref const SignedExactCoordinateNumerator second,
+    ref const DyadicProductMagnitude denominator
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        first.sign == 0 ||
+        first.magnitude.isZero ||
+        second.sign == 0 ||
+        second.magnitude.isZero
+    )
+    {
+        return
+            ExactOverlayOrientationTermMagnitude.init;
+    }
+
+    const auto numeratorProduct =
+        multiplyUnsigned(
+            first.magnitude,
+            second.magnitude
+        );
+
+    return
+        multiplyUnsigned(
+            numeratorProduct,
+            denominator
+        );
+}
+
+
+private int exactNumeratorProductSign(
+    ref const SignedExactCoordinateNumerator first,
+    ref const SignedExactCoordinateNumerator second
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        first.sign == 0 ||
+        first.magnitude.isZero ||
+        second.sign == 0 ||
+        second.magnitude.isZero
+    )
+    {
+        return 0;
+    }
+
+    return
+        first.sign ==
+        second.sign
+            ? 1
+            : -1;
+}
+
+
+/*
+ * Exact orientation of three rational overlay points.
+ *
+ * Each point stores:
+ *
+ *     (xNumerator / denominator,
+ *      yNumerator / denominator) * 2^-1074
+ *
+ * Denominators are positive. Multiplying the usual orientation determinant
+ * by the positive common denominator product leaves the sign unchanged and
+ * yields the homogeneous determinant
+ *
+ *     | ax ay ad |
+ *     | bx by bd |
+ *     | cx cy cd |
+ *
+ * expanded into six fixed-width integer terms.
+ *
+ * Returns:
+ *
+ *     -1 clockwise
+ *      0 collinear
+ *      1 counter-clockwise
+ *
+ * No floating-point construction, GCD normalization, or allocation occurs.
+ */
+int orientationExactOverlayPoints(
+    ref const ExactOverlayPoint a,
+    ref const ExactOverlayPoint b,
+    ref const ExactOverlayPoint c
+)
+    pure nothrow @safe @nogc
+{
+    assert(!a.denominator.isZero);
+    assert(!b.denominator.isZero);
+    assert(!c.denominator.isZero);
+
+    ExactOverlayOrientationAccumulator accumulator;
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                a.xNumerator,
+                b.yNumerator,
+                c.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            exactNumeratorProductSign(
+                a.xNumerator,
+                b.yNumerator
+            ),
+            term
+        );
+    }
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                a.xNumerator,
+                c.yNumerator,
+                b.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            -exactNumeratorProductSign(
+                a.xNumerator,
+                c.yNumerator
+            ),
+            term
+        );
+    }
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                a.yNumerator,
+                b.xNumerator,
+                c.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            -exactNumeratorProductSign(
+                a.yNumerator,
+                b.xNumerator
+            ),
+            term
+        );
+    }
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                a.yNumerator,
+                c.xNumerator,
+                b.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            exactNumeratorProductSign(
+                a.yNumerator,
+                c.xNumerator
+            ),
+            term
+        );
+    }
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                b.xNumerator,
+                c.yNumerator,
+                a.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            exactNumeratorProductSign(
+                b.xNumerator,
+                c.yNumerator
+            ),
+            term
+        );
+    }
+
+
+    {
+        const auto term =
+            multiplyExactNumeratorsAndDenominator(
+                b.yNumerator,
+                c.xNumerator,
+                a.denominator
+            );
+
+        addOverlayOrientationTerm(
+            accumulator,
+            -exactNumeratorProductSign(
+                b.yNumerator,
+                c.xNumerator
+            ),
+            term
+        );
+    }
+
+
+    if (accumulator.magnitude.isZero)
+        return 0;
+
+    assert(
+        accumulator.sign == -1 ||
+        accumulator.sign == 1
+    );
+
+    return accumulator.sign;
+}
+
+
+static assert(
+    exactOverlayOrientationTermLimbs ==
+    528
+);
+
+static assert(
+    exactOverlayOrientationAccumulatorLimbs ==
+    529
+);
 
 
 /*
@@ -970,6 +1348,121 @@ if (isPolygonUnionExactScalar!T)
         assert(firstCount == beforeFirst);
         assert(secondCount == beforeSecond);
     }
+}
+
+
+@safe unittest
+{
+    /*
+     * Exact represented-point orientation.
+     */
+    const auto a =
+        exactOverlayPoint(
+            Point2!int(0, 0)
+        );
+
+    const auto b =
+        exactOverlayPoint(
+            Point2!int(4, 0)
+        );
+
+    const auto c =
+        exactOverlayPoint(
+            Point2!int(0, 3)
+        );
+
+    assert(
+        orientationExactOverlayPoints(
+            a,
+            b,
+            c
+        ) > 0
+    );
+
+    assert(
+        orientationExactOverlayPoints(
+            a,
+            c,
+            b
+        ) < 0
+    );
+
+    const auto collinear =
+        exactOverlayPoint(
+            Point2!int(2, 0)
+        );
+
+    assert(
+        orientationExactOverlayPoints(
+            a,
+            collinear,
+            b
+        ) == 0
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * A proper intersection at (2/3, 2/3) remains an exact rational input
+     * to orientation; no binary64 materialization is involved.
+     */
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    const S first =
+        S(
+            P(0, 0),
+            P(2, 2)
+        );
+
+    const S second =
+        S(
+            P(0, 1),
+            P(2, 0)
+        );
+
+    ExactProperIntersection intersection;
+
+    assert(
+        tryProperIntersectionExact(
+            first,
+            second,
+            intersection
+        )
+    );
+
+    const auto a =
+        exactOverlayPoint(
+            P(0, 0)
+        );
+
+    const auto rational =
+        exactOverlayPoint(
+            intersection
+        );
+
+    const auto c =
+        exactOverlayPoint(
+            P(0, 1)
+        );
+
+    assert(
+        orientationExactOverlayPoints(
+            a,
+            rational,
+            c
+        ) > 0
+    );
+
+    assert(
+        orientationExactOverlayPoints(
+            a,
+            c,
+            rational
+        ) < 0
+    );
 }
 
 

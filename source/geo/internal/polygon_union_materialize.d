@@ -722,12 +722,17 @@ bool tryMaterializeExactUnionBoundary(
         materialized[1]
     );
 
-    const MaterializedBoundaryEdge[0] noEdges;
+    const MaterializedBoundaryEdge[1] selectedEdge = [
+        MaterializedBoundaryEdge(
+            0,
+            1
+        ),
+    ];
 
     assert(
         !materializedBoundaryIncidencePreserved(
             materialized[],
-            noEdges[]
+            selectedEdge[]
         )
     );
 }

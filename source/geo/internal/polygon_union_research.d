@@ -1472,6 +1472,269 @@ private size_t nextUnionBoundaryOutgoing(
     return size_t.max;
 }
 
+private struct ResearchBoundaryHalfEdge
+{
+    size_t originVertex;
+    size_t destinationVertex;
+    size_t nextEdge;
+}
+
+
+/*
+ * Research-only whole-boundary cycle decomposition.
+ *
+ * nextEdge is the exact angular continuation selected by
+ * nextUnionBoundaryOutgoing after the arrangement has chosen every
+ * interior-left union half-edge.
+ *
+ * A result cycle must:
+ *
+ * - close on its own start edge;
+ * - contain at least three edges;
+ * - preserve destination -> next-origin incidence;
+ * - never revisit one exact vertex inside the same cycle.
+ *
+ * Different cycles MAY share one exact vertex. That is the required
+ * regularized point-contact case: separate two-dimensional components touch
+ * at one boundary point without being encoded as one self-touching ring.
+ *
+ * edgeCycle and vertexCycle are caller-provided research workspace.
+ */
+private bool tryTraceResearchBoundaryCycles(
+    scope const(ResearchBoundaryHalfEdge)[] edges,
+    scope size_t[] edgeCycle,
+    scope size_t[] vertexCycle,
+    out size_t cycleCount
+)
+    pure nothrow @safe @nogc
+{
+    cycleCount = 0;
+
+    if (edgeCycle.length != edges.length)
+        return false;
+
+    foreach (ref value; edgeCycle)
+        value = size_t.max;
+
+    foreach (ref value; vertexCycle)
+        value = size_t.max;
+
+    foreach (start; 0 .. edges.length)
+    {
+        if (edgeCycle[start] != size_t.max)
+            continue;
+
+        const size_t currentCycle = cycleCount;
+        size_t current = start;
+        size_t edgeCount = 0;
+
+        while (true)
+        {
+            if (current >= edges.length)
+                return false;
+
+            if (edgeCycle[current] != size_t.max)
+            {
+                if (
+                    current != start ||
+                    edgeCycle[current] != currentCycle ||
+                    edgeCount < 3
+                )
+                {
+                    return false;
+                }
+
+                break;
+            }
+
+            const auto edge = edges[current];
+
+            if (
+                edge.originVertex >= vertexCycle.length ||
+                edge.destinationVertex >= vertexCycle.length ||
+                edge.originVertex == edge.destinationVertex ||
+                edge.nextEdge >= edges.length
+            )
+            {
+                return false;
+            }
+
+            if (
+                edges[edge.nextEdge].originVertex !=
+                    edge.destinationVertex
+            )
+            {
+                return false;
+            }
+
+            /*
+             * Re-entering one exact vertex before closing on the starting
+             * edge is a self-touching cycle and therefore not one valid
+             * Polygon2View ring.
+             *
+             * A vertex used by an earlier DIFFERENT cycle is allowed and is
+             * simply re-marked for the current cycle.
+             */
+            if (
+                vertexCycle[edge.originVertex] ==
+                    currentCycle
+            )
+            {
+                return false;
+            }
+
+            vertexCycle[edge.originVertex] =
+                currentCycle;
+
+            edgeCycle[current] =
+                currentCycle;
+
+            current =
+                edge.nextEdge;
+
+            ++edgeCount;
+
+            if (edgeCount > edges.length)
+                return false;
+        }
+
+        ++cycleCount;
+    }
+
+    return true;
+}
+
+
+@safe unittest
+{
+    alias E = ResearchBoundaryHalfEdge;
+
+
+    /*
+     * Two square boundaries meet at exact vertex 0.
+     *
+     * The local angular rule has already established that point-contact
+     * sectors continue within their own interior-left boundary sector:
+     *
+     *     NE continuation: twin north -> east
+     *     SW continuation: twin south -> west
+     *
+     * The whole-boundary tracer must therefore produce TWO cycles even
+     * though both use exact vertex 0.
+     */
+    {
+        const bool[4] pointContactBoundary = [
+            true,
+            false,
+            true,
+            false,
+        ];
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                1,
+                pointContactBoundary[]
+            ) == 0
+        );
+
+        assert(
+            nextUnionBoundaryOutgoing(
+                3,
+                pointContactBoundary[]
+            ) == 2
+        );
+
+        const E[8] edges = [
+            E(0, 1, 1),
+            E(1, 2, 2),
+            E(2, 3, 3),
+            E(3, 0, 0),
+
+            E(0, 4, 5),
+            E(4, 5, 6),
+            E(5, 6, 7),
+            E(6, 0, 4),
+        ];
+
+        size_t[8] edgeCycle;
+        size_t[7] vertexCycle;
+        size_t cycleCount;
+
+        assert(
+            tryTraceResearchBoundaryCycles(
+                edges[],
+                edgeCycle[],
+                vertexCycle[],
+                cycleCount
+            )
+        );
+
+        assert(cycleCount == 2);
+
+        foreach (i; 0 .. 4)
+            assert(edgeCycle[i] == 0);
+
+        foreach (i; 4 .. 8)
+            assert(edgeCycle[i] == 1);
+    }
+
+
+    /*
+     * A single closed walk that passes through exact vertex 0 twice before
+     * returning to its start edge is rejected as a self-touching ring.
+     */
+    {
+        const E[6] edges = [
+            E(0, 1, 1),
+            E(1, 2, 2),
+            E(2, 0, 3),
+            E(0, 3, 4),
+            E(3, 4, 5),
+            E(4, 0, 0),
+        ];
+
+        size_t[6] edgeCycle;
+        size_t[5] vertexCycle;
+        size_t cycleCount;
+
+        assert(
+            !tryTraceResearchBoundaryCycles(
+                edges[],
+                edgeCycle[],
+                vertexCycle[],
+                cycleCount
+            )
+        );
+    }
+
+
+    /*
+     * Broken destination/next-origin incidence is an explicit failure rather
+     * than an implicitly repaired cycle.
+     */
+    {
+        const E[3] edges = [
+            E(0, 1, 1),
+            E(2, 3, 2),
+            E(3, 0, 0),
+        ];
+
+        size_t[3] edgeCycle;
+        size_t[4] vertexCycle;
+        size_t cycleCount;
+
+        assert(
+            !tryTraceResearchBoundaryCycles(
+                edges[],
+                edgeCycle[],
+                vertexCycle[],
+                cycleCount
+            )
+        );
+    }
+}
+
+
 
 @safe unittest
 {
@@ -2586,6 +2849,56 @@ private bool materializedComponentsRemainDisjoint(
 
     return true;
 }
+
+/*
+ * Research sufficiency contract for topology-safe materialization.
+ *
+ * Preconditions established by the exact overlay stage:
+ *
+ * - boundary cycles are already selected in exact topology;
+ * - component/ring descriptors preserve those exact cycle memberships and
+ *   vertex order;
+ * - points[] is indexed by deduplicated exact arrangement vertex ID;
+ * - edges[] is the complete selected union-boundary edge set over those IDs;
+ * - components[] is built from the SAME materialized points/cycles.
+ *
+ * Under those construction invariants the two checks below are sufficient for
+ * the selected regularized-union result contract:
+ *
+ * 1. materializedBoundaryIncidencePreserved proves that rounding preserves
+ *    exact vertex identity and the complete pairwise boundary contact graph.
+ *    Therefore no selected edge collapses, no crossing/overlap/contact is
+ *    created or lost, and point-only contacts remain the same exact contacts.
+ *
+ * 2. materializedComponentsRemainDisjoint proves that every reconstructed
+ *    component is a valid Polygon2View and that distinct component interiors
+ *    do not acquire containment/overlap. With the already-preserved boundary
+ *    graph, any new two-dimensional overlap without boundary intersection
+ *    would require one connected component interior to contain an exterior
+ *    vertex of the other; the pairwise classification rejects that case.
+ *
+ * No separate area/epsilon/snap test is required. This is intentionally a
+ * correctness-first O(E^2 + C^2 * point-in-polygon) research gate; production
+ * acceleration may replace candidate discovery only if it preserves the same
+ * semantic checks.
+ */
+private bool materializedUnionTopologyPreserved(
+    scope const(Point2!double)[] points,
+    scope const(MaterializedBoundaryEdge)[] edges,
+    scope const(Polygon2View!double)[] components
+)
+    pure nothrow @safe
+{
+    return
+        materializedBoundaryIncidencePreserved(
+            points,
+            edges
+        ) &&
+        materializedComponentsRemainDisjoint(
+            components
+        );
+}
+
 
 
 @safe unittest

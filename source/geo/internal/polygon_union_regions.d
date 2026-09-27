@@ -1,7 +1,10 @@
 module geo.internal.polygon_union_regions;
 
-import geo.internal.polygon_union_arrangement;
-import geo.internal.polygon_union_embedding;
+import geo.internal.polygon_union_arrangement :
+    ExactArrangementEdge;
+
+import geo.internal.polygon_union_embedding :
+    ExactArrangementHalfEdge;
 
 import geo.internal.polygon_union_noding :
     polygonUnionOperandA,
@@ -755,8 +758,8 @@ private bool mergeExactSideKnowledge(
  * propagation or one containment seed for an otherwise disjoint component.
  */
 bool initializeExactHalfEdgeSideLabels(T)(
-    scope const(geo.internal.polygon_union_arrangement.ExactArrangementEdge!T)[] edges,
-    scope const(geo.internal.polygon_union_embedding.ExactArrangementHalfEdge)[] halfEdges,
+    scope const(ExactArrangementEdge!T)[] edges,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
     scope ExactHalfEdgeSideLabel[] labels
 )
     pure nothrow @safe @nogc
@@ -884,8 +887,8 @@ bool seedExactHalfEdgeSideBit(
  * complete is true iff both A and B are known for every half-edge.
  */
 bool tryPropagateExactHalfEdgeSideLabels(T)(
-    scope const(geo.internal.polygon_union_arrangement.ExactArrangementEdge!T)[] edges,
-    scope const(geo.internal.polygon_union_embedding.ExactArrangementHalfEdge)[] halfEdges,
+    scope const(ExactArrangementEdge!T)[] edges,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
     scope ExactHalfEdgeSideLabel[] labels,
     out bool complete
 )
@@ -1088,8 +1091,8 @@ if (
  *   interior is selected.
  */
 bool selectExactUnionBoundaryHalfEdges(T)(
-    scope const(geo.internal.polygon_union_arrangement.ExactArrangementEdge!T)[] edges,
-    scope const(geo.internal.polygon_union_embedding.ExactArrangementHalfEdge)[] halfEdges,
+    scope const(ExactArrangementEdge!T)[] edges,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
     scope const(ExactHalfEdgeSideLabel)[] labels,
     scope bool[] selected
 )

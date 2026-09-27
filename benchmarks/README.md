@@ -18,6 +18,26 @@ They are intended primarily for:
 Absolute timings are machine-, compiler- and build-dependent and are not
 part of the public API contract.
 
+## External differential references
+
+Independent diagnostic reference implementations live under
+`benchmarks/reference/`.
+
+The polygon-union P1 implementation has an optional CGAL/EPECK differential
+probe:
+
+~~~sh
+bash benchmarks/run_polygon_union_cgal_reference.sh
+~~~
+
+It compares representation-independent union signatures rather than raw ring
+vertex arrays. See
+[`benchmarks/reference/README.md`](reference/README.md) for requirements,
+fixtures, semantics, and limitations.
+
+The CGAL toolchain is reference-only and is not a DUB, runtime, or ordinary CI
+dependency.
+
 ## Benchmarks
 
 `intersection_bench.d` measures end-to-end operations including:

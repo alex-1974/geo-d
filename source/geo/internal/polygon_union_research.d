@@ -3002,6 +3002,14 @@ private bool materializedUnionTopologyPreserved(
                 components[]
             )
         );
+
+        assert(
+            materializedUnionTopologyPreserved(
+                points[],
+                edges[],
+                components[]
+            )
+        );
     }
 
 
@@ -3024,11 +3032,20 @@ private bool materializedUnionTopologyPreserved(
         assert(points[0] == points[1]);
 
         const E[0] noEdges;
+        const Polygon2View!double[0] noComponents;
 
         assert(
             !materializedBoundaryIncidencePreserved(
                 points[],
                 noEdges[]
+            )
+        );
+
+        assert(
+            !materializedUnionTopologyPreserved(
+                points[],
+                noEdges[],
+                noComponents[]
             )
         );
     }

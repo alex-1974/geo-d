@@ -399,12 +399,12 @@ bool tryMaterializeExactUnionBoundaryGraph(
             }
 
 
-            const size_t exactIds[2] = [
+            const size_t[2] exactIds = [
                 edge.originVertex,
                 edge.destinationVertex,
             ];
 
-            size_t compactIds[2];
+            size_t[2] compactIds;
 
             foreach (i; 0 .. 2)
             {

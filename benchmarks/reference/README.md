@@ -56,16 +56,24 @@ polygon-union fixtures covering:
 - an island inside a hole;
 - a crossing plus-shaped union.
 
-The programs emit a representation-independent semantic signature for every
-fixture:
+The programs emit a semantic signature for every fixture:
 
-- polygon-component count;
+- their native result-container count as diagnostic metadata;
 - total hole count;
 - twice the union area;
 - inside / boundary / outside classification over the same dense integer probe
   grid.
 
-The runner requires byte-identical signatures.
+The runner removes only the native result-container count before differential
+comparison and then requires byte-identical set-semantic signatures.
+
+This exception is intentional. ADR-0023 defines geo-d result components as
+components of the two-dimensional interior and therefore requires polygons
+that meet only at an isolated point to remain separate result components.
+CGAL 6.1.1 may represent the same regularized set as one
+`Polygon_with_holes` in that case. The D probe separately asserts the
+ADR-0023 component and hole counts for every retained fixture, including two
+components for `point_touch`.
 
 ### Why vertex arrays are not compared
 

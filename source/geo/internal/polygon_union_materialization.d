@@ -564,7 +564,7 @@ bool tryMaterializeExactUnionBoundaryGraph(
     ];
 
     size_t[4] mapping;
-    P[4] points;
+    Point2!double[4] points;
     MaterializedUnionBoundaryEdge[4] edges;
 
     size_t pointCount;
@@ -588,10 +588,10 @@ bool tryMaterializeExactUnionBoundaryGraph(
     assert(pointCount == 4);
     assert(edgeCount == 4);
 
-    assert(points[0] == P(0, 0));
-    assert(points[1] == P(4, 0));
-    assert(points[2] == P(4, 3));
-    assert(points[3] == P(0, 3));
+    assert(points[0] == Point2!double(0.0, 0.0));
+    assert(points[1] == Point2!double(4.0, 0.0));
+    assert(points[2] == Point2!double(4.0, 3.0));
+    assert(points[3] == Point2!double(0.0, 3.0));
 }
 
 

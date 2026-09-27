@@ -90,8 +90,8 @@ if (isPolygonUnionInputScalar!T)
 
         const auto determinant =
             orientationDeterminantDyadic(
-                T.init,
-                T.init,
+                cast(T) 0,
+                cast(T) 0,
                 edge.a.x,
                 edge.a.y,
                 edge.b.x,

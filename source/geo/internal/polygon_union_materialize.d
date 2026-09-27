@@ -101,6 +101,121 @@ bool tryMaterializeExactOverlayVertices(
 
 
 /*
+ * True exactly when one exact arrangement vertex participates in the selected
+ * result boundary.
+ */
+private bool boundaryUsesVertex(
+    size_t vertex,
+    scope const(MaterializedBoundaryEdge)[] edges
+)
+    pure nothrow @safe @nogc
+{
+    foreach (edge; edges)
+    {
+        if (
+            edge.firstVertex == vertex ||
+            edge.secondVertex == vertex
+        )
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/*
+ * Correctly rounds only exact vertices required by the selected result
+ * boundary.
+ *
+ * Non-result arrangement vertices are deliberately ignored. They may contain
+ * exact events whose binary64 materialization would collapse or otherwise be
+ * unrepresentable without affecting the selected regularized-union result.
+ *
+ * destination remains indexed by global exact arrangement vertex ID so the
+ * selected boundary edges can retain their exact IDs.
+ */
+bool tryMaterializeExactBoundaryVertices(
+    scope const(ExactOverlayPoint)[] vertices,
+    scope const(MaterializedBoundaryEdge)[] edges,
+    scope Point2!double[] destination
+)
+    pure nothrow @safe @nogc
+{
+    if (
+        destination.length !=
+        vertices.length
+    )
+    {
+        return false;
+    }
+
+    foreach (ref point; destination)
+        point = Point2!double.init;
+
+    foreach (edge; edges)
+    {
+        if (
+            edge.firstVertex >= vertices.length ||
+            edge.secondVertex >= vertices.length ||
+            edge.firstVertex == edge.secondVertex
+        )
+        {
+            return false;
+        }
+    }
+
+    foreach (vertexIndex, ref const vertex; vertices)
+    {
+        if (
+            !boundaryUsesVertex(
+                vertexIndex,
+                edges
+            )
+        )
+        {
+            continue;
+        }
+
+        if (
+            !roundsToFiniteBinary64(
+                vertex.xNumerator,
+                vertex.denominator
+            ) ||
+            !roundsToFiniteBinary64(
+                vertex.yNumerator,
+                vertex.denominator
+            )
+        )
+        {
+            return false;
+        }
+
+        destination[vertexIndex] =
+            Point2!double(
+                roundExactCoordinateBinary64(
+                    vertex.xNumerator,
+                    vertex.denominator
+                ),
+                roundExactCoordinateBinary64(
+                    vertex.yNumerator,
+                    vertex.denominator
+                )
+            );
+
+        assert(
+            destination[
+                vertexIndex
+            ].isFinite
+        );
+    }
+
+    return true;
+}
+
+
+/*
  * Builds the selected exact union-boundary edge set over arrangement vertex
  * IDs.
  *
@@ -205,26 +320,60 @@ bool materializedBoundaryIncidencePreserved(
 )
     pure nothrow @safe @nogc
 {
+    /*
+     * Validate edge IDs before using them to identify the required point set.
+     */
+    foreach (edge; edges)
+    {
+        if (
+            edge.firstVertex >= points.length ||
+            edge.secondVertex >= points.length ||
+            edge.firstVertex >= edge.secondVertex
+        )
+        {
+            return false;
+        }
+    }
+
+    /*
+     * Only exact result vertices are required to materialize faithfully.
+     * Unselected arrangement vertices are intentionally ignored.
+     */
     foreach (i; 0 .. points.length)
     {
+        if (
+            !boundaryUsesVertex(
+                i,
+                edges
+            )
+        )
+        {
+            continue;
+        }
+
         if (!points[i].isFinite)
             return false;
 
         foreach (j; i + 1 .. points.length)
         {
-            if (points[i] == points[j])
+            if (
+                boundaryUsesVertex(
+                    j,
+                    edges
+                ) &&
+                points[i] == points[j]
+            )
+            {
                 return false;
+            }
         }
     }
 
     foreach (edge; edges)
     {
         if (
-            edge.firstVertex >= points.length ||
-            edge.secondVertex >= points.length ||
-            edge.firstVertex >= edge.secondVertex ||
             points[edge.firstVertex] ==
-                points[edge.secondVertex]
+            points[edge.secondVertex]
         )
         {
             return false;
@@ -353,21 +502,26 @@ bool tryMaterializeExactUnionBoundary(
     boundaryEdgeCount = 0;
 
     if (
-        !tryMaterializeExactOverlayVertices(
-            exactVertices,
-            materializedVertices
-        )
-    )
-    {
-        return false;
-    }
-
-    if (
         !buildMaterializedBoundaryEdges(
             halfEdges,
             selected,
             boundaryEdges,
             boundaryEdgeCount
+        )
+    )
+    {
+        boundaryEdgeCount = 0;
+        return false;
+    }
+
+    if (
+        !tryMaterializeExactBoundaryVertices(
+            exactVertices,
+            boundaryEdges[
+                0 ..
+                boundaryEdgeCount
+            ],
+            materializedVertices
         )
     )
     {
@@ -629,6 +783,66 @@ bool tryMaterializeExactUnionBoundary(
             edges[]
         )
     );
+}
+
+
+@safe unittest
+{
+    import geo.internal.polygon_union_exact :
+        exactOverlayPoint;
+
+    /*
+     * Unselected arrangement vertices do not participate in representability
+     * failure.
+     *
+     * The final two exact vertices collapse to one binary64 point, but neither
+     * belongs to the selected result edge.
+     */
+    const ExactOverlayPoint[4] exactVertices = [
+        exactOverlayPoint(
+            Point2!long(0, 0)
+        ),
+        exactOverlayPoint(
+            Point2!long(1, 0)
+        ),
+        exactOverlayPoint(
+            Point2!long(long.max, 0)
+        ),
+        exactOverlayPoint(
+            Point2!long(long.max - 1, 0)
+        ),
+    ];
+
+    const MaterializedBoundaryEdge[1] edges = [
+        MaterializedBoundaryEdge(
+            0,
+            1
+        ),
+    ];
+
+    Point2!double[4] materialized;
+
+    assert(
+        tryMaterializeExactBoundaryVertices(
+            exactVertices[],
+            edges[],
+            materialized[]
+        )
+    );
+
+    assert(
+        materializedBoundaryIncidencePreserved(
+            materialized[],
+            edges[]
+        )
+    );
+
+    /*
+     * The unused slots remain non-result scratch and are deliberately not
+     * required to be finite or injective.
+     */
+    assert(!materialized[2].isFinite);
+    assert(!materialized[3].isFinite);
 }
 
 

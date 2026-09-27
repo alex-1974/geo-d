@@ -10,6 +10,13 @@ import geo.internal.polygon_union_noding :
     polygonUnionOperandA,
     polygonUnionOperandB;
 
+import geo.point_in_polygon :
+    PointPolygonLocation,
+    tryClassifyPointInPolygon;
+
+import geo.polygon_view :
+    Polygon2View;
+
 
 /*
  * INTERNAL IMPLEMENTATION MODULE.
@@ -1415,5 +1422,506 @@ if (
 
         assert(!selected[0]);
         assert(!selected[1]);
+    }
+}
+
+
+/*
+ * Resolves all still-unknown operand-side bits with exact containment seeds.
+ *
+ * initializeExactHalfEdgeSideLabels and tryPropagateExactHalfEdgeSideLabels
+ * already determine every operand that contributes a boundary to a connected
+ * arrangement component.
+ *
+ * If one operand remains unknown on a component, that component contains no
+ * boundary from that operand. The missing parity is therefore constant over
+ * the complete component. One represented source endpoint is enough to seed
+ * that bit:
+ *
+ * - inside  -> seed true;
+ * - outside -> seed false;
+ * - boundary -> reject as an inconsistent noding/provenance state, because a
+ *   missing-operand boundary touching that source point should belong to the
+ *   same arrangement component.
+ *
+ * The function repeatedly propagates after every seed. Consequently it needs
+ * no explicit connected-component storage.
+ *
+ * seedCount reports how many exact point-in-polygon classifications were
+ * required.
+ */
+bool tryResolveExactHalfEdgeSideLabelsWithContainment(T)(
+    scope const(ExactArrangementEdge!T)[] edges,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
+    scope Polygon2View!T polygonA,
+    scope Polygon2View!T polygonB,
+    scope ExactHalfEdgeSideLabel[] labels,
+    out size_t seedCount
+)
+    pure nothrow @safe @nogc
+if (
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double)
+)
+{
+    seedCount = 0;
+
+    if (
+        labels.length != halfEdges.length
+    )
+    {
+        return false;
+    }
+
+    bool complete;
+
+    if (
+        !tryPropagateExactHalfEdgeSideLabels(
+            edges,
+            halfEdges,
+            labels,
+            complete
+        )
+    )
+    {
+        return false;
+    }
+
+    while (!complete)
+    {
+        size_t seedHalfEdge =
+            size_t.max;
+
+        ubyte missingOperand = 0;
+
+        foreach (halfEdgeIndex, label; labels)
+        {
+            const ubyte missing =
+                polygonUnionOperandMask &
+                ~label.knownMask;
+
+            if (missing == 0)
+                continue;
+
+            seedHalfEdge =
+                halfEdgeIndex;
+
+            missingOperand =
+                (
+                    missing &
+                    polygonUnionOperandA
+                ) != 0
+                    ? polygonUnionOperandA
+                    : polygonUnionOperandB;
+
+            break;
+        }
+
+        if (
+            seedHalfEdge == size_t.max ||
+            missingOperand == 0
+        )
+        {
+            return false;
+        }
+
+        const auto halfEdge =
+            halfEdges[seedHalfEdge];
+
+        if (
+            halfEdge.arrangementEdge >= edges.length
+        )
+        {
+            return false;
+        }
+
+        const auto sourcePoint =
+            edges[
+                halfEdge.arrangementEdge
+            ].source.a;
+
+        PointPolygonLocation location;
+
+        const bool classified =
+            missingOperand ==
+            polygonUnionOperandA
+                ? tryClassifyPointInPolygon(
+                    polygonA,
+                    sourcePoint,
+                    location
+                )
+                : tryClassifyPointInPolygon(
+                    polygonB,
+                    sourcePoint,
+                    location
+                );
+
+        if (
+            !classified ||
+            location ==
+            PointPolygonLocation.boundary
+        )
+        {
+            return false;
+        }
+
+        if (
+            !seedExactHalfEdgeSideBit(
+                labels,
+                seedHalfEdge,
+                missingOperand,
+                location ==
+                    PointPolygonLocation.inside
+            )
+        )
+        {
+            return false;
+        }
+
+        ++seedCount;
+
+        if (
+            !tryPropagateExactHalfEdgeSideLabels(
+                edges,
+                halfEdges,
+                labels,
+                complete
+            )
+        )
+        {
+            return false;
+        }
+
+        /*
+         * Every successful seed adds at least one previously unknown bit.
+         * This guards against accidental non-progress if that invariant is
+         * violated by a future refactor.
+         */
+        if (
+            seedCount >
+            labels.length * 2
+        )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+@safe unittest
+{
+    import geo.linear_ring_view :
+        LinearRing2View;
+
+    import geo.point :
+        Point2;
+
+    import geo.segment :
+        Segment2;
+
+    alias P = Point2!int;
+    alias R = LinearRing2View!int;
+    alias G = Polygon2View!int;
+    alias S = Segment2!int;
+    alias E = ExactArrangementEdge!int;
+
+
+    /*
+     * One A-only square, disjoint from B.
+     *
+     * B is absent from the arrangement component, so exactly one containment
+     * seed establishes B=outside for that whole component. A remains selected
+     * as union boundary.
+     */
+    {
+        P[4] aPoints = [
+            P(0, 0),
+            P(2, 0),
+            P(2, 2),
+            P(0, 2),
+        ];
+
+        P[4] bPoints = [
+            P(10, 10),
+            P(12, 10),
+            P(12, 12),
+            P(10, 12),
+        ];
+
+        R[1] aRings = [
+            R(aPoints[])
+        ];
+
+        R[1] bRings = [
+            R(bPoints[])
+        ];
+
+        const G polygonA =
+            G(aRings[]);
+
+        const G polygonB =
+            G(bRings[]);
+
+        const E[4] edges = [
+            E(0, 2, polygonUnionOperandA, S(P(0, 0), P(2, 0)), true, polygonUnionOperandA),
+            E(2, 3, polygonUnionOperandA, S(P(2, 0), P(2, 2)), true, polygonUnionOperandA),
+            E(1, 3, polygonUnionOperandA, S(P(2, 2), P(0, 2)), false, 0),
+            E(0, 1, polygonUnionOperandA, S(P(0, 2), P(0, 0)), false, 0),
+        ];
+
+        ExactArrangementHalfEdge[8] halfEdges;
+
+        halfEdges[0] = ExactArrangementHalfEdge(0, 2, 1, 0, 2, true);
+        halfEdges[1] = ExactArrangementHalfEdge(2, 0, 0, 0, 6, false);
+
+        halfEdges[2] = ExactArrangementHalfEdge(2, 3, 3, 1, 5, true);
+        halfEdges[3] = ExactArrangementHalfEdge(3, 2, 2, 1, 1, false);
+
+        halfEdges[4] = ExactArrangementHalfEdge(1, 3, 5, 2, 3, true);
+        halfEdges[5] = ExactArrangementHalfEdge(3, 1, 4, 2, 7, false);
+
+        halfEdges[6] = ExactArrangementHalfEdge(0, 1, 7, 3, 4, true);
+        halfEdges[7] = ExactArrangementHalfEdge(1, 0, 6, 3, 0, false);
+
+        ExactHalfEdgeSideLabel[8] labels;
+
+        assert(
+            initializeExactHalfEdgeSideLabels(
+                edges[],
+                halfEdges[],
+                labels[]
+            )
+        );
+
+        size_t seedCount;
+
+        assert(
+            tryResolveExactHalfEdgeSideLabelsWithContainment(
+                edges[],
+                halfEdges[],
+                polygonA,
+                polygonB,
+                labels[],
+                seedCount
+            )
+        );
+
+        assert(seedCount == 1);
+
+        foreach (label; labels)
+        {
+            assert(
+                label.knownMask ==
+                polygonUnionOperandMask
+            );
+
+            assert(
+                (
+                    label.insideMask &
+                    polygonUnionOperandB
+                ) == 0
+            );
+        }
+
+        bool[8] selected;
+
+        assert(
+            selectExactUnionBoundaryHalfEdges(
+                edges[],
+                halfEdges[],
+                labels[],
+                selected[]
+            )
+        );
+
+        assert(selected[0]);
+        assert(selected[2]);
+        assert(selected[5]);
+        assert(selected[7]);
+    }
+
+
+    /*
+     * The same A-only boundary lies strictly inside B.
+     *
+     * One exact containment seed establishes B=inside on both sides of every
+     * A edge. The A component therefore contributes no union boundary.
+     */
+    {
+        P[4] aPoints = [
+            P(2, 2),
+            P(4, 2),
+            P(4, 4),
+            P(2, 4),
+        ];
+
+        P[4] bPoints = [
+            P(0, 0),
+            P(10, 0),
+            P(10, 10),
+            P(0, 10),
+        ];
+
+        R[1] aRings = [
+            R(aPoints[])
+        ];
+
+        R[1] bRings = [
+            R(bPoints[])
+        ];
+
+        const G polygonA =
+            G(aRings[]);
+
+        const G polygonB =
+            G(bRings[]);
+
+        const E[4] edges = [
+            E(0, 2, polygonUnionOperandA, S(P(2, 2), P(4, 2)), true, polygonUnionOperandA),
+            E(2, 3, polygonUnionOperandA, S(P(4, 2), P(4, 4)), true, polygonUnionOperandA),
+            E(1, 3, polygonUnionOperandA, S(P(4, 4), P(2, 4)), false, 0),
+            E(0, 1, polygonUnionOperandA, S(P(2, 4), P(2, 2)), false, 0),
+        ];
+
+        ExactArrangementHalfEdge[8] halfEdges;
+
+        halfEdges[0] = ExactArrangementHalfEdge(0, 2, 1, 0, 2, true);
+        halfEdges[1] = ExactArrangementHalfEdge(2, 0, 0, 0, 6, false);
+
+        halfEdges[2] = ExactArrangementHalfEdge(2, 3, 3, 1, 5, true);
+        halfEdges[3] = ExactArrangementHalfEdge(3, 2, 2, 1, 1, false);
+
+        halfEdges[4] = ExactArrangementHalfEdge(1, 3, 5, 2, 3, true);
+        halfEdges[5] = ExactArrangementHalfEdge(3, 1, 4, 2, 7, false);
+
+        halfEdges[6] = ExactArrangementHalfEdge(0, 1, 7, 3, 4, true);
+        halfEdges[7] = ExactArrangementHalfEdge(1, 0, 6, 3, 0, false);
+
+        ExactHalfEdgeSideLabel[8] labels;
+
+        assert(
+            initializeExactHalfEdgeSideLabels(
+                edges[],
+                halfEdges[],
+                labels[]
+            )
+        );
+
+        size_t seedCount;
+
+        assert(
+            tryResolveExactHalfEdgeSideLabelsWithContainment(
+                edges[],
+                halfEdges[],
+                polygonA,
+                polygonB,
+                labels[],
+                seedCount
+            )
+        );
+
+        assert(seedCount == 1);
+
+        foreach (label; labels)
+        {
+            assert(
+                (
+                    label.insideMask &
+                    polygonUnionOperandB
+                ) != 0
+            );
+        }
+
+        bool[8] selected;
+
+        assert(
+            selectExactUnionBoundaryHalfEdges(
+                edges[],
+                halfEdges[],
+                labels[],
+                selected[]
+            )
+        );
+
+        foreach (isSelected; selected)
+            assert(!isSelected);
+    }
+
+
+    /*
+     * Artificially omitting a B boundary that contains the chosen A source
+     * point is detected: the containment seed lands exactly on B.boundary.
+     */
+    {
+        P[4] aPoints = [
+            P(0, 0),
+            P(2, 0),
+            P(2, 2),
+            P(0, 2),
+        ];
+
+        P[4] bPoints = [
+            P(0, 0),
+            P(5, 0),
+            P(5, 5),
+            P(0, 5),
+        ];
+
+        R[1] aRings = [
+            R(aPoints[])
+        ];
+
+        R[1] bRings = [
+            R(bPoints[])
+        ];
+
+        const G polygonA =
+            G(aRings[]);
+
+        const G polygonB =
+            G(bRings[]);
+
+        const E[1] edges = [
+            E(
+                0,
+                1,
+                polygonUnionOperandA,
+                S(P(0, 0), P(2, 0)),
+                true,
+                polygonUnionOperandA
+            ),
+        ];
+
+        ExactArrangementHalfEdge[2] halfEdges = [
+            ExactArrangementHalfEdge(0, 1, 1, 0, 0, true),
+            ExactArrangementHalfEdge(1, 0, 0, 0, 1, false),
+        ];
+
+        ExactHalfEdgeSideLabel[2] labels;
+
+        assert(
+            initializeExactHalfEdgeSideLabels(
+                edges[],
+                halfEdges[],
+                labels[]
+            )
+        );
+
+        size_t seedCount;
+
+        assert(
+            !tryResolveExactHalfEdgeSideLabelsWithContainment(
+                edges[],
+                halfEdges[],
+                polygonA,
+                polygonB,
+                labels[],
+                seedCount
+            )
+        );
     }
 }

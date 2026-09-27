@@ -646,6 +646,115 @@ discovery.
 
 The accelerated implementation must reproduce the P1 exact result contract.
 
+### 23. P1 complexity, allocation, and failure contract
+
+The first executable production candidate is a **semantic reference
+implementation**, not the final performance architecture.
+
+Let:
+
+~~~text
+n   total input boundary-edge count across both polygons
+k   exact split/intersection events introduced by overlay noding
+a   atomic arrangement-edge / half-edge count after noding
+r   selected result-boundary edge count
+p   total materialized result-boundary vertex count
+c   result polygon-component count
+~~~
+
+For valid input polygons, the P1 contract permits:
+
+- pairwise source-edge contact discovery in `O(n^2)`;
+- exact per-edge split-event ordering in
+  `O((n + k) log(n + k))` as a conservative aggregate bound;
+- arrangement labeling and boundary-cycle tracing linear in the constructed
+  arrangement once adjacency/order are available, `O(a)`;
+- deterministic component/ring ordering with ordinary comparison sorting;
+- correctness-first topology-preserving materialization validation using
+  pairwise selected-boundary checks, `O(r^2)`;
+- existing per-component polygon validation and pairwise component-relation
+  checks even when they are also quadratic in materialized output size.
+
+Because a polygon overlay may itself create `k = O(n^2)` events and
+`r = O(n^2)` output edges, the complete P1 correctness path may therefore
+reach **`O(n^4)` worst-case time** when the quadratic post-materialization
+verification is expressed back in terms of the original input edge count.
+
+That bound is accepted only for the semantic baseline.
+
+It is not the performance target for a mature polygon-union implementation.
+Stage P3 is specifically allowed to replace:
+
+- pairwise source-edge candidate discovery with sweep-line or indexed
+  discovery;
+- pairwise post-materialization boundary candidate checks with spatially
+  filtered checks;
+
+provided the accelerated paths are differential-tested against the P1 exact
+semantics and preserve every accepted failure case.
+
+### 24. Allocation contract
+
+The initial operation is explicitly allocating.
+
+P1 may allocate variable-size storage for:
+
+- exact event/split records;
+- arrangement vertices and atomic edges/half-edges;
+- region/face or equivalent labeling state;
+- cycle/component reconstruction;
+- materialized binary64 points and descriptors;
+- the immutable owning public result.
+
+The expected asymptotic storage is `O(n + k + a + r)`, excluding constant-size
+fixed-width exact-arithmetic temporaries carried by individual records.
+
+No `@nogc` guarantee is part of the initial polygon-union operation.
+
+The owning result is immutable through its public surface. Descriptor copies
+may share immutable backing and must not trigger hidden deep copies.
+
+The exact overlay core remains separable from result ownership so a future
+caller-managed or reusable-workspace API can be added if a concrete consumer
+justifies the added complexity.
+
+### 25. Failure contract
+
+Polygon union is all-or-nothing.
+
+The semantic input domain remains valid polygons. The final public spelling may
+choose to validate internally and report invalid input as a checked failure,
+but invalid geometry is never silently repaired.
+
+For valid supported input, ordinary checked construction failure is limited to
+cases where the exact union exists but the selected public construction scalar
+cannot represent the required result topology faithfully, including:
+
+- a required exact coordinate that does not round to a finite binary64 value;
+- two exact result vertices that must remain distinct but round to one point;
+- a required result edge that collapses after rounding;
+- a new or lost crossing, overlap, or point contact in the materialized
+  boundary-incidence graph;
+- a materialized ring/polygon that fails the existing topology-validation
+  contract;
+- a new interior overlap or containment relation between materialized result
+  components.
+
+Such failure exposes **no partial polygon set** and performs no silent snap,
+vertex deletion, edge collapse, or topology repair.
+
+Arithmetic overflow inside the exact overlay machinery is not a normal public
+failure mode for the accepted `int`, `long`, `float`, and `double`
+domains; the fixed-width range proofs must make the required internal exact
+operations total for those domains.
+
+Resource exhaustion from explicit allocation is distinct from geometric
+construction failure. The final API must not reinterpret runtime
+out-of-memory/resource failure as a geometric result status.
+
+An internally inconsistent arrangement produced from valid input is likewise
+an implementation defect, not a consumer-visible geometric alternative.
+
 ### 23. Required property and metamorphic verification
 
 The final implementation must include, where applicable:
@@ -673,7 +782,7 @@ The final implementation must include, where applicable:
 Where sequence equality is asserted, it applies only after the canonical result
 rules have been established.
 
-### 24. Research references
+### 26. Research references
 
 The architecture research compared several mature implementations.
 
@@ -845,10 +954,18 @@ Subsequent executable design probes on draft PR #37 additionally establish:
 - dual-cell `(insideA, insideB)` parity propagation for disjoint, nested,
   overlapping, identical, and adjacent cases; CI run #74 passed;
 - local point-contact boundary continuation by exact angular face-following;
-  CI run #75 passed, while full cycle reconstruction remains a separate gate;
+  CI run #75 passed;
+- whole-boundary cycle decomposition that permits a shared exact contact
+  vertex between distinct cycles while rejecting a self-touching single
+  cycle; the executable probe is carried by the final research branch;
 - two independent binary64 materialization hazards: exact-vertex collapse and
   a valid exact signed-long ring that retains four distinct rounded vertices
   yet becomes topologically invalid after rounding; CI run #76 passed;
+- a combined topology-preserving materialization verifier whose explicit
+  preconditions bind the rounded point table, complete selected boundary
+  graph, and reconstructed component views; it requires preserved boundary
+  incidence, valid component polygons, and pairwise component-interior
+  disjointness;
 - an immutable GC-backed owning-result prototype whose descriptor copies share
   immutable point/ring/component backing and whose `Polygon2View` access
   remains usable after the original owner descriptor is dropped; CI run #77
@@ -871,17 +988,18 @@ executable evidence or an explicit proof:
       required operand-boundary membership;
 - [x] exact region labeling is demonstrated for connected, disconnected, and
       nested arrangement components;
-- [ ] exact cycle reconstruction handles point-only contacts without creating
+- [x] exact cycle reconstruction handles point-only contacts without creating
       self-touching rings;
-- [ ] the topology-preserving binary64 materialization check set is proven
-      sufficient for the selected result contract;
+- [x] the topology-preserving binary64 materialization check set is established
+      for the selected result contract under the documented exact-cycle /
+      shared-materialization construction invariants;
 - [x] the owning immutable result/lifetime model is prototyped with DMD and
       LDC;
 - [x] deterministic canonicalization primitives are verified under A/B label
       exchange, source reversal, and ring start rotation; full overlay-level
       permutation invariance remains part of production/property verification;
-- [ ] complexity, allocation, and failure behavior are documented against the
-      executable candidate;
+- [x] complexity, allocation, and failure behavior are documented against the
+      executable P1 candidate;
 - [ ] Issue #38 records the final disposition of every open design question.
 
 Only after these gates pass may the ADR move to **Accepted** and production

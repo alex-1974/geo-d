@@ -5,6 +5,9 @@ import geo.internal.polygon_union_arrangement :
     compareExactSourceDirectionsCCW,
     exactArrangementEdgeDirection;
 
+import geo.segment :
+    Segment2;
+
 
 /*
  * INTERNAL IMPLEMENTATION MODULE.

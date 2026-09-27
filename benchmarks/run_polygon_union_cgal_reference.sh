@@ -14,6 +14,9 @@ CPP_BIN=/tmp/geo-d-polygon-union-reference-cgal
 D_OUT=/tmp/geo-d-polygon-union-reference-d.txt
 CPP_OUT=/tmp/geo-d-polygon-union-reference-cgal.txt
 
+D_SET_OUT=/tmp/geo-d-polygon-union-reference-d-set.txt
+CPP_SET_OUT=/tmp/geo-d-polygon-union-reference-cgal-set.txt
+
 if ! command -v ldc2 >/dev/null 2>&1; then
     printf '%s\n'         'error: ldc2 is required for the geo-d side of the differential probe'         >&2
     exit 2
@@ -80,10 +83,30 @@ printf '\n=== CGAL/EPECK signature ===\n'
 cat "$CPP_OUT"
 
 
-printf '\n=== differential comparison ===\n'
-if diff -u "$CPP_OUT" "$D_OUT"; then
-    printf '%s\n'         'PASS: geo-d P1 semantic signatures match CGAL/EPECK'
+printf '\n=== normalize representation-specific component counts ===\n'
+
+sed -E \
+    's/\\|geo_components=[0-9]+//' \
+    "$D_OUT" \
+    >"$D_SET_OUT"
+
+sed -E \
+    's/\\|cgal_polygons_with_holes=[0-9]+//' \
+    "$CPP_OUT" \
+    >"$CPP_SET_OUT"
+
+printf '%s\n' \
+    'geo-d component counts are checked against ADR-0023 inside the D probe.' \
+    'CGAL Polygon_with_holes count is diagnostic only because isolated point' \
+    'contacts use a different representation contract.'
+
+printf '\n=== differential set-semantic comparison ===\n'
+if diff -u "$CPP_SET_OUT" "$D_SET_OUT"; then
+    printf '%s\n' \
+        'PASS: geo-d P1 set semantics match CGAL/EPECK on retained fixtures'
 else
-    printf '%s\n'         'FAIL: geo-d P1 differs from CGAL/EPECK'         >&2
+    printf '%s\n' \
+        'FAIL: geo-d P1 set semantics differ from CGAL/EPECK' \
+        >&2
     exit 1
 fi

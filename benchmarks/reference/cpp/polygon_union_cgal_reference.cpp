@@ -369,7 +369,7 @@ static void emitCase(
 
     std::cout
         << name
-        << "|components="
+        << "|cgal_polygons_with_holes="
         << result.size()
         << "|holes="
         << holeCount

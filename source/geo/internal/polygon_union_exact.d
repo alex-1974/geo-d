@@ -240,6 +240,739 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+/*
+ * Seeds one source edge with its two exact endpoint events.
+ *
+ * The caller supplies storage because the eventual P1 overlay layer owns the
+ * variable-size event buffers. No allocation is hidden here.
+ */
+bool seedExactEdgeEvents(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    out size_t count
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    count = 0;
+
+    if (events.length < 2)
+        return false;
+
+    assert(source.a != source.b);
+
+    events[0] =
+        exactOverlayPoint(
+            source.a
+        );
+
+    events[1] =
+        exactOverlayPoint(
+            source.b
+        );
+
+    count = 2;
+
+    return true;
+}
+
+
+/*
+ * Appends one exact point to caller-provided event storage.
+ */
+private bool appendExactEdgeEvent(
+    scope ExactOverlayPoint[] events,
+    ref size_t count,
+    ref const ExactOverlayPoint event
+)
+    pure nothrow @safe @nogc
+{
+    if (count >= events.length)
+        return false;
+
+    events[count++] = event;
+
+    return true;
+}
+
+
+/*
+ * Adds all exact noding events created by one source-segment pair to both
+ * caller-provided edge-event buffers.
+ *
+ * none:
+ *     adds nothing
+ *
+ * touch:
+ *     adds the exact represented input endpoint to both edges
+ *
+ * properCrossing:
+ *     adds one ExactProperIntersection promoted without rounding
+ *
+ * overlap:
+ *     adds the two exact represented overlap endpoints to both edges
+ *
+ * Capacity is checked before any writes, so a false return leaves both counts
+ * unchanged.
+ */
+bool appendSegmentPairNodingEvents(T)(
+    Segment2!T first,
+    Segment2!T second,
+    scope ExactOverlayPoint[] firstEvents,
+    ref size_t firstCount,
+    scope ExactOverlayPoint[] secondEvents,
+    ref size_t secondCount
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    import geo.intersection :
+        SegmentContactKind,
+        segmentContactKind,
+        trySegmentIntersectionOverlap,
+        trySegmentTouchPoint;
+
+    const SegmentContactKind contact =
+        segmentContactKind(
+            first,
+            second
+        );
+
+    size_t required = 0;
+
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            return true;
+
+        case SegmentContactKind.touch:
+        case SegmentContactKind.properCrossing:
+            required = 1;
+            break;
+
+        case SegmentContactKind.overlap:
+            required = 2;
+            break;
+    }
+
+    if (
+        firstCount > firstEvents.length ||
+        secondCount > secondEvents.length ||
+        required > firstEvents.length - firstCount ||
+        required > secondEvents.length - secondCount
+    )
+    {
+        return false;
+    }
+
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            assert(false);
+
+        case SegmentContactKind.touch:
+        {
+            Point2!T point;
+
+            const bool found =
+                trySegmentTouchPoint(
+                    first,
+                    second,
+                    point
+                );
+
+            assert(found);
+
+            const auto event =
+                exactOverlayPoint(
+                    point
+                );
+
+            const bool firstAdded =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    event
+                );
+
+            const bool secondAdded =
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    event
+                );
+
+            assert(firstAdded);
+            assert(secondAdded);
+
+            return true;
+        }
+
+        case SegmentContactKind.properCrossing:
+        {
+            ExactProperIntersection exact;
+
+            const bool found =
+                tryProperIntersectionExact(
+                    first,
+                    second,
+                    exact
+                );
+
+            assert(found);
+
+            const auto event =
+                exactOverlayPoint(
+                    exact
+                );
+
+            const bool firstAdded =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    event
+                );
+
+            const bool secondAdded =
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    event
+                );
+
+            assert(firstAdded);
+            assert(secondAdded);
+
+            return true;
+        }
+
+        case SegmentContactKind.overlap:
+        {
+            Segment2!T overlap;
+
+            const bool found =
+                trySegmentIntersectionOverlap(
+                    first,
+                    second,
+                    overlap
+                );
+
+            assert(found);
+
+            const auto lower =
+                exactOverlayPoint(
+                    overlap.a
+                );
+
+            const auto upper =
+                exactOverlayPoint(
+                    overlap.b
+                );
+
+            bool added =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    lower
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    upper
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    lower
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    upper
+                );
+
+            assert(added);
+
+            return true;
+        }
+    }
+}
+
+
+/*
+ * Restores the max-heap property in events[root .. end), using exact
+ * source-edge order as the key.
+ */
+private void siftDownExactEdgeEvents(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    size_t root,
+    size_t end
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    while (true)
+    {
+        const size_t left =
+            root * 2 + 1;
+
+        if (left >= end)
+            return;
+
+        size_t largest = root;
+
+        if (
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[largest],
+                events[left]
+            ) < 0
+        )
+        {
+            largest = left;
+        }
+
+        const size_t right =
+            left + 1;
+
+        if (
+            right < end &&
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[largest],
+                events[right]
+            ) < 0
+        )
+        {
+            largest = right;
+        }
+
+        if (largest == root)
+            return;
+
+        const ExactOverlayPoint temporary =
+            events[root];
+
+        events[root] =
+            events[largest];
+
+        events[largest] =
+            temporary;
+
+        root = largest;
+    }
+}
+
+
+/*
+ * Sorts exact edge events in source.a -> source.b order and removes exact
+ * duplicates in-place.
+ *
+ * Heap sort keeps the helper allocation-free and O(m log m), where m is the
+ * event count for this source edge. Exact duplicate removal is linear after
+ * sorting.
+ *
+ * The return value is the number of unique events in events[0 .. result].
+ */
+size_t sortUniqueExactEdgeEvents(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+
+    if (events.length < 2)
+        return events.length;
+
+    size_t start =
+        events.length / 2;
+
+    while (start > 0)
+    {
+        --start;
+
+        siftDownExactEdgeEvents(
+            source,
+            events,
+            start,
+            events.length
+        );
+    }
+
+    size_t end =
+        events.length;
+
+    while (end > 1)
+    {
+        --end;
+
+        const ExactOverlayPoint temporary =
+            events[0];
+
+        events[0] =
+            events[end];
+
+        events[end] =
+            temporary;
+
+        siftDownExactEdgeEvents(
+            source,
+            events,
+            0,
+            end
+        );
+    }
+
+    size_t write = 1;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactOverlayPointsEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            if (write != read)
+                events[write] = events[read];
+
+            ++write;
+        }
+    }
+
+    return write;
+}
+
+
+@safe unittest
+{
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    /*
+     * Proper crossing: both edges receive the same exact rational event.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const S second =
+            S(
+                P(5, -5),
+                P(5, 5)
+            );
+
+        ExactOverlayPoint[4] firstEvents;
+        ExactOverlayPoint[4] secondEvents;
+
+        size_t firstCount;
+        size_t secondCount;
+
+        assert(
+            seedExactEdgeEvents(
+                first,
+                firstEvents[],
+                firstCount
+            )
+        );
+
+        assert(
+            seedExactEdgeEvents(
+                second,
+                secondEvents[],
+                secondCount
+            )
+        );
+
+        assert(
+            appendSegmentPairNodingEvents(
+                first,
+                second,
+                firstEvents[],
+                firstCount,
+                secondEvents[],
+                secondCount
+            )
+        );
+
+        assert(firstCount == 3);
+        assert(secondCount == 3);
+
+        firstCount =
+            sortUniqueExactEdgeEvents(
+                first,
+                firstEvents[0 .. firstCount]
+            );
+
+        secondCount =
+            sortUniqueExactEdgeEvents(
+                second,
+                secondEvents[0 .. secondCount]
+            );
+
+        assert(firstCount == 3);
+        assert(secondCount == 3);
+
+        const auto crossing =
+            exactOverlayPoint(
+                P(5, 0)
+            );
+
+        assert(
+            exactOverlayPointsEqual(
+                firstEvents[1],
+                crossing
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                secondEvents[1],
+                crossing
+            )
+        );
+    }
+
+
+    /*
+     * T-junction: the touch is an interior event on the horizontal source
+     * and a duplicate endpoint event on the vertical source.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        const S second =
+            S(
+                P(5, 0),
+                P(5, 5)
+            );
+
+        ExactOverlayPoint[4] firstEvents;
+        ExactOverlayPoint[4] secondEvents;
+
+        size_t firstCount;
+        size_t secondCount;
+
+        assert(seedExactEdgeEvents(first, firstEvents[], firstCount));
+        assert(seedExactEdgeEvents(second, secondEvents[], secondCount));
+
+        assert(
+            appendSegmentPairNodingEvents(
+                first,
+                second,
+                firstEvents[],
+                firstCount,
+                secondEvents[],
+                secondCount
+            )
+        );
+
+        firstCount =
+            sortUniqueExactEdgeEvents(
+                first,
+                firstEvents[0 .. firstCount]
+            );
+
+        secondCount =
+            sortUniqueExactEdgeEvents(
+                second,
+                secondEvents[0 .. secondCount]
+            );
+
+        assert(firstCount == 3);
+        assert(secondCount == 2);
+    }
+
+
+    /*
+     * Partial collinear overlap: both overlap endpoints are inserted into
+     * both source event sets and deduplicated against existing endpoints.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(4, 0)
+            );
+
+        const S second =
+            S(
+                P(2, 0),
+                P(6, 0)
+            );
+
+        ExactOverlayPoint[6] firstEvents;
+        ExactOverlayPoint[6] secondEvents;
+
+        size_t firstCount;
+        size_t secondCount;
+
+        assert(seedExactEdgeEvents(first, firstEvents[], firstCount));
+        assert(seedExactEdgeEvents(second, secondEvents[], secondCount));
+
+        assert(
+            appendSegmentPairNodingEvents(
+                first,
+                second,
+                firstEvents[],
+                firstCount,
+                secondEvents[],
+                secondCount
+            )
+        );
+
+        firstCount =
+            sortUniqueExactEdgeEvents(
+                first,
+                firstEvents[0 .. firstCount]
+            );
+
+        secondCount =
+            sortUniqueExactEdgeEvents(
+                second,
+                secondEvents[0 .. secondCount]
+            );
+
+        assert(firstCount == 3);
+        assert(secondCount == 3);
+
+        const auto two =
+            exactOverlayPoint(
+                P(2, 0)
+            );
+
+        const auto four =
+            exactOverlayPoint(
+                P(4, 0)
+            );
+
+        assert(exactOverlayPointsEqual(firstEvents[1], two));
+        assert(exactOverlayPointsEqual(firstEvents[2], four));
+
+        assert(exactOverlayPointsEqual(secondEvents[0], two));
+        assert(exactOverlayPointsEqual(secondEvents[1], four));
+    }
+
+
+    /*
+     * Reversed source storage orders events from the represented source.a
+     * toward source.b, not lexicographically.
+     */
+    {
+        const S source =
+            S(
+                P(10, 0),
+                P(0, 0)
+            );
+
+        ExactOverlayPoint[5] events = [
+            exactOverlayPoint(P(3, 0)),
+            exactOverlayPoint(P(10, 0)),
+            exactOverlayPoint(P(7, 0)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(7, 0)),
+        ];
+
+        const size_t count =
+            sortUniqueExactEdgeEvents(
+                source,
+                events[]
+            );
+
+        assert(count == 4);
+
+        const int[4] expected = [
+            10,
+            7,
+            3,
+            0,
+        ];
+
+        foreach (i; 0 .. count)
+        {
+            const auto point =
+                exactOverlayPoint(
+                    P(expected[i], 0)
+                );
+
+            assert(
+                exactOverlayPointsEqual(
+                    events[i],
+                    point
+                )
+            );
+        }
+    }
+
+
+    /*
+     * Capacity failure is transactional with respect to event counts.
+     */
+    {
+        const S first =
+            S(
+                P(0, 0),
+                P(4, 0)
+            );
+
+        const S second =
+            S(
+                P(2, 0),
+                P(6, 0)
+            );
+
+        ExactOverlayPoint[3] firstEvents;
+        ExactOverlayPoint[3] secondEvents;
+
+        size_t firstCount;
+        size_t secondCount;
+
+        assert(seedExactEdgeEvents(first, firstEvents[], firstCount));
+        assert(seedExactEdgeEvents(second, secondEvents[], secondCount));
+
+        const size_t beforeFirst =
+            firstCount;
+
+        const size_t beforeSecond =
+            secondCount;
+
+        assert(
+            !appendSegmentPairNodingEvents(
+                first,
+                second,
+                firstEvents[],
+                firstCount,
+                secondEvents[],
+                secondCount
+            )
+        );
+
+        assert(firstCount == beforeFirst);
+        assert(secondCount == beforeSecond);
+    }
+}
+
+
 @safe unittest
 {
     /*

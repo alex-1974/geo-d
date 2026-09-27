@@ -1,3 +1,18 @@
+/**
+ * Robust regularized polygon-union construction with immutable owning results.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     September 27, 2026
+ */
 module geo.polygon_union;
 
 import core.exception :

@@ -1064,8 +1064,9 @@ and runtime resource failure remain outside the geometry status domain.
 
 The public surface has passed the ordinary root-export, external-consumer,
 named-argument, `.init`, generated-documentation, cross-compiler, and 2D/3D
-coexistence gates. A reproducible P1 benchmark baseline remains required before
-any P3 acceleration work and before this implementation PR is finalized.
+coexistence gates. The initial reproducible P1 benchmark baseline is recorded
+under `benchmarks/README.md` on the implementation branch before any P3
+acceleration work.
 
 The broader Boolean-overlay family remains unpromoted publicly; intersection,
 difference, and symmetric difference still require separate evidence.

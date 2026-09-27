@@ -951,26 +951,28 @@ if (
                         halfEdge.nextLeftFace
                     ];
 
-                const ubyte combinedKnown =
-                    current.knownMask |
-                    next.knownMask;
+                const ubyte currentKnownBefore =
+                    current.knownMask;
 
-                const ubyte currentInside =
+                const ubyte currentInsideBefore =
                     current.insideMask;
 
-                const ubyte nextInside =
+                const ubyte nextKnownBefore =
+                    next.knownMask;
+
+                const ubyte nextInsideBefore =
                     next.insideMask;
 
                 if (
                     !mergeExactSideKnowledge(
                         current,
-                        next.knownMask,
-                        nextInside
+                        nextKnownBefore,
+                        nextInsideBefore
                     ) ||
                     !mergeExactSideKnowledge(
                         next,
-                        current.knownMask,
-                        currentInside
+                        currentKnownBefore,
+                        currentInsideBefore
                     )
                 )
                 {
@@ -978,8 +980,8 @@ if (
                 }
 
                 if (
-                    current.knownMask != combinedKnown ||
-                    next.knownMask != combinedKnown
+                    current.knownMask != currentKnownBefore ||
+                    next.knownMask != nextKnownBefore
                 )
                 {
                     changed = true;
@@ -1002,20 +1004,26 @@ if (
                 const ubyte currentKnownBefore =
                     current.knownMask;
 
+                const ubyte currentInsideBefore =
+                    current.insideMask;
+
                 const ubyte twinKnownBefore =
                     twin.knownMask;
 
+                const ubyte twinInsideBefore =
+                    twin.insideMask;
+
                 const ubyte currentToTwinInside =
-                    current.insideMask ^
+                    currentInsideBefore ^
                     (
                         edge.operandMask &
-                        current.knownMask
+                        currentKnownBefore
                     );
 
                 if (
                     !mergeExactSideKnowledge(
                         twin,
-                        current.knownMask,
+                        currentKnownBefore,
                         currentToTwinInside
                     )
                 )
@@ -1024,16 +1032,16 @@ if (
                 }
 
                 const ubyte twinToCurrentInside =
-                    twin.insideMask ^
+                    twinInsideBefore ^
                     (
                         edge.operandMask &
-                        twin.knownMask
+                        twinKnownBefore
                     );
 
                 if (
                     !mergeExactSideKnowledge(
                         current,
-                        twin.knownMask,
+                        twinKnownBefore,
                         twinToCurrentInside
                     )
                 )
@@ -1180,8 +1188,8 @@ if (
     const E[4] edges = [
         E(0, 2, polygonUnionOperandA, S(P(0, 0), P(1, 0)), true, polygonUnionOperandA),
         E(2, 3, polygonUnionOperandA, S(P(1, 0), P(1, 1)), true, polygonUnionOperandA),
-        E(1, 3, polygonUnionOperandA, S(P(1, 1), P(0, 1)), false, polygonUnionOperandA),
-        E(0, 1, polygonUnionOperandA, S(P(0, 1), P(0, 0)), false, polygonUnionOperandA),
+        E(1, 3, polygonUnionOperandA, S(P(1, 1), P(0, 1)), false, 0),
+        E(0, 1, polygonUnionOperandA, S(P(0, 1), P(0, 0)), false, 0),
     ];
 
     ExactArrangementHalfEdge[8] halfEdges;

@@ -138,6 +138,8 @@ private long resultTwiceArea(
 
 private void emitCase(
     string name,
+    size_t expectedComponents,
+    size_t expectedHoles,
     scope Polygon2View!int first,
     scope Polygon2View!int second
 )
@@ -179,9 +181,19 @@ private void emitCase(
             ).holeCount;
     }
 
+    assert(
+        result.componentCount ==
+        expectedComponents
+    );
+
+    assert(
+        holeCount ==
+        expectedHoles
+    );
+
     write(
         name,
-        "|components=",
+        "|geo_components=",
         result.componentCount,
         "|holes=",
         holeCount,
@@ -300,6 +312,8 @@ private void disjoint()
 
     emitCase(
         "disjoint",
+        2,
+        0,
         G(firstRings[]),
         G(secondRings[])
     );
@@ -331,6 +345,8 @@ private void overlap()
 
     emitCase(
         "overlap",
+        1,
+        0,
         G(firstRings[]),
         G(secondRings[])
     );
@@ -362,6 +378,8 @@ private void containment()
 
     emitCase(
         "containment",
+        1,
+        0,
         G(outerRings[]),
         G(innerRings[])
     );
@@ -393,6 +411,8 @@ private void adjacent()
 
     emitCase(
         "adjacent",
+        1,
+        0,
         G(firstRings[]),
         G(secondRings[])
     );
@@ -424,6 +444,8 @@ private void pointTouch()
 
     emitCase(
         "point_touch",
+        2,
+        0,
         G(firstRings[]),
         G(secondRings[])
     );
@@ -472,6 +494,8 @@ private void donutFill()
 
     emitCase(
         "donut_fill",
+        1,
+        0,
         G(donutRings[]),
         G(fillRings[])
     );
@@ -516,6 +540,8 @@ private void donutIsland()
 
     emitCase(
         "donut_island",
+        2,
+        1,
         G(donutRings[]),
         G(islandRings[])
     );
@@ -547,6 +573,8 @@ private void plusShape()
 
     emitCase(
         "plus",
+        1,
+        0,
         G(horizontalRings[]),
         G(verticalRings[])
     );

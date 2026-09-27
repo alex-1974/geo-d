@@ -30,8 +30,9 @@ The ADRs define stable semantic contracts for:
 - polygon-union exact-overlay and result semantics in
   `ADR-0023-polygon-union-exact-overlay-and-result-contract.md`.
 
-ADR status is authoritative. ADR-0023 is Accepted and authorizes implementation
-under its contract; it does not itself add a public polygon-union API.
+ADR status is authoritative. ADR-0023 is Accepted and defines the semantic,
+numerical, ownership, allocation, and failure contract implemented by the
+public polygon-union API.
 
 Performance-specific material is documented under:
 
@@ -357,6 +358,61 @@ nothrow
 
 `validatePolygon` requires variable-size temporary bookkeeping for its
 connected-interior analysis and therefore does not promise `@nogc`.
+
+## Polygon union
+
+`polygonUnion(first, second)` constructs the regularized two-dimensional
+union of two valid polygons.
+
+The supported robust input scalar domain is:
+
+~~~text
+int
+long
+float
+double
+~~~
+
+Constructed coordinates follow `IntersectionScalar!T` and are currently
+`double` for every supported input scalar. Exact arrangement topology remains
+authoritative until the selected result boundary is materialized.
+
+The operation returns an explicit `PolygonUnionResult`:
+
+- the result owns immutable GC-backed point/ring/component storage;
+- ordinary result copies are shallow descriptor copies rather than deep
+  geometry copies;
+- successful component access returns read-only `Polygon2View!double`
+  descriptors;
+- a successful result may contain zero, one, or multiple polygon components;
+- components that meet only at an isolated point remain separate when their
+  two-dimensional interiors are disconnected.
+
+`PolygonUnionStatus` distinguishes:
+
+~~~text
+notComputed
+success
+invalidFirstInput
+invalidSecondInput
+unrepresentableConstruction
+~~~
+
+`PolygonUnionResult.init` is deliberately `notComputed`; it is distinct from
+a successful empty union. Invalid polygons are reported rather than repaired.
+If exact union topology cannot be represented faithfully in binary64, the
+operation reports `unrepresentableConstruction` and exposes no partial
+geometry.
+
+Polygon union allocates variable-size exact-overlay workspace and immutable
+result storage and therefore does not promise `@nogc`. Runtime allocation or
+resource exhaustion is not a geometry status.
+
+The current P1 implementation is the correctness-first semantic baseline.
+Pairwise candidate discovery and quadratic post-materialization verification
+can make its worst-case time O(n^4) in the total input boundary-edge count.
+That bound is a baseline implementation characteristic, not a commitment for
+future accelerated implementations.
 
 ## Douglas-Peucker simplification
 

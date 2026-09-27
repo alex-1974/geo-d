@@ -1033,7 +1033,7 @@ Investigate a platform-aware exact or certified arithmetic backend for:
 No public assumption may be made about the representation, precision, or
 layout of D `real`.
 
-## Polygon union — accepted design, implementation pending
+## Polygon union — P1 public API qualification
 
 The OSM-editor consumer audit established polygon union as a concrete
 consumer-backed missing geometry construction.
@@ -1049,10 +1049,24 @@ ADR-0023 is Accepted and defines the implementation contract:
 - an explicit immutable owning result;
 - correctness-first P1 semantics before scalable candidate-discovery work.
 
-Production implementation may now proceed, but no polygon-union package export
-or final public API spelling exists yet. The implementation/API PR must satisfy
-the normal public-surface, documentation, external-consumer, compiler, and
-numerical verification gates.
+The implementation PR now carries the reviewed public spelling:
+
+~~~text
+polygonUnion
+PolygonUnionResult
+PolygonUnionStatus
+~~~
+
+The public result is owning and immutable, while component access returns
+ordinary read-only `Polygon2View!double` descriptors. Checked geometry failure
+distinguishes invalid operands from unrepresentable construction; allocation
+and runtime resource failure remain outside the geometry status domain.
+
+The public surface has passed the ordinary root-export, external-consumer,
+named-argument, `.init`, generated-documentation, cross-compiler, and 2D/3D
+coexistence gates. The initial reproducible P1 benchmark baseline is recorded
+under `benchmarks/README.md` on the implementation branch before any P3
+acceleration work.
 
 The broader Boolean-overlay family remains unpromoted publicly; intersection,
 difference, and symmetric difference still require separate evidence.

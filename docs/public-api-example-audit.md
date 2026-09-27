@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** v2 audit complete; post-v2 A1 vector primitives documented
+**Status:** v2 audit complete; post-v2 A1 vector, A2 line, and polygon-union surfaces documented
 **Baseline:** DDox output generated from v2 main commit `3b99a048882571a4fd562e305dfb58aba86144ad`
 **v2 public DDox symbol pages:** 103
 
@@ -18,24 +18,27 @@ The audit does not change the frozen v2 public API.
 
 ## Post-v2 development surface
 
-A1 vector metric and directional primitives add six public DDox symbol pages
-without changing the frozen v2.0.0 API record:
+Post-v2 compatible development has added three consumer/research-backed API
+families without rewriting the frozen v2.0.0 API record:
 
-- `dot`;
-- `squaredNorm`;
-- `norm`;
-- `tryNormalize`;
-- `trySignedAngle`;
-- `perpendicularCCW`.
+- A1 vector metric and directional primitives add six pages:
+  `dot`, `squaredNorm`, `norm`, `tryNormalize`, `trySignedAngle`,
+  and `perpendicularCCW`;
+- A2 unbounded-line support adds seven pages:
+  `Line2`, its three documented members, `LineIntersectionKind`,
+  `lineIntersectionKind`, and `tryLineIntersectionPoint`;
+- polygon union adds eight pages:
+  `PolygonUnionStatus`, `PolygonUnionResult`, five documented result
+  members, and `polygonUnion`.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 44 |
+| Existing rendered examples | 48 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 65 |
-| **Total public symbol pages** | **109** |
+| Deliberately family-covered declarations | 76 |
+| **Total public symbol pages** | **124** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -285,6 +288,19 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Polygon2View.holeCount` | **family** | PolygonView |
 | `Polygon2View.hole` | **family** | PolygonView |
 
+## `geo.polygon_union`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `PolygonUnionStatus` | **family** | polygonUnion |
+| `PolygonUnionResult` | **family** | polygonUnion |
+| `PolygonUnionResult.status` | **family** | polygonUnion |
+| `PolygonUnionResult.succeeded` | **family** | polygonUnion |
+| `PolygonUnionResult.length` | **family** | polygonUnion |
+| `PolygonUnionResult.empty` | **family** | polygonUnion |
+| `PolygonUnionResult.opIndex` | **family** | polygonUnion |
+| `polygonUnion` | **existing** | polygon-union rendered Example |
+
 ## `geo.polyline_view`
 
 | Public declaration | Classification | Coverage |
@@ -386,8 +402,8 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **family** page unexpectedly gains one without reclassification, or any
 **add** entry remains.
 
-For the post-v2 A1 development surface, the same verifier now enforces
-109 public symbol pages: 44 with rendered examples, 65 family-covered, and
+For the current post-v2 development surface, the same verifier now enforces
+124 public symbol pages: 48 with rendered examples, 76 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

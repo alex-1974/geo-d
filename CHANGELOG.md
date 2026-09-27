@@ -6,6 +6,16 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Added robust regularized polygon union for `int`, `long`, `float`, and
+  `double` polygon inputs through `polygonUnion`, with exact overlay topology,
+  topology-preserving binary64 materialization, explicit checked failure
+  semantics, and immutable owning `PolygonUnionResult` storage.
+- Added `PolygonUnionStatus` to distinguish default/not-computed state,
+  successful construction, invalid operands, and unrepresentable construction
+  without treating runtime allocation failure as geometry status.
+
 ### Changed
 
 - Standardised the Linux x86-64 DMD/LDC compiler matrix across frontend

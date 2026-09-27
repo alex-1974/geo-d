@@ -18,6 +18,26 @@ They are intended primarily for:
 Absolute timings are machine-, compiler- and build-dependent and are not
 part of the public API contract.
 
+## External differential references
+
+Independent diagnostic reference implementations live under
+`benchmarks/reference/`.
+
+The polygon-union P1 implementation has an optional CGAL/EPECK differential
+probe:
+
+~~~sh
+bash benchmarks/run_polygon_union_cgal_reference.sh
+~~~
+
+It compares representation-independent union signatures rather than raw ring
+vertex arrays. See
+[`benchmarks/reference/README.md`](reference/README.md) for requirements,
+fixtures, semantics, and limitations.
+
+The CGAL toolchain is reference-only and is not a DUB, runtime, or ordinary CI
+dependency.
+
 ## Benchmarks
 
 `intersection_bench.d` measures end-to-end operations including:
@@ -1498,3 +1518,160 @@ Benchmark harness commit:
 Absolute timings are machine-, compiler-, build-, and workload-dependent and
 are not part of the public API or performance contract.
 
+
+## Polygon-union P1 benchmark
+
+`polygon_union_bench.d` establishes the correctness-first P1 baseline for the
+public `polygonUnion()` operation before any P3 candidate-discovery
+acceleration is considered.
+
+Coverage includes:
+
+- disjoint integral rectangles;
+- ordinary overlapping integral rectangles;
+- a shared-edge union;
+- point-only contact, which intentionally retains two 2D-interior components;
+- a polygon with a hole plus an island inside that hole;
+- an ordinary overlapping binary64 rectangle case;
+- overlapping convex binary64 rings with 16, 64, and 128 vertices per input.
+
+The two alternating inputs for each workload are fully constructed before
+timing. Each benchmark performs a warm-up, seven measured repetitions, sorts
+the samples, and reports the median nanoseconds per public union operation.
+The result shape contributes to a global sink to prevent dead-code
+elimination.
+
+Unlike caller-buffer algorithms, polygon union necessarily allocates
+variable-size exact-overlay workspace and immutable result storage. Those
+allocations remain inside the timed operation because they are part of the
+public P1 contract.
+
+The scaling cases are diagnostic rather than an asymptotic proof. P1 is
+allowed to use pairwise candidate discovery, and its post-materialization
+topology verification may itself be quadratic in result boundary size. The
+baseline exists to record actual behavior before optimization, not to justify
+a particular acceleration in advance.
+
+### Build
+
+Resolve the complete package-graph import paths through DUB before invoking a
+compiler directly. This keeps the benchmark valid after the shared
+`euclid-core-d` declarations moved to their independently versioned package.
+
+LDC:
+
+    mapfile -t import_paths < <(
+        python3 tools/dub-import-paths.py --compiler=ldc2
+    )
+
+    import_flags=()
+
+    for path in "${import_paths[@]}"; do
+        import_flags+=("-I$path")
+    done
+
+    ldc2 \
+        -O3 \
+        -release \
+        -boundscheck=off \
+        -i \
+        "${import_flags[@]}" \
+        benchmarks/polygon_union_bench.d \
+        -of=/tmp/geo-d-polygon-union-bench-ldc
+
+    /tmp/geo-d-polygon-union-bench-ldc
+
+DMD:
+
+    mapfile -t import_paths < <(
+        python3 tools/dub-import-paths.py --compiler=dmd
+    )
+
+    import_flags=()
+
+    for path in "${import_paths[@]}"; do
+        import_flags+=("-I$path")
+    done
+
+    dmd \
+        -O \
+        -release \
+        -inline \
+        -boundscheck=off \
+        -i \
+        "${import_flags[@]}" \
+        benchmarks/polygon_union_bench.d \
+        -of=/tmp/geo-d-polygon-union-bench-dmd
+
+    /tmp/geo-d-polygon-union-bench-dmd
+
+### Initial P1 baseline
+
+Benchmark harness head:
+
+    3f0db525e8b06a5e29ea025c7d9e29cdf6e80966
+
+Development machine:
+
+    CPU:
+        Intel Core i7-9750H @ 2.60 GHz
+        6 cores / 12 logical CPUs
+        max turbo reported by the OS: 4.5 GHz
+
+    Architecture:
+        x86_64
+
+    Kernel:
+        Linux 6.17.0-22-generic
+
+Baseline compilers:
+
+    DMD:
+        2.111.0
+
+    LDC:
+        1.41.0
+        DMD frontend 2.111.0
+        LLVM 19.1.7
+
+Each reported value is the median of seven in-process measurements after
+warm-up. Input geometry is constructed outside the timed region. Exact-overlay
+workspace allocation and immutable output allocation remain inside the timed
+public operation by design.
+
+| Workload | LDC 1.41.0 | DMD 2.111.0 |
+| --- | ---: | ---: |
+| int rectangles: disjoint | 246,243 ns/op | 651,657 ns/op |
+| int rectangles: overlap | 335,281 ns/op | 894,200 ns/op |
+| int rectangles: shared edge | 244,110 ns/op | 592,605 ns/op |
+| int rectangles: point contact | 293,286 ns/op | 733,778 ns/op |
+| int donut + island | 516,273 ns/op | 1,250,157 ns/op |
+| double rectangles: overlap | 358,563 ns/op | 856,271 ns/op |
+| double convex overlap: 16 + 16 vertices | 1,443,686 ns/op | 3,609,349 ns/op |
+| double convex overlap: 64 + 64 vertices | 25,149,820 ns/op | 21,122,265 ns/op |
+| double convex overlap: 128 + 128 vertices | 123,743,820 ns/op | 115,443,060 ns/op |
+
+The retained sink value was identical and non-zero for both compilers:
+
+    15307315990274939669
+
+For the convex binary64 scaling fixtures, the observed within-run growth was:
+
+    LDC:
+        16 -> 64 vertices/input:   17.42x
+        64 -> 128 vertices/input:   4.92x
+
+    DMD:
+        16 -> 64 vertices/input:    5.85x
+        64 -> 128 vertices/input:   5.47x
+
+These ratios are diagnostic observations for this workload, machine, compiler,
+allocator/GC state, and P1 implementation. They are not an asymptotic proof and
+do not select or justify a particular P3 acceleration strategy.
+
+No production optimization was introduced while establishing this baseline.
+The purpose of the measurement is to preserve a reproducible pre-P3 reference
+point.
+
+Absolute timings are machine-, compiler-, build-, workload-, and GC-dependent
+and are not part of the public API or performance contract.

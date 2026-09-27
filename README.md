@@ -203,6 +203,21 @@ rejecting it. Callers can explicitly validate topology through:
 Validation covers ring simplicity and polygon relationships including ring
 contact and hole containment rules.
 
+### Polygon union
+
+`polygonUnion(first, second)` constructs the regularized two-dimensional
+union of valid polygons for `int`, `long`, `float`, and `double` input
+coordinates.
+
+The operation returns an immutable owning `PolygonUnionResult`. Successful
+components are exposed as read-only `Polygon2View!double` descriptors under
+the existing `IntersectionScalar!T` construction policy. Checked status
+distinguishes invalid operands and exact unions that cannot be materialized in
+binary64 without changing required topology.
+
+Polygon union allocates variable-size exact-overlay workspace and result
+storage. Runtime allocation failure is not reinterpreted as a geometry status.
+
 ### Polyline simplification
 
 Douglas-Peucker simplification is available for `Polyline2View` through:
@@ -329,8 +344,9 @@ The library follows these principles:
 - views before copies;
 - no hidden deep copies;
 - no hidden allocation in low-level numerical operations;
-- caller-owned output and workspace where variable temporary storage is
-  required.
+- caller-owned output and workspace where practical for low-level algorithms;
+- explicit owning immutable results where data-dependent constructed output
+  makes caller-buffer-only presentation impractical.
 
 Most low-level operations are designed to satisfy:
 

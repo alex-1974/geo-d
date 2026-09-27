@@ -224,6 +224,107 @@ void negateExactCoordinateNumerator(
 
 
 /*
+ * Exact comparison of two rational constructed coordinates.
+ *
+ * Both values use the common 2^-1074 coordinate scale:
+ *
+ *     lhsNumerator / lhsDenominator
+ *     rhsNumerator / rhsDenominator
+ *
+ * The common dyadic scale cancels. Denominators must be positive.
+ *
+ * Cross-multiplication is exact: a 198-limb numerator multiplied by the
+ * opposite 132-limb denominator produces UIntFixed!330 on both sides.
+ *
+ * Returns -1, 0, or 1 according to lhs < rhs, lhs == rhs, or lhs > rhs.
+ *
+ * This is authoritative topology support for arrangement-event identity and
+ * ordering. Floating-point construction is deliberately absent.
+ */
+int compareExactCoordinates(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator
+)
+    pure nothrow @safe @nogc
+{
+    assert(!lhsDenominator.isZero);
+    assert(!rhsDenominator.isZero);
+
+    const int lhsSign =
+        lhsNumerator.magnitude.isZero
+            ? 0
+            : lhsNumerator.sign;
+
+    const int rhsSign =
+        rhsNumerator.magnitude.isZero
+            ? 0
+            : rhsNumerator.sign;
+
+    assert(lhsSign >= -1 && lhsSign <= 1);
+    assert(rhsSign >= -1 && rhsSign <= 1);
+
+    if (lhsSign < rhsSign)
+        return -1;
+
+    if (lhsSign > rhsSign)
+        return 1;
+
+    if (lhsSign == 0)
+        return 0;
+
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
+        );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(
+        is(typeof(lhsScaled) == typeof(rhsScaled))
+    );
+
+    const int magnitudeComparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return
+        lhsSign > 0
+            ? magnitudeComparison
+            : -magnitudeComparison;
+}
+
+
+/*
+ * Exact equality of two rational constructed coordinates.
+ */
+bool exactCoordinatesEqual(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator
+)
+    pure nothrow @safe @nogc
+{
+    return
+        compareExactCoordinates(
+            lhsNumerator,
+            lhsDenominator,
+            rhsNumerator,
+            rhsDenominator
+        ) == 0;
+}
+
+
+/*
  * Exact overflow midpoint for binary64 round-to-nearest, ties-to-even.
  *
  *     double.max = 2^1024 - 2^971
@@ -373,6 +474,101 @@ private bool finiteBoundarySelfCheck(uint denominatorValue)
 
 static assert(finiteBoundarySelfCheck(1));
 static assert(finiteBoundarySelfCheck(3));
+
+
+@safe unittest
+{
+    /*
+     * Cross-denominator equality and signed ordering.
+     *
+     * These tests deliberately use unreduced but equivalent fractions because
+     * overlay vertex identity must not depend on GCD normalization.
+     */
+    DyadicProductMagnitude two;
+    two.limb[0] = 2;
+
+    DyadicProductMagnitude four;
+    four.limb[0] = 4;
+
+    SignedExactCoordinateNumerator one;
+    one.sign = 1;
+    one.magnitude.limb[0] = 1;
+
+    SignedExactCoordinateNumerator twoNumerator;
+    twoNumerator.sign = 1;
+    twoNumerator.magnitude.limb[0] = 2;
+
+    SignedExactCoordinateNumerator three;
+    three.sign = 1;
+    three.magnitude.limb[0] = 3;
+
+    assert(
+        exactCoordinatesEqual(
+            one,
+            two,
+            twoNumerator,
+            four
+        )
+    );
+
+    assert(
+        compareExactCoordinates(
+            one,
+            two,
+            three,
+            four
+        ) < 0
+    );
+
+    one.sign = -1;
+    twoNumerator.sign = -1;
+    three.sign = -1;
+
+    assert(
+        exactCoordinatesEqual(
+            one,
+            two,
+            twoNumerator,
+            four
+        )
+    );
+
+    assert(
+        compareExactCoordinates(
+            one,
+            two,
+            three,
+            four
+        ) > 0
+    );
+
+    SignedExactCoordinateNumerator zero;
+
+    assert(
+        compareExactCoordinates(
+            zero,
+            two,
+            one,
+            two
+        ) > 0
+    );
+
+    /*
+     * Canonical zero comparison ignores a stale sign when magnitude is zero.
+     * This keeps comparison tied to the represented mathematical value.
+     */
+    SignedExactCoordinateNumerator signedZero;
+    signedZero.sign = -1;
+
+    assert(
+        exactCoordinatesEqual(
+            zero,
+            two,
+            signedZero,
+            four
+        )
+    );
+}
 
 
 @safe unittest

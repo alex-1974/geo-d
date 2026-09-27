@@ -62,6 +62,12 @@ if (isPolygonUnionNodingScalar!T)
 
     Segment2!T source;
     bool canonicalFollowsSource;
+
+    /*
+     * For every bit present in operandMask, the same bit is present here iff
+     * that operand's polygon interior lies on the left of canonical a -> b.
+     */
+    ubyte interiorLeftMask;
 }
 
 
@@ -126,6 +132,7 @@ if (isPolygonUnionNodingScalar!T)
 bool buildExactAtomicEdgesFromNodedSource(T)(
     Segment2!T source,
     ubyte operandMask,
+    bool interiorOnSourceLeft,
     scope const(ExactOverlayPoint)[] events,
     scope ExactAtomicEdge!T[] edges,
     out size_t count
@@ -183,7 +190,10 @@ if (isPolygonUnionNodingScalar!T)
                     second,
                     operandMask,
                     source,
-                    true
+                    true,
+                    interiorOnSourceLeft
+                        ? operandMask
+                        : 0
                 );
         }
         else
@@ -194,7 +204,10 @@ if (isPolygonUnionNodingScalar!T)
                     first,
                     operandMask,
                     source,
-                    false
+                    false,
+                    interiorOnSourceLeft
+                        ? 0
+                        : operandMask
                 );
         }
     }
@@ -337,8 +350,31 @@ if (isPolygonUnionNodingScalar!T)
             )
         )
         {
+            const ubyte sharedOperandMask =
+                edges[write - 1].operandMask &
+                edges[read].operandMask;
+
+            /*
+             * A valid polygon cannot contribute two positive-length
+             * coincident boundaries of the same operand. If an internal
+             * caller violates that precondition, any repeated operand must
+             * at least agree on which canonical side is interior.
+             */
+            assert(
+                (
+                    (
+                        edges[write - 1].interiorLeftMask ^
+                        edges[read].interiorLeftMask
+                    ) &
+                    sharedOperandMask
+                ) == 0
+            );
+
             edges[write - 1].operandMask |=
                 edges[read].operandMask;
+
+            edges[write - 1].interiorLeftMask |=
+                edges[read].interiorLeftMask;
 
             continue;
         }
@@ -440,6 +476,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 firstEdges[],
                 firstEdgeCount
@@ -450,6 +487,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 secondEdges[],
                 secondEdgeCount
@@ -585,6 +623,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 edges[0 .. 1],
                 countA
@@ -595,6 +634,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 edges[1 .. 2],
                 countB
@@ -614,6 +654,104 @@ if (isPolygonUnionNodingScalar!T)
 
         assert(count == 1);
         assert(edges[0].operandMask == both);
+
+        /*
+         * A follows canonical direction and has interior on source-left.
+         * B traverses the same geometric edge in reverse and also has
+         * interior on source-left, therefore its interior lies on canonical
+         * right. The merged masks preserve that distinction.
+         */
+        assert(
+            edges[0].interiorLeftMask ==
+            polygonUnionOperandA
+        );
+    }
+
+
+    /*
+     * Same shared geometry with both polygon interiors on the same geometric
+     * side. B traverses in reverse, so its stored/source interior side must
+     * be right to become canonical-left after reversal.
+     */
+    {
+        const S first =
+            S(
+                P(0, 1),
+                P(4, 1)
+            );
+
+        const S second =
+            S(
+                P(4, 1),
+                P(0, 1)
+            );
+
+        ExactOverlayPoint[4] firstEvents;
+        ExactOverlayPoint[4] secondEvents;
+
+        size_t firstEventCount;
+        size_t secondEventCount;
+
+        assert(seedExactEdgeEvents(first, firstEvents[], firstEventCount));
+        assert(seedExactEdgeEvents(second, secondEvents[], secondEventCount));
+
+        assert(
+            appendSegmentPairNodingEvents(
+                first,
+                second,
+                firstEvents[],
+                firstEventCount,
+                secondEvents[],
+                secondEventCount
+            )
+        );
+
+        firstEventCount =
+            sortUniqueExactEdgeEvents(
+                first,
+                firstEvents[0 .. firstEventCount]
+            );
+
+        secondEventCount =
+            sortUniqueExactEdgeEvents(
+                second,
+                secondEvents[0 .. secondEventCount]
+            );
+
+        E[2] edges;
+        size_t countA;
+        size_t countB;
+
+        assert(
+            buildExactAtomicEdgesFromNodedSource(
+                first,
+                polygonUnionOperandA,
+                true,
+                firstEvents[0 .. firstEventCount],
+                edges[0 .. 1],
+                countA
+            )
+        );
+
+        assert(
+            buildExactAtomicEdgesFromNodedSource(
+                second,
+                polygonUnionOperandB,
+                false,
+                secondEvents[0 .. secondEventCount],
+                edges[1 .. 2],
+                countB
+            )
+        );
+
+        const size_t count =
+            sortMergeExactAtomicEdges(
+                edges[]
+            );
+
+        assert(count == 1);
+        assert(edges[0].operandMask == both);
+        assert(edges[0].interiorLeftMask == both);
     }
 
 
@@ -674,6 +812,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 edges[0 .. 2],
                 firstEdgeCount
@@ -684,6 +823,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 edges[2 .. 4],
                 secondEdgeCount
@@ -787,6 +927,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 first,
                 polygonUnionOperandA,
+                true,
                 firstEvents[0 .. firstEventCount],
                 edges[0 .. 1],
                 firstEdgeCount
@@ -797,6 +938,7 @@ if (isPolygonUnionNodingScalar!T)
             buildExactAtomicEdgesFromNodedSource(
                 second,
                 polygonUnionOperandB,
+                true,
                 secondEvents[0 .. secondEventCount],
                 edges[1 .. 2],
                 secondEdgeCount

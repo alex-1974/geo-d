@@ -482,6 +482,176 @@ bool tryClassifyExactUnionCycleRole(
 
 
 /*
+ * Classifies one boundary cycle relative to another using a subject vertex
+ * that is not merely a point contact with the reference boundary.
+ *
+ * Valid simple non-coincident cycles may touch at isolated exact vertices.
+ * Therefore the stored/canonical start vertex alone is not a sufficient
+ * containment representative. Walk the subject cycle until one vertex is
+ * strictly inside or outside the reference.
+ *
+ * If every subject vertex lies on the reference boundary, the cycles are
+ * coincident/degenerate for this stage and the relation is rejected.
+ */
+private bool tryClassifyExactCycleRelativeToCycle(
+    ref const ExactUnionBoundaryCycle subject,
+    ref const ExactUnionBoundaryCycle reference,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
+    scope const(size_t)[] nextSelected,
+    scope const(ExactOverlayPoint)[] vertices,
+    out ExactUnionCyclePointLocation location
+)
+    pure nothrow @safe @nogc
+{
+    location =
+        ExactUnionCyclePointLocation.outside;
+
+    if (
+        subject.edgeCount < 3 ||
+        subject.startHalfEdge >= halfEdges.length ||
+        nextSelected.length != halfEdges.length
+    )
+    {
+        return false;
+    }
+
+    size_t current =
+        subject.startHalfEdge;
+
+    foreach (_; 0 .. subject.edgeCount)
+    {
+        if (current >= halfEdges.length)
+            return false;
+
+        const auto edge =
+            halfEdges[current];
+
+        if (edge.originVertex >= vertices.length)
+            return false;
+
+        ExactUnionCyclePointLocation candidate;
+
+        if (
+            !tryClassifyExactPointInUnionCycle(
+                vertices[
+                    edge.originVertex
+                ],
+                reference,
+                halfEdges,
+                nextSelected,
+                vertices,
+                candidate
+            )
+        )
+        {
+            return false;
+        }
+
+        if (
+            candidate !=
+            ExactUnionCyclePointLocation.boundary
+        )
+        {
+            location =
+                candidate;
+
+            return true;
+        }
+
+        const size_t next =
+            nextSelected[current];
+
+        if (
+            next >= halfEdges.length ||
+            halfEdges[next].originVertex !=
+                edge.destinationVertex
+        )
+        {
+            return false;
+        }
+
+        current =
+            next;
+    }
+
+    return false;
+}
+
+
+/*
+ * Number of other exterior cycles that strictly contain this component's
+ * exterior cycle.
+ *
+ * For a valid non-crossing boundary set, strict containing exteriors form a
+ * nesting chain. Point contacts do not increase depth.
+ */
+private bool tryExactExteriorContainmentDepth(
+    size_t componentIndex,
+    scope const(ExactUnionComponent)[] components,
+    scope const(ExactUnionBoundaryCycle)[] cycles,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
+    scope const(size_t)[] nextSelected,
+    scope const(ExactOverlayPoint)[] vertices,
+    out size_t depth
+)
+    pure nothrow @safe @nogc
+{
+    depth = 0;
+
+    if (componentIndex >= components.length)
+        return false;
+
+    const size_t subjectCycle =
+        components[
+            componentIndex
+        ].exteriorCycle;
+
+    if (subjectCycle >= cycles.length)
+        return false;
+
+    foreach (otherComponent; 0 .. components.length)
+    {
+        if (otherComponent == componentIndex)
+            continue;
+
+        const size_t referenceCycle =
+            components[
+                otherComponent
+            ].exteriorCycle;
+
+        if (referenceCycle >= cycles.length)
+            return false;
+
+        ExactUnionCyclePointLocation location;
+
+        if (
+            !tryClassifyExactCycleRelativeToCycle(
+                cycles[subjectCycle],
+                cycles[referenceCycle],
+                halfEdges,
+                nextSelected,
+                vertices,
+                location
+            )
+        )
+        {
+            return false;
+        }
+
+        if (
+            location ==
+            ExactUnionCyclePointLocation.inside
+        )
+        {
+            ++depth;
+        }
+    }
+
+    return true;
+}
+
+
+/*
  * Classifies all cycles and groups every hole into exactly one exterior
  * component.
  *
@@ -489,10 +659,17 @@ bool tryClassifyExactUnionCycleRole(
  * cycles. componentOfCycle maps both an exterior and each of its holes to the
  * same deterministic component index.
  *
- * Distinct exterior cycles may touch on their boundaries but may not contain
- * one another. A hole must be strictly inside exactly one exterior; boundary
- * contact with an exterior is rejected because that is not a valid hole
- * relationship for the materialized Polygon2View contract.
+ * Exterior cycles may be geometrically nested when a separate union component
+ * lies inside a hole of another component. Point-only contacts are likewise
+ * allowed.
+ *
+ * A hole is assigned to the deepest (immediate) exterior cycle that strictly
+ * contains it. This is required for nested components whose own holes are also
+ * geometrically inside ancestor exterior cycles.
+ *
+ * After hole assignment, every geometrically nested exterior is checked to
+ * lie inside a hole of each containing ancestor component. Thus an exterior
+ * cannot redundantly appear inside another component's filled interior.
  */
 bool tryBuildExactUnionComponents(
     scope const(ExactUnionBoundaryCycle)[] cycles,
@@ -557,81 +734,13 @@ bool tryBuildExactUnionComponents(
 
 
     /*
-     * Separate exterior components may meet at point contacts, but an
-     * exterior cycle cannot lie strictly inside another exterior cycle.
+     * Assign every hole to the deepest exterior cycle that strictly contains
+     * it.
+     *
+     * A hole of a nested component may be inside both that component's
+     * exterior and one or more ancestor exteriors. The greatest exterior
+     * nesting depth identifies the immediate owner.
      */
-    foreach (componentIndex; 0 .. componentCount)
-    {
-        const size_t cycleIndex =
-            components[
-                componentIndex
-            ].exteriorCycle;
-
-        const auto startEdge =
-            halfEdges[
-                cycles[
-                    cycleIndex
-                ].startHalfEdge
-            ];
-
-        if (
-            startEdge.originVertex >=
-            vertices.length
-        )
-        {
-            componentCount = 0;
-            return false;
-        }
-
-        const auto query =
-            vertices[
-                startEdge.originVertex
-            ];
-
-        foreach (otherComponent; 0 .. componentCount)
-        {
-            if (
-                otherComponent ==
-                componentIndex
-            )
-            {
-                continue;
-            }
-
-            const size_t otherCycle =
-                components[
-                    otherComponent
-                ].exteriorCycle;
-
-            ExactUnionCyclePointLocation location;
-
-            if (
-                !tryClassifyExactPointInUnionCycle(
-                    query,
-                    cycles[otherCycle],
-                    halfEdges,
-                    nextSelected,
-                    vertices,
-                    location
-                )
-            )
-            {
-                componentCount = 0;
-                return false;
-            }
-
-            if (
-                location ==
-                ExactUnionCyclePointLocation.inside
-            )
-            {
-                componentCount = 0;
-                return false;
-            }
-        }
-    }
-
-
     foreach (cycleIndex; 0 .. cycles.length)
     {
         if (
@@ -642,29 +751,12 @@ bool tryBuildExactUnionComponents(
             continue;
         }
 
-        const auto startEdge =
-            halfEdges[
-                cycles[
-                    cycleIndex
-                ].startHalfEdge
-            ];
-
-        if (
-            startEdge.originVertex >=
-            vertices.length
-        )
-        {
-            componentCount = 0;
-            return false;
-        }
-
-        const auto query =
-            vertices[
-                startEdge.originVertex
-            ];
-
         size_t containingComponent =
             size_t.max;
+
+        size_t containingDepth = 0;
+
+        bool haveContainingDepth = false;
 
         foreach (componentIndex; 0 .. componentCount)
         {
@@ -676,8 +768,8 @@ bool tryBuildExactUnionComponents(
             ExactUnionCyclePointLocation location;
 
             if (
-                !tryClassifyExactPointInUnionCycle(
-                    query,
+                !tryClassifyExactCycleRelativeToCycle(
+                    cycles[cycleIndex],
                     cycles[exteriorCycle],
                     halfEdges,
                     nextSelected,
@@ -691,8 +783,28 @@ bool tryBuildExactUnionComponents(
             }
 
             if (
-                location ==
-                ExactUnionCyclePointLocation.boundary
+                location !=
+                ExactUnionCyclePointLocation.inside
+            )
+            {
+                continue;
+            }
+
+            size_t depth;
+
+            if (
+                !tryExactExteriorContainmentDepth(
+                    componentIndex,
+                    components[
+                        0 ..
+                        componentCount
+                    ],
+                    cycles,
+                    halfEdges,
+                    nextSelected,
+                    vertices,
+                    depth
+                )
             )
             {
                 componentCount = 0;
@@ -700,21 +812,31 @@ bool tryBuildExactUnionComponents(
             }
 
             if (
-                location ==
-                ExactUnionCyclePointLocation.inside
+                !haveContainingDepth ||
+                depth >
+                    containingDepth
             )
             {
-                if (
-                    containingComponent !=
-                    size_t.max
-                )
-                {
-                    componentCount = 0;
-                    return false;
-                }
-
                 containingComponent =
                     componentIndex;
+
+                containingDepth =
+                    depth;
+
+                haveContainingDepth =
+                    true;
+            }
+            else if (
+                depth ==
+                    containingDepth
+            )
+            {
+                /*
+                 * Two non-nested exterior components at the same depth cannot
+                 * both strictly contain one simple hole boundary.
+                 */
+                componentCount = 0;
+                return false;
             }
         }
 
@@ -733,6 +855,110 @@ bool tryBuildExactUnionComponents(
         ++components[
             containingComponent
         ].holeCount;
+    }
+
+
+    /*
+     * Validate geometrically nested exterior components against the now-known
+     * hole ownership.
+     *
+     * If inner exterior I is strictly inside outer exterior O, I must lie
+     * inside exactly one hole assigned to O. Otherwise I would be embedded in
+     * O's filled union interior and could not be a distinct result component.
+     */
+    foreach (innerComponent; 0 .. componentCount)
+    {
+        const size_t innerExterior =
+            components[
+                innerComponent
+            ].exteriorCycle;
+
+        foreach (outerComponent; 0 .. componentCount)
+        {
+            if (
+                outerComponent ==
+                innerComponent
+            )
+            {
+                continue;
+            }
+
+            const size_t outerExterior =
+                components[
+                    outerComponent
+                ].exteriorCycle;
+
+            ExactUnionCyclePointLocation exteriorLocation;
+
+            if (
+                !tryClassifyExactCycleRelativeToCycle(
+                    cycles[innerExterior],
+                    cycles[outerExterior],
+                    halfEdges,
+                    nextSelected,
+                    vertices,
+                    exteriorLocation
+                )
+            )
+            {
+                componentCount = 0;
+                return false;
+            }
+
+            if (
+                exteriorLocation !=
+                ExactUnionCyclePointLocation.inside
+            )
+            {
+                continue;
+            }
+
+            size_t containingHoleCount = 0;
+
+            foreach (holeCycle; 0 .. cycles.length)
+            {
+                if (
+                    roles[holeCycle] !=
+                        ExactUnionCycleRole.hole ||
+                    componentOfCycle[holeCycle] !=
+                        outerComponent
+                )
+                {
+                    continue;
+                }
+
+                ExactUnionCyclePointLocation holeLocation;
+
+                if (
+                    !tryClassifyExactCycleRelativeToCycle(
+                        cycles[innerExterior],
+                        cycles[holeCycle],
+                        halfEdges,
+                        nextSelected,
+                        vertices,
+                        holeLocation
+                    )
+                )
+                {
+                    componentCount = 0;
+                    return false;
+                }
+
+                if (
+                    holeLocation ==
+                    ExactUnionCyclePointLocation.inside
+                )
+                {
+                    ++containingHoleCount;
+                }
+            }
+
+            if (containingHoleCount != 1)
+            {
+                componentCount = 0;
+                return false;
+            }
+        }
     }
 
 

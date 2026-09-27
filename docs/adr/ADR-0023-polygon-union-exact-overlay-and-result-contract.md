@@ -1,6 +1,6 @@
 # ADR-0023 — Polygon union exact-overlay and result contract
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-27
 
 ## Context
@@ -31,8 +31,8 @@ Two mathematically distinct proper segment intersections can both correctly
 round to the same binary64 coordinate. Therefore rounded construction points
 cannot be used as authoritative arrangement-vertex identity or event order.
 
-This ADR proposes the overlay architecture and the result semantics that must
-be established before production polygon-union implementation begins.
+This ADR establishes the overlay architecture and result semantics for the
+first production polygon-union implementation.
 
 It deliberately does not select final public API spelling.
 
@@ -430,7 +430,8 @@ IntersectionScalar!T
 
 No new competing construction-scalar policy is introduced.
 
-This remains a **proposed semantic decision**, not final public API spelling.
+This is the accepted construction-scalar decision. Final public API spelling
+remains a separate implementation/API-design choice.
 
 ### 15. Output materialization is all-or-nothing
 
@@ -499,11 +500,11 @@ Two result components may share an isolated boundary point when the exact
 regularized union has separate interior components that meet only at that
 point.
 
-### 18. Proposed deterministic representation
+### 18. Deterministic representation
 
 Determinism is part of the result contract.
 
-The proposed canonical construction rules are:
+The canonical construction rules are:
 
 - trace every result boundary with union interior on the left;
 - exterior cycles are therefore counter-clockwise in the ordinary Cartesian
@@ -526,7 +527,7 @@ rounding collapse that destroys it is a representability failure.
 operand order, source ring direction, and source ring start rotation do not
 change the canonical result.
 
-### 19. Proposed ownership model is an explicit owning immutable result
+### 19. Initial ownership model is an explicit owning immutable result
 
 Polygon union has inherently data-dependent output size:
 
@@ -545,7 +546,7 @@ A caller-buffer-only API would either require:
 - or a public reusable plan/workspace abstraction whose complexity is not yet
   justified by a consumer.
 
-The proposed initial public ownership model is therefore an **explicit owning,
+The initial public ownership model is therefore an **explicit owning,
 read-only result**.
 
 Its semantic requirements are:
@@ -805,7 +806,7 @@ for the complexity of real-world overlay edge cases.
 
 Research detail is retained in issue #36 and draft research PR #37.
 
-## Proposed consequences
+## Consequences
 
 ### Positive
 
@@ -957,7 +958,8 @@ Subsequent executable design probes on draft PR #37 additionally establish:
   CI run #75 passed;
 - whole-boundary cycle decomposition that permits a shared exact contact
   vertex between distinct cycles while rejecting a self-touching single
-  cycle; the executable probe is carried by the final research branch;
+  cycle; final research CI run #83 passed DMD 2.111.0, LDC 1.41.0, and both
+  rolling canaries;
 - two independent binary64 materialization hazards: exact-vertex collapse and
   a valid exact signed-long ring that retains four distinct rounded vertices
   yet becomes topologically invalid after rounding; CI run #76 passed;
@@ -965,7 +967,7 @@ Subsequent executable design probes on draft PR #37 additionally establish:
   preconditions bind the rounded point table, complete selected boundary
   graph, and reconstructed component views; it requires preserved boundary
   incidence, valid component polygons, and pairwise component-interior
-  disjointness;
+  disjointness; final research CI run #83 passed the same four compiler jobs;
 - an immutable GC-backed owning-result prototype whose descriptor copies share
   immutable point/ring/component backing and whose `Polygon2View` access
   remains usable after the original owner descriptor is dropped; CI run #77
@@ -979,8 +981,8 @@ production source or package exports.
 
 ## Acceptance gates
 
-This ADR remains **Proposed** until all of the following are resolved with
-executable evidence or an explicit proof:
+ADR acceptance is supported by the following executable evidence and explicit
+complexity/failure analysis:
 
 - [x] exact source-direction angular ordering is prototyped for crossing,
       T-junction, shared-edge, opposite-ray, and multi-edge vertices;
@@ -1000,17 +1002,21 @@ executable evidence or an explicit proof:
       permutation invariance remains part of production/property verification;
 - [x] complexity, allocation, and failure behavior are documented against the
       executable P1 candidate;
-- [ ] Issue #38 records the final disposition of every open design question.
+- [x] Issue #38 records the final disposition of every open design question.
 
-Only after these gates pass may the ADR move to **Accepted** and production
-polygon-union implementation begin.
+All design gates are satisfied. Production implementation may now begin on a
+separate implementation branch/PR under this contract. Final public API naming
+and exact type spelling still require the ordinary API review, but they may not
+weaken or bypass this accepted semantic, numerical, ownership, or failure
+contract.
 
 ## Implementation gate
 
-This Proposed ADR does **not** authorize a public polygon-union API or
-production overlay implementation.
+This Accepted ADR authorizes production polygon-union implementation under the
+contract above. It does not by itself add package exports or select final
+public API spelling.
 
-Permitted work before acceptance is limited to:
+Research work that established acceptance was limited to:
 
 - internal research/prototype code;
 - range proofs;
@@ -1019,5 +1025,6 @@ Permitted work before acceptance is limited to:
 - ownership/lifetime probes;
 - documentation needed to decide the gates above.
 
-Public API spelling and package exports remain frozen until the design gate is
-accepted.
+Public API spelling and package exports remain unchanged by this ADR commit;
+any production/API PR must add them explicitly and satisfy the normal public
+surface, documentation, consumer, and compatibility gates.

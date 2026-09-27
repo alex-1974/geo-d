@@ -6,11 +6,31 @@ import geo.internal.exact_coordinate :
 import geo.internal.exact_coordinate_round :
     roundExactCoordinateBinary64;
 
+import geo.internal.polygon_union_boundary :
+    ExactUnionBoundaryCycle;
+
+import geo.internal.polygon_union_components :
+    ExactUnionCanonicalComponent,
+    ExactUnionCanonicalRing;
+
 import geo.internal.polygon_union_embedding :
     ExactArrangementHalfEdge;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint;
+
+import geo.linear_ring_view :
+    LinearRing2View;
+
+import geo.point_in_polygon :
+    PointPolygonLocation,
+    tryClassifyPointInPolygon;
+
+import geo.polygon_view :
+    Polygon2View;
+
+import geo.topology_validation :
+    validatePolygon;
 
 import geo.intersection :
     SegmentContactKind,
@@ -547,6 +567,356 @@ bool tryMaterializeExactUnionBoundary(
 }
 
 
+/*
+ * Verifies every materialized result component against the existing polygon
+ * contract and rejects new inter-component interior overlap/containment.
+ *
+ * The complete selected boundary-incidence graph has already been verified by
+ * materializedBoundaryIncidencePreserved().
+ *
+ * With that invariant in place, any new two-dimensional overlap between
+ * distinct components without a new boundary crossing requires an exterior
+ * vertex of one component to lie in the interior of the other. Testing both
+ * directions therefore rejects newly created containment/overlap while still
+ * allowing:
+ *
+ * - isolated point contacts on boundaries;
+ * - a separate component located inside a hole of another component.
+ */
+bool materializedComponentsRemainDisjoint(
+    scope const(Polygon2View!double)[] components
+)
+    pure nothrow @safe
+{
+    foreach (component; components)
+    {
+        if (
+            !validatePolygon(
+                component
+            ).valid
+        )
+        {
+            return false;
+        }
+    }
+
+    foreach (i; 0 .. components.length)
+    {
+        foreach (j; i + 1 .. components.length)
+        {
+            const auto first =
+                components[i];
+
+            const auto second =
+                components[j];
+
+            if (
+                first.empty ||
+                second.empty
+            )
+            {
+                continue;
+            }
+
+            PointPolygonLocation location;
+
+            foreach (k; 0 .. first.exterior.length)
+            {
+                if (
+                    !tryClassifyPointInPolygon(
+                        second,
+                        first.exterior[k],
+                        location
+                    ) ||
+                    location ==
+                        PointPolygonLocation.inside
+                )
+                {
+                    return false;
+                }
+            }
+
+            foreach (k; 0 .. second.exterior.length)
+            {
+                if (
+                    !tryClassifyPointInPolygon(
+                        first,
+                        second.exterior[k],
+                        location
+                    ) ||
+                    location ==
+                        PointPolygonLocation.inside
+                )
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+
+/*
+ * Reconstructs canonical materialized polygon views from the already rounded
+ * exact result vertex table and verifies the complete public Polygon2View
+ * topology contract.
+ *
+ * The exact canonical layout determines sequence identity BEFORE rounding:
+ *
+ * - component order;
+ * - exterior-first ring order;
+ * - hole order;
+ * - exact canonical ring start;
+ * - selected interior-left traversal direction.
+ *
+ * ringPointStorage receives one copied binary64 point for every stored result
+ * ring vertex. This contiguous per-ring storage is necessary because
+ * LinearRing2View is a contiguous borrowed view while arrangement vertex IDs
+ * are globally deduplicated and need not be contiguous in ring order.
+ *
+ * ringViews and componentViews are caller-owned descriptor storage and borrow
+ * from ringPointStorage / ringViews respectively. This is the internal
+ * precursor to the accepted immutable owning result model.
+ *
+ * On success:
+ *
+ * - ringPointCount is the number of used entries in ringPointStorage;
+ * - ringViews[0 .. canonicalRings.length] are valid ring descriptors;
+ * - componentViews[0 .. canonicalComponents.length] are valid polygon views;
+ * - distinct component interiors remain disjoint under materialization.
+ *
+ * This operation may allocate indirectly through validatePolygon() and
+ * therefore intentionally does not promise @nogc.
+ */
+bool tryBuildMaterializedUnionComponents(
+    scope const(ExactUnionBoundaryCycle)[] cycles,
+    scope const(ExactUnionCanonicalRing)[] canonicalRings,
+    scope const(ExactUnionCanonicalComponent)[] canonicalComponents,
+    scope const(ExactArrangementHalfEdge)[] halfEdges,
+    scope const(size_t)[] nextSelected,
+    scope const(Point2!double)[] materializedVertices,
+    Point2!double[] ringPointStorage,
+    LinearRing2View!double[] ringViews,
+    Polygon2View!double[] componentViews,
+    out size_t ringPointCount
+)
+    pure nothrow @safe
+{
+    ringPointCount = 0;
+
+    if (
+        canonicalRings.length != cycles.length ||
+        nextSelected.length != halfEdges.length ||
+        ringViews.length < canonicalRings.length ||
+        componentViews.length < canonicalComponents.length
+    )
+    {
+        return false;
+    }
+
+
+    size_t requiredPoints = 0;
+
+    foreach (ring; canonicalRings)
+    {
+        if (
+            ring.cycle >= cycles.length ||
+            ring.startHalfEdge >= halfEdges.length
+        )
+        {
+            return false;
+        }
+
+        const size_t edgeCount =
+            cycles[
+                ring.cycle
+            ].edgeCount;
+
+        if (
+            edgeCount < 3 ||
+            requiredPoints >
+                size_t.max -
+                edgeCount
+        )
+        {
+            return false;
+        }
+
+        requiredPoints +=
+            edgeCount;
+    }
+
+    if (
+        ringPointStorage.length <
+        requiredPoints
+    )
+    {
+        return false;
+    }
+
+
+    size_t write = 0;
+
+    foreach (ringIndex, ring; canonicalRings)
+    {
+        const auto cycle =
+            cycles[
+                ring.cycle
+            ];
+
+        const size_t begin =
+            write;
+
+        size_t current =
+            ring.startHalfEdge;
+
+        foreach (_; 0 .. cycle.edgeCount)
+        {
+            if (current >= halfEdges.length)
+            {
+                ringPointCount = 0;
+                return false;
+            }
+
+            const auto edge =
+                halfEdges[current];
+
+            if (
+                edge.originVertex >=
+                    materializedVertices.length ||
+                edge.destinationVertex >=
+                    materializedVertices.length ||
+                edge.originVertex ==
+                    edge.destinationVertex
+            )
+            {
+                ringPointCount = 0;
+                return false;
+            }
+
+            const auto point =
+                materializedVertices[
+                    edge.originVertex
+                ];
+
+            if (!point.isFinite)
+            {
+                ringPointCount = 0;
+                return false;
+            }
+
+            ringPointStorage[write++] =
+                point;
+
+            const size_t next =
+                nextSelected[current];
+
+            if (
+                next >= halfEdges.length ||
+                halfEdges[next].originVertex !=
+                    edge.destinationVertex
+            )
+            {
+                ringPointCount = 0;
+                return false;
+            }
+
+            current =
+                next;
+        }
+
+        if (
+            current !=
+            ring.startHalfEdge
+        )
+        {
+            ringPointCount = 0;
+            return false;
+        }
+
+        ringViews[ringIndex] =
+            LinearRing2View!double(
+                ringPointStorage[
+                    begin ..
+                    write
+                ]
+            );
+    }
+
+    assert(write == requiredPoints);
+
+    ringPointCount =
+        write;
+
+
+    size_t expectedFirstRing = 0;
+
+    foreach (
+        componentIndex,
+        component;
+        canonicalComponents
+    )
+    {
+        if (
+            component.ringCount == 0 ||
+            component.firstRing !=
+                expectedFirstRing ||
+            component.firstRing >
+                canonicalRings.length ||
+            component.ringCount >
+                canonicalRings.length -
+                component.firstRing
+        )
+        {
+            ringPointCount = 0;
+            return false;
+        }
+
+        const size_t endRing =
+            component.firstRing +
+            component.ringCount;
+
+        componentViews[componentIndex] =
+            Polygon2View!double(
+                ringViews[
+                    component.firstRing ..
+                    endRing
+                ]
+            );
+
+        expectedFirstRing =
+            endRing;
+    }
+
+    if (
+        expectedFirstRing !=
+        canonicalRings.length
+    )
+    {
+        ringPointCount = 0;
+        return false;
+    }
+
+
+    if (
+        !materializedComponentsRemainDisjoint(
+            componentViews[
+                0 ..
+                canonicalComponents.length
+            ]
+        )
+    )
+    {
+        ringPointCount = 0;
+        return false;
+    }
+
+    return true;
+}
+
+
 @safe unittest
 {
     import geo.internal.polygon_union_exact :
@@ -859,6 +1229,221 @@ bool tryMaterializeExactUnionBoundary(
     assert(
         fullMaterialization[2] ==
         fullMaterialization[3]
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * Canonical exterior + hole layout materializes into one valid
+     * Polygon2View using contiguous ring storage.
+     */
+    const Point2!double[8] materializedVertices = [
+        Point2!double(0.0, 0.0),
+        Point2!double(8.0, 0.0),
+        Point2!double(8.0, 8.0),
+        Point2!double(0.0, 8.0),
+
+        Point2!double(2.0, 2.0),
+        Point2!double(2.0, 4.0),
+        Point2!double(4.0, 4.0),
+        Point2!double(4.0, 2.0),
+    ];
+
+    ExactArrangementHalfEdge[8] halfEdges;
+
+    foreach (i; 0 .. 4)
+    {
+        halfEdges[i].originVertex =
+            i;
+
+        halfEdges[i].destinationVertex =
+            (i + 1) % 4;
+    }
+
+    foreach (i; 0 .. 4)
+    {
+        halfEdges[4 + i].originVertex =
+            4 + i;
+
+        halfEdges[4 + i].destinationVertex =
+            4 + ((i + 1) % 4);
+    }
+
+    const size_t[8] nextSelected = [
+        1, 2, 3, 0,
+        5, 6, 7, 4,
+    ];
+
+    const ExactUnionBoundaryCycle[2] cycles = [
+        ExactUnionBoundaryCycle(0, 4),
+        ExactUnionBoundaryCycle(4, 4),
+    ];
+
+    const ExactUnionCanonicalRing[2] canonicalRings = [
+        ExactUnionCanonicalRing(0, 0),
+        ExactUnionCanonicalRing(1, 4),
+    ];
+
+    const ExactUnionCanonicalComponent[1] canonicalComponents = [
+        ExactUnionCanonicalComponent(
+            0,
+            2
+        ),
+    ];
+
+    Point2!double[8] ringPoints;
+    LinearRing2View!double[2] rings;
+    Polygon2View!double[1] components;
+
+    size_t ringPointCount;
+
+    assert(
+        tryBuildMaterializedUnionComponents(
+            cycles[],
+            canonicalRings[],
+            canonicalComponents[],
+            halfEdges[],
+            nextSelected[],
+            materializedVertices[],
+            ringPoints[],
+            rings[],
+            components[],
+            ringPointCount
+        )
+    );
+
+    assert(ringPointCount == 8);
+
+    assert(
+        validatePolygon(
+            components[0]
+        ).valid
+    );
+
+    assert(
+        components[0].exterior[0] ==
+        Point2!double(0.0, 0.0)
+    );
+
+    assert(
+        components[0].hole(0)[0] ==
+        Point2!double(2.0, 2.0)
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * A separate materialized component may lie inside a hole of another
+     * component: their polygon interiors remain disjoint.
+     */
+    Point2!double[4] outerPoints = [
+        Point2!double(0.0, 0.0),
+        Point2!double(10.0, 0.0),
+        Point2!double(10.0, 10.0),
+        Point2!double(0.0, 10.0),
+    ];
+
+    Point2!double[4] holePoints = [
+        Point2!double(3.0, 3.0),
+        Point2!double(3.0, 7.0),
+        Point2!double(7.0, 7.0),
+        Point2!double(7.0, 3.0),
+    ];
+
+    Point2!double[4] islandPoints = [
+        Point2!double(4.0, 4.0),
+        Point2!double(6.0, 4.0),
+        Point2!double(6.0, 6.0),
+        Point2!double(4.0, 6.0),
+    ];
+
+    LinearRing2View!double[3] rings = [
+        LinearRing2View!double(
+            outerPoints[]
+        ),
+        LinearRing2View!double(
+            holePoints[]
+        ),
+        LinearRing2View!double(
+            islandPoints[]
+        ),
+    ];
+
+    const Polygon2View!double[2] components = [
+        Polygon2View!double(
+            rings[0 .. 2]
+        ),
+        Polygon2View!double(
+            rings[2 .. 3]
+        ),
+    ];
+
+    assert(
+        materializedComponentsRemainDisjoint(
+            components[]
+        )
+    );
+}
+
+
+@safe unittest
+{
+    /*
+     * New materialized containment in filled union interior is rejected even
+     * when both individual polygons are valid.
+     */
+    Point2!double[4] outerPoints = [
+        Point2!double(0.0, 0.0),
+        Point2!double(10.0, 0.0),
+        Point2!double(10.0, 10.0),
+        Point2!double(0.0, 10.0),
+    ];
+
+    Point2!double[4] innerPoints = [
+        Point2!double(2.0, 2.0),
+        Point2!double(4.0, 2.0),
+        Point2!double(4.0, 4.0),
+        Point2!double(2.0, 4.0),
+    ];
+
+    LinearRing2View!double[2] rings = [
+        LinearRing2View!double(
+            outerPoints[]
+        ),
+        LinearRing2View!double(
+            innerPoints[]
+        ),
+    ];
+
+    const Polygon2View!double[2] components = [
+        Polygon2View!double(
+            rings[0 .. 1]
+        ),
+        Polygon2View!double(
+            rings[1 .. 2]
+        ),
+    ];
+
+    assert(
+        validatePolygon(
+            components[0]
+        ).valid
+    );
+
+    assert(
+        validatePolygon(
+            components[1]
+        ).valid
+    );
+
+    assert(
+        !materializedComponentsRemainDisjoint(
+            components[]
+        )
     );
 }
 

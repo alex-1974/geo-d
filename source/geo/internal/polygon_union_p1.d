@@ -94,6 +94,8 @@ version (GeoPolygonUnionP3Diagnostics)
         size_t eventProducingPairCount;
 
         size_t eventStorageSlotCount;
+        size_t eventStorageUsedSlotCount;
+        size_t eventStorageMaxUsedPerEdge;
         size_t eventStorageElementBytes;
 
         size_t atomicEdgeCount;
@@ -733,6 +735,32 @@ if (isPolygonUnionP1Scalar!T)
 
     version (GeoPolygonUnionP3Diagnostics)
     {
+        size_t usedEventSlots = 0;
+        size_t maxUsedEventsPerEdge = 0;
+
+        foreach (count; eventCounts)
+        {
+            usedEventSlots +=
+                count;
+
+            if (
+                count >
+                maxUsedEventsPerEdge
+            )
+            {
+                maxUsedEventsPerEdge =
+                    count;
+            }
+        }
+
+        polygonUnionP3DiagnosticsState
+            .eventStorageUsedSlotCount =
+                usedEventSlots;
+
+        polygonUnionP3DiagnosticsState
+            .eventStorageMaxUsedPerEdge =
+                maxUsedEventsPerEdge;
+
         polygonUnionP3DiagnosticsState
             .pairNodingNs =
                 p3ElapsedNanoseconds(

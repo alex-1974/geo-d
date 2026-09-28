@@ -229,6 +229,8 @@ private bool sameCounts(
         lhs.exactPairTestCount == rhs.exactPairTestCount &&
         lhs.eventProducingPairCount == rhs.eventProducingPairCount &&
         lhs.eventStorageSlotCount == rhs.eventStorageSlotCount &&
+        lhs.eventStorageUsedSlotCount == rhs.eventStorageUsedSlotCount &&
+        lhs.eventStorageMaxUsedPerEdge == rhs.eventStorageMaxUsedPerEdge &&
         lhs.eventStorageElementBytes == rhs.eventStorageElementBytes &&
         lhs.atomicEdgeCount == rhs.atomicEdgeCount &&
         lhs.arrangementVertexCount == rhs.arrangementVertexCount &&
@@ -439,9 +441,35 @@ private void runProbe(
             expectedCounts.eventStorageElementBytes /
         (1024.0 * 1024.0);
 
+    const double usedEventStorageMiB =
+        cast(double)
+            expectedCounts.eventStorageUsedSlotCount *
+        cast(double)
+            expectedCounts.eventStorageElementBytes /
+        (1024.0 * 1024.0);
+
+    const double eventStorageUtilization =
+        expectedCounts.eventStorageSlotCount == 0
+            ? 0.0
+            : 100.0 *
+                cast(double)
+                    expectedCounts.eventStorageUsedSlotCount /
+                cast(double)
+                    expectedCounts.eventStorageSlotCount;
+
     writefln(
         "  event storage slots                %12s",
         expectedCounts.eventStorageSlotCount
+    );
+
+    writefln(
+        "  used event slots                   %12s",
+        expectedCounts.eventStorageUsedSlotCount
+    );
+
+    writefln(
+        "  max used events / edge             %12s",
+        expectedCounts.eventStorageMaxUsedPerEdge
     );
 
     writefln(
@@ -452,6 +480,16 @@ private void runProbe(
     writefln(
         "  event storage payload              %12.3f MiB",
         eventStorageMiB
+    );
+
+    writefln(
+        "  used event payload                 %12.3f MiB",
+        usedEventStorageMiB
+    );
+
+    writefln(
+        "  event storage utilization          %12.3f %%",
+        eventStorageUtilization
     );
 
     writefln(

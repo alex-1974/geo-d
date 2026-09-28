@@ -219,3 +219,32 @@ This control decides whether repeated min/max reconstruction caused the
 compiler-sensitive dense-case regression seen in the earlier envelope probes.
 Adaptive thresholding is not justified unless the precomputed-envelope variant
 still shows a material dense-case loss.
+
+
+## Polygon Union P3 end-to-end prototype probe
+
+`polygon_union_p3_end_to_end_probe.d` exercises the public `polygonUnion`
+pipeline in two separately compiled modes:
+
+- without `GeoPolygonUnionP3Prototype`: the unchanged P1 baseline;
+- with `GeoPolygonUnionP3Prototype`: the research-only exact-sized,
+  precomputed-envelope-gated noding path.
+
+The prototype switch changes only the source-edge noding workspace/candidate
+stage. The downstream exact atomic-edge, arrangement, region, boundary,
+canonicalization, materialization, validation, and owning-result pipeline is
+shared unchanged.
+
+The probe emits `SIG|` records derived only from public result state:
+status, component structure, ring structure, and the exact binary64 bit
+patterns of every canonical output coordinate. Baseline and prototype
+signatures are intended to compare byte-for-byte.
+
+Semantic fixtures cover empty input, validation failure, unrepresentable
+construction, disjoint/overlap/shared-edge/point-contact integer cases, a
+donut/island case, scalable regular-convex double cases, and valid
+high-crossing comb polygons.
+
+Measured cases use seven repetitions and report median public-call time.
+Performance output is research evidence only; signature equality is the
+primary differential correctness gate.

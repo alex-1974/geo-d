@@ -98,9 +98,11 @@ enum PolygonUnionP1InternalStatus : ubyte
     /*
      * Workspace cardinality cannot be represented by size_t.
      *
-     * This is distinct from geometric construction failure. Ordinary runtime
-     * allocation exhaustion likewise remains a resource failure rather than a
-     * geometry status.
+     * This is distinct from geometric construction failure. The public
+     * wrapper routes this pre-detected impossible workspace size through the
+     * same OutOfMemoryError resource-failure path used for impossible runtime
+     * allocation sizes. Ordinary allocation exhaustion likewise remains a
+     * resource failure rather than a geometry status.
      */
     resourceLimit,
 
@@ -299,6 +301,166 @@ private bool checkedMultiply(
         lhs * rhs;
 
     return true;
+}
+
+
+
+/*
+ * Workspace-cardinality arithmetic must accept the largest representable
+ * size_t result and reject only the first mathematically unrepresentable
+ * result. Failure resets the helper output instead of exposing a wrapped
+ * cardinality.
+ */
+@safe unittest
+{
+    size_t result =
+        size_t.max;
+
+    assert(
+        checkedAdd(
+            size_t.max - 1,
+            1,
+            result
+        )
+    );
+
+    assert(result == size_t.max);
+
+
+    result =
+        size_t.max;
+
+    assert(
+        !checkedAdd(
+            size_t.max,
+            1,
+            result
+        )
+    );
+
+    assert(result == 0);
+
+
+    result =
+        size_t.max;
+
+    assert(
+        checkedMultiply(
+            size_t.max,
+            1,
+            result
+        )
+    );
+
+    assert(result == size_t.max);
+
+
+    result =
+        size_t.max;
+
+    assert(
+        checkedMultiply(
+            0,
+            size_t.max,
+            result
+        )
+    );
+
+    assert(result == 0);
+
+
+    result =
+        size_t.max;
+
+    assert(
+        !checkedMultiply(
+            size_t.max,
+            2,
+            result
+        )
+    );
+
+    assert(result == 0);
+}
+
+
+/*
+ * P3 exact event-capacity accumulation is transactional across both source
+ * edges. If either edge cannot represent the exact additional raw event
+ * demand, neither capacity is changed.
+ */
+@safe unittest
+{
+    alias P =
+        Point2!int;
+
+    alias S =
+        Segment2!int;
+
+    const S first =
+        S(
+            P(0, 0),
+            P(10, 0)
+        );
+
+    const S second =
+        S(
+            P(2, 0),
+            P(8, 0)
+        );
+
+    assert(
+        segmentContactKind(
+            first,
+            second
+        ) ==
+            SegmentContactKind.overlap
+    );
+
+    size_t firstCapacity =
+        size_t.max - 1;
+
+    size_t secondCapacity =
+        2;
+
+    assert(
+        !tryAccumulateNodingEventCapacity(
+            first,
+            second,
+            firstCapacity,
+            secondCapacity
+        )
+    );
+
+    assert(
+        firstCapacity ==
+            size_t.max - 1
+    );
+
+    assert(secondCapacity == 2);
+
+
+    firstCapacity =
+        2;
+
+    secondCapacity =
+        size_t.max - 1;
+
+    assert(
+        !tryAccumulateNodingEventCapacity(
+            first,
+            second,
+            firstCapacity,
+            secondCapacity
+        )
+    );
+
+    assert(firstCapacity == 2);
+
+    assert(
+        secondCapacity ==
+            size_t.max - 1
+    );
 }
 
 

@@ -255,24 +255,14 @@ private Point2!double[] regularRing(
 }
 
 
-private OwnedPolygon makePolygon(
-    size_t count,
-    double centerX,
-    double centerY,
-    double radius,
-    double phase
+private OwnedPolygon fromPoints(
+    Point2!double[] points
 )
 {
     OwnedPolygon result;
 
     result.points =
-        regularRing(
-            count,
-            centerX,
-            centerY,
-            radius,
-            phase
-        );
+        points;
 
     result.rings =
         new LinearRing2View!double[1];
@@ -288,6 +278,27 @@ private OwnedPolygon makePolygon(
         );
 
     return result;
+}
+
+
+private OwnedPolygon makePolygon(
+    size_t count,
+    double centerX,
+    double centerY,
+    double radius,
+    double phase
+)
+{
+    return
+        fromPoints(
+            regularRing(
+                count,
+                centerX,
+                centerY,
+                radius,
+                phase
+            )
+        );
 }
 
 
@@ -315,6 +326,114 @@ private UnionCase makeCase(
             100.0,
             cast(double) PI /
                 cast(double) vertexCount
+        );
+
+    return result;
+}
+
+
+/*
+ * Builds two valid orthogonal comb polygons.
+ *
+ * The first polygon has upward vertical fingers. The second has rightward
+ * horizontal fingers. Every vertical finger side crosses every horizontal
+ * finger side, yielding 4 * toothCount^2 proper crossings while each operand
+ * remains a simple polygon.
+ *
+ * Each polygon has 4 * toothCount + 4 boundary edges, so the combined source
+ * edge count is 8 * toothCount + 8.
+ */
+private UnionCase makeHighCrossingCombCase(
+    size_t toothCount
+)
+{
+    alias P = Point2!double;
+
+    enforce(
+        toothCount > 0,
+        "comb tooth count must be non-zero"
+    );
+
+    const double pitch = 4.0;
+    const double fingerWidth = 1.0;
+    const double baseThickness = 1.0;
+
+    const double width =
+        pitch *
+        cast(double) toothCount +
+        4.0;
+
+    const double height =
+        width;
+
+
+    P[] verticalPoints;
+
+    verticalPoints ~= P(0.0, 0.0);
+    verticalPoints ~= P(width, 0.0);
+    verticalPoints ~= P(width, baseThickness);
+
+    size_t toothIndex =
+        toothCount;
+
+    while (toothIndex > 0)
+    {
+        --toothIndex;
+
+        const double left =
+            2.0 +
+            pitch *
+            cast(double) toothIndex;
+
+        const double right =
+            left +
+            fingerWidth;
+
+        verticalPoints ~= P(right, baseThickness);
+        verticalPoints ~= P(right, height);
+        verticalPoints ~= P(left, height);
+        verticalPoints ~= P(left, baseThickness);
+    }
+
+    verticalPoints ~= P(0.0, baseThickness);
+
+
+    P[] horizontalPoints;
+
+    horizontalPoints ~= P(-2.0, 0.0);
+    horizontalPoints ~= P(-1.0, 0.0);
+
+    foreach (i; 0 .. toothCount)
+    {
+        const double bottom =
+            2.0 +
+            pitch *
+            cast(double) i;
+
+        const double top =
+            bottom +
+            fingerWidth;
+
+        horizontalPoints ~= P(-1.0, bottom);
+        horizontalPoints ~= P(width + 1.0, bottom);
+        horizontalPoints ~= P(width + 1.0, top);
+        horizontalPoints ~= P(-1.0, top);
+    }
+
+    horizontalPoints ~= P(-1.0, height + 1.0);
+    horizontalPoints ~= P(-2.0, height + 1.0);
+
+
+    UnionCase result;
+
+    result.first =
+        fromPoints(
+            verticalPoints
+        );
+
+    result.second =
+        fromPoints(
+            horizontalPoints
         );
 
     return result;
@@ -1173,6 +1292,15 @@ void main()
     auto overlap128 =
         makeCase(128, true);
 
+    auto comb32 =
+        makeHighCrossingCombCase(3);
+
+    auto comb128 =
+        makeHighCrossingCombCase(15);
+
+    auto comb256 =
+        makeHighCrossingCombCase(31);
+
 
     writeln(
         "Polygon Union P3 envelope-gated workspace probe"
@@ -1215,6 +1343,21 @@ void main()
     runProbe(
         "overlap convex: 128 + 128 vertices",
         overlap128
+    );
+
+    runProbe(
+        "high-crossing comb: 32 source edges",
+        comb32
+    );
+
+    runProbe(
+        "high-crossing comb: 128 source edges",
+        comb128
+    );
+
+    runProbe(
+        "high-crossing comb: 256 source edges",
+        comb256
     );
 
 

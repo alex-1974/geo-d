@@ -156,3 +156,24 @@ This is not a valid-polygon fixture and makes no polygon-semantics claim. Its
 purpose is only to bound the overhead of the proposed envelope guard at 100%
 candidate density, complementing the valid sparse and high-crossing polygon
 fixtures.
+
+
+## Polygon Union P3 envelope candidate-density sweep
+
+`polygon_union_p3_envelope_density_probe.d` is a low-level segment diagnostic
+at a fixed 256 source segments.
+
+The segments are distributed over spatially separated concurrent clusters.
+Within one cluster every pair has overlapping envelopes and is a proper
+crossing. Across clusters the segment envelopes are disjoint.
+
+Using 1, 2, 4, 8, 16, 32, and 64 equal clusters sweeps candidate density from
+100% down through approximately 50%, 25%, 12%, 6%, 3%, and 1% while total pair
+count remains constant.
+
+The probe compares exact classification of every pair against
+envelope-test-plus-exact-classification of candidates only. Measurement order
+alternates across seven repetitions.
+
+This diagnostic is intended to locate the compiler-specific crossover region
+for the envelope guard. It is not itself a production threshold policy.

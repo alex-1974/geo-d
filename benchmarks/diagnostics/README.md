@@ -86,3 +86,30 @@ this first probe.
 
 This diagnostic is evidence only. It is not a public API, a reusable spatial
 index, or part of the normal performance-regression suite.
+
+
+## Polygon Union P3 event-workspace control
+
+`polygon_union_p3_event_workspace_probe.d` isolates the P1 noding workspace
+without modifying `polygonUnion` or the production P1 orchestration.
+
+It compares:
+
+1. the current eager P1 worst-case event reservation; and
+2. a two-pass exact-sized control.
+
+Both paths retain the same deterministic all-pairs source-edge traversal. The
+control first performs an additional exact contact-classification pass to count
+the required event capacity for every source edge, then allocates exactly that
+flat event storage and runs the existing append logic over all pairs again.
+
+Before timing, the probe verifies edge by edge and event by event that both
+workspace strategies produce the same exact noding-event sequence.
+
+The control is deliberately pessimistic in CPU work: it performs one extra
+O(n^2) exact classification pass. A speedup therefore isolates the value of
+avoiding eager worst-case event allocation rather than conflating it with a
+candidate-discovery optimization.
+
+This is research evidence only. It is not a production workspace design and
+does not establish a non-quadratic worst-case event bound.

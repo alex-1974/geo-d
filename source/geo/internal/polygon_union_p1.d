@@ -54,11 +54,18 @@ import geo.internal.polygon_union_result :
     PolygonUnionOwnedResultInternal,
     takePolygonUnionOwnedResultInternal;
 
+import geo.intersection :
+    SegmentContactKind,
+    segmentContactKind;
+
 import geo.polygon_view :
     Polygon2View;
 
 import geo.point :
     Point2;
+
+import geo.segment :
+    Segment2;
 
 import geo.topology_validation :
     validatePolygon;
@@ -113,6 +120,137 @@ private enum bool isPolygonUnionP1Scalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+
+private struct SourceEdgeEnvelope(T)
+{
+    T minX;
+    T maxX;
+    T minY;
+    T maxY;
+}
+
+
+private SourceEdgeEnvelope!T sourceEdgeEnvelope(T)(
+    Segment2!T segment
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionP1Scalar!T)
+{
+    return
+        SourceEdgeEnvelope!T(
+            segment.a.x < segment.b.x
+                ? segment.a.x
+                : segment.b.x,
+            segment.a.x < segment.b.x
+                ? segment.b.x
+                : segment.a.x,
+            segment.a.y < segment.b.y
+                ? segment.a.y
+                : segment.b.y,
+            segment.a.y < segment.b.y
+                ? segment.b.y
+                : segment.a.y
+        );
+}
+
+
+private bool sourceEdgeEnvelopesOverlap(T)(
+    ref const SourceEdgeEnvelope!T first,
+    ref const SourceEdgeEnvelope!T second
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionP1Scalar!T)
+{
+    return
+        first.maxX >= second.minX &&
+        second.maxX >= first.minX &&
+        first.maxY >= second.minY &&
+        second.maxY >= first.minY;
+}
+
+
+private size_t requiredNodingEventCount(
+    SegmentContactKind contact
+)
+    pure nothrow @safe @nogc
+{
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            return 0;
+
+        case SegmentContactKind.touch:
+        case SegmentContactKind.properCrossing:
+            return 1;
+
+        case SegmentContactKind.overlap:
+            return 2;
+    }
+}
+
+
+/*
+ * Adds the raw noding-event demand of one exact segment contact to both
+ * source-edge capacities.
+ *
+ * The calculation deliberately mirrors appendSegmentPairNodingEvents:
+ *
+ * none             -> 0 events per edge
+ * touch            -> 1 event per edge
+ * properCrossing   -> 1 event per edge
+ * overlap          -> 2 events per edge
+ *
+ * Returning false means that the exact required workspace cardinality cannot
+ * be represented by size_t.
+ */
+private bool tryAccumulateNodingEventCapacity(T)(
+    Segment2!T first,
+    Segment2!T second,
+    ref size_t firstCapacity,
+    ref size_t secondCapacity
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionP1Scalar!T)
+{
+    const size_t required =
+        requiredNodingEventCount(
+            segmentContactKind(
+                first,
+                second
+            )
+        );
+
+    if (required == 0)
+        return true;
+
+    size_t firstUpdated;
+    size_t secondUpdated;
+
+    if (
+        !checkedAdd(
+            firstCapacity,
+            required,
+            firstUpdated
+        ) ||
+        !checkedAdd(
+            secondCapacity,
+            required,
+            secondUpdated
+        )
+    )
+    {
+        return false;
+    }
+
+    firstCapacity =
+        firstUpdated;
+
+    secondCapacity =
+        secondUpdated;
+
+    return true;
+}
 
 
 private bool checkedAdd(
@@ -297,18 +435,101 @@ if (isPolygonUnionP1Scalar!T)
 
 
     /*
-     * Every source edge starts with two endpoint events. One interaction with
-     * each of the other source edges can contribute at most two additional
-     * events (positive collinear overlap). Therefore 2 * sourceCount slots per
-     * source edge are a complete P1 pairwise upper bound.
+     * Build one transient closed axis-aligned envelope per source edge.
+     *
+     * The envelope is only a necessary broad-phase contact condition.
+     * Exact segment topology remains authoritative for every pair that
+     * survives this reject.
      */
-    size_t perEdgeEventCapacity;
+    auto sourceEnvelopes =
+        new SourceEdgeEnvelope!T[
+            sourceCount
+        ];
+
+    foreach (sourceIndex; 0 .. sourceCount)
+    {
+        sourceEnvelopes[sourceIndex] =
+            sourceEdgeEnvelope(
+                sources[
+                    sourceIndex
+                ].segment
+            );
+    }
+
+
+    /*
+     * Count the exact event capacity required by each source edge.
+     *
+     * Every edge starts with its two endpoints. A surviving source-edge pair
+     * contributes zero, one, or two additional events according to the same
+     * exact contact classification used by the established noding machinery.
+     *
+     * Pair traversal order remains the original deterministic nested order.
+     */
+    auto eventCapacities =
+        new size_t[
+            sourceCount
+        ];
+
+    foreach (ref capacity; eventCapacities)
+    {
+        capacity = 2;
+    }
+
+    foreach (firstIndex; 0 .. sourceCount)
+    {
+        foreach (
+            secondIndex;
+            firstIndex + 1 ..
+            sourceCount
+        )
+        {
+            if (
+                !sourceEdgeEnvelopesOverlap(
+                    sourceEnvelopes[
+                        firstIndex
+                    ],
+                    sourceEnvelopes[
+                        secondIndex
+                    ]
+                )
+            )
+            {
+                continue;
+            }
+
+            if (
+                !tryAccumulateNodingEventCapacity(
+                    sources[
+                        firstIndex
+                    ].segment,
+                    sources[
+                        secondIndex
+                    ].segment,
+                    eventCapacities[
+                        firstIndex
+                    ],
+                    eventCapacities[
+                        secondIndex
+                    ]
+                )
+            )
+            {
+                return
+                    PolygonUnionP1InternalStatus
+                        .resourceLimit;
+            }
+        }
+    }
+
+
+    size_t eventOffsetCount;
 
     if (
-        !checkedMultiply(
+        !checkedAdd(
             sourceCount,
-            2,
-            perEdgeEventCapacity
+            1,
+            eventOffsetCount
         )
     )
     {
@@ -317,20 +538,37 @@ if (isPolygonUnionP1Scalar!T)
                 .resourceLimit;
     }
 
-    size_t totalEventCapacity;
+    auto eventOffsets =
+        new size_t[
+            eventOffsetCount
+        ];
 
-    if (
-        !checkedMultiply(
-            sourceCount,
-            perEdgeEventCapacity,
-            totalEventCapacity
-        )
-    )
+    foreach (sourceIndex; 0 .. sourceCount)
     {
-        return
-            PolygonUnionP1InternalStatus
-                .resourceLimit;
+        if (
+            !checkedAdd(
+                eventOffsets[
+                    sourceIndex
+                ],
+                eventCapacities[
+                    sourceIndex
+                ],
+                eventOffsets[
+                    sourceIndex + 1
+                ]
+            )
+        )
+        {
+            return
+                PolygonUnionP1InternalStatus
+                    .resourceLimit;
+        }
     }
+
+    const size_t totalEventCapacity =
+        eventOffsets[
+            sourceCount
+        ];
 
 
     auto eventStorage =
@@ -347,8 +585,15 @@ if (isPolygonUnionP1Scalar!T)
     foreach (sourceIndex; 0 .. sourceCount)
     {
         const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+            eventOffsets[
+                sourceIndex
+            ];
+
+        const size_t capacity =
+            eventOffsets[
+                sourceIndex + 1
+            ] -
+            begin;
 
         size_t count;
 
@@ -360,7 +605,7 @@ if (isPolygonUnionP1Scalar!T)
                 eventStorage[
                     begin ..
                     begin +
-                    perEdgeEventCapacity
+                    capacity
                 ],
                 count
             )
@@ -375,14 +620,21 @@ if (isPolygonUnionP1Scalar!T)
 
 
     /*
-     * Correctness-first P1 candidate discovery: inspect every source-edge
-     * pair. This also nodes valid same-operand tangential ring contacts.
+     * Run the established exact noding append path in the same deterministic
+     * pair order. AABB-disjoint pairs are the only pairs skipped.
      */
     foreach (firstIndex; 0 .. sourceCount)
     {
         const size_t firstBegin =
-            firstIndex *
-            perEdgeEventCapacity;
+            eventOffsets[
+                firstIndex
+            ];
+
+        const size_t firstCapacity =
+            eventOffsets[
+                firstIndex + 1
+            ] -
+            firstBegin;
 
         foreach (
             secondIndex;
@@ -390,9 +642,30 @@ if (isPolygonUnionP1Scalar!T)
             sourceCount
         )
         {
+            if (
+                !sourceEdgeEnvelopesOverlap(
+                    sourceEnvelopes[
+                        firstIndex
+                    ],
+                    sourceEnvelopes[
+                        secondIndex
+                    ]
+                )
+            )
+            {
+                continue;
+            }
+
             const size_t secondBegin =
-                secondIndex *
-                perEdgeEventCapacity;
+                eventOffsets[
+                    secondIndex
+                ];
+
+            const size_t secondCapacity =
+                eventOffsets[
+                    secondIndex + 1
+                ] -
+                secondBegin;
 
             if (
                 !appendSegmentPairNodingEvents(
@@ -405,7 +678,7 @@ if (isPolygonUnionP1Scalar!T)
                     eventStorage[
                         firstBegin ..
                         firstBegin +
-                        perEdgeEventCapacity
+                        firstCapacity
                     ],
                     eventCounts[
                         firstIndex
@@ -413,7 +686,7 @@ if (isPolygonUnionP1Scalar!T)
                     eventStorage[
                         secondBegin ..
                         secondBegin +
-                        perEdgeEventCapacity
+                        secondCapacity
                     ],
                     eventCounts[
                         secondIndex
@@ -432,8 +705,9 @@ if (isPolygonUnionP1Scalar!T)
     foreach (sourceIndex; 0 .. sourceCount)
     {
         const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+            eventOffsets[
+                sourceIndex
+            ];
 
         const size_t uniqueCount =
             sortUniqueExactEdgeEvents(
@@ -485,8 +759,9 @@ if (isPolygonUnionP1Scalar!T)
     foreach (sourceIndex; 0 .. sourceCount)
     {
         const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+            eventOffsets[
+                sourceIndex
+            ];
 
         size_t built;
 
@@ -952,6 +1227,218 @@ if (isPolygonUnionP1Scalar!T)
     return
         PolygonUnionP1InternalStatus
             .success;
+}
+
+
+
+/*
+ * Exact-sized event-capacity counting must agree exactly with the unchanged
+ * noding append path before duplicate-event removal.
+ *
+ * This fixture deliberately combines:
+ *
+ * - proper crossing;
+ * - positive collinear overlap;
+ * - endpoint touch;
+ * - disjoint segments;
+ * - multiple contacts accumulated onto the same source edge.
+ */
+@safe unittest
+{
+    alias P = Point2!int;
+    alias S = Segment2!int;
+
+    enum size_t segmentCount = 5;
+
+    S[segmentCount] segments = [
+        S(
+            P(0, 0),
+            P(10, 0)
+        ),
+        S(
+            P(5, -5),
+            P(5, 5)
+        ),
+        S(
+            P(2, 0),
+            P(8, 0)
+        ),
+        S(
+            P(10, 0),
+            P(10, 5)
+        ),
+        S(
+            P(20, 20),
+            P(30, 20)
+        ),
+    ];
+
+    SourceEdgeEnvelope!int[segmentCount]
+        envelopes;
+
+    size_t[segmentCount]
+        capacities;
+
+    foreach (index; 0 .. segmentCount)
+    {
+        envelopes[index] =
+            sourceEdgeEnvelope(
+                segments[index]
+            );
+
+        capacities[index] = 2;
+    }
+
+
+    foreach (firstIndex; 0 .. segmentCount)
+    {
+        foreach (
+            secondIndex;
+            firstIndex + 1 ..
+            segmentCount
+        )
+        {
+            if (
+                !sourceEdgeEnvelopesOverlap(
+                    envelopes[firstIndex],
+                    envelopes[secondIndex]
+                )
+            )
+            {
+                assert(
+                    segmentContactKind(
+                        segments[firstIndex],
+                        segments[secondIndex]
+                    ) ==
+                        SegmentContactKind.none
+                );
+
+                continue;
+            }
+
+            assert(
+                tryAccumulateNodingEventCapacity(
+                    segments[firstIndex],
+                    segments[secondIndex],
+                    capacities[firstIndex],
+                    capacities[secondIndex]
+                )
+            );
+        }
+    }
+
+
+    /*
+     * Expected raw capacities before exact duplicate removal:
+     *
+     * edge 0: endpoints + crossing + overlap(2) + touch = 6
+     * edge 1: endpoints + two crossings              = 4
+     * edge 2: endpoints + overlap(2) + crossing      = 5
+     * edge 3: endpoints + touch                      = 3
+     * edge 4: endpoints only                         = 2
+     */
+    assert(
+        capacities == [
+            6,
+            4,
+            5,
+            3,
+            2,
+        ]
+    );
+
+
+    size_t[segmentCount + 1]
+        offsets;
+
+    foreach (sourceIndex; 0 .. segmentCount)
+    {
+        assert(
+            checkedAdd(
+                offsets[sourceIndex],
+                capacities[sourceIndex],
+                offsets[sourceIndex + 1]
+            )
+        );
+    }
+
+    auto storage =
+        new ExactOverlayPoint[
+            offsets[
+                segmentCount
+            ]
+        ];
+
+    size_t[segmentCount]
+        counts;
+
+
+    foreach (sourceIndex; 0 .. segmentCount)
+    {
+        const size_t begin =
+            offsets[sourceIndex];
+
+        assert(
+            seedExactEdgeEvents(
+                segments[sourceIndex],
+                storage[
+                    begin ..
+                    offsets[sourceIndex + 1]
+                ],
+                counts[sourceIndex]
+            )
+        );
+
+        assert(counts[sourceIndex] == 2);
+    }
+
+
+    foreach (firstIndex; 0 .. segmentCount)
+    {
+        foreach (
+            secondIndex;
+            firstIndex + 1 ..
+            segmentCount
+        )
+        {
+            if (
+                !sourceEdgeEnvelopesOverlap(
+                    envelopes[firstIndex],
+                    envelopes[secondIndex]
+                )
+            )
+            {
+                continue;
+            }
+
+            assert(
+                appendSegmentPairNodingEvents(
+                    segments[firstIndex],
+                    segments[secondIndex],
+                    storage[
+                        offsets[firstIndex] ..
+                        offsets[firstIndex + 1]
+                    ],
+                    counts[firstIndex],
+                    storage[
+                        offsets[secondIndex] ..
+                        offsets[secondIndex + 1]
+                    ],
+                    counts[secondIndex]
+                )
+            );
+        }
+    }
+
+
+    /*
+     * Exact pre-counting must leave neither too little nor excess raw event
+     * capacity for this complete pair traversal.
+     */
+    assert(
+        counts ==
+            capacities
+    );
 }
 
 

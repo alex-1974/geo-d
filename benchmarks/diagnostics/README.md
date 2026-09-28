@@ -60,3 +60,29 @@ rounding backend.
 
 Normal performance regression testing should use the benchmark runners in
 the parent `benchmarks/` directory instead.
+
+
+## Polygon Union P3 stage probe
+
+`polygon_union_p3_stage_probe.d` is a research-only diagnostic for issue #42.
+
+It compiles the normal public `polygonUnion` path with the explicit version
+identifier `GeoPolygonUnionP3Diagnostics`. That identifier enables
+package-internal, thread-local counters and stage timing inside the P1
+orchestration. Builds without the identifier contain none of that
+instrumentation.
+
+The probe records source-edge and candidate counts, intermediate arrangement
+cardinalities, and median stage timings over seven post-warm-up public calls.
+
+The envelope scan is deliberately a separate diagnostic pass. Its timing is
+reported separately and must not be interpreted as an optimization already
+present in P1.
+
+The first retained fixtures compare disjoint and overlapping regular convex
+polygons at 16, 64, and 128 vertices per input. Additional adversarial/high-
+crossing fixtures are a later research slice; no P3 algorithm is selected by
+this first probe.
+
+This diagnostic is evidence only. It is not a public API, a reusable spatial
+index, or part of the normal performance-regression suite.

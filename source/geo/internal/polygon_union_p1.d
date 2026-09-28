@@ -64,6 +64,137 @@ import geo.topology_validation :
     validatePolygon;
 
 
+version (GeoPolygonUnionP3Diagnostics)
+{
+    import core.time :
+        MonoTime;
+
+    import geo.segment :
+        Segment2;
+}
+
+
+/*
+ * Research-only P3 instrumentation.
+ *
+ * This surface exists only when GeoPolygonUnionP3Diagnostics is defined.
+ * It is package-internal, thread-local, and records the most recent call on
+ * the current thread. Normal builds contain neither the state nor timing code.
+ */
+version (GeoPolygonUnionP3Diagnostics)
+{
+    package(geo)
+    struct PolygonUnionP3Diagnostics
+    {
+        size_t sourceEdgeCount;
+
+        size_t allPairCount;
+        size_t envelopeOverlapPairCount;
+        size_t exactPairTestCount;
+        size_t eventProducingPairCount;
+
+        size_t atomicEdgeCount;
+        size_t arrangementVertexCount;
+        size_t arrangementEdgeCount;
+        size_t boundaryCycleCount;
+        size_t componentCount;
+        size_t materializedBoundaryEdgeCount;
+
+        long validationAndSourceNs;
+        long nodingSetupNs;
+        long envelopeScanNs;
+        long pairNodingNs;
+        long atomicEdgeNs;
+        long arrangementAndRegionNs;
+        long boundaryAndComponentNs;
+        long materializationNs;
+        long postMaterializationValidationNs;
+        long ownershipNs;
+    }
+
+
+    private PolygonUnionP3Diagnostics
+        polygonUnionP3DiagnosticsState;
+
+
+    package(geo)
+    PolygonUnionP3Diagnostics polygonUnionP3Diagnostics()
+        @safe
+    {
+        return
+            polygonUnionP3DiagnosticsState;
+    }
+
+
+    private long p3ElapsedNanoseconds(
+        MonoTime start
+    )
+        @safe
+    {
+        return
+            (
+                MonoTime.currTime -
+                start
+            ).total!"nsecs";
+    }
+
+
+    private bool p3SegmentEnvelopesOverlap(T)(
+        Segment2!T first,
+        Segment2!T second
+    )
+        pure nothrow @safe @nogc
+    if (isPolygonUnionP1Scalar!T)
+    {
+        const T firstMinX =
+            first.a.x < first.b.x ?
+                first.a.x :
+                first.b.x;
+
+        const T firstMaxX =
+            first.a.x < first.b.x ?
+                first.b.x :
+                first.a.x;
+
+        const T firstMinY =
+            first.a.y < first.b.y ?
+                first.a.y :
+                first.b.y;
+
+        const T firstMaxY =
+            first.a.y < first.b.y ?
+                first.b.y :
+                first.a.y;
+
+        const T secondMinX =
+            second.a.x < second.b.x ?
+                second.a.x :
+                second.b.x;
+
+        const T secondMaxX =
+            second.a.x < second.b.x ?
+                second.b.x :
+                second.a.x;
+
+        const T secondMinY =
+            second.a.y < second.b.y ?
+                second.a.y :
+                second.b.y;
+
+        const T secondMaxY =
+            second.a.y < second.b.y ?
+                second.b.y :
+                second.a.y;
+
+        return
+            firstMaxX >= secondMinX &&
+            secondMaxX >= firstMinX &&
+            firstMaxY >= secondMinY &&
+            secondMaxY >= firstMinY;
+    }
+}
+
+
 /*
  * INTERNAL IMPLEMENTATION MODULE.
  *
@@ -198,6 +329,17 @@ if (isPolygonUnionP1Scalar!T)
         PolygonUnionOwnedResultInternal.init;
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState =
+            PolygonUnionP3Diagnostics.init;
+    }
+
+    version (GeoPolygonUnionP3Diagnostics)
+        MonoTime p3StageStart =
+            MonoTime.currTime;
+
+
     if (
         !validatePolygon(first).valid
     )
@@ -296,6 +438,23 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .sourceEdgeCount =
+                sourceCount;
+
+        polygonUnionP3DiagnosticsState
+            .validationAndSourceNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     /*
      * Every source edge starts with two endpoint events. One interaction with
      * each of the other source edges can contribute at most two additional
@@ -374,6 +533,56 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .nodingSetupNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+
+        foreach (firstIndex; 0 .. sourceCount)
+        {
+            foreach (
+                secondIndex;
+                firstIndex + 1 ..
+                sourceCount
+            )
+            {
+                ++polygonUnionP3DiagnosticsState
+                    .allPairCount;
+
+                if (
+                    p3SegmentEnvelopesOverlap(
+                        sources[
+                            firstIndex
+                        ].segment,
+                        sources[
+                            secondIndex
+                        ].segment
+                    )
+                )
+                {
+                    ++polygonUnionP3DiagnosticsState
+                        .envelopeOverlapPairCount;
+                }
+            }
+        }
+
+        polygonUnionP3DiagnosticsState
+            .envelopeScanNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     /*
      * Correctness-first P1 candidate discovery: inspect every source-edge
      * pair. This also nodes valid same-operand tangential ring contacts.
@@ -393,6 +602,23 @@ if (isPolygonUnionP1Scalar!T)
             const size_t secondBegin =
                 secondIndex *
                 perEdgeEventCapacity;
+
+
+            version (GeoPolygonUnionP3Diagnostics)
+                ++polygonUnionP3DiagnosticsState
+                    .exactPairTestCount;
+
+            version (GeoPolygonUnionP3Diagnostics)
+                const size_t p3FirstEventCountBefore =
+                    eventCounts[
+                        firstIndex
+                    ];
+
+            version (GeoPolygonUnionP3Diagnostics)
+                const size_t p3SecondEventCountBefore =
+                    eventCounts[
+                        secondIndex
+                    ];
 
             if (
                 !appendSegmentPairNodingEvents(
@@ -423,7 +649,37 @@ if (isPolygonUnionP1Scalar!T)
             {
                 return invariantFailure();
             }
+            version (GeoPolygonUnionP3Diagnostics)
+            {
+                if (
+                    eventCounts[
+                        firstIndex
+                    ] !=
+                        p3FirstEventCountBefore ||
+                    eventCounts[
+                        secondIndex
+                    ] !=
+                        p3SecondEventCountBefore
+                )
+                {
+                    ++polygonUnionP3DiagnosticsState
+                        .eventProducingPairCount;
+                }
+            }
         }
+    }
+
+
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .pairNodingNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
     }
 
 
@@ -531,6 +787,23 @@ if (isPolygonUnionP1Scalar!T)
         sortMergeExactAtomicEdges(
             atomicEdges[]
         );
+
+
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .atomicEdgeCount =
+                atomicEdgeCount;
+
+        polygonUnionP3DiagnosticsState
+            .atomicEdgeNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
 
 
     size_t arrangementVertexCapacity;
@@ -699,6 +972,27 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .arrangementVertexCount =
+                vertexCount;
+
+        polygonUnionP3DiagnosticsState
+            .arrangementEdgeCount =
+                arrangementEdgeCount;
+
+        polygonUnionP3DiagnosticsState
+            .arrangementAndRegionNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     auto nextSelected =
         new size_t[
             halfEdgeCount
@@ -829,6 +1123,27 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .boundaryCycleCount =
+                cycleCount;
+
+        polygonUnionP3DiagnosticsState
+            .componentCount =
+                componentCount;
+
+        polygonUnionP3DiagnosticsState
+            .boundaryAndComponentNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     auto exactToMaterialized =
         new size_t[
             vertexCount
@@ -918,6 +1233,23 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .materializedBoundaryEdgeCount =
+                boundaryEdgeCount;
+
+        polygonUnionP3DiagnosticsState
+            .materializationNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     if (
         !materializedUnionComponentsRemainValidAndDisjoint(
             ringPoints[
@@ -935,6 +1267,19 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .postMaterializationValidationNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     /*
      * Exact-sized owning point storage is already ringPoints. All materialized
      * entries were written because ringPointCount == ringPoints.length.
@@ -948,6 +1293,16 @@ if (isPolygonUnionP1Scalar!T)
             ringPointOffsets[],
             componentRingOffsets
         );
+
+
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .ownershipNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+    }
 
     return
         PolygonUnionP1InternalStatus

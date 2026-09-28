@@ -735,6 +735,12 @@ if (isPolygonUnionP1Scalar!T)
 
     version (GeoPolygonUnionP3Diagnostics)
     {
+        polygonUnionP3DiagnosticsState
+            .pairNodingNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
         size_t usedEventSlots = 0;
         size_t maxUsedEventsPerEdge = 0;
 
@@ -760,12 +766,6 @@ if (isPolygonUnionP1Scalar!T)
         polygonUnionP3DiagnosticsState
             .eventStorageMaxUsedPerEdge =
                 maxUsedEventsPerEdge;
-
-        polygonUnionP3DiagnosticsState
-            .pairNodingNs =
-                p3ElapsedNanoseconds(
-                    p3StageStart
-                );
 
         p3StageStart =
             MonoTime.currTime;

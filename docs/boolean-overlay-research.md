@@ -719,6 +719,245 @@ Secondary implementation diversity:
 Disagreement must be investigated semantically rather than decided by
 majority vote.
 
+### 11.1 Executable CGAL/EPECK differential oracle
+
+The proposed regularized polygon-set semantics are now backed by an
+independent executable CGAL/EPECK differential probe.
+
+The geo-d side does not call a simplified selector fixture directly. Real
+`Polygon2View!int` operands run through the complete research-only duplicated
+P1 path:
+
+```text
+input validation
+    ->
+source-edge extraction
+    ->
+exact candidate discovery and noding
+    ->
+exact arrangement
+    ->
+half-edge embedding
+    ->
+A/B side-label resolution
+    ->
+operation-specific research selector
+    ->
+unchanged production boundary tracing
+    ->
+unchanged production component/hole reconstruction
+    ->
+unchanged production canonicalization
+    ->
+unchanged binary64 materialization
+    ->
+unchanged topology validation
+    ->
+immutable owning result
+```
+
+The production implementation remains unchanged. The P1 orchestration is
+duplicated intentionally in the research module rather than refactoring
+production merely to make the experiment convenient.
+
+The independent C++ oracle uses:
+
+```text
+CGAL
+Exact_predicates_exact_constructions_kernel
+Boolean_set_operations_2
+```
+
+and evaluates:
+
+```text
+union
+intersection
+A \ B
+B \ A
+symmetric difference
+```
+
+for each retained fixture.
+
+#### Initial differential corpus
+
+The first corpus contains nine fixture relationships:
+
+1. disjoint rectangles;
+2. ordinary overlapping rectangles;
+3. strict containment;
+4. identical operands;
+5. adjacent polygons sharing a complete edge;
+6. isolated point contact;
+7. a polygon with a hole plus a polygon filling that hole;
+8. a polygon with a hole plus an island strictly inside the hole;
+9. crossing horizontal/vertical rectangles (`plus`).
+
+Every fixture is evaluated under all five Boolean predicates:
+
+```text
+9 fixtures
+x
+5 operations
+=
+45 differential results
+```
+
+The corpus therefore already exercises:
+
+- non-empty operands producing an empty result;
+- proper crossings;
+- containment;
+- complete edge coincidence;
+- isolated point contact;
+- identical boundaries;
+- result holes;
+- disconnected result components;
+- source polygons containing holes;
+- operation-created component splitting.
+
+It does not complete the full semantic/degeneracy matrix.
+
+#### Set-semantic versus representation comparison
+
+The differential contract deliberately distinguishes the regularized result set
+from one library's polygon decomposition.
+
+Cross-library comparison includes:
+
+```text
+operation
+exact integral twice-area for the retained integer corpus
+dense outside / boundary / inside classification signature
+```
+
+The dense classification grid is the same on both sides and samples the
+retained fixture domain.
+
+Cross-library comparison deliberately excludes:
+
+```text
+component count
+hole count
+```
+
+because those values are not representation-invariant when result pieces meet
+only at isolated vertices.
+
+geo-d does not stop checking its own representation. The D probe independently
+checks an explicit expected component/hole matrix for every one of the 45
+results before emitting the differential signature.
+
+This separation was required by observed contact cases.
+
+For example:
+
+```text
+overlap symmetric difference:
+
+    geo-d:
+        2 components
+        0 holes
+
+    CGAL:
+        1 Polygon_with_holes
+        1 hole
+
+    regularized set:
+        identical area
+        identical dense classification signature
+```
+
+and:
+
+```text
+plus symmetric difference:
+
+    geo-d:
+        4 components
+        0 holes
+
+    CGAL:
+        1 Polygon_with_holes
+        1 hole
+
+    regularized set:
+        identical area
+        identical dense classification signature
+```
+
+The already known isolated-point-contact representation difference is also
+visible for union and symmetric difference:
+
+```text
+geo-d:
+    retains two polygon components meeting at one exact vertex
+
+CGAL:
+    may encode the same regularized set in one Polygon_with_holes object
+```
+
+Therefore CGAL component/hole multiplicity is diagnostic evidence rather than
+a cross-library semantic invariant.
+
+#### Harness qualification
+
+The first differential attempt exposed a probe defect rather than a geometry
+difference:
+
+```text
+assert(
+    tryClassifyPointInPolygon(...)
+)
+```
+
+was compiled with `-release`, so the classification call itself was removed.
+
+The probe was corrected so classification executes independently of assertions.
+
+The runner also removes all previous temporary output before every run so a
+failed build or execution cannot make stale files appear to be current oracle
+evidence.
+
+#### Current result
+
+The qualified differential run produced:
+
+```text
+geo-d result lines:
+    45
+
+CGAL/EPECK result lines:
+    45
+
+normalized geo-d SHA-256:
+    dd562a63eecd718164570e5b9b903172d07913088afea3bc2a88c26b977e380e
+
+normalized CGAL/EPECK SHA-256:
+    dd562a63eecd718164570e5b9b903172d07913088afea3bc2a88c26b977e380e
+```
+
+The normalized outputs are byte-for-byte identical:
+
+```text
+45 / 45
+regularized set signatures match
+```
+
+This demonstrates an independent executable oracle strategy for the retained
+corpus.
+
+It does **not** yet establish:
+
+- completion of the required semantic/degeneracy matrix;
+- all operation-specific algebraic and invariance laws;
+- equivalence of numerical/materialization failure behavior;
+- behavior near binary64 materialization limits;
+- a public API requirement for intersection, difference, or symmetric
+  difference;
+- authorization to refactor production into a generalized overlay engine.
+
 ## 12. Current disposition
 
 | Operation | Consumer status | Semantic status | Implementation status |
@@ -761,7 +1000,7 @@ Issue #49 is complete only when:
 - [ ] operation-specific algebraic and invariance properties are defined;
 - [ ] result ownership and multiplicity implications are evaluated;
 - [ ] numerical/materialization/failure behavior is checked against ADR-0023;
-- [ ] an independent oracle strategy is demonstrated;
+- [x] an independent oracle strategy is demonstrated;
 - [ ] every candidate receives an explicit disposition:
       promote to design gate, defer, or reject;
 - [ ] no implementation or public API expansion occurs without a subsequent

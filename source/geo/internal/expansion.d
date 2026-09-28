@@ -300,46 +300,18 @@ if (Capacity > 0)
 {
 private:
     /*
-     * Keep the numerical domain type local to geo-d while delegating the
-     * fixed-capacity storage/lifetime mechanics to the research StaticVector
-     * candidate from containers-d.
+     * Preserve the numerical domain type while forwarding the generic
+     * fixed-capacity sequence surface directly through alias this.
+     *
+     * Only append remains geo-specific because expansion components require
+     * the finite-value invariant.
      */
     ContainersStaticVector!(double, Capacity) _data;
 
+    alias _data this;
+
 public:
     enum size_t capacity = Capacity;
-
-
-    /// Number of active expansion components.
-    pragma(inline, true)
-    @property size_t length() const
-        pure nothrow @safe @nogc
-    {
-        return _data.length;
-    }
-
-
-    /// True when the expansion contains no active components.
-    pragma(inline, true)
-    @property bool empty() const
-        pure nothrow @safe @nogc
-    {
-        return _data.empty;
-    }
-
-
-    /**
-     * Removes all active components.
-     *
-     * Stored bytes need not be cleared because values beyond `length`
-     * are not part of the expansion.
-     */
-    pragma(inline, true)
-    void clear()
-        pure nothrow @safe @nogc
-    {
-        _data.clear();
-    }
 
 
     /**
@@ -358,18 +330,6 @@ public:
         assert(_data.length < Capacity);
 
         _data.pushBack(value);
-    }
-
-
-    /**
-     * Indexed access to active components.
-     */
-    pragma(inline, true)
-    double opIndex(size_t index) const
-        pure nothrow @safe @nogc
-    {
-        assert(index < _data.length);
-        return _data[index];
     }
 }
 

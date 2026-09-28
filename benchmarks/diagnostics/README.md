@@ -113,3 +113,27 @@ candidate-discovery optimization.
 
 This is research evidence only. It is not a production workspace design and
 does not establish a non-quadratic worst-case event bound.
+
+
+## Polygon Union P3 envelope-gated workspace control
+
+`polygon_union_p3_envelope_workspace_probe.d` compares two exact-sized event
+workspace strategies while leaving `polygonUnion` and P1 production code
+unchanged.
+
+Both strategies retain the same deterministic nested source-edge pair order.
+The baseline performs exact contact classification for every pair. The
+envelope-gated control first applies a closed axis-aligned source-coordinate
+segment-envelope overlap test and performs exact contact classification only for
+pairs that pass that necessary condition.
+
+The control intentionally remains O(n^2) in cheap envelope comparisons. It does
+not implement a sweep line, R-tree, quadtree, STR tree, or any reusable
+spatial-index/container abstraction.
+
+Before timing, the probe verifies exact event counts and every exact event,
+edge by edge and in sequence, against the all-exact-pairs exact-sized
+workspace.
+
+This isolates how much value a minimal deterministic broad phase provides
+before more complex candidate-discovery research is justified.

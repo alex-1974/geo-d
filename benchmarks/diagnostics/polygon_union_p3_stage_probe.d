@@ -32,6 +32,9 @@ import std.algorithm.sorting :
 import std.datetime.stopwatch :
     StopWatch;
 
+import std.exception :
+    enforce;
+
 import std.math :
     PI,
     cos,
@@ -271,10 +274,15 @@ private void runProbe(
                 benchmarkCase.second.view
             );
 
-        assert(warmup.succeeded);
-        assert(
+        enforce(
+            warmup.succeeded,
+            "warm-up polygon union failed"
+        );
+
+        enforce(
             warmup.length ==
-            benchmarkCase.expectedComponents
+                benchmarkCase.expectedComponents,
+            "warm-up component count mismatch"
         );
 
         probeSink =
@@ -301,18 +309,24 @@ private void runProbe(
 
         stopwatch.stop();
 
-        assert(result.succeeded);
-        assert(
+        enforce(
+            result.succeeded,
+            "measured polygon union failed"
+        );
+
+        enforce(
             result.length ==
-            benchmarkCase.expectedComponents
+                benchmarkCase.expectedComponents,
+            "measured component count mismatch"
         );
 
         const diagnostics =
             polygonUnionP3Diagnostics();
 
-        assert(
+        enforce(
             diagnostics.exactPairTestCount ==
-            diagnostics.allPairCount
+                diagnostics.allPairCount,
+            "P1 exact-pair count mismatch"
         );
 
         if (!haveExpectedCounts)
@@ -324,11 +338,12 @@ private void runProbe(
         }
         else
         {
-            assert(
+            enforce(
                 sameCounts(
                     expectedCounts,
                     diagnostics
-                )
+                ),
+                "diagnostic counts changed between repetitions"
             );
         }
 

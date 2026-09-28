@@ -60,6 +60,9 @@ import geo.polygon_view :
 import geo.point :
     Point2;
 
+import geo.segment :
+    Segment2;
+
 import geo.topology_validation :
     validatePolygon;
 
@@ -68,9 +71,13 @@ version (GeoPolygonUnionP3Diagnostics)
 {
     import core.time :
         MonoTime;
+}
 
-    import geo.segment :
-        Segment2;
+version (GeoPolygonUnionP3Prototype)
+{
+    import geo.intersection :
+        SegmentContactKind,
+        segmentContactKind;
 }
 
 
@@ -90,8 +97,11 @@ version (GeoPolygonUnionP3Diagnostics)
 
         size_t allPairCount;
         size_t envelopeOverlapPairCount;
+        size_t capacityExactPairTestCount;
         size_t exactPairTestCount;
         size_t eventProducingPairCount;
+
+        bool prototypeEnabled;
 
         size_t eventStorageSlotCount;
         size_t eventStorageUsedSlotCount;
@@ -107,6 +117,9 @@ version (GeoPolygonUnionP3Diagnostics)
 
         long validationAndSourceNs;
         long nodingSetupNs;
+        long envelopeBuildNs;
+        long capacityPassNs;
+        long offsetBuildNs;
         long eventStorageAllocationNs;
         long eventCountAllocationNs;
         long endpointSeedingNs;
@@ -252,6 +265,78 @@ private enum bool isPolygonUnionP1Scalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+
+version (GeoPolygonUnionP3Prototype)
+{
+    private struct PolygonUnionP3SourceEnvelope(T)
+    {
+        T minX;
+        T maxX;
+        T minY;
+        T maxY;
+    }
+
+
+    private PolygonUnionP3SourceEnvelope!T
+    p3SourceEnvelope(T)(
+        Segment2!T segment
+    )
+        pure nothrow @safe @nogc
+    if (isPolygonUnionP1Scalar!T)
+    {
+        return
+            PolygonUnionP3SourceEnvelope!T(
+                segment.a.x < segment.b.x
+                    ? segment.a.x
+                    : segment.b.x,
+                segment.a.x < segment.b.x
+                    ? segment.b.x
+                    : segment.a.x,
+                segment.a.y < segment.b.y
+                    ? segment.a.y
+                    : segment.b.y,
+                segment.a.y < segment.b.y
+                    ? segment.b.y
+                    : segment.a.y
+            );
+    }
+
+
+    private bool p3SourceEnvelopesOverlap(T)(
+        ref const PolygonUnionP3SourceEnvelope!T first,
+        ref const PolygonUnionP3SourceEnvelope!T second
+    )
+        pure nothrow @safe @nogc
+    if (isPolygonUnionP1Scalar!T)
+    {
+        return
+            first.maxX >= second.minX &&
+            second.maxX >= first.minX &&
+            first.maxY >= second.minY &&
+            second.maxY >= first.minY;
+    }
+
+
+    private size_t p3RequiredEventCount(
+        SegmentContactKind contact
+    )
+        pure nothrow @safe @nogc
+    {
+        final switch (contact)
+        {
+            case SegmentContactKind.none:
+                return 0;
+
+            case SegmentContactKind.touch:
+            case SegmentContactKind.properCrossing:
+                return 1;
+
+            case SegmentContactKind.overlap:
+                return 2;
+        }
+    }
+}
 
 
 private bool checkedAdd(
@@ -470,40 +555,240 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
-    /*
-     * Every source edge starts with two endpoint events. One interaction with
-     * each of the other source edges can contribute at most two additional
-     * events (positive collinear overlap). Therefore 2 * sourceCount slots per
-     * source edge are a complete P1 pairwise upper bound.
-     */
-    size_t perEdgeEventCapacity;
-
-    if (
-        !checkedMultiply(
-            sourceCount,
-            2,
-            perEdgeEventCapacity
-        )
-    )
-    {
-        return
-            PolygonUnionP1InternalStatus
-                .resourceLimit;
-    }
-
+    ExactOverlayPoint[] eventStorage;
+    size_t[] eventCounts;
     size_t totalEventCapacity;
 
-    if (
-        !checkedMultiply(
-            sourceCount,
-            perEdgeEventCapacity,
-            totalEventCapacity
-        )
-    )
+    version (GeoPolygonUnionP3Prototype)
     {
-        return
-            PolygonUnionP1InternalStatus
-                .resourceLimit;
+        version (GeoPolygonUnionP3Diagnostics)
+        {
+            polygonUnionP3DiagnosticsState
+                .prototypeEnabled =
+                    true;
+
+            p3StageStart =
+                MonoTime.currTime;
+        }
+
+        auto p3Envelopes =
+            new PolygonUnionP3SourceEnvelope!T[
+                sourceCount
+            ];
+
+        foreach (sourceIndex; 0 .. sourceCount)
+        {
+            p3Envelopes[sourceIndex] =
+                p3SourceEnvelope(
+                    sources[
+                        sourceIndex
+                    ].segment
+                );
+        }
+
+        version (GeoPolygonUnionP3Diagnostics)
+        {
+            polygonUnionP3DiagnosticsState
+                .envelopeBuildNs =
+                    p3ElapsedNanoseconds(
+                        p3StageStart
+                    );
+
+            p3StageStart =
+                MonoTime.currTime;
+        }
+
+
+        auto p3EventCapacities =
+            new size_t[
+                sourceCount
+            ];
+
+        foreach (ref capacity; p3EventCapacities)
+        {
+            capacity = 2;
+        }
+
+        foreach (firstIndex; 0 .. sourceCount)
+        {
+            foreach (
+                secondIndex;
+                firstIndex + 1 ..
+                sourceCount
+            )
+            {
+                version (GeoPolygonUnionP3Diagnostics)
+                    ++polygonUnionP3DiagnosticsState
+                        .allPairCount;
+
+                if (
+                    !p3SourceEnvelopesOverlap(
+                        p3Envelopes[
+                            firstIndex
+                        ],
+                        p3Envelopes[
+                            secondIndex
+                        ]
+                    )
+                )
+                {
+                    continue;
+                }
+
+                version (GeoPolygonUnionP3Diagnostics)
+                {
+                    ++polygonUnionP3DiagnosticsState
+                        .envelopeOverlapPairCount;
+
+                    ++polygonUnionP3DiagnosticsState
+                        .capacityExactPairTestCount;
+                }
+
+                const size_t required =
+                    p3RequiredEventCount(
+                        segmentContactKind(
+                            sources[
+                                firstIndex
+                            ].segment,
+                            sources[
+                                secondIndex
+                            ].segment
+                        )
+                    );
+
+                if (required == 0)
+                    continue;
+
+                size_t firstUpdated;
+                size_t secondUpdated;
+
+                if (
+                    !checkedAdd(
+                        p3EventCapacities[
+                            firstIndex
+                        ],
+                        required,
+                        firstUpdated
+                    ) ||
+                    !checkedAdd(
+                        p3EventCapacities[
+                            secondIndex
+                        ],
+                        required,
+                        secondUpdated
+                    )
+                )
+                {
+                    return
+                        PolygonUnionP1InternalStatus
+                            .resourceLimit;
+                }
+
+                p3EventCapacities[
+                    firstIndex
+                ] =
+                    firstUpdated;
+
+                p3EventCapacities[
+                    secondIndex
+                ] =
+                    secondUpdated;
+            }
+        }
+
+        version (GeoPolygonUnionP3Diagnostics)
+        {
+            polygonUnionP3DiagnosticsState
+                .capacityPassNs =
+                    p3ElapsedNanoseconds(
+                        p3StageStart
+                    );
+
+            p3StageStart =
+                MonoTime.currTime;
+        }
+
+
+        auto p3EventOffsets =
+            new size_t[
+                sourceCount + 1
+            ];
+
+        foreach (sourceIndex; 0 .. sourceCount)
+        {
+            if (
+                !checkedAdd(
+                    p3EventOffsets[
+                        sourceIndex
+                    ],
+                    p3EventCapacities[
+                        sourceIndex
+                    ],
+                    p3EventOffsets[
+                        sourceIndex + 1
+                    ]
+                )
+            )
+            {
+                return
+                    PolygonUnionP1InternalStatus
+                        .resourceLimit;
+            }
+        }
+
+        totalEventCapacity =
+            p3EventOffsets[
+                sourceCount
+            ];
+
+        version (GeoPolygonUnionP3Diagnostics)
+        {
+            polygonUnionP3DiagnosticsState
+                .offsetBuildNs =
+                    p3ElapsedNanoseconds(
+                        p3StageStart
+                    );
+
+            p3StageStart =
+                MonoTime.currTime;
+        }
+    }
+    else
+    {
+        /*
+         * Every source edge starts with two endpoint events. One interaction
+         * with each of the other source edges can contribute at most two
+         * additional events (positive collinear overlap). Therefore
+         * 2 * sourceCount slots per source edge are a complete P1 pairwise
+         * upper bound.
+         */
+        size_t perEdgeEventCapacity;
+
+        if (
+            !checkedMultiply(
+                sourceCount,
+                2,
+                perEdgeEventCapacity
+            )
+        )
+        {
+            return
+                PolygonUnionP1InternalStatus
+                    .resourceLimit;
+        }
+
+        if (
+            !checkedMultiply(
+                sourceCount,
+                perEdgeEventCapacity,
+                totalEventCapacity
+            )
+        )
+        {
+            return
+                PolygonUnionP1InternalStatus
+                    .resourceLimit;
+        }
     }
 
 
@@ -522,7 +807,7 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
-    auto eventStorage =
+    eventStorage =
         new ExactOverlayPoint[
             totalEventCapacity
         ];
@@ -541,7 +826,7 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
-    auto eventCounts =
+    eventCounts =
         new size_t[
             sourceCount
         ];
@@ -562,9 +847,28 @@ if (isPolygonUnionP1Scalar!T)
 
     foreach (sourceIndex; 0 .. sourceCount)
     {
-        const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+        version (GeoPolygonUnionP3Prototype)
+        {
+            const size_t begin =
+                p3EventOffsets[
+                    sourceIndex
+                ];
+
+            const size_t capacity =
+                p3EventOffsets[
+                    sourceIndex + 1
+                ] -
+                begin;
+        }
+        else
+        {
+            const size_t begin =
+                sourceIndex *
+                perEdgeEventCapacity;
+
+            const size_t capacity =
+                perEdgeEventCapacity;
+        }
 
         size_t count;
 
@@ -576,7 +880,7 @@ if (isPolygonUnionP1Scalar!T)
                 eventStorage[
                     begin ..
                     begin +
-                    perEdgeEventCapacity
+                    capacity
                 ],
                 count
             )
@@ -604,42 +908,51 @@ if (isPolygonUnionP1Scalar!T)
                     p3NodingSetupStart
                 );
 
-        p3StageStart =
-            MonoTime.currTime;
-
-        foreach (firstIndex; 0 .. sourceCount)
+        version (GeoPolygonUnionP3Prototype)
         {
-            foreach (
-                secondIndex;
-                firstIndex + 1 ..
-                sourceCount
-            )
-            {
-                ++polygonUnionP3DiagnosticsState
-                    .allPairCount;
+            polygonUnionP3DiagnosticsState
+                .envelopeScanNs =
+                    0;
+        }
+        else
+        {
+            p3StageStart =
+                MonoTime.currTime;
 
-                if (
-                    p3SegmentEnvelopesOverlap(
-                        sources[
-                            firstIndex
-                        ].segment,
-                        sources[
-                            secondIndex
-                        ].segment
-                    )
+            foreach (firstIndex; 0 .. sourceCount)
+            {
+                foreach (
+                    secondIndex;
+                    firstIndex + 1 ..
+                    sourceCount
                 )
                 {
                     ++polygonUnionP3DiagnosticsState
-                        .envelopeOverlapPairCount;
+                        .allPairCount;
+
+                    if (
+                        p3SegmentEnvelopesOverlap(
+                            sources[
+                                firstIndex
+                            ].segment,
+                            sources[
+                                secondIndex
+                            ].segment
+                        )
+                    )
+                    {
+                        ++polygonUnionP3DiagnosticsState
+                            .envelopeOverlapPairCount;
+                    }
                 }
             }
-        }
 
-        polygonUnionP3DiagnosticsState
-            .envelopeScanNs =
-                p3ElapsedNanoseconds(
-                    p3StageStart
-                );
+            polygonUnionP3DiagnosticsState
+                .envelopeScanNs =
+                    p3ElapsedNanoseconds(
+                        p3StageStart
+                    );
+        }
 
         p3StageStart =
             MonoTime.currTime;
@@ -647,14 +960,36 @@ if (isPolygonUnionP1Scalar!T)
 
 
     /*
-     * Correctness-first P1 candidate discovery: inspect every source-edge
-     * pair. This also nodes valid same-operand tangential ring contacts.
+     * Correctness-first P1 inspects every source-edge pair.
+     *
+     * The research-only P3 prototype retains the same deterministic pair
+     * order but skips exact contact construction for pairs whose precomputed
+     * closed segment envelopes are disjoint.
      */
     foreach (firstIndex; 0 .. sourceCount)
     {
-        const size_t firstBegin =
-            firstIndex *
-            perEdgeEventCapacity;
+        version (GeoPolygonUnionP3Prototype)
+        {
+            const size_t firstBegin =
+                p3EventOffsets[
+                    firstIndex
+                ];
+
+            const size_t firstCapacity =
+                p3EventOffsets[
+                    firstIndex + 1
+                ] -
+                firstBegin;
+        }
+        else
+        {
+            const size_t firstBegin =
+                firstIndex *
+                perEdgeEventCapacity;
+
+            const size_t firstCapacity =
+                perEdgeEventCapacity;
+        }
 
         foreach (
             secondIndex;
@@ -662,9 +997,42 @@ if (isPolygonUnionP1Scalar!T)
             sourceCount
         )
         {
-            const size_t secondBegin =
-                secondIndex *
-                perEdgeEventCapacity;
+            version (GeoPolygonUnionP3Prototype)
+            {
+                if (
+                    !p3SourceEnvelopesOverlap(
+                        p3Envelopes[
+                            firstIndex
+                        ],
+                        p3Envelopes[
+                            secondIndex
+                        ]
+                    )
+                )
+                {
+                    continue;
+                }
+
+                const size_t secondBegin =
+                    p3EventOffsets[
+                        secondIndex
+                    ];
+
+                const size_t secondCapacity =
+                    p3EventOffsets[
+                        secondIndex + 1
+                    ] -
+                    secondBegin;
+            }
+            else
+            {
+                const size_t secondBegin =
+                    secondIndex *
+                    perEdgeEventCapacity;
+
+                const size_t secondCapacity =
+                    perEdgeEventCapacity;
+            }
 
 
             version (GeoPolygonUnionP3Diagnostics)
@@ -694,7 +1062,7 @@ if (isPolygonUnionP1Scalar!T)
                     eventStorage[
                         firstBegin ..
                         firstBegin +
-                        perEdgeEventCapacity
+                        firstCapacity
                     ],
                     eventCounts[
                         firstIndex
@@ -702,7 +1070,7 @@ if (isPolygonUnionP1Scalar!T)
                     eventStorage[
                         secondBegin ..
                         secondBegin +
-                        perEdgeEventCapacity
+                        secondCapacity
                     ],
                     eventCounts[
                         secondIndex
@@ -712,6 +1080,7 @@ if (isPolygonUnionP1Scalar!T)
             {
                 return invariantFailure();
             }
+
             version (GeoPolygonUnionP3Diagnostics)
             {
                 if (
@@ -776,9 +1145,19 @@ if (isPolygonUnionP1Scalar!T)
 
     foreach (sourceIndex; 0 .. sourceCount)
     {
-        const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+        version (GeoPolygonUnionP3Prototype)
+        {
+            const size_t begin =
+                p3EventOffsets[
+                    sourceIndex
+                ];
+        }
+        else
+        {
+            const size_t begin =
+                sourceIndex *
+                perEdgeEventCapacity;
+        }
 
         const size_t uniqueCount =
             sortUniqueExactEdgeEvents(
@@ -829,9 +1208,19 @@ if (isPolygonUnionP1Scalar!T)
 
     foreach (sourceIndex; 0 .. sourceCount)
     {
-        const size_t begin =
-            sourceIndex *
-            perEdgeEventCapacity;
+        version (GeoPolygonUnionP3Prototype)
+        {
+            const size_t begin =
+                p3EventOffsets[
+                    sourceIndex
+                ];
+        }
+        else
+        {
+            const size_t begin =
+                sourceIndex *
+                perEdgeEventCapacity;
+        }
 
         size_t built;
 

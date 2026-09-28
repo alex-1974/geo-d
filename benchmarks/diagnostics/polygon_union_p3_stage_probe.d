@@ -73,6 +73,9 @@ private struct TimingSamples
 
     long[repetitions] validationAndSource;
     long[repetitions] nodingSetup;
+    long[repetitions] eventStorageAllocation;
+    long[repetitions] eventCountAllocation;
+    long[repetitions] endpointSeeding;
     long[repetitions] envelopeScan;
     long[repetitions] pairNoding;
     long[repetitions] atomicEdge;
@@ -225,6 +228,8 @@ private bool sameCounts(
         lhs.envelopeOverlapPairCount == rhs.envelopeOverlapPairCount &&
         lhs.exactPairTestCount == rhs.exactPairTestCount &&
         lhs.eventProducingPairCount == rhs.eventProducingPairCount &&
+        lhs.eventStorageSlotCount == rhs.eventStorageSlotCount &&
+        lhs.eventStorageElementBytes == rhs.eventStorageElementBytes &&
         lhs.atomicEdgeCount == rhs.atomicEdgeCount &&
         lhs.arrangementVertexCount == rhs.arrangementVertexCount &&
         lhs.arrangementEdgeCount == rhs.arrangementEdgeCount &&
@@ -357,6 +362,15 @@ private void runProbe(
         samples.nodingSetup[sample] =
             diagnostics.nodingSetupNs;
 
+        samples.eventStorageAllocation[sample] =
+            diagnostics.eventStorageAllocationNs;
+
+        samples.eventCountAllocation[sample] =
+            diagnostics.eventCountAllocationNs;
+
+        samples.endpointSeeding[sample] =
+            diagnostics.endpointSeedingNs;
+
         samples.envelopeScan[sample] =
             diagnostics.envelopeScanNs;
 
@@ -418,6 +432,28 @@ private void runProbe(
         expectedCounts.eventProducingPairCount
     );
 
+    const double eventStorageMiB =
+        cast(double)
+            expectedCounts.eventStorageSlotCount *
+        cast(double)
+            expectedCounts.eventStorageElementBytes /
+        (1024.0 * 1024.0);
+
+    writefln(
+        "  event storage slots                %12s",
+        expectedCounts.eventStorageSlotCount
+    );
+
+    writefln(
+        "  ExactOverlayPoint bytes            %12s",
+        expectedCounts.eventStorageElementBytes
+    );
+
+    writefln(
+        "  event storage payload              %12.3f MiB",
+        eventStorageMiB
+    );
+
     writefln(
         "  atomic / arrangement edges         %6s / %-6s",
         expectedCounts.atomicEdgeCount,
@@ -455,6 +491,21 @@ private void runProbe(
     printTime(
         "noding setup",
         median(samples.nodingSetup)
+    );
+
+    printTime(
+        "  exact-event allocation",
+        median(samples.eventStorageAllocation)
+    );
+
+    printTime(
+        "  event-count allocation",
+        median(samples.eventCountAllocation)
+    );
+
+    printTime(
+        "  endpoint seeding",
+        median(samples.endpointSeeding)
     );
 
     printTime(

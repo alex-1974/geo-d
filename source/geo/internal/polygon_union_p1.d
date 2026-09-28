@@ -93,6 +93,9 @@ version (GeoPolygonUnionP3Diagnostics)
         size_t exactPairTestCount;
         size_t eventProducingPairCount;
 
+        size_t eventStorageSlotCount;
+        size_t eventStorageElementBytes;
+
         size_t atomicEdgeCount;
         size_t arrangementVertexCount;
         size_t arrangementEdgeCount;
@@ -102,6 +105,9 @@ version (GeoPolygonUnionP3Diagnostics)
 
         long validationAndSourceNs;
         long nodingSetupNs;
+        long eventStorageAllocationNs;
+        long eventCountAllocationNs;
+        long endpointSeedingNs;
         long envelopeScanNs;
         long pairNodingNs;
         long atomicEdgeNs;
@@ -336,8 +342,12 @@ if (isPolygonUnionP1Scalar!T)
     }
 
     version (GeoPolygonUnionP3Diagnostics)
+    {
         MonoTime p3StageStart =
             MonoTime.currTime;
+
+        MonoTime p3NodingSetupStart;
+    }
 
 
     if (
@@ -452,6 +462,9 @@ if (isPolygonUnionP1Scalar!T)
 
         p3StageStart =
             MonoTime.currTime;
+
+        p3NodingSetupStart =
+            p3StageStart;
     }
 
 
@@ -492,15 +505,57 @@ if (isPolygonUnionP1Scalar!T)
     }
 
 
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .eventStorageSlotCount =
+                totalEventCapacity;
+
+        polygonUnionP3DiagnosticsState
+            .eventStorageElementBytes =
+                ExactOverlayPoint.sizeof;
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     auto eventStorage =
         new ExactOverlayPoint[
             totalEventCapacity
         ];
 
+
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .eventStorageAllocationNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
+
+
     auto eventCounts =
         new size_t[
             sourceCount
         ];
+
+
+    version (GeoPolygonUnionP3Diagnostics)
+    {
+        polygonUnionP3DiagnosticsState
+            .eventCountAllocationNs =
+                p3ElapsedNanoseconds(
+                    p3StageStart
+                );
+
+        p3StageStart =
+            MonoTime.currTime;
+    }
 
 
     foreach (sourceIndex; 0 .. sourceCount)
@@ -536,9 +591,15 @@ if (isPolygonUnionP1Scalar!T)
     version (GeoPolygonUnionP3Diagnostics)
     {
         polygonUnionP3DiagnosticsState
-            .nodingSetupNs =
+            .endpointSeedingNs =
                 p3ElapsedNanoseconds(
                     p3StageStart
+                );
+
+        polygonUnionP3DiagnosticsState
+            .nodingSetupNs =
+                p3ElapsedNanoseconds(
+                    p3NodingSetupStart
                 );
 
         p3StageStart =

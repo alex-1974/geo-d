@@ -50,7 +50,7 @@ __gshared ulong probeSink;
 private struct OwnedPolygon
 {
     Point2!double[] points;
-    LinearRing2View!double[1] rings;
+    LinearRing2View!double[] rings;
     Polygon2View!double view;
 }
 
@@ -131,6 +131,9 @@ private OwnedPolygon makePolygon(
             radius,
             phase
         );
+
+    result.rings =
+        new LinearRing2View!double[1];
 
     result.rings[0] =
         LinearRing2View!double(

@@ -181,7 +181,10 @@ private enum bool isPolygonUnionScalar(T) =
  * The operation allocates variable-size workspace and immutable result
  * storage. It is deliberately not `@nogc`. Allocation/resource exhaustion
  * follows normal D runtime failure semantics and is not a polygon-union
- * geometry status.
+ * geometry status. This includes a workspace cardinality that cannot be
+ * represented by `size_t`; such an impossible allocation size follows the
+ * same `OutOfMemoryError` resource-failure path rather than becoming a
+ * checked geometry result.
  *
  * The current implementation is the correctness-first exact-overlay baseline.
  * Its worst-case time may reach O(n^4) in the total input boundary-edge count

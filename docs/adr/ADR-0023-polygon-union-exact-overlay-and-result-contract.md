@@ -751,7 +751,10 @@ operations total for those domains.
 
 Resource exhaustion from explicit allocation is distinct from geometric
 construction failure. The final API must not reinterpret runtime
-out-of-memory/resource failure as a geometric result status.
+out-of-memory/resource failure as a geometric result status. A workspace
+cardinality that cannot be represented by `size_t` is likewise an impossible
+allocation size rather than a geometric result alternative; if detected before
+allocation, it follows the same `OutOfMemoryError` resource-failure path.
 
 An internally inconsistent arrangement produced from valid input is likewise
 an implementation defect, not a consumer-visible geometric alternative.

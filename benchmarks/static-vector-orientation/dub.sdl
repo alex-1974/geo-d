@@ -1,0 +1,5 @@
+name "geo-static-vector-orientation-probe"
+description "Research performance probe for robust orientation expansion fallback"
+targetType "executable"
+
+dependency "geo-d" path="../.."

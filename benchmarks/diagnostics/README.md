@@ -137,3 +137,22 @@ workspace.
 
 This isolates how much value a minimal deterministic broad phase provides
 before more complex candidate-discovery research is justified.
+
+
+## Polygon Union P3 envelope 100%-candidate stress probe
+
+`polygon_union_p3_envelope_worst_case_probe.d` is a deliberately low-level
+segment diagnostic for the envelope broad-phase guard.
+
+It constructs concurrent non-collinear segments whose closed axis-aligned
+envelopes all contain the origin. Therefore every pair is an envelope
+candidate and every pair is a proper crossing. The guard rejects nothing.
+
+The probe compares exact contact classification alone against
+envelope-test-plus-the-same-exact-classification, alternating measurement
+order and reporting the median of seven repetitions.
+
+This is not a valid-polygon fixture and makes no polygon-semantics claim. Its
+purpose is only to bound the overhead of the proposed envelope guard at 100%
+candidate density, complementing the valid sparse and high-crossing polygon
+fixtures.

@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: alex-1974/containers-d
-          ref: 22851b10dec4613d7b7769bf5945712e5805bd1a
+          ref: f853f6cb2c77b2a5afeebfb9bb2be30768422f80
           path: containers-d
 
       - name: Install D compiler

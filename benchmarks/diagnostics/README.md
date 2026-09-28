@@ -177,3 +177,21 @@ alternates across seven repetitions.
 
 This diagnostic is intended to locate the compiler-specific crossover region
 for the envelope guard. It is not itself a production threshold policy.
+
+
+## Polygon Union P3 envelope upper-density refinement
+
+`polygon_union_p3_envelope_upper_density_probe.d` refines the high-density
+crossover region at a fixed 256 source segments.
+
+One concurrent dense cluster contains 216, 224, 232, 240, 248, 252, 254, or
+255 segments. The remaining segments are spatially isolated from the dense
+cluster and from each other. Candidate density is therefore exactly
+`C(denseCount, 2) / C(256, 2)`, covering approximately 71% through 99%.
+
+The probe compares exact classification of every pair against
+envelope-test-plus-exact-classification of candidates only, alternating
+measurement order across seven repetitions.
+
+This diagnostic narrows the compiler-specific break-even region. It does not
+define a production threshold by itself.

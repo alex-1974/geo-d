@@ -248,3 +248,39 @@ high-crossing comb polygons.
 Measured cases use seven repetitions and report median public-call time.
 Performance output is research evidence only; signature equality is the
 primary differential correctness gate.
+
+
+## Polygon Union P3 sweep-and-prune candidate discovery
+
+`polygon_union_p3_sweep_prune_probe.d` compares two candidate-discovery
+strategies over the same precomputed source-edge envelopes:
+
+1. two deterministic all-pairs AABB scans;
+2. one deterministic X-sorted sweep-and-prune setup followed by two sweep
+   scans.
+
+The timing model matches the exact-sized P3 noding design, which needs one
+capacity-count pass and one exact event-append pass. Envelope construction is
+common to both strategies and is outside the comparison.
+
+Sweep ordering uses envelope coordinates with the original source-edge index
+as the final tie-break. A sweep emits a pair only while X intervals can still
+overlap and then applies the same Y-envelope test used by the all-pairs AABB
+control.
+
+Before timing, the probe materializes and sorts candidate pair keys from both
+strategies and requires exact set equality. Timed runs additionally compare
+candidate fingerprints.
+
+Workloads include:
+
+- valid disjoint regular-convex polygon pairs from 32 through 2048 total source
+  edges;
+- valid overlapping regular-convex pairs up to 2048 total source edges;
+- valid high-crossing comb polygons at 128, 256, and 512 source edges;
+- synthetic 100%-candidate concurrent-segment controls at 256 and 1024
+  segments.
+
+The sweep is polygon-union-specific transient research. It is not a public or
+package-general spatial-index/container abstraction, and this probe does not
+authorize production promotion.

@@ -1,7 +1,7 @@
 module geo.internal.expansion;
 
 import containers.research.static_vector :
-    ContainersStaticVector = StaticVector;
+    ScalarStaticVectorOps;
 import geo.internal.binary64_rounding :
     roundedAdd,
     roundedMul,
@@ -298,20 +298,15 @@ TwoComponent twoProduct(double a, double b)
 struct ExpansionBuffer(size_t Capacity)
 if (Capacity > 0)
 {
-private:
     /*
-     * Preserve the numerical domain type while forwarding the generic
-     * fixed-capacity sequence surface directly through alias this.
+     * Consumer-specialized containers-d family composition:
      *
-     * Only append remains geo-specific because expansion components require
-     * the finite-value invariant.
+     * - state and ordinary fixed-vector operations are injected directly;
+     * - no nested owning wrapper is introduced;
+     * - geo-d retains the ExpansionBuffer domain type;
+     * - only the finite-component invariant remains geo-specific.
      */
-    ContainersStaticVector!(double, Capacity) _data;
-
-    alias _data this;
-
-public:
-    enum size_t capacity = Capacity;
+    mixin ScalarStaticVectorOps!(double, Capacity);
 
 
     /**
@@ -327,9 +322,7 @@ public:
         pure nothrow @safe @nogc
     {
         assert(isFinite(value));
-        assert(_data.length < Capacity);
-
-        _data.pushBack(value);
+        pushBack(value);
     }
 }
 

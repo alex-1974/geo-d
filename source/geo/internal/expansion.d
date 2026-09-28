@@ -311,6 +311,7 @@ public:
 
 
     /// Number of active expansion components.
+    pragma(inline, true)
     @property size_t length() const
         pure nothrow @safe @nogc
     {
@@ -319,6 +320,7 @@ public:
 
 
     /// True when the expansion contains no active components.
+    pragma(inline, true)
     @property bool empty() const
         pure nothrow @safe @nogc
     {
@@ -332,6 +334,7 @@ public:
      * Stored bytes need not be cleared because values beyond `length`
      * are not part of the expansion.
      */
+    pragma(inline, true)
     void clear()
         pure nothrow @safe @nogc
     {
@@ -347,6 +350,7 @@ public:
      * - value is finite;
      * - spare capacity is available.
      */
+    pragma(inline, true)
     void append(double value)
         pure nothrow @safe @nogc
     {
@@ -360,6 +364,7 @@ public:
     /**
      * Indexed access to active components.
      */
+    pragma(inline, true)
     double opIndex(size_t index) const
         pure nothrow @safe @nogc
     {

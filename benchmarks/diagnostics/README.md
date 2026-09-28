@@ -195,3 +195,27 @@ measurement order across seven repetitions.
 
 This diagnostic narrows the compiler-specific break-even region. It does not
 define a production threshold by itself.
+
+
+## Polygon Union P3 precomputed-envelope two-pass control
+
+`polygon_union_p3_precomputed_envelope_probe.d` measures the candidate-density
+crossover again after removing repeated per-pair envelope construction.
+
+A compact transient envelope is built once per source segment in O(n) work and
+reused across both exact-sized noding classification passes. The measured gated
+total therefore includes the one-time envelope-build cost plus two gated exact
+classification passes.
+
+The probe uses a fixed 256 source segments and samples candidate densities from
+100% down through the upper crossover region and into the clearly sparse
+region. It compares that two-pass gated total against two full exact
+classification passes.
+
+The envelope representation is deliberately probe-local and polygon-union
+specific. It is not a reusable spatial-index/container abstraction.
+
+This control decides whether repeated min/max reconstruction caused the
+compiler-sensitive dense-case regression seen in the earlier envelope probes.
+Adaptive thresholding is not justified unless the precomputed-envelope variant
+still shows a material dense-case loss.

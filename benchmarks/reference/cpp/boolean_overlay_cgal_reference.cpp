@@ -9,6 +9,7 @@
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/Polygon_with_holes_2.h>
+#include <CGAL/Polygon_set_2.h>
 #include <CGAL/number_utils.h>
 
 #include <cmath>
@@ -35,6 +36,9 @@ using Polygon =
 
 using PolygonWithHoles =
     CGAL::Polygon_with_holes_2<Kernel>;
+
+using PolygonSet =
+    CGAL::Polygon_set_2<Kernel>;
 
 
 enum class Operation
@@ -298,62 +302,55 @@ static char locationCode(
 
 static std::list<PolygonWithHoles> applyOperation(
     Operation operation,
-    const PolygonWithHoles& first,
-    const PolygonWithHoles& second
+    const PolygonSet& first,
+    const PolygonSet& second
 )
 {
-    std::list<PolygonWithHoles> result;
+    PolygonSet setResult;
 
     switch (operation)
     {
         case Operation::unionSet:
-        {
-            const std::vector<PolygonWithHoles> input = {
+            setResult.join(
                 first,
-                second,
-            };
-
-            CGAL::join(
-                input.begin(),
-                input.end(),
-                std::back_inserter(result)
+                second
             );
-
             break;
-        }
 
         case Operation::intersection:
-            CGAL::intersection(
+            setResult.intersection(
                 first,
-                second,
-                std::back_inserter(result)
+                second
             );
             break;
 
         case Operation::differenceAB:
-            CGAL::difference(
+            setResult.difference(
                 first,
-                second,
-                std::back_inserter(result)
+                second
             );
             break;
 
         case Operation::differenceBA:
-            CGAL::difference(
+            setResult.difference(
                 second,
-                first,
-                std::back_inserter(result)
+                first
             );
             break;
 
         case Operation::symmetricDifference:
-            CGAL::symmetric_difference(
+            setResult.symmetric_difference(
                 first,
-                second,
-                std::back_inserter(result)
+                second
             );
             break;
     }
+
+    std::list<PolygonWithHoles> result;
+
+    setResult.polygons_with_holes(
+        std::back_inserter(result)
+    );
 
     return result;
 }
@@ -362,8 +359,8 @@ static std::list<PolygonWithHoles> applyOperation(
 static void emitOperation(
     const std::string& name,
     Operation operation,
-    const PolygonWithHoles& first,
-    const PolygonWithHoles& second
+    const PolygonSet& first,
+    const PolygonSet& second
 )
 {
     const auto result =
@@ -461,12 +458,83 @@ static void emitOperation(
 }
 
 
-static void emitCase(
+static void checkCrossOperationIdentity(
     const std::string& name,
-    const PolygonWithHoles& first,
-    const PolygonWithHoles& second
+    const PolygonSet& first,
+    const PolygonSet& second
 )
 {
+    PolygonSet xorSet;
+
+    xorSet.symmetric_difference(
+        first,
+        second
+    );
+
+    PolygonSet differenceAB;
+
+    differenceAB.difference(
+        first,
+        second
+    );
+
+    PolygonSet differenceBA;
+
+    differenceBA.difference(
+        second,
+        first
+    );
+
+    PolygonSet differenceUnion;
+
+    differenceUnion.join(
+        differenceAB,
+        differenceBA
+    );
+
+    /*
+     * Exact set equality:
+     *
+     * Two regularized sets are equal exactly when their symmetric difference
+     * is empty.
+     */
+    PolygonSet delta;
+
+    delta.symmetric_difference(
+        xorSet,
+        differenceUnion
+    );
+
+    std::list<PolygonWithHoles> deltaComponents;
+
+    delta.polygons_with_holes(
+        std::back_inserter(
+            deltaComponents
+        )
+    );
+
+    if (!deltaComponents.empty())
+    {
+        throw std::runtime_error(
+            name +
+            ": exact CGAL cross-operation identity failed"
+        );
+    }
+}
+
+
+static void emitSetCase(
+    const std::string& name,
+    const PolygonSet& first,
+    const PolygonSet& second
+)
+{
+    checkCrossOperationIdentity(
+        name,
+        first,
+        second
+    );
+
     const Operation operations[] = {
         Operation::unionSet,
         Operation::intersection,
@@ -487,6 +555,28 @@ static void emitCase(
             second
         );
     }
+}
+
+
+static void emitCase(
+    const std::string& name,
+    const PolygonWithHoles& first,
+    const PolygonWithHoles& second
+)
+{
+    const PolygonSet firstSet(
+        first
+    );
+
+    const PolygonSet secondSet(
+        second
+    );
+
+    emitSetCase(
+        name,
+        firstSet,
+        secondSet
+    );
 }
 
 
@@ -593,6 +683,173 @@ int main()
         ),
         withoutHoles(
             rectangle(4, 0, 6, 8)
+        )
+    );
+
+
+    {
+        const PolygonSet empty;
+
+        const PolygonSet square(
+            withoutHoles(
+                rectangle(
+                    1,
+                    1,
+                    5,
+                    5
+                )
+            )
+        );
+
+        emitSetCase(
+            "empty_first",
+            empty,
+            square
+        );
+
+        emitSetCase(
+            "empty_second",
+            square,
+            empty
+        );
+
+        emitSetCase(
+            "both_empty",
+            empty,
+            empty
+        );
+    }
+
+
+    {
+        Polygon second;
+
+        second.push_back(
+            Point(4, 1)
+        );
+
+        second.push_back(
+            Point(6, 0)
+        );
+
+        second.push_back(
+            Point(8, 0)
+        );
+
+        second.push_back(
+            Point(8, 4)
+        );
+
+        second.push_back(
+            Point(6, 4)
+        );
+
+        second.push_back(
+            Point(4, 3)
+        );
+
+        second.push_back(
+            Point(6, 3)
+        );
+
+        second.push_back(
+            Point(6, 1)
+        );
+
+        emitCase(
+            "multiple_point_contacts",
+            withoutHoles(
+                rectangle(
+                    0,
+                    0,
+                    4,
+                    4
+                )
+            ),
+            withoutHoles(
+                second
+            )
+        );
+    }
+
+
+    emitCase(
+        "partial_collinear_overlap",
+        withoutHoles(
+            rectangle(
+                0,
+                0,
+                6,
+                4
+            )
+        ),
+        withoutHoles(
+            rectangle(
+                2,
+                4,
+                8,
+                8
+            )
+        )
+    );
+
+
+    {
+        Polygon triangle;
+
+        triangle.push_back(
+            Point(3, 4)
+        );
+
+        triangle.push_back(
+            Point(5, 7)
+        );
+
+        triangle.push_back(
+            Point(1, 7)
+        );
+
+        emitCase(
+            "t_junction_contact",
+            withoutHoles(
+                rectangle(
+                    0,
+                    0,
+                    6,
+                    4
+                )
+            ),
+            withoutHoles(
+                triangle
+            )
+        );
+    }
+
+
+    emitCase(
+        "hole_boundary_crossing",
+        withHole(
+            rectangle(
+                0,
+                0,
+                10,
+                10
+            ),
+            rectangle(
+                3,
+                3,
+                7,
+                7,
+                false
+            )
+        ),
+        withoutHoles(
+            rectangle(
+                4,
+                1,
+                6,
+                5
+            )
         )
     );
 

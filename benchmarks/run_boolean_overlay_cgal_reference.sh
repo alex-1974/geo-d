@@ -117,9 +117,9 @@ main()
     printf 'CGAL lines:  '
     wc -l <"$CPP_OUT"
 
-    if [ "$(wc -l <"$D_OUT")" -ne 45 ] ||
-       [ "$(wc -l <"$CPP_OUT")" -ne 45 ]; then
-        echo 'FAIL: expected 45 differential cases per implementation' >&2
+    if [ "$(wc -l <"$D_OUT")" -ne 80 ] ||
+       [ "$(wc -l <"$CPP_OUT")" -ne 80 ]; then
+        echo 'FAIL: expected 80 differential cases per implementation' >&2
         return 1
     fi
 
@@ -150,6 +150,151 @@ main()
         >"$CPP_SET_OUT"
 
     echo
+    echo '=== initial 45-case regression guard ==='
+
+    INITIAL_EXPECTED_HASH=dd562a63eecd718164570e5b9b903172d07913088afea3bc2a88c26b977e380e
+
+    D_INITIAL_HASH="$(
+        head -n 45 "$D_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    CPP_INITIAL_HASH="$(
+        head -n 45 "$CPP_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    printf 'expected: %s\n' "$INITIAL_EXPECTED_HASH"
+    printf 'geo-d:    %s\n' "$D_INITIAL_HASH"
+    printf 'CGAL:     %s\n' "$CPP_INITIAL_HASH"
+
+    if [ "$D_INITIAL_HASH" != "$INITIAL_EXPECTED_HASH" ] ||
+       [ "$CPP_INITIAL_HASH" != "$INITIAL_EXPECTED_HASH" ]; then
+        echo 'FAIL: initial 45-case oracle corpus changed' >&2
+        return 1
+    fi
+
+    echo 'PASS: initial 45-case normalized corpus unchanged'
+
+    echo
+    echo '=== initial 60-case regression guard ==='
+
+    INITIAL_60_EXPECTED_HASH=763fc24ea82a2d7052092cb429e5655909dc2aef5d0a7ef2ead51d9b8e7e88d0
+
+    D_INITIAL_60_HASH="$(
+        head -n 60 "$D_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    CPP_INITIAL_60_HASH="$(
+        head -n 60 "$CPP_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    printf 'expected: %s\n' "$INITIAL_60_EXPECTED_HASH"
+    printf 'geo-d:    %s\n' "$D_INITIAL_60_HASH"
+    printf 'CGAL:     %s\n' "$CPP_INITIAL_60_HASH"
+
+    if [ "$D_INITIAL_60_HASH" != "$INITIAL_60_EXPECTED_HASH" ] ||
+       [ "$CPP_INITIAL_60_HASH" != "$INITIAL_60_EXPECTED_HASH" ]; then
+        echo 'FAIL: initial 60-case oracle corpus changed' >&2
+        return 1
+    fi
+
+    echo 'PASS: initial 60-case normalized corpus unchanged'
+
+    echo
+    echo '=== initial 65-case regression guard ==='
+
+    INITIAL_65_EXPECTED_HASH=e0291181972738676e1ecb65fa4079bd7f93cf2dcdc8eb7def13900ce47836c3
+
+    D_INITIAL_65_HASH="$(
+        head -n 65 "$D_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    CPP_INITIAL_65_HASH="$(
+        head -n 65 "$CPP_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    printf 'expected: %s\n' "$INITIAL_65_EXPECTED_HASH"
+    printf 'geo-d:    %s\n' "$D_INITIAL_65_HASH"
+    printf 'CGAL:     %s\n' "$CPP_INITIAL_65_HASH"
+
+    if [ "$D_INITIAL_65_HASH" != "$INITIAL_65_EXPECTED_HASH" ] ||
+       [ "$CPP_INITIAL_65_HASH" != "$INITIAL_65_EXPECTED_HASH" ]; then
+        echo 'FAIL: initial 65-case oracle corpus changed' >&2
+        return 1
+    fi
+
+    echo 'PASS: initial 65-case normalized corpus unchanged'
+
+    echo
+    echo '=== initial 70-case regression guard ==='
+
+    INITIAL_70_EXPECTED_HASH=475f86d771a245bed28497c928f134490d44c08ab848d58159beb219cba02713
+
+    D_INITIAL_70_HASH="$(
+        head -n 70 "$D_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    CPP_INITIAL_70_HASH="$(
+        head -n 70 "$CPP_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    printf 'expected: %s\n' "$INITIAL_70_EXPECTED_HASH"
+    printf 'geo-d:    %s\n' "$D_INITIAL_70_HASH"
+    printf 'CGAL:     %s\n' "$CPP_INITIAL_70_HASH"
+
+    if [ "$D_INITIAL_70_HASH" != "$INITIAL_70_EXPECTED_HASH" ] ||
+       [ "$CPP_INITIAL_70_HASH" != "$INITIAL_70_EXPECTED_HASH" ]; then
+        echo 'FAIL: initial 70-case oracle corpus changed' >&2
+        return 1
+    fi
+
+    echo 'PASS: initial 70-case normalized corpus unchanged'
+
+    echo
+    echo '=== initial 75-case regression guard ==='
+
+    INITIAL_75_EXPECTED_HASH=dfa1b1cf01e1359cddad06c666193f5f54bd8510ce69ffbbe7522fbae08b2483
+
+    D_INITIAL_75_HASH="$(
+        head -n 75 "$D_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    CPP_INITIAL_75_HASH="$(
+        head -n 75 "$CPP_SET_OUT" |
+        sha256sum |
+        awk '{print $1}'
+    )"
+
+    printf 'expected: %s\n' "$INITIAL_75_EXPECTED_HASH"
+    printf 'geo-d:    %s\n' "$D_INITIAL_75_HASH"
+    printf 'CGAL:     %s\n' "$CPP_INITIAL_75_HASH"
+
+    if [ "$D_INITIAL_75_HASH" != "$INITIAL_75_EXPECTED_HASH" ] ||
+       [ "$CPP_INITIAL_75_HASH" != "$INITIAL_75_EXPECTED_HASH" ]; then
+        echo 'FAIL: initial 75-case oracle corpus changed' >&2
+        return 1
+    fi
+
+    echo 'PASS: initial 75-case normalized corpus unchanged'
+
+    echo
     echo '=== representation policy ==='
     echo 'geo-d component/hole counts: checked internally against research expectations'
     echo 'CGAL component/hole counts:  diagnostic only'
@@ -171,7 +316,7 @@ main()
     if diff -u "$CPP_SET_OUT" "$D_SET_OUT"; then
         echo
         echo 'PASS: geo-d research Boolean overlay matches CGAL/EPECK'
-        echo '      9 fixtures x 5 operations = 45 differential results'
+        echo '      16 fixtures x 5 operations = 80 differential results'
         return 0
     fi
 

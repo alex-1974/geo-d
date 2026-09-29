@@ -221,15 +221,48 @@ Secondary semantic/architecture reference:
 
 - <https://locationtech.github.io/jts/javadoc/org/locationtech/jts/operation/overlayng/OverlayNG.html>
 
-### 4.3 Provisional semantic direction
+### 4.3 Research semantic disposition
 
-Current research hypothesis:
+For the retained Boolean-overlay candidates, the research semantic model is
+**regularized two-dimensional polygon-set semantics**.
 
-> If another polygon Boolean operation is promoted, investigate it first as a
-> regularized 2D polygon-set operation whose result contains polygons with
-> holes only, not lower-dimensional point or line artifacts.
+Conceptually:
 
-This is not yet an accepted contract.
+```text
+regularized(P op Q)
+    =
+closure(interior(P op Q))
+```
+
+Accordingly, lower-dimensional remnants do not become result objects:
+
+- an isolated shared point does not become an intersection result;
+- a shared boundary segment alone does not require a line result;
+- point and line artifacts removed by regularization are not represented as
+  heterogeneous output alongside polygons.
+
+This disposition is supported by several independent observations:
+
+1. CGAL/EPECK regularized Boolean set operations are the primary exact oracle
+   used by the research corpus.
+2. The complete 16-fixture x 5-operation differential corpus agrees with that
+   oracle at the regularized point-set level.
+3. Point-contact fixtures explicitly demonstrate zero polygon intersection
+   where the operands meet only in lower dimension.
+4. The existing geo-d result model naturally represents the regularized
+   polygonal result domain: empty output, polygon components and holes.
+5. A non-regularized operation would require a materially different,
+   heterogeneous result domain containing line and/or point remnants.
+6. No current consumer evidence justifies that additional heterogeneous
+   result domain for intersection, difference or symmetric difference.
+
+The non-regularized alternative is therefore **rejected for these retained
+polygon Boolean candidates**, not silently emulated or encoded inside
+`Polygon2View`.
+
+This research decision constrains the semantics of any later design proposal.
+It does **not** itself promote intersection, difference or symmetric difference
+to production or public API.
 
 ## 5. Region truth table
 
@@ -414,8 +447,9 @@ selected cycles/components are structurally supported:
 This is strong static evidence that an empty regularized result does not require
 a new result representation.
 
-It is not yet executable proof that a generalized Boolean selector can drive
-the complete production pipeline to that state.
+At this static-audit checkpoint, executable proof that a generalized Boolean
+selector could drive the complete production pipeline was still pending.
+Section 6.5 records the subsequent executable reuse evidence.
 
 ### 6.4 Required executable reuse gate
 
@@ -562,7 +596,8 @@ Executable evidence now supports the following narrower statement:
 > post-selection polygon-union pipeline is reusable unchanged for regularized
 > polygonal union, intersection, difference and symmetric-difference results.
 
-This evidence does **not** yet establish:
+At this executable-reuse checkpoint, this evidence did **not** by itself
+establish:
 
 - complete Boolean-overlay semantics;
 - coverage of the required degeneracy matrix;
@@ -572,8 +607,12 @@ This evidence does **not** yet establish:
 - justification for renaming or refactoring production `polygon_union_*`
   internals.
 
-The next research work must broaden semantic/topological/oracle evidence rather
-than treating internal reuse as authorization for implementation promotion.
+Those remaining evidence gaps are addressed by the semantic matrix,
+algebraic/invariance checks, numerical/materialization probes and independent
+oracle work recorded in the following sections.
+
+Internal reuse remains evidence only and does not authorize implementation
+promotion.
 
 ## 7. Required semantic matrix
 
@@ -619,6 +658,178 @@ Each retained candidate must be checked independently for:
 - new crossing/contact introduced by rounding;
 - lost exact topology after materialization.
 
+### 7.1 Coverage after the initial 45-case oracle
+
+The initial nine-fixture / five-operation differential corpus does not by
+itself complete the required semantic matrix.
+
+The following coverage audit distinguishes deliberately exercised evidence
+from cases that are still missing.
+
+#### Ordinary relationships
+
+| Required case | Current evidence | Status |
+|---|---|---|
+| disjoint polygons | `disjoint` | covered |
+| ordinary overlap | `overlap` | covered |
+| containment | `containment` | covered |
+| identical operands | `identical` | covered |
+| first operand empty | `empty_first` | covered |
+| second operand empty | `empty_second` | covered |
+| both operands empty | `both_empty` | covered |
+
+The three explicit empty-input relationships are now covered by the
+independent differential oracle. Across all five operations, the 15 additional
+results agree between geo-d and CGAL/EPECK.
+
+The complete normalized 60-result corpus is byte-for-byte identical with
+SHA-256
+`763fc24ea82a2d7052092cb429e5655909dc2aef5d0a7ef2ead51d9b8e7e88d0`.
+
+The original 45-result normalized corpus also retains its previously recorded
+SHA-256, so the empty-input extension did not change earlier oracle evidence.
+
+
+#### Boundary contacts
+
+| Required case | Current evidence | Status |
+|---|---|---|
+| shared vertex | `point_touch` | covered |
+| multiple isolated shared vertices | `multiple_point_contacts` | covered |
+| shared complete edge | `adjacent` | covered |
+| partial collinear overlap | `partial_collinear_overlap` | covered |
+| adjacent polygons | `adjacent` | covered |
+| coincident boundaries | `identical` | covered |
+| T-junction-style contact after noding | `t_junction_contact` | covered |
+
+`plus` exercises proper crossings. It is not counted as a T-junction-style
+contact because both crossing segments continue through the intersection.
+
+#### Holes and components
+
+| Required case | Current evidence | Status |
+|---|---|---|
+| polygon intersecting a hole boundary | `hole_boundary_crossing` | covered |
+| polygon filling a hole | `donut_fill` | covered |
+| polygon entirely inside a hole | `donut_island` | covered |
+| operation creating a hole | `containment`, `A \ B` | covered |
+| operation removing a hole | `donut_fill` | covered |
+| operation splitting one component into several | `plus`, directional differences | covered |
+| disconnected output components | `disjoint`, `point_touch`, `plus` | covered |
+| island inside a hole | `donut_island` | covered |
+
+`donut_fill` has a polygon coincident with the existing hole boundary and
+`donut_island` lies strictly inside the hole. Neither is counted as evidence
+for an operand that crosses a hole boundary.
+
+#### Numerical/materialization cases
+
+The initial 45-case corpus uses small integer-coordinate fixtures and is a
+semantic/topological oracle corpus.
+
+It does **not** qualify the numerical/materialization matrix merely because
+the common implementation path performs exact noding and binary64
+materialization.
+
+The following remain separate explicit evidence requirements:
+
+| Required case | Status |
+|---|---|
+| proper rational intersections | covered by `properRationalMaterializationStatusMatrix` |
+| distinct exact events | covered by `distinctExactEventsStatusMatrix` |
+| distinct exact events colliding after binary64 rounding | covered by `exactEventCollisionStatusMatrix` |
+| rounded edge collapse | covered by `longMaxMaterializationStatusMatrix` |
+| new crossing/contact introduced by rounding | covered by `roundedContactStatusMatrix` |
+| lost exact topology after materialization | covered by collapse and new-contact failure fixtures |
+
+The numerical/materialization matrix is now qualified by purpose-built
+end-to-end research probes against ADR-0023.
+
+All of these probes execute through
+`tryBooleanOverlayP1ResearchInternal`, so the evidence covers the generalized
+research selector together with the production exact noding, arrangement,
+canonicalization and materialization path.
+
+The matrix is supported as follows:
+
+- `properRationalMaterializationStatusMatrix` embeds a proper intersection at
+  exactly `(2/3, 2/3)`. All five Boolean operations succeed, and the required
+  rational result vertex is correctly materialized to binary64.
+- `distinctExactEventsStatusMatrix` produces two ordered exact events at
+  `1/3` and `2/3` on one source edge. All five operations succeed and retain
+  both as distinct materialized result vertices.
+- `exactEventCollisionStatusMatrix` embeds two mathematically distinct exact
+  overlay events that both correctly round to binary64 `0.5`. All five
+  operations reject the unrepresentable result with
+  `unrepresentableConstruction`, exposing no partial geometry.
+- `longMaxMaterializationStatusMatrix` reuses the established width-one
+  signed-`long` rectangle at `long.max`. With the second operand empty,
+  union, A-minus-B and symmetric difference require the hazardous geometry
+  and fail with `unrepresentableConstruction`; intersection and B-minus-A
+  select the empty result and succeed. This verifies both selected-result-only
+  materialization and all-or-nothing failure.
+- `roundedContactStatusMatrix` reuses the established signed-`long` fixture
+  near `2^53` where every rounded vertex remains distinct but two exact
+  non-adjacent edges acquire a new binary64 contact. Operations requiring the
+  geometry reject it with `unrepresentableConstruction`; operations selecting
+  the empty result succeed.
+- loss of exact topology after materialization is therefore demonstrated by
+  at least two independent mechanisms: required-vertex/edge collapse and a
+  newly introduced boundary contact without vertex collapse.
+
+The complete research probe passes under both DMD 2.111.0 and LDC 1.41.0
+(frontend 2.111.0). The normalized 80-result topological oracle output is
+byte-for-byte identical between DMD, LDC and CGAL/EPECK where applicable, with
+SHA-256
+`6b832da4df1b351ebd582f89d1ec898118d9ffa29ec7f63d4cc3f26c085084a2`.
+
+The additional numerical probes run before the 80 emitted differential
+results, so they do not alter the retained topological oracle corpus.
+
+#### Topological oracle matrix status
+
+The non-numerical topological matrix is now covered by 16 fixtures, each run
+through all five research operations:
+
+- union;
+- intersection;
+- difference A minus B;
+- difference B minus A;
+- symmetric difference.
+
+This gives 80 differential results. The normalized regularized-set output is
+byte-for-byte identical between geo-d and CGAL/EPECK with SHA-256
+`6b832da4df1b351ebd582f89d1ec898118d9ffa29ec7f63d4cc3f26c085084a2`.
+
+The expansion added explicit evidence for:
+
+- empty operands in both orders and both empty;
+- multiple isolated shared vertices;
+- partial collinear boundary overlap;
+- a vertex-on-edge T-junction requiring noding;
+- an operand crossing an interior-ring boundary.
+
+The differential evidence continues to distinguish set semantics from result
+representation. In particular, point-contact and hole-crossing cases can have
+different component/hole decompositions in geo-d and CGAL while representing
+the same regularized point set. geo-d's own component/hole decomposition is
+therefore checked independently inside the D probe.
+
+This completes the non-numerical topological portion of the required matrix.
+
+Together with the independently exercised numerical/materialization cases
+above, Section 7 now covers the complete semantic/degeneracy matrix required
+by this research issue.
+
+The semantic/degeneracy matrix gate is therefore satisfied.
+
+The other research questions that were previously open alongside this matrix
+are resolved elsewhere in this document:
+
+- Section 4.3 records the regularized semantic disposition;
+- Section 9.1 records the ownership/multiplicity disposition;
+- Section 12 records the final promote/defer/reject dispositions.
+
 ## 8. Operation-specific algebraic laws
 
 ### Intersection
@@ -662,6 +873,52 @@ A xor B
 
 This can later provide independent property evidence.
 
+### 8.1 Executable algebraic and invariance evidence
+
+The operation-specific laws above are now executable research evidence across
+all 16 retained semantic/topological fixtures.
+
+The geo-d research probe checks canonical materialized results directly for:
+
+- intersection commutativity;
+- intersection idempotence for both operands;
+- intersection with the empty set;
+- difference self-subtraction;
+- difference identity with the empty set;
+- empty-set difference;
+- consistency between `differenceAB(A, B)` and `differenceBA(B, A)`;
+- symmetric-difference commutativity;
+- symmetric-difference self-cancellation;
+- symmetric-difference identity with the empty set;
+- union commutativity as a common canonicalization check.
+
+Canonical result comparison includes component count, ring count, point count,
+component order, ring order and every materialized binary64 point. No geometric
+tolerance is used.
+
+The cross-operation identity
+
+A xor B = (A minus B) union (B minus A)
+
+is checked separately because the current geo-d research entry point accepts
+one polygon per operand rather than an arbitrary polygon set.
+
+For geo-d, the identity is checked for every retained fixture using both
+twice-area equality and regularized-set membership on a half-unit probe grid.
+
+The independent CGAL/EPECK oracle checks the same identity as an exact
+polygon-set equality: the symmetric difference between both sides must be
+empty.
+
+All algebraic checks run before emission of the existing differential output.
+The normalized 80-result oracle corpus therefore remains unchanged at
+SHA-256
+`6b832da4df1b351ebd582f89d1ec898118d9ffa29ec7f63d4cc3f26c085084a2`.
+
+This evidence establishes the operation-specific algebraic and invariance
+properties required by this research gate. It does not qualify the still-open
+numerical/materialization behavior or authorize a public API.
+
 ## 9. Result representation questions
 
 The existing polygon-union result shape can already represent:
@@ -688,21 +945,83 @@ Later design options include:
 A generic public selector must not be chosen merely because the implementation
 may share an internal truth predicate.
 
+### 9.1 Ownership and multiplicity disposition
+
+For the retained regularized polygon Boolean candidates, the existing internal
+owning result representation is sufficient in structure.
+
+The production result storage already provides the required ownership model:
+
+- materialized point storage is immutable and owned by the result;
+- ring descriptors reference that immutable point backing;
+- component boundaries are represented by immutable component-ring offsets;
+- mutable build arrays are consumed and frozen before publication;
+- ordinary result-descriptor copies share immutable backing rather than
+  deep-copying geometry;
+- read-only `Polygon2View!double` component views may safely reference the
+  immutable GC-managed backing;
+- an empty result is represented directly by zero components, zero rings and
+  zero points.
+
+The same representation also covers the required multiplicities:
+
+- zero or more polygon components;
+- one exterior ring per component;
+- zero or more holes per component;
+- disconnected components;
+- components that meet only at isolated boundary points.
+
+The differential oracle demonstrates an important distinction between
+regularized set semantics and representation multiplicity.
+
+Component count and hole count are not cross-library semantic invariants.
+For some point-contact and symmetric-difference cases, geo-d and CGAL/EPECK
+use different polygon-with-holes decompositions while representing the same
+regularized point set.
+
+Therefore:
+
+- geo-d may retain its deterministic canonical component/hole decomposition;
+- isolated point contacts do not require components to be merged merely to
+  imitate another library's representation;
+- cross-library correctness is judged by regularized set semantics, not by
+  matching component or hole multiplicity;
+- geo-d's own component/hole multiplicity remains checked independently
+  against explicit research expectations.
+
+No operation-specific ownership requirement was found for intersection,
+difference or symmetric difference. The same internal immutable owning
+polygon-set shape can therefore serve the retained research operations.
+
+This conclusion applies to the internal result model only. It does not decide
+whether a later public API should expose one shared polygon-set result type,
+operation-specific result types, dedicated functions, or another design.
+
 ## 10. Numerical and failure questions
 
-Research must verify rather than assume that ADR-0023 transfers unchanged.
+ADR-0023 was treated as a transfer hypothesis rather than assumed to apply
+automatically to the additional Boolean operations.
 
-Initial hypothesis:
+The purpose-built numerical/materialization evidence in Section 7 now
+qualifies the materialization-sensitive parts of that transfer:
 
-- invalid first and second operands remain distinguishable;
-- exact topology remains authoritative;
-- no implicit repair, snapping or quantization occurs;
-- unrepresentable binary64 construction remains an all-or-nothing checked
-  geometry failure;
-- resource failures remain outside geometry status;
-- no partial result is exposed.
+- exact topology remains authoritative before coordinate materialization;
+- proper rational result vertices can be materialized successfully;
+- distinct exact events remain distinct when binary64 can represent them
+  distinctly;
+- distinct exact events that collide after binary64 rounding are rejected;
+- required result vertices/edges that collapse during rounding are rejected;
+- new boundary contact introduced only by rounding is rejected;
+- failure is all-or-nothing and exposes no partial result;
+- operations selecting an empty result can succeed even when hazardous exact
+  geometry exists elsewhere in the input arrangement.
 
-Operation-specific counterexamples may require different conclusions.
+No evidence from this research requires implicit repair, snapping or
+quantization, or a different geometric materialization status model for
+intersection, difference or symmetric difference.
+
+The established separation between geometric construction status and runtime
+resource failure remains unchanged.
 
 ## 11. Oracle strategy
 
@@ -920,7 +1239,7 @@ The runner also removes all previous temporary output before every run so a
 failed build or execution cannot make stale files appear to be current oracle
 evidence.
 
-#### Current result
+#### Initial 45-case result
 
 The qualified differential run produced:
 
@@ -948,7 +1267,8 @@ regularized set signatures match
 This demonstrates an independent executable oracle strategy for the retained
 corpus.
 
-It does **not** yet establish:
+At that initial 45-case checkpoint, this evidence did **not** by itself
+establish:
 
 - completion of the required semantic/degeneracy matrix;
 - all operation-specific algebraic and invariance laws;
@@ -958,34 +1278,73 @@ It does **not** yet establish:
   difference;
 - authorization to refactor production into a generalized overlay engine.
 
-## 12. Current disposition
+## 12. Final research disposition
 
-| Operation | Consumer status | Semantic status | Implementation status |
+| Operation | Consumer status | Semantic / technical evidence | Research disposition |
 |---|---|---|---|
-| Union | consumer-backed, public | ADR-0023 accepted | production |
-| Intersection | research candidate | regularized model plausible | blocked |
-| Difference | research candidate | regularized model plausible | blocked |
-| Symmetric difference | research candidate | regularized model plausible | blocked |
+| Union | consumer-backed and already public | accepted by ADR-0023 | retain existing production operation |
+| Intersection | no demonstrated construction consumer | regularized semantics and implementation path qualified | **defer** |
+| Difference | no demonstrated generic polygon-difference consumer | regularized semantics and implementation path qualified | **defer** |
+| Symmetric difference | no demonstrated construction consumer | regularized semantics and implementation path qualified | **defer** |
 
-The production architecture provides evidence that a common internal exact
-overlay core may be practical.
+The three additional Boolean operations are technically credible candidates:
+the research work qualifies their regularized semantics, common exact-overlay
+architecture, degeneracy behavior, algebraic properties, ownership model,
+numerical/materialization behavior and independent oracle agreement.
 
-That architectural convenience is not evidence for public API promotion.
+That technical qualification is not sufficient reason to expand the public
+API.
 
-## 13. Open questions
+The explicit Issue #49 dispositions are therefore:
+
+- intersection: **defer**;
+- difference: **defer**;
+- symmetric difference: **defer**.
+
+None is rejected as mathematically or architecturally unsuitable.
+
+None is promoted to a design gate now because the consumer audit has not
+established a concrete reusable construction requirement for any of the three.
+
+A future candidate may be reconsidered when concrete downstream consumer
+evidence appears. Promotion would then require a separate design/API gate that
+decides at least:
+
+- the public operation spelling;
+- the public result type;
+- checked failure/status spelling;
+- relationship to the existing polygon-union API;
+- whether shared production internals should be generalized or remain
+  operation-specific at the orchestration layer.
+
+The research-only generalized P1 probe remains evidence, not a production
+Boolean-overlay API. No production implementation or public API expansion is
+authorized by this research result.
+
+Accordingly, Issue #49 does not itself authorize implementation promotion.
+Any future production implementation or public API expansion for intersection,
+difference or symmetric difference requires the subsequent design gate.
+
+## 13. Deferred follow-up questions
+
+Issue #49 has answered the research questions required for the current
+disposition.
+
+The remaining questions are future triggers or design questions rather than
+unfinished Issue #49 research:
 
 1. Is there a concrete downstream workflow requiring constructed polygon
    intersection?
 2. Is there a concrete downstream workflow requiring polygon-region
    difference?
 3. Is there a credible consumer requirement for symmetric difference?
-4. Should every retained operation use regularized polygon-only semantics?
-5. Which union production stages are actually operation-neutral?
-6. Are union assumptions hidden in tracing, component reconstruction,
-   canonicalization or materialization validation?
-7. Can one internal result representation safely serve all operations?
-8. What operation-specific exact/materialization counterexamples exist?
-9. What differential corpus is sufficient to test the semantic matrix?
+4. If one of the deferred candidates is later promoted, what public API and
+   result type should expose the already-qualified internal regularized
+   polygon-set representation?
+
+The first three questions determine whether a deferred operation should be
+reopened. The fourth belongs to the subsequent design/API gate required before
+any implementation or public API expansion.
 
 ## 14. Research gates
 
@@ -994,14 +1353,14 @@ Issue #49 is complete only when:
 - [x] intersection consumer evidence is classified;
 - [x] difference consumer evidence is classified;
 - [x] symmetric-difference consumer evidence is classified;
-- [ ] regularized versus non-regularized semantics are decided;
-- [ ] the semantic/degeneracy matrix is independently checked;
+- [x] regularized versus non-regularized semantics are decided;
+- [x] the semantic/degeneracy matrix is independently checked;
 - [x] production union-core reuse boundaries are audited directly;
-- [ ] operation-specific algebraic and invariance properties are defined;
-- [ ] result ownership and multiplicity implications are evaluated;
-- [ ] numerical/materialization/failure behavior is checked against ADR-0023;
+- [x] operation-specific algebraic and invariance properties are defined;
+- [x] result ownership and multiplicity implications are evaluated;
+- [x] numerical/materialization/failure behavior is checked against ADR-0023;
 - [x] an independent oracle strategy is demonstrated;
-- [ ] every candidate receives an explicit disposition:
+- [x] every candidate receives an explicit disposition:
       promote to design gate, defer, or reject;
-- [ ] no implementation or public API expansion occurs without a subsequent
+- [x] no implementation or public API expansion occurs without a subsequent
       design gate.

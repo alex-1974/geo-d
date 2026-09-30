@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** v2 audit complete; post-v2 A1 vector, A2 line, and polygon-union surfaces documented
+**Status:** v2 audit complete; post-v2 A1 vector, A2 line, polygon-union, and polygon-relationship surfaces documented
 **Baseline:** DDox output generated from v2 main commit `3b99a048882571a4fd562e305dfb58aba86144ad`
 **v2 public DDox symbol pages:** 103
 
@@ -29,16 +29,20 @@ families without rewriting the frozen v2.0.0 API record:
   `lineIntersectionKind`, and `tryLineIntersectionPoint`;
 - polygon union adds eight pages:
   `PolygonUnionStatus`, `PolygonUnionResult`, five documented result
-  members, and `polygonUnion`.
+  members, and `polygonUnion`;
+- polygon relationship adds seven pages:
+  `PolygonRelationship`, `PolygonRelationshipStatus`,
+  `PolygonRelationshipResult`, its three documented result members, and
+  `classifyPolygonRelationship`.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 48 |
+| Existing rendered examples | 49 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 76 |
-| **Total public symbol pages** | **124** |
+| Deliberately family-covered declarations | 82 |
+| **Total public symbol pages** | **131** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -288,6 +292,18 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Polygon2View.holeCount` | **family** | PolygonView |
 | `Polygon2View.hole` | **family** | PolygonView |
 
+## `geo.polygon_relationship`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `PolygonRelationship` | **family** | classifyPolygonRelationship |
+| `PolygonRelationshipStatus` | **family** | classifyPolygonRelationship |
+| `PolygonRelationshipResult` | **family** | classifyPolygonRelationship |
+| `PolygonRelationshipResult.status` | **family** | classifyPolygonRelationship |
+| `PolygonRelationshipResult.succeeded` | **family** | classifyPolygonRelationship |
+| `PolygonRelationshipResult.relationship` | **family** | classifyPolygonRelationship |
+| `classifyPolygonRelationship` | **existing** | polygon-relationship rendered Example |
+
 ## `geo.polygon_union`
 
 | Public declaration | Classification | Coverage |
@@ -403,7 +419,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-124 public symbol pages: 48 with rendered examples, 76 family-covered, and
+131 public symbol pages: 49 with rendered examples, 82 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

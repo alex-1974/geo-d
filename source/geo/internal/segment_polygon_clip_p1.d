@@ -1,0 +1,1085 @@
+module geo.internal.segment_polygon_clip_p1;
+
+import core.exception :
+    onOutOfMemoryError;
+
+import geo.intersection :
+    SegmentContactKind,
+    segmentContactKind,
+    trySegmentIntersectionOverlap,
+    trySegmentTouchPoint;
+
+import geo.internal.exact_coordinate :
+    roundsToFiniteBinary64;
+
+import geo.internal.exact_coordinate_round :
+    roundExactCoordinateBinary64;
+
+import geo.internal.intersection_exact :
+    ExactProperIntersection,
+    tryProperIntersectionExact;
+
+import geo.internal.polygon_union_exact :
+    ExactOverlayPoint,
+    appendSegmentPairNodingEvents,
+    compareExactOverlayPointsAlongSegment,
+    exactOverlayPoint,
+    exactOverlayPointsEqual,
+    seedExactEdgeEvents,
+    sortUniqueExactEdgeEvents;
+
+import geo.internal.polygon_union_input :
+    exactRingOrientationSign;
+
+import geo.internal.segment_polygon_clip_result :
+    SegmentPolygonClipOwnedResultInternal,
+    takeSegmentPolygonClipOwnedResultInternal;
+
+import geo.orientation :
+    Orientation2,
+    orientation;
+
+import geo.point :
+    Point2;
+
+import geo.point_in_polygon :
+    PointPolygonLocation,
+    tryClassifyPointInPolygon;
+
+import geo.polygon_view :
+    Polygon2View;
+
+import geo.segment :
+    Segment2;
+
+
+/*
+ * INTERNAL IMPLEMENTATION MODULE.
+ *
+ * Correctness-first exact segment/polygon clipping kernel for ADR-0024.
+ *
+ * The kernel:
+ *
+ * 1. collects every exact query/boundary event;
+ * 2. sorts/deduplicates events in query traversal order;
+ * 3. marks positive-length boundary-overlap intervals;
+ * 4. classifies every remaining open interval from exact local polygon
+ *    topology at its starting event;
+ * 5. selects and merges all interior/boundary intervals;
+ * 6. materializes maximal retained components only after exact topology is
+ *    complete;
+ * 7. rejects binary64 construction unless strict source-axis endpoint order is
+ *    preserved.
+ */
+
+
+package(geo)
+enum SegmentPolygonClipInternalStatus : ubyte
+{
+    success,
+    unrepresentableConstruction,
+}
+
+
+private enum IntervalLocation : ubyte
+{
+    unknown,
+    exterior,
+    interior,
+}
+
+
+private enum bool isSegmentPolygonClipScalar(T) =
+    is(T == int) ||
+    is(T == long) ||
+    is(T == float) ||
+    is(T == double);
+
+
+/*
+ * Computes total represented polygon boundary-edge count with resource-size
+ * overflow mapped to the normal allocation failure path.
+ */
+private size_t polygonBoundaryEdgeCount(T)(
+    scope Polygon2View!T polygon
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    size_t result;
+
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const size_t ringEdges =
+            polygon[ringIndex].segmentCount;
+
+        if (
+            ringEdges >
+            size_t.max - result
+        )
+        {
+            onOutOfMemoryError();
+        }
+
+        result += ringEdges;
+    }
+
+    return result;
+}
+
+
+/*
+ * Finds one exact event in an already sorted unique query event list.
+ */
+private size_t findExactEventIndex(T)(
+    Segment2!T query,
+    scope const(ExactOverlayPoint)[] events,
+    ref const ExactOverlayPoint target
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    size_t lower = 0;
+    size_t upper = events.length;
+
+    while (lower < upper)
+    {
+        const size_t middle =
+            lower + (upper - lower) / 2;
+
+        const int comparison =
+            compareExactOverlayPointsAlongSegment(
+                query,
+                events[middle],
+                target
+            );
+
+        if (comparison < 0)
+            lower = middle + 1;
+        else
+            upper = middle;
+    }
+
+    if (
+        lower < events.length &&
+        exactOverlayPointsEqual(
+            events[lower],
+            target
+        )
+    )
+    {
+        return lower;
+    }
+
+    return size_t.max;
+}
+
+
+/*
+ * Records one exact non-boundary location for the query ray after an event.
+ * Multiple exact witnesses for the same event must agree.
+ */
+private void setAfterLocation(
+    ref IntervalLocation current,
+    IntervalLocation value
+)
+    pure nothrow @safe @nogc
+{
+    assert(
+        value == IntervalLocation.exterior ||
+        value == IntervalLocation.interior
+    );
+
+    if (current == IntervalLocation.unknown)
+    {
+        current = value;
+        return;
+    }
+
+    assert(current == value);
+}
+
+
+/*
+ * Classifies the represented query ray leaving a strict edge-interior contact.
+ */
+private IntervalLocation edgeInteriorRayLocation(T)(
+    Segment2!T edge,
+    Point2!T target,
+    bool interiorOnSourceLeft
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    const Orientation2 side =
+        orientation(
+            edge.a,
+            edge.b,
+            target
+        );
+
+    assert(side != Orientation2.collinear);
+
+    const bool inside =
+        interiorOnSourceLeft
+            ? side == Orientation2.left
+            : side == Orientation2.right;
+
+    return
+        inside
+            ? IntervalLocation.interior
+            : IntervalLocation.exterior;
+}
+
+
+/*
+ * Classifies the query ray leaving one represented polygon vertex.
+ *
+ * unknown means the ray follows an incident polygon edge over positive
+ * length. Such an interval is classified independently by the exact overlap
+ * range machinery.
+ */
+private IntervalLocation vertexRayLocation(T)(
+    Point2!T previous,
+    Point2!T vertex,
+    Point2!T next,
+    Point2!T target,
+    bool interiorOnSourceLeft
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    alias S = Segment2!T;
+
+    assert(vertex != target);
+
+    const S ray =
+        S(
+            vertex,
+            target
+        );
+
+    if (
+        segmentContactKind(
+            ray,
+            S(vertex, previous)
+        ) == SegmentContactKind.overlap ||
+        segmentContactKind(
+            ray,
+            S(vertex, next)
+        ) == SegmentContactKind.overlap
+    )
+    {
+        return IntervalLocation.unknown;
+    }
+
+    const Orientation2 previousSide =
+        orientation(
+            previous,
+            vertex,
+            target
+        );
+
+    const Orientation2 nextSide =
+        orientation(
+            vertex,
+            next,
+            target
+        );
+
+    const bool insidePreviousHalfPlane =
+        interiorOnSourceLeft
+            ? previousSide == Orientation2.left
+            : previousSide == Orientation2.right;
+
+    const bool insideNextHalfPlane =
+        interiorOnSourceLeft
+            ? nextSide == Orientation2.left
+            : nextSide == Orientation2.right;
+
+    const Orientation2 turn =
+        orientation(
+            previous,
+            vertex,
+            next
+        );
+
+    bool inside;
+
+    if (turn == Orientation2.collinear)
+    {
+        inside =
+            insidePreviousHalfPlane ||
+            insideNextHalfPlane;
+    }
+    else
+    {
+        const bool convexForPolygonInterior =
+            interiorOnSourceLeft
+                ? turn == Orientation2.left
+                : turn == Orientation2.right;
+
+        if (convexForPolygonInterior)
+        {
+            inside =
+                insidePreviousHalfPlane &&
+                insideNextHalfPlane;
+        }
+        else
+        {
+            inside =
+                insidePreviousHalfPlane ||
+                insideNextHalfPlane;
+        }
+    }
+
+    return
+        inside
+            ? IntervalLocation.interior
+            : IntervalLocation.exterior;
+}
+
+
+/*
+ * Correctly materializes one exact event into binary64.
+ */
+private bool tryMaterializeExactPoint(
+    ref const ExactOverlayPoint exact,
+    out Point2!double point
+)
+    pure nothrow @safe @nogc
+{
+    point = Point2!double.init;
+
+    if (
+        !roundsToFiniteBinary64(
+            exact.xNumerator,
+            exact.denominator
+        ) ||
+        !roundsToFiniteBinary64(
+            exact.yNumerator,
+            exact.denominator
+        )
+    )
+    {
+        return false;
+    }
+
+    point =
+        Point2!double(
+            roundExactCoordinateBinary64(
+                exact.xNumerator,
+                exact.denominator
+            ),
+            roundExactCoordinateBinary64(
+                exact.yNumerator,
+                exact.denominator
+            )
+        );
+
+    return point.isFinite;
+}
+
+
+/*
+ * True exactly when current lies strictly after previous in source query
+ * traversal order on the source segment's authoritative monotone axis.
+ */
+private bool roundedPointStrictlyAfter(T)(
+    Segment2!T query,
+    Point2!double previous,
+    Point2!double current
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    assert(query.a != query.b);
+
+    if (query.a.x != query.b.x)
+    {
+        return
+            query.a.x < query.b.x
+                ? previous.x < current.x
+                : previous.x > current.x;
+    }
+
+    return
+        query.a.y < query.b.y
+            ? previous.y < current.y
+            : previous.y > current.y;
+}
+
+
+/*
+ * Production P1 clipping kernel.
+ *
+ * Preconditions:
+ *
+ * - query is finite;
+ * - polygon satisfies validatePolygon(polygon).valid.
+ */
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1Internal(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    alias S = Segment2!T;
+
+    owned =
+        SegmentPolygonClipOwnedResultInternal.init;
+
+    assert(query.isFinite);
+
+    /*
+     * ADR-0024 regularizes away every zero-dimensional result.
+     */
+    if (query.a == query.b)
+    {
+        Segment2!double[] emptyComponents;
+
+        owned =
+            takeSegmentPolygonClipOwnedResultInternal(
+                emptyComponents
+            );
+
+        return
+            SegmentPolygonClipInternalStatus.success;
+    }
+
+
+    const size_t edgeCount =
+        polygonBoundaryEdgeCount(
+            polygon
+        );
+
+    if (edgeCount == 0)
+    {
+        Segment2!double[] emptyComponents;
+
+        owned =
+            takeSegmentPolygonClipOwnedResultInternal(
+                emptyComponents
+            );
+
+        return
+            SegmentPolygonClipInternalStatus.success;
+    }
+
+
+    if (
+        edgeCount >
+        (size_t.max - 2) / 2
+    )
+    {
+        onOutOfMemoryError();
+    }
+
+    const size_t eventCapacity =
+        edgeCount * 2 + 2;
+
+    auto events =
+        new ExactOverlayPoint[
+            eventCapacity
+        ];
+
+    size_t eventCount;
+
+    const bool seeded =
+        seedExactEdgeEvents(
+            query,
+            events[],
+            eventCount
+        );
+
+    assert(seeded);
+
+
+    /*
+     * First boundary pass: collect every exact query/boundary breakpoint.
+     */
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const auto ring =
+            polygon[ringIndex];
+
+        foreach (edgeIndex; 0 .. ring.segmentCount)
+        {
+            ExactOverlayPoint[2] ignoredEdgeEvents;
+            size_t ignoredCount;
+
+            const bool appended =
+                appendSegmentPairNodingEvents(
+                    query,
+                    ring.segment(edgeIndex),
+                    events[],
+                    eventCount,
+                    ignoredEdgeEvents[],
+                    ignoredCount
+                );
+
+            /*
+             * 2n + 2 is the proved hard query-event capacity bound.
+             */
+            assert(appended);
+        }
+    }
+
+    eventCount =
+        sortUniqueExactEdgeEvents(
+            query,
+            events[0 .. eventCount]
+        );
+
+    assert(eventCount >= 2);
+    assert(eventCount <= eventCapacity);
+
+    events.length =
+        eventCount;
+
+
+    /*
+     * Per-event overlap-range counters and outgoing non-boundary locations.
+     *
+     * An overlap interval [i,j) increments starts[i] and ends[j]. A prefix
+     * count then marks every positive-length query interval lying on polygon
+     * boundary.
+     */
+    auto boundaryStarts =
+        new size_t[eventCount];
+
+    auto boundaryEnds =
+        new size_t[eventCount];
+
+    auto afterLocation =
+        new IntervalLocation[
+            eventCount
+        ];
+
+
+    /*
+     * Second boundary pass:
+     *
+     * - record overlap ranges;
+     * - classify proper edge crossings and strict edge-interior endpoint
+     *   contacts on their outgoing query ray.
+     */
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const auto ring =
+            polygon[ringIndex];
+
+        const int orientationSign =
+            exactRingOrientationSign(
+                ring
+            );
+
+        assert(
+            ring.empty ||
+            orientationSign != 0
+        );
+
+        const bool counterClockwise =
+            orientationSign > 0;
+
+        const bool isHole =
+            ringIndex != 0;
+
+        const bool interiorOnSourceLeft =
+            counterClockwise !=
+            isHole;
+
+
+        foreach (edgeIndex; 0 .. ring.segmentCount)
+        {
+            const S edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    query,
+                    edge
+                );
+
+            final switch (contact)
+            {
+                case SegmentContactKind.none:
+                    break;
+
+                case SegmentContactKind.properCrossing:
+                {
+                    ExactProperIntersection crossing;
+
+                    const bool found =
+                        tryProperIntersectionExact(
+                            query,
+                            edge,
+                            crossing
+                        );
+
+                    assert(found);
+
+                    const auto event =
+                        exactOverlayPoint(
+                            crossing
+                        );
+
+                    const size_t index =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            event
+                        );
+
+                    assert(index != size_t.max);
+                    assert(index + 1 < eventCount);
+
+                    setAfterLocation(
+                        afterLocation[index],
+                        edgeInteriorRayLocation(
+                            edge,
+                            query.b,
+                            interiorOnSourceLeft
+                        )
+                    );
+
+                    break;
+                }
+
+                case SegmentContactKind.touch:
+                {
+                    Point2!T point;
+
+                    const bool found =
+                        trySegmentTouchPoint(
+                            query,
+                            edge,
+                            point
+                        );
+
+                    assert(found);
+
+                    /*
+                     * Polygon-vertex events need both incident edges and are
+                     * classified in the vertex pass below.
+                     */
+                    if (
+                        point == edge.a ||
+                        point == edge.b ||
+                        point == query.b
+                    )
+                    {
+                        break;
+                    }
+
+                    const auto event =
+                        exactOverlayPoint(
+                            point
+                        );
+
+                    const size_t index =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            event
+                        );
+
+                    assert(index != size_t.max);
+                    assert(index + 1 < eventCount);
+
+                    setAfterLocation(
+                        afterLocation[index],
+                        edgeInteriorRayLocation(
+                            edge,
+                            query.b,
+                            interiorOnSourceLeft
+                        )
+                    );
+
+                    break;
+                }
+
+                case SegmentContactKind.overlap:
+                {
+                    S overlap;
+
+                    const bool found =
+                        trySegmentIntersectionOverlap(
+                            query,
+                            edge,
+                            overlap
+                        );
+
+                    assert(found);
+                    assert(overlap.a != overlap.b);
+
+                    const auto first =
+                        exactOverlayPoint(
+                            overlap.a
+                        );
+
+                    const auto second =
+                        exactOverlayPoint(
+                            overlap.b
+                        );
+
+                    const size_t firstIndex =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            first
+                        );
+
+                    const size_t secondIndex =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            second
+                        );
+
+                    assert(firstIndex != size_t.max);
+                    assert(secondIndex != size_t.max);
+                    assert(firstIndex != secondIndex);
+
+                    const size_t lower =
+                        firstIndex < secondIndex
+                            ? firstIndex
+                            : secondIndex;
+
+                    const size_t upper =
+                        firstIndex < secondIndex
+                            ? secondIndex
+                            : firstIndex;
+
+                    if (
+                        boundaryStarts[lower] ==
+                        size_t.max ||
+                        boundaryEnds[upper] ==
+                        size_t.max
+                    )
+                    {
+                        onOutOfMemoryError();
+                    }
+
+                    ++boundaryStarts[lower];
+                    ++boundaryEnds[upper];
+
+                    break;
+                }
+            }
+        }
+
+
+        /*
+         * Third local-topology pass for this ring:
+         *
+         * every represented polygon vertex lying on the query determines the
+         * outgoing non-boundary ray location unless that ray follows boundary.
+         */
+        if (ring.length != 0)
+        {
+            foreach (vertexIndex; 0 .. ring.length)
+            {
+                const Point2!T vertex =
+                    ring[vertexIndex];
+
+                if (
+                    segmentContactKind(
+                        query,
+                        S(vertex, vertex)
+                    ) == SegmentContactKind.none
+                )
+                {
+                    continue;
+                }
+
+                if (vertex == query.b)
+                    continue;
+
+                const size_t previousIndex =
+                    vertexIndex == 0
+                        ? ring.length - 1
+                        : vertexIndex - 1;
+
+                const size_t nextIndex =
+                    vertexIndex + 1 == ring.length
+                        ? 0
+                        : vertexIndex + 1;
+
+                const IntervalLocation location =
+                    vertexRayLocation(
+                        ring[previousIndex],
+                        vertex,
+                        ring[nextIndex],
+                        query.b,
+                        interiorOnSourceLeft
+                    );
+
+                if (
+                    location ==
+                    IntervalLocation.unknown
+                )
+                {
+                    continue;
+                }
+
+                const auto event =
+                    exactOverlayPoint(
+                        vertex
+                    );
+
+                const size_t index =
+                    findExactEventIndex(
+                        query,
+                        events[],
+                        event
+                    );
+
+                assert(index != size_t.max);
+                assert(index + 1 < eventCount);
+
+                setAfterLocation(
+                    afterLocation[index],
+                    location
+                );
+            }
+        }
+    }
+
+
+    auto retained =
+        new bool[
+            eventCount - 1
+        ];
+
+    size_t activeBoundaryOverlaps = 0;
+
+    foreach (intervalIndex; 0 .. retained.length)
+    {
+        assert(
+            activeBoundaryOverlaps >=
+            boundaryEnds[intervalIndex]
+        );
+
+        activeBoundaryOverlaps -=
+            boundaryEnds[intervalIndex];
+
+        if (
+            boundaryStarts[intervalIndex] >
+            size_t.max -
+            activeBoundaryOverlaps
+        )
+        {
+            onOutOfMemoryError();
+        }
+
+        activeBoundaryOverlaps +=
+            boundaryStarts[intervalIndex];
+
+        if (activeBoundaryOverlaps != 0)
+        {
+            retained[intervalIndex] = true;
+            continue;
+        }
+
+        if (
+            afterLocation[intervalIndex] ==
+            IntervalLocation.unknown
+        )
+        {
+            /*
+             * The first non-boundary interval may begin at a query endpoint
+             * that is not on polygon boundary.
+             *
+             * Every later event is a boundary event and must have received a
+             * local outgoing classification above.
+             */
+            assert(intervalIndex == 0);
+
+            PointPolygonLocation location;
+
+            const bool classified =
+                tryClassifyPointInPolygon(
+                    polygon,
+                    query.a,
+                    location
+                );
+
+            assert(classified);
+
+            final switch (location)
+            {
+                case PointPolygonLocation.outside:
+                    afterLocation[0] =
+                        IntervalLocation.exterior;
+                    break;
+
+                case PointPolygonLocation.inside:
+                    afterLocation[0] =
+                        IntervalLocation.interior;
+                    break;
+
+                case PointPolygonLocation.boundary:
+                    /*
+                     * A boundary start with a non-boundary outgoing interval
+                     * must have been classified by the strict-edge or vertex
+                     * pass.
+                     */
+                    assert(false);
+            }
+        }
+
+        retained[intervalIndex] =
+            afterLocation[intervalIndex] ==
+            IntervalLocation.interior;
+    }
+
+    assert(
+        activeBoundaryOverlaps >=
+        boundaryEnds[eventCount - 1]
+    );
+
+    activeBoundaryOverlaps -=
+        boundaryEnds[eventCount - 1];
+
+    assert(
+        boundaryStarts[eventCount - 1] == 0
+    );
+
+    assert(activeBoundaryOverlaps == 0);
+
+
+    size_t componentCount = 0;
+    bool inRetainedComponent = false;
+
+    foreach (keep; retained)
+    {
+        if (keep)
+        {
+            if (!inRetainedComponent)
+            {
+                if (componentCount == size_t.max)
+                    onOutOfMemoryError();
+
+                ++componentCount;
+                inRetainedComponent = true;
+            }
+        }
+        else
+        {
+            inRetainedComponent = false;
+        }
+    }
+
+
+    auto components =
+        new Segment2!double[
+            componentCount
+        ];
+
+    size_t componentIndex = 0;
+    size_t runStart = 0;
+    bool inRun = false;
+
+    Point2!double previousEnd;
+    bool havePreviousEnd = false;
+
+    foreach (intervalIndex; 0 .. retained.length + 1)
+    {
+        const bool keep =
+            intervalIndex < retained.length
+                ? retained[intervalIndex]
+                : false;
+
+        if (keep && !inRun)
+        {
+            runStart =
+                intervalIndex;
+
+            inRun = true;
+            continue;
+        }
+
+        if (keep || !inRun)
+            continue;
+
+        const size_t runEnd =
+            intervalIndex;
+
+        assert(runStart < runEnd);
+        assert(runEnd < eventCount);
+        assert(componentIndex < components.length);
+
+        Point2!double start;
+        Point2!double end;
+
+        if (
+            !tryMaterializeExactPoint(
+                events[runStart],
+                start
+            ) ||
+            !tryMaterializeExactPoint(
+                events[runEnd],
+                end
+            )
+        )
+        {
+            return
+                SegmentPolygonClipInternalStatus
+                    .unrepresentableConstruction;
+        }
+
+        if (
+            havePreviousEnd &&
+            !roundedPointStrictlyAfter(
+                query,
+                previousEnd,
+                start
+            )
+        )
+        {
+            return
+                SegmentPolygonClipInternalStatus
+                    .unrepresentableConstruction;
+        }
+
+        if (
+            !roundedPointStrictlyAfter(
+                query,
+                start,
+                end
+            )
+        )
+        {
+            return
+                SegmentPolygonClipInternalStatus
+                    .unrepresentableConstruction;
+        }
+
+        components[componentIndex++] =
+            Segment2!double(
+                start,
+                end
+            );
+
+        previousEnd = end;
+        havePreviousEnd = true;
+        inRun = false;
+    }
+
+    assert(componentIndex == componentCount);
+
+    owned =
+        takeSegmentPolygonClipOwnedResultInternal(
+            components
+        );
+
+    return
+        SegmentPolygonClipInternalStatus.success;
+}

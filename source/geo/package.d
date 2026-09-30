@@ -98,6 +98,10 @@ public import geo.polygon_relationship :
     PolygonRelationshipStatus,
     classifyPolygonRelationship;
 
+public import geo.segment_polygon_relationship :
+    SegmentPolygonRelationship,
+    classifySegmentPolygonRelationship;
+
 public import geo.polygon_union :
     PolygonUnionResult,
     PolygonUnionStatus,

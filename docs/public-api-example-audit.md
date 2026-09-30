@@ -1,6 +1,6 @@
 # Public API Example Audit
 
-**Status:** v2 audit complete; post-v2 A1 vector, A2 line, polygon-union, and polygon-relationship surfaces documented
+**Status:** v2 audit complete; post-v2 A1 vector, A2 line, polygon-union, polygon-relationship, and segment-polygon-relationship surfaces documented
 **Baseline:** DDox output generated from v2 main commit `3b99a048882571a4fd562e305dfb58aba86144ad`
 **v2 public DDox symbol pages:** 103
 
@@ -34,15 +34,18 @@ families without rewriting the frozen v2.0.0 API record:
   `PolygonRelationship`, `PolygonRelationshipStatus`,
   `PolygonRelationshipResult`, its three documented result members, and
   `classifyPolygonRelationship`.
+- segment/polygon relationship adds six pages:
+  `SegmentPolygonRelationship`, its four documented fact members, and
+  `classifySegmentPolygonRelationship`.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 49 |
+| Existing rendered examples | 50 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 82 |
-| **Total public symbol pages** | **131** |
+| Deliberately family-covered declarations | 87 |
+| **Total public symbol pages** | **137** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -346,6 +349,17 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Segment2.b` | **family** | Segment2 |
 | `Segment2.isFinite` | **family** | Segment2 |
 
+## `geo.segment_polygon_relationship`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `SegmentPolygonRelationship` | **family** | classifySegmentPolygonRelationship |
+| `SegmentPolygonRelationship.hasExterior` | **family** | classifySegmentPolygonRelationship |
+| `SegmentPolygonRelationship.hasBoundary` | **family** | classifySegmentPolygonRelationship |
+| `SegmentPolygonRelationship.hasInterior` | **family** | classifySegmentPolygonRelationship |
+| `SegmentPolygonRelationship.hasBoundaryOverlap` | **family** | classifySegmentPolygonRelationship |
+| `classifySegmentPolygonRelationship` | **existing** | segment/polygon relationship rendered Example |
+
 ## `geo.simplification`
 
 | Public declaration | Classification | Coverage |
@@ -419,7 +433,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-131 public symbol pages: 49 with rendered examples, 82 family-covered, and
+137 public symbol pages: 50 with rendered examples, 87 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

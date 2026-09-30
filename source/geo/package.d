@@ -21,6 +21,7 @@
  * - signed and polygon area;
  * - point-in-polygon classification;
  * - ring and polygon topology validation;
+ * - reduced exact polygon-to-polygon relationship classification;
  * - regularized polygon-union construction with immutable owning results;
  * - Douglas-Peucker polyline simplification.
  *
@@ -90,6 +91,12 @@ alias PolygonView =
 public import geo.point_in_polygon :
     PointPolygonLocation,
     tryClassifyPointInPolygon;
+
+public import geo.polygon_relationship :
+    PolygonRelationship,
+    PolygonRelationshipResult,
+    PolygonRelationshipStatus,
+    classifyPolygonRelationship;
 
 public import geo.polygon_union :
     PolygonUnionResult,

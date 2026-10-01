@@ -67,6 +67,10 @@ jobs:
         shell: bash
         run: dub build --build=release --compiler="$DC" --force
 
+      - name: Check segment-polygon benchmark preflight and recording
+        shell: bash
+        run: python3 benchmarks/run_segment_polygon.py --compiler="$DC" --smoke
+
       - name: Build and verify public API documentation
         if: matrix.compiler == 'dmd-2.111.0'
         shell: bash

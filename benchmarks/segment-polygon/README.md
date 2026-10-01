@@ -139,3 +139,7 @@ domains before attributing a measured difference. No optimization, speedup,
 instruction-count verdict, or algorithmic-regression claim follows from adding
 this harness. #82 and parent qualification #52 remain open for controlled
 measurement and investigation of material costs/reference gaps.
+
+The first retained [cloud diagnostic](results/20261001-cloud/README.md) validates
+the harness on both baseline compilers and identifies allocation costs for
+follow-up. It does not close the performance qualification.

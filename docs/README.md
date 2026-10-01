@@ -7,6 +7,17 @@ The repository `README.md` provides the public introduction and usage
 overview. `ROADMAP.md` tracks release preparation and possible future work.
 This document describes the current technical model in more detail.
 
+Detailed research, experiments, compiler probes, measurements, rejected
+designs, and supporting evidence live in the separate research repository:
+
+~~~text
+https://github.com/alex-1974/geo-d-research
+~~~
+
+Research is evidence for production decisions. Accepted conclusions are
+promoted into `geo-d` through ADRs, architecture documentation, tests, and
+production code.
+
 ## Documentation map
 
 Architecture decisions are recorded under:

@@ -16,6 +16,7 @@ python3 benchmarks/segment-polygon/reference/run_native_comparison.py \
     --compiler=dmd --compiler=ldc2 --cpu="$cpu" --rounds=7 --target-ms=20 \
     --geos-header="$task_dir/headers/geos_c.h" --geos-library="$native_lib" \
     --notes="$notes" --output="$task_dir/record"
+python3 benchmarks/segment-polygon/reference/analyze_native_record.py "$task_dir/record"
 archive="$task_dir/geo-native-xps.tar.gz"
 # Exclude only regenerable executables and objects; all provenance/raw data stays.
 tar -czf "$archive" --exclude='*/native' --exclude='*/native-debug' \

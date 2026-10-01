@@ -80,6 +80,7 @@ jobs:
           build/native-geos-venv/bin/python benchmarks/segment-polygon/reference/prepare_geos_wheel.py --output=build/native-geos-headers
           GEOS_NATIVE_LIB=$(python3 -c 'import json; print(json.load(open("build/native-geos-headers/installation.json"))["library"])')
           python3 benchmarks/segment-polygon/reference/run_native_comparison.py --compiler="$DC" --geos-header=build/native-geos-headers/geos_c.h --geos-library="$GEOS_NATIVE_LIB" --smoke --output=build/native-geos-smoke
+          python3 benchmarks/segment-polygon/reference/analyze_native_record.py build/native-geos-smoke
 
       - name: Build and verify public API documentation
         if: matrix.compiler == 'dmd-2.111.0'

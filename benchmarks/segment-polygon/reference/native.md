@@ -75,6 +75,8 @@ bash benchmarks/segment-polygon/reference/run_xps_native_comparison.sh 0 "record
 ```
 
 It removes nothing and prints the record, archive path and archive checksum.
+Before archiving it independently verifies child completion, paired medians,
+run order and raw sample integrity with `analyze_native_record.py`.
 
 The runner performs native debug/release preflight, D debug/release preflight,
 and equality of fresh D exports to the retained 92-case corpus before measurement.
@@ -105,6 +107,15 @@ power/background attestations; the runner records settings but imposes no fixed
 frequency. Retain the full output directory when transferring results.
 
 ## Qualification still open
+
+[Retained shared-host diagnostics](results/20261001-cloud-native/README.md)
+contain eight clean-source runs, 348 paired records, observed gaps and the first
+material-work investigation. They do not establish controlled XPS performance.
+To independently verify the retained dataset:
+
+```sh
+python3 benchmarks/segment-polygon/reference/analyze_native_record.py benchmarks/segment-polygon/reference/results/20261001-cloud-native
+```
 
 Investigate material measured gaps case by case, including compiler differences,
 exact-arithmetic work, event/component scaling and allocation policy. A weaker

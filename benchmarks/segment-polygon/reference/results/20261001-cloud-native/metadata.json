@@ -1,0 +1,248 @@
+{
+  "status": "passed",
+  "purpose": "comparison",
+  "started_utc": "2026-10-01T20:54:21.415661+00:00",
+  "source_commit": "10511d707968d2dddb74f3fa374051a045268f2e",
+  "dirty": false,
+  "untracked_relevant_files": [],
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "affinity": [
+    0
+  ],
+  "notes": "Shared container; no power/background/fixed-frequency controls; diagnostic only; GEOS wheel build flags not attested.",
+  "commands": [
+    [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen",
+      "-I/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-pinned-headers",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/geos_native_bench.cpp",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+      "-Wl,--disable-new-dtags,-rpath,/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs",
+      "-g",
+      "-o",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native-debug"
+    ],
+    [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen",
+      "-I/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-pinned-headers",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/geos_native_bench.cpp",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+      "-Wl,--disable-new-dtags,-rpath,/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs",
+      "-O3",
+      "-o",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native-debug",
+      "--check"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native",
+      "--check"
+    ],
+    [
+      "ldd",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--check",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-0-check"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-0-check/preflight",
+      "--export-corpus"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-0-check/benchmark",
+      "--export-corpus"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=3",
+      "--target-ms=5",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-0-block-0-d"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native",
+      "--rounds=3",
+      "--target-ms=5"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native",
+      "--rounds=3",
+      "--target-ms=5"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=3",
+      "--target-ms=5",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-0-block-1-d"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--check",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-1-check"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-1-check/preflight",
+      "--export-corpus"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-1-check/benchmark",
+      "--export-corpus"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=3",
+      "--target-ms=5",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-1-block-0-d"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native",
+      "--rounds=3",
+      "--target-ms=5"
+    ],
+    [
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/native",
+      "--rounds=3",
+      "--target-ms=5"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-frozen-tree/benchmarks/run_segment_polygon.py",
+      "--compiler=/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=3",
+      "--target-ms=5",
+      "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-geos-cloud-frozen/compiler-1-block-1-d"
+    ]
+  ],
+  "runs": [
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "implementation": "d",
+      "record": "compiler-0-block-0-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "implementation": "native",
+      "record": "compiler-0-block-0-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "implementation": "native",
+      "record": "compiler-0-block-1-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "implementation": "d",
+      "record": "compiler-0-block-1-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "implementation": "d",
+      "record": "compiler-1-block-0-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "implementation": "native",
+      "record": "compiler-1-block-0-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "implementation": "native",
+      "record": "compiler-1-block-1-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "implementation": "d",
+      "record": "compiler-1-block-1-d",
+      "status": "passed"
+    }
+  ],
+  "cxx_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "cxx_flags": [
+    "-std=c++17",
+    "-O3"
+  ],
+  "geos_header": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-pinned-headers/geos_c.h",
+  "geos_header_sha256": "d10ba9dee4e16c39a18417c2ae2dd8e02febf1959bb26d5c20488121d57b8af6",
+  "geos_library": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+  "geos_library_sha256": "91589f52067072ab661524cf181caf856097fc901c1ecc4a98585d03f5452c02",
+  "runner_sha256": "1fe210205b1bac51e36d338c29791a1648057eecf576c4511f21851ad8e7aadb",
+  "cpp_sha256": "7541104352a858e2751ee1b3ab8666de951bb594c5b5619934a493038d6664b4",
+  "corpus_sha256": "9ef4d07386d10440bcbdf5b79ca4a5dd451ecdc3fec34392679de93d353feba3",
+  "assessment_sha256": "d4ce92a3abe6c6cfebddd566dc989cac1a6b385e942035269c91a7d778ca6184",
+  "limitations": [
+    "GEOS has weaker numerical/construction semantics; admitted subset only.",
+    "No frequency control imposed; shared-host measurements are diagnostic only.",
+    "C++ releases per call; D automatic GC remains enabled with collection outside rounds.",
+    "Native allocation counts/bytes are not instrumented; NA is not zero."
+  ],
+  "frequency_controls": {
+    "0": {
+      "scaling_governor": null,
+      "scaling_min_freq": null,
+      "scaling_max_freq": null
+    }
+  },
+  "geos_export_header_sha256": "7a92f7925a89128de5e18def3d9bdb36f8c123bdfb0c3fba1c42fd78bd9a9f0d",
+  "native_corpus_sha256": "22e606131a52c5ea659bad154d8df73ffd924ac0cb4449650ebff4b86aca908e",
+  "native_linked_libraries": "\tlinux-vdso.so.1 (0x00007ff6eaf85000)\n\tlibgeos_c-abcdd5fa.so.1.19.2 => /workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2 (0x00007ff6eaeea000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007ff6eac63000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007ff6eac35000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007ff6eaa23000)\n\tlibgeos-3ef06f11.so.3.13.1 => /workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos-3ef06f11.so.3.13.1 (0x00007ff6ea600000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007ff6ea515000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007ff6eaf87000)\n",
+  "linked_library_sha256": {
+    "/lib/x86_64-linux-gnu/libc.so.6": "511f825ee075610ac9c0f7f91e2c13de2000d0f7b859f6461137e809a0a009d0",
+    "/lib/x86_64-linux-gnu/libgcc_s.so.1": "d93224d2b0dab4247598be683adca02f5cf00586f99c187579cd7e92058fb7cb",
+    "/lib/x86_64-linux-gnu/libm.so.6": "f06f2ce1f1833df5f41cf13b6447ff07bea993ad9b27297d3428c2f70ab3f0e7",
+    "/lib/x86_64-linux-gnu/libstdc++.so.6": "1fd75fe70354a416d75aef22bcae68c47bd25d20e2d0568c30b1a9838cf62f11",
+    "/lib64/ld-linux-x86-64.so.2": "6222a16be7f2d458d6870efe6e715fc0c8d45766fb79cf7dcc3125538d703e28",
+    "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos-3ef06f11.so.3.13.1": "59e0139d1ccea9a331b932c60b399974bafdff5c0e07b554c6a5df80edacf150",
+    "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2": "91589f52067072ab661524cf181caf856097fc901c1ecc4a98585d03f5452c02"
+  },
+  "finished_utc": "2026-10-01T20:56:28.260574+00:00"
+}

@@ -1,0 +1,12 @@
+{
+  "header": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/native-pinned-headers/geos_c.h",
+  "library": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-venv/lib/python3.12/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+  "shapely": "2.1.2",
+  "geos": "3.13.1",
+  "sources": {
+    "https://raw.githubusercontent.com/libgeos/geos/3.13.1/capi/geos_c.h.in": "8fff7e7f7ced2c73ba9b8e0bfd3d30340af060e7de30632b79aed56c0adf7322",
+    "https://raw.githubusercontent.com/libgeos/geos/3.13.1/include/geos/export.h": "7a92f7925a89128de5e18def3d9bdb36f8c123bdfb0c3fba1c42fd78bd9a9f0d"
+  },
+  "wheel_metadata": "Wheel-Version: 1.0\nGenerator: setuptools (80.9.0)\nRoot-Is-Purelib: false\nTag: cp312-cp312-manylinux_2_17_x86_64\nTag: cp312-cp312-manylinux2014_x86_64\n\n",
+  "library_build_flags": "not attested by this helper; wheel binary, not rebuilt here"
+}

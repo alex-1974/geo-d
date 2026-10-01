@@ -48,6 +48,10 @@ components, orients and sorts them by the query's nonconstant axis, and joins
 adjacent exactly equal endpoints. It neither repairs exact topology nor detects
 geo-d's construction-collapse failures. No epsilon or precision grid is supplied.
 Agreement of the admitted fixtures does not prove general contract equivalence.
+Degenerate queries are legal in geo-d but become native-invalid zero-length
+LineStrings here; their observed empty intersections match. A native driver
+must preflight this behavior explicitly rather than add a validity rejection
+that changes the admitted geo-d input domain.
 Shapely dispatches to native GEOS, but Python overhead is irrelevant to this
 untimed assessment and must not enter a future D-versus-C++ timing comparison.
 

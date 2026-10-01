@@ -1,0 +1,25 @@
+{
+  "required_files": [
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "dub.sdl",
+    "docs/getting-started.md",
+    "docs/v2-api-conventions.md",
+    "docs/compiler-matrix.md",
+    "examples/basic_usage.d"
+  ],
+  "required_trees": ["source/"],
+  "excluded_trees": [
+    ".github/", ".workspace/", "benchmarks/", "tests/", "tools/",
+    "research/", "experiments/", "evidence/", "docs/adr/"
+  ],
+  "excluded_files": [
+    ".gitattributes", ".gitignore", "AGENTS.md", "CONTRIBUTING.md",
+    "DESIGN_PRINCIPLES.md", "ROADMAP.md", "RESEARCH.md", "docs/README.md",
+    "docs/api-freeze-v1.0.0.md", "docs/api-freeze-v2.0.0.md",
+    "docs/ddoc-style.md", "docs/osm-editor-workflow-requirements.md",
+    "docs/performance.md", "docs/v1-contract-audit.md",
+    "docs/v2-public-api-audit.md", "docs/public-api-example-audit.md"
+  ]
+}

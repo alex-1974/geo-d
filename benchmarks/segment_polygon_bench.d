@@ -9,6 +9,7 @@ import std.algorithm.mutation : reverse;
 import std.conv : to;
 import std.datetime.stopwatch : StopWatch;
 import std.exception : enforce;
+import std.json : JSONValue;
 import std.stdio : writefln, writeln;
 
 __gshared ulong benchmarkSink;
@@ -280,14 +281,56 @@ private void run(T)(bool checkOnly, size_t rounds, size_t iterations, long targe
     }
 }
 
+// Export the same preflighted inputs; never regenerate a second reference corpus.
+// Floating coordinates are widened exactly and encoded as binary64 bit patterns,
+// avoiding decimal JSON formatting loss for subnormal and large finite cases.
+private JSONValue jsonPoint(T)(Point2!T p)
+{
+    static if (is(T == int) || is(T == long))
+        return JSONValue([JSONValue(cast(long) p.x), JSONValue(cast(long) p.y)]);
+    else
+        return JSONValue([JSONValue(bits(cast(double) p.x)), JSONValue(bits(cast(double) p.y))]);
+}
+
+private void exportCases(T)(ref JSONValue[] output)
+{
+    auto cases = corpus!T();
+    foreach (ref c; cases)
+    {
+        preflight(c);
+        JSONValue[] rings;
+        foreach (ring; c.points)
+        {
+            JSONValue[] points;
+            foreach (p; ring) points ~= jsonPoint(p);
+            rings ~= JSONValue(points);
+        }
+        JSONValue[] expected;
+        foreach (s; c.expected)
+            expected ~= JSONValue([jsonPoint(s.a), jsonPoint(s.b)]);
+        JSONValue[string] fields;
+        fields["scalar"] = JSONValue(T.stringof);
+        fields["case"] = JSONValue(c.name);
+        fields["coordinate_encoding"] = JSONValue(is(T == int) || is(T == long) ? "integer" : "binary64-bits");
+        fields["rings"] = JSONValue(rings);
+        fields["query"] = JSONValue([jsonPoint(c.queries[0].a), jsonPoint(c.queries[0].b)]);
+        fields["expected_status"] = JSONValue(c.expectedStatus.to!string);
+        fields["expected_segments_binary64_bits"] = JSONValue(expected);
+        fields["expected_fact_bits"] = JSONValue(c.expectedFacts);
+        fields["edges"] = JSONValue(c.edges);
+        output ~= JSONValue(fields);
+    }
+}
+
 void main(string[] args)
 {
-    bool checkOnly;
+    bool checkOnly, exportCorpus;
     size_t rounds = 7, iterations;
     long target = 20;
     foreach (arg; args[1 .. $])
     {
         if (arg == "--check") checkOnly = true;
+        else if (arg == "--export-corpus") exportCorpus = true;
         else if (arg.length > 9 && arg[0 .. 9] == "--rounds=") rounds = arg[9 .. $].to!size_t;
         else if (arg.length > 13 && arg[0 .. 13] == "--iterations=") iterations = arg[13 .. $].to!size_t;
         else if (arg.length > 12 && arg[0 .. 12] == "--target-ms=") target = arg[12 .. $].to!long;
@@ -295,6 +338,16 @@ void main(string[] args)
     }
     enforce(rounds > 0 && rounds <= 100 && target > 0 && target <= 60_000 &&
         iterations <= 10_000_000, "invalid measurement limits");
+    if (exportCorpus)
+    {
+        JSONValue[] cases;
+        exportCases!int(cases);
+        exportCases!long(cases);
+        exportCases!float(cases);
+        exportCases!double(cases);
+        writeln(JSONValue(cases).toString());
+        return;
+    }
     writeln("fixture_header,scalar,case,edges,expected_fact_bits,expected_status,expected_components");
     writeln("sample_header,scalar,case,operation,edges,expected_components,round,iterations,warmup,elapsed_ns,gc_bytes,gc_collections");
     writeln("summary_header,scalar,case,operation,min_ns_per_op,median_ns_per_op,max_ns_per_op");

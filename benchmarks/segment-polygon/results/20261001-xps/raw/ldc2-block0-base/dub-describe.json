@@ -1,0 +1,553 @@
+{
+	"rootPackage": "geo-d",
+	"configuration": "library",
+	"buildType": "debug",
+	"compiler": "ldc",
+	"architecture": [
+		"x86_64"
+	],
+	"platform": [
+		"linux",
+		"posix"
+	],
+	"packages": [
+		{
+			"path": "/tmp/geo-d-segment-polygon-1lbeautq/base/",
+			"name": "geo-d",
+			"version": "~master",
+			"description": "Robust coordinate-system-agnostic 2D Euclidean geometry primitives and algorithms.",
+			"homepage": "https://github.com/alex-1974/geo-d",
+			"authors": [
+				"Alexander Bernardi"
+			],
+			"copyright": "Copyright © 2026 Alexander Bernardi",
+			"license": "MIT",
+			"dependencies": [
+				"euclid-core-d"
+			],
+			"active": true,
+			"configuration": "library",
+			"targetType": "library",
+			"targetPath": "",
+			"targetName": "geo-d",
+			"targetFileName": "libgeo-d.a",
+			"workingDirectory": "",
+			"mainSourceFile": "",
+			"dflags": [],
+			"lflags": [],
+			"libs": [],
+			"injectSourceFiles": [],
+			"copyFiles": [],
+			"extraDependencyFiles": [],
+			"versions": [],
+			"debugVersions": [],
+			"importPaths": [
+				"source/"
+			],
+			"cImportPaths": [],
+			"stringImportPaths": [],
+			"preGenerateCommands": [],
+			"postGenerateCommands": [],
+			"preBuildCommands": [],
+			"postBuildCommands": [],
+			"preRunCommands": [],
+			"postRunCommands": [],
+			"environments": {},
+			"buildEnvironments": {},
+			"runEnvironments": {},
+			"preGenerateEnvironments": {},
+			"postGenerateEnvironments": {},
+			"preBuildEnvironments": {},
+			"postBuildEnvironments": {},
+			"preRunEnvironments": {},
+			"postRunEnvironments": {},
+			"buildRequirements": [],
+			"options": [],
+			"files": [
+				{
+					"role": "source",
+					"path": "source/geo/area.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/bounding_box.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/bounds.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/convert.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/area_exact.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/binary64_rounding.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/dyadic.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/dyadic_round.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/exact_coordinate.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/exact_coordinate_round.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/expansion.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/fixed_uint.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/intersection_exact.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/orientation_dyadic.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/orientation_exact.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/orientation_filter.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/orientation_robust.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_pair_topology.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_relationship_reducer.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_arrangement.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_boundary.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_canonical.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_components.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_embedding.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_exact.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_faces.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_input.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_materialization.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_noding.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_p1.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_regions.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/polygon_union_result.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/ring_point_classification.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/scaled_metric.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/segment_polygon_clip_p1.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/internal/segment_polygon_clip_result.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/intersection.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/line.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/linear_ring_view.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/metric.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/orientation.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/package.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/point.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/point_in_polygon.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/polygon_relationship.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/polygon_union.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/polygon_view.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/polyline_view.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/scalar.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/segment.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/segment_polygon_clip.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/segment_polygon_relationship.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/simplification.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/topology_validation.d"
+				},
+				{
+					"role": "source",
+					"path": "source/geo/vector.d"
+				}
+			]
+		},
+		{
+			"path": "/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/",
+			"name": "euclid-core-d",
+			"version": "0.1.2",
+			"description": "Shared Euclidean Core for geo-d and geo3-d",
+			"homepage": "https://github.com/alex-1974/euclid-core-d",
+			"authors": [
+				"Alexander Bernardi"
+			],
+			"copyright": "Copyright © 2026 Alexander Bernardi",
+			"license": "MIT",
+			"dependencies": [],
+			"active": true,
+			"configuration": "library",
+			"targetType": "library",
+			"targetPath": "",
+			"targetName": "euclid-core-d",
+			"targetFileName": "libeuclid-core-d.a",
+			"workingDirectory": "",
+			"mainSourceFile": "",
+			"dflags": [],
+			"lflags": [],
+			"libs": [],
+			"injectSourceFiles": [],
+			"copyFiles": [],
+			"extraDependencyFiles": [],
+			"versions": [],
+			"debugVersions": [],
+			"importPaths": [
+				"source/"
+			],
+			"cImportPaths": [],
+			"stringImportPaths": [],
+			"preGenerateCommands": [],
+			"postGenerateCommands": [],
+			"preBuildCommands": [],
+			"postBuildCommands": [],
+			"preRunCommands": [],
+			"postRunCommands": [],
+			"environments": {},
+			"buildEnvironments": {},
+			"runEnvironments": {},
+			"preGenerateEnvironments": {},
+			"postGenerateEnvironments": {},
+			"preBuildEnvironments": {},
+			"postBuildEnvironments": {},
+			"preRunEnvironments": {},
+			"postRunEnvironments": {},
+			"buildRequirements": [],
+			"options": [],
+			"files": [
+				{
+					"role": "source",
+					"path": "source/euclid_core/internal/metric.d"
+				},
+				{
+					"role": "source",
+					"path": "source/euclid_core/intersection.d"
+				},
+				{
+					"role": "source",
+					"path": "source/euclid_core/ring_validation.d"
+				},
+				{
+					"role": "source",
+					"path": "source/euclid_core/scalar.d"
+				},
+				{
+					"role": "source",
+					"path": "source/euclid_core/simplification.d"
+				}
+			]
+		}
+	],
+	"targets": [
+		{
+			"rootPackage": "geo-d",
+			"packages": [
+				"geo-d"
+			],
+			"rootConfiguration": "library",
+			"buildSettings": {
+				"targetType": 6,
+				"targetPath": "/tmp/geo-d-segment-polygon-1lbeautq/base",
+				"targetName": "geo-d",
+				"workingDirectory": "",
+				"mainSourceFile": "",
+				"dflags": [],
+				"lflags": [],
+				"libs": [],
+				"linkerFiles": [
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/libeuclid-core-d.a"
+				],
+				"sourceFiles": [
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/area.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/bounding_box.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/bounds.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/convert.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/area_exact.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/binary64_rounding.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/dyadic.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/dyadic_round.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/exact_coordinate.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/exact_coordinate_round.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/expansion.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/fixed_uint.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/intersection_exact.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/orientation_dyadic.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/orientation_exact.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/orientation_filter.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/orientation_robust.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_pair_topology.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_relationship_reducer.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_arrangement.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_boundary.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_canonical.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_components.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_embedding.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_exact.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_faces.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_input.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_materialization.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_noding.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_p1.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_regions.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/polygon_union_result.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/ring_point_classification.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/scaled_metric.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/segment_polygon_clip_p1.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/internal/segment_polygon_clip_result.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/intersection.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/line.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/linear_ring_view.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/metric.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/orientation.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/package.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/point.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/point_in_polygon.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/polygon_relationship.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/polygon_union.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/polygon_view.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/polyline_view.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/scalar.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/segment.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/segment_polygon_clip.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/segment_polygon_relationship.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/simplification.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/topology_validation.d",
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/geo/vector.d"
+				],
+				"injectSourceFiles": [],
+				"copyFiles": [],
+				"extraDependencyFiles": [],
+				"versions": [
+					"Have_geo_d",
+					"Have_euclid_core_d"
+				],
+				"debugVersions": [],
+				"versionFilters": [],
+				"debugVersionFilters": [],
+				"importPaths": [
+					"/tmp/geo-d-segment-polygon-1lbeautq/base/source/",
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/"
+				],
+				"cImportPaths": [],
+				"stringImportPaths": [],
+				"importFiles": [],
+				"stringImportFiles": [],
+				"preGenerateCommands": [],
+				"postGenerateCommands": [],
+				"preBuildCommands": [],
+				"postBuildCommands": [],
+				"preRunCommands": [],
+				"postRunCommands": [],
+				"environments": {},
+				"buildEnvironments": {},
+				"runEnvironments": {},
+				"preGenerateEnvironments": {},
+				"postGenerateEnvironments": {},
+				"preBuildEnvironments": {},
+				"postBuildEnvironments": {},
+				"preRunEnvironments": {},
+				"postRunEnvironments": {},
+				"requirements": [],
+				"options": [
+					"debugMode",
+					"debugInfo",
+					"warningsAsErrors"
+				]
+			},
+			"cacheArtifactPath": "/home/alexander/.dub/cache/geo-d/~master/build/library-debug-AVrDQO_nI0aF1lCTvVOakA/libgeo-d.a",
+			"dependencies": [
+				"euclid-core-d"
+			],
+			"linkDependencies": [
+				"euclid-core-d"
+			]
+		},
+		{
+			"rootPackage": "euclid-core-d",
+			"packages": [
+				"euclid-core-d"
+			],
+			"rootConfiguration": "library",
+			"buildSettings": {
+				"targetType": 6,
+				"targetPath": "/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d",
+				"targetName": "euclid-core-d",
+				"workingDirectory": "",
+				"mainSourceFile": "",
+				"dflags": [],
+				"lflags": [],
+				"libs": [],
+				"linkerFiles": [],
+				"sourceFiles": [
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/euclid_core/internal/metric.d",
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/euclid_core/intersection.d",
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/euclid_core/ring_validation.d",
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/euclid_core/scalar.d",
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/euclid_core/simplification.d"
+				],
+				"injectSourceFiles": [],
+				"copyFiles": [],
+				"extraDependencyFiles": [],
+				"versions": [
+					"Have_euclid_core_d"
+				],
+				"debugVersions": [],
+				"versionFilters": [],
+				"debugVersionFilters": [],
+				"importPaths": [
+					"/home/alexander/.dub/packages/euclid-core-d/0.1.2/euclid-core-d/source/"
+				],
+				"cImportPaths": [],
+				"stringImportPaths": [],
+				"importFiles": [],
+				"stringImportFiles": [],
+				"preGenerateCommands": [],
+				"postGenerateCommands": [],
+				"preBuildCommands": [],
+				"postBuildCommands": [],
+				"preRunCommands": [],
+				"postRunCommands": [],
+				"environments": {},
+				"buildEnvironments": {},
+				"runEnvironments": {},
+				"preGenerateEnvironments": {},
+				"postGenerateEnvironments": {},
+				"preBuildEnvironments": {},
+				"postBuildEnvironments": {},
+				"preRunEnvironments": {},
+				"postRunEnvironments": {},
+				"requirements": [],
+				"options": [
+					"debugMode",
+					"debugInfo",
+					"warningsAsErrors"
+				]
+			},
+			"cacheArtifactPath": "/home/alexander/.dub/cache/euclid-core-d/0.1.2/build/library-debug-sIjF07aohGFh9_13KbgI2Q/libeuclid-core-d.a",
+			"dependencies": [],
+			"linkDependencies": []
+		}
+	]
+}

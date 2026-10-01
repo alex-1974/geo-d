@@ -1,0 +1,86 @@
+{
+  "purpose": "smoke only; no performance verdict",
+  "manifest": {
+    "format": 2,
+    "purpose": "smoke",
+    "status": "passed",
+    "revisions": {
+      "base": "03f345acb6b922719108fd00b72bf105d20a8a21",
+      "candidate": "e86461ca2419f3ecc8b963d31de6c45ae0f22615"
+    },
+    "cpu": 0,
+    "boundscheck": "safeonly",
+    "comparison_runner_sha256": "7ecae91a0d935de4067ef8cbb5ccb81bef96279e85827b9f56c3c2029fdce329",
+    "measurement_runner_sha256": "1189f79c754814e851e72d1b752908707c110e3ef69d65b29d4f61830863a810",
+    "notes": "",
+    "runs": [
+      {
+        "name": "dmd-block0-base",
+        "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+        "command": [
+          "python3",
+          "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+          "--source-root=/tmp/geo-d-segment-polygon-ua1d1_a6/base",
+          "--boundscheck=safeonly",
+          "--compiler=dmd",
+          "--cpu=0",
+          "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/clipping-safeonly-comparison-verified/dmd-block0-base",
+          "--smoke"
+        ],
+        "returncode": 0,
+        "record_verified": true
+      },
+      {
+        "name": "dmd-block0-candidate",
+        "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+        "command": [
+          "python3",
+          "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+          "--source-root=/tmp/geo-d-segment-polygon-ua1d1_a6/candidate",
+          "--boundscheck=safeonly",
+          "--compiler=dmd",
+          "--cpu=0",
+          "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/clipping-safeonly-comparison-verified/dmd-block0-candidate",
+          "--smoke"
+        ],
+        "returncode": 0,
+        "record_verified": true
+      },
+      {
+        "name": "ldc2-block0-base",
+        "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+        "command": [
+          "python3",
+          "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+          "--source-root=/tmp/geo-d-segment-polygon-ua1d1_a6/base",
+          "--boundscheck=safeonly",
+          "--compiler=ldc2",
+          "--cpu=0",
+          "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/clipping-safeonly-comparison-verified/ldc2-block0-base",
+          "--smoke"
+        ],
+        "returncode": 0,
+        "record_verified": true
+      },
+      {
+        "name": "ldc2-block0-candidate",
+        "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+        "command": [
+          "python3",
+          "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+          "--source-root=/tmp/geo-d-segment-polygon-ua1d1_a6/candidate",
+          "--boundscheck=safeonly",
+          "--compiler=ldc2",
+          "--cpu=0",
+          "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/clipping-safeonly-comparison-verified/ldc2-block0-candidate",
+          "--smoke"
+        ],
+        "returncode": 0,
+        "record_verified": true
+      }
+    ],
+    "started_utc": "20261001T184349420848Z",
+    "finished_utc": "2026-10-01T18:44:31.099370+00:00"
+  },
+  "verified": "Four DMD/LDC base/candidate runs: debug/release preflights, immutable clean sources, shared runner hashes and explicit safeonly flags."
+}

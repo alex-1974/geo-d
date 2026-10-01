@@ -18,6 +18,12 @@ runs. Use the baseline DMD 2.111.0 / LDC 1.41.0 and DUB 1.40.0 for controlled
 comparisons. Import paths and dependency versions are resolved with DUB; the
 harness neither overrides Core nor copies production code.
 
+Release measurements default to `-boundscheck=safeonly`, retaining checks in
+`@safe` code as in a normal consumer release. `--boundscheck=on` is available;
+`--boundscheck=off` produces supplementary diagnostic evidence only. Historical
+records made before the XPS audit disabled all bounds checks; they do not
+qualify the normal consumer configuration.
+
 Each run creates a fresh directory under `build/segment-polygon/`. An explicit
 `--output PATH` must also name a new directory. The directory contains:
 
@@ -143,3 +149,23 @@ measurement and investigation of material costs/reference gaps.
 The first retained [cloud diagnostic](results/20261001-cloud/README.md) validates
 the harness on both baseline compilers and identifies allocation costs for
 follow-up. It does not close the performance qualification.
+
+An [allocation prototype and fresh differential checks](results/20261001-capacity/README.md)
+explain the exact-event reservation cost. Its latency gate remains outstanding;
+`run_segment_polygon_comparison.py` provides the serial immutable-revision
+comparison for a controlled machine.
+
+The [first XPS comparison](results/20261001-xps/README.md) confirms reduced GC
+bytes and substantial sparse-workload gains, but also identifies latency
+concerns and the historical bounds-check configuration error. PR #84 remains
+a draft. The corrected comparison runner applies one snapshotted runner and
+`--boundscheck=safeonly` to both immutable source revisions, without modifying
+their checkouts. Use `--source-root` only to select a different measured
+checkout; metadata identifies that source commit and records the runner hash.
+
+## Consumer-release follow-up
+
+The [safeonly XPS comparison](results/20261001-xps-safeonly/README.md)
+now supplies the consumer-release evidence. It recommends PR #84 with an
+explicit documented allocation/latency trade-off. The historical observations
+above remain unchanged; the broader #82/#52 qualification remains open.

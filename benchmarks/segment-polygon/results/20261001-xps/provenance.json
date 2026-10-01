@@ -1,0 +1,6 @@
+{
+  "uploaded_archive": "geo-clipping-xps-20261001-202539.tar.gz",
+  "uploaded_archive_sha256": "2d38d4fe7f7609575264c452338c5836259aea0301901590f6cbfda41a177a54",
+  "retained": "All text source, metadata, build/preflight/sample logs and patches; executable binaries and object files omitted.",
+  "qualification": "Supplementary boundscheck=off run; no normal-consumer release verdict."
+}

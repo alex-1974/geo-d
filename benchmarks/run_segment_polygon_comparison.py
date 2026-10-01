@@ -2,6 +2,7 @@
 """Serial immutable-revision comparison; retain all records outside worktrees."""
 
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 import os
@@ -22,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default="03f345acb6b922719108fd00b72bf105d20a8a21")
     parser.add_argument("--candidate", default="HEAD")
+    parser.add_argument("--boundscheck", choices=["safeonly", "on", "off"], default="safeonly")
     parser.add_argument("--cpu", type=int, required=True)
     parser.add_argument("--compiler", action="append", choices=["dmd", "ldc2"])
     parser.add_argument("--blocks", type=int, default=2, help="alternate base/candidate then candidate/base")
@@ -48,9 +50,15 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     output = (args.output or ROOT / "build" / ("segment-polygon-comparison-" + stamp)).resolve()
     output.mkdir(parents=True, exist_ok=False)
-    record = {"format": 1, "purpose": "smoke" if args.smoke else "comparison",
+    runner = ROOT / "benchmarks/run_segment_polygon.py"
+    record = {"format": 2, "purpose": "smoke" if args.smoke else "comparison",
               "status": "incomplete", "revisions": revisions, "cpu": args.cpu,
+              "boundscheck": args.boundscheck,
+              "comparison_runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+              "measurement_runner_sha256": hashlib.sha256(runner.read_bytes()).hexdigest(),
               "notes": args.notes, "runs": [], "started_utc": stamp}
+    (output / "run_segment_polygon_comparison.py").write_bytes(Path(__file__).read_bytes())
+    (output / "run_segment_polygon.py").write_bytes(runner.read_bytes())
     manifest = output / "comparison.json"
 
     def save():
@@ -71,7 +79,10 @@ def main():
                     order = ["base", "candidate"] if block % 2 == 0 else ["candidate", "base"]
                     for label in order:
                         name = f"{compiler}-block{block}-{label}"
-                        command = ["python3", str(worktrees[label] / "benchmarks/run_segment_polygon.py"),
+                        # One recorded runner applies identical flags to both immutable sources,
+                        # including historical revisions whose own runner disabled all checks.
+                        command = ["python3", str(runner), "--source-root=" + str(worktrees[label]),
+                                   "--boundscheck=" + args.boundscheck,
                                    "--compiler=" + compiler, "--cpu=" + str(args.cpu),
                                    "--output=" + str(output / name)]
                         command += ["--smoke"] if args.smoke else [
@@ -87,6 +98,15 @@ def main():
                         save()
                         if result.returncode:
                             raise RuntimeError(f"{name} failed; see {output / (name + '.log')}")
+                        metadata = json.loads((output / name / "metadata.json").read_text())
+                        if not (metadata["status"] == "passed" and not metadata["dirty"]
+                                and metadata["commit"] == revisions[label]
+                                and metadata["boundscheck"] == args.boundscheck
+                                and metadata["harness_sha256"] == record["measurement_runner_sha256"]
+                                and "-boundscheck=" + args.boundscheck in metadata["release_flags"]):
+                            raise RuntimeError(f"{name} has an incomplete or inconsistent measurement record")
+                        run["record_verified"] = True
+                        save()
             record["status"] = "passed"
         except Exception:
             record["status"] = "failed"

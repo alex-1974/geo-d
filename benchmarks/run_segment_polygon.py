@@ -13,10 +13,11 @@ import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
+HARNESS = Path(__file__).resolve()
 
 
-def capture(args, cwd=ROOT):
-    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True)
+def capture(args, cwd=None):
+    result = subprocess.run(args, cwd=ROOT if cwd is None else cwd, text=True, capture_output=True)
     if result.returncode:
         raise RuntimeError(f"command failed: {args!r}\n{result.stdout}{result.stderr}")
     return result.stdout
@@ -30,7 +31,11 @@ def read_optional(path):
 
 
 def main():
+    global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source-root", type=Path, help="measure this checkout with the current runner")
+    parser.add_argument("--boundscheck", choices=["safeonly", "on", "off"], default="safeonly",
+                        help="safeonly is the consumer release baseline; off is supplementary only")
     parser.add_argument("--compiler", default="dmd")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--cpu", type=int, help="pin this process and its children to an allowed CPU")
@@ -41,6 +46,10 @@ def main():
     parser.add_argument("--smoke", action="store_true", help="two iterations, one round; not performance evidence")
     parser.add_argument("--allow-dirty", action="store_true", help="diagnostic runs only; save tracked diff")
     args = parser.parse_args()
+    if args.source_root is not None:
+        ROOT = args.source_root.resolve()
+    if not (ROOT / "benchmarks/segment_polygon_bench.d").is_file():
+        parser.error("source root must contain the segment/polygon benchmark")
     if not (1 <= args.rounds <= 100 and 0 <= args.iterations <= 10_000_000
             and 1 <= args.target_ms <= 60_000):
         parser.error("invalid measurement limits")
@@ -72,6 +81,8 @@ def main():
         "commit": capture(["git", "rev-parse", "HEAD"]).strip(),
         "tree": capture(["git", "rev-parse", "HEAD^{tree}"]).strip(),
         "dirty": dirty, "untracked_relevant_files": untracked.splitlines(),
+        "harness_sha256": hashlib.sha256(HARNESS.read_bytes()).hexdigest(),
+        "boundscheck": args.boundscheck,
         "compiler_path": compiler, "compiler_version": capture([compiler, "--version"]),
         "dub_version": capture(["dub", "--version"]), "platform": platform.platform(),
         "cpuinfo": read_optional("/proc/cpuinfo"), "loadavg": read_optional("/proc/loadavg"),
@@ -107,6 +118,7 @@ def main():
     save()
     try:
         (out / "tracked.patch").write_text(tracked_diff)
+        (out / "run_segment_polygon.py").write_bytes(HARNESS.read_bytes())
         source = ROOT / "benchmarks" / "segment_polygon_bench.d"
         # Snapshot the executed source even when it is not yet tracked.
         (out / "segment_polygon_bench.d").write_bytes(source.read_bytes())
@@ -116,7 +128,10 @@ def main():
         metadata["import_paths"] = imports
         (out / "dub-describe.json").write_text(capture(["dub", "describe", "--compiler=" + compiler]))
         common = [compiler, "-i", *["-I" + path for path in imports], str(source)]
-        release = ["-O3", "-release", "-boundscheck=off"] if kind == "ldc" else ["-O", "-inline", "-release", "-boundscheck=off"]
+        release = ["-O3", "-release"] if kind == "ldc" else ["-O", "-inline", "-release"]
+        release.append("-boundscheck=" + args.boundscheck)
+        if args.boundscheck == "off":
+            metadata["limitations"].append("Bounds checks disabled: supplementary evidence, not the consumer release baseline.")
         metadata["release_flags"] = release
         debug_bin, release_bin = out / "preflight", out / "benchmark"
         run_logged(common + ["-g", "-of=" + str(debug_bin)], "build-debug")

@@ -129,3 +129,11 @@ Outputs remain outside the disposable worktrees in a new `build/` directory;
 `--output` selects another new directory. `--smoke` validates the comparison
 mechanics but produces no performance evidence. Share the entire output with
 `comparison.json`, per-run metadata, raw samples and logs. #82/#52 stay open.
+
+## XPS follow-up
+
+The [XPS comparison](../20261001-xps/README.md) confirms allocation savings and
+sparse-workload gains but identifies latency concerns and the historical
+`-boundscheck=off` runner error. PR #84 remains a draft. Use the corrected
+comparison runner with its default `--boundscheck=safeonly`; it applies one
+recorded runner to both immutable source revisions.

@@ -137,3 +137,10 @@ sparse-workload gains but identifies latency concerns and the historical
 `-boundscheck=off` runner error. PR #84 remains a draft. Use the corrected
 comparison runner with its default `--boundscheck=safeonly`; it applies one
 recorded runner to both immutable source revisions.
+
+## Consumer-release follow-up
+
+The [safeonly XPS comparison](../20261001-xps-safeonly/README.md)
+now supplies the consumer-release evidence. It recommends PR #84 with an
+explicit documented allocation/latency trade-off. The historical observations
+above remain unchanged; the broader #82/#52 qualification remains open.

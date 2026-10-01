@@ -1,0 +1,6 @@
+{
+  "uploaded_archive": "geo-clipping-xps-safeonly-20261001-214915.tar.gz",
+  "uploaded_archive_sha256": "973696dd30c6b4d8a3aaaface2482c551a9d828f4b6819bc16bd8588d3063cf8",
+  "retained": "All text records, benchmark and runner sources, metadata, commands and raw samples; executable binaries and object files omitted.",
+  "scope": "Consumer safeonly XPS AB/BA comparison; frequency/power/background controls not attested."
+}

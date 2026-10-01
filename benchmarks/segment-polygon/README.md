@@ -162,3 +162,10 @@ a draft. The corrected comparison runner applies one snapshotted runner and
 `--boundscheck=safeonly` to both immutable source revisions, without modifying
 their checkouts. Use `--source-root` only to select a different measured
 checkout; metadata identifies that source commit and records the runner hash.
+
+## Consumer-release follow-up
+
+The [safeonly XPS comparison](results/20261001-xps-safeonly/README.md)
+now supplies the consumer-release evidence. It recommends PR #84 with an
+explicit documented allocation/latency trade-off. The historical observations
+above remain unchanged; the broader #82/#52 qualification remains open.

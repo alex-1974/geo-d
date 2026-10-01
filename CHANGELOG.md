@@ -8,6 +8,16 @@ The project follows Semantic Versioning for published releases.
 
 ### Added
 
+- Added `classifySegmentPolygonRelationship` and
+  `SegmentPolygonRelationship` for exact, allocation-free exterior, boundary,
+  interior, and boundary-overlap facts on finite segments against
+  prevalidated valid polygons.
+- Added `clipSegmentToPolygon`, `SegmentPolygonClipResult`, and
+  `SegmentPolygonClipStatus` for regularized segment/polygon intersection,
+  retaining positive-length interior and boundary portions with exact topology,
+  all-or-nothing binary64 materialization, and immutable owning storage.
+  Isolated point contacts are omitted; empty polygons and degenerate segments
+  yield successful empty results.
 - Added robust regularized polygon union for `int`, `long`, `float`, and
   `double` polygon inputs through `polygonUnion`, with exact overlay topology,
   topology-preserving binary64 materialization, explicit checked failure

@@ -22,6 +22,7 @@
  * - point-in-polygon classification;
  * - ring and polygon topology validation;
  * - reduced exact polygon-to-polygon relationship classification;
+ * - robust one-dimensional segment-to-polygon clipping construction;
  * - regularized polygon-union construction with immutable owning results;
  * - Douglas-Peucker polyline simplification.
  *
@@ -101,6 +102,11 @@ public import geo.polygon_relationship :
 public import geo.segment_polygon_relationship :
     SegmentPolygonRelationship,
     classifySegmentPolygonRelationship;
+
+public import geo.segment_polygon_clip :
+    SegmentPolygonClipResult,
+    SegmentPolygonClipStatus,
+    clipSegmentToPolygon;
 
 public import geo.polygon_union :
     PolygonUnionResult,

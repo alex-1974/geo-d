@@ -106,7 +106,9 @@ revision or rejection; reduced bytes alone do not settle that decision.
 
 The retained compiler records contain metadata, the resolved DUB graph, both
 preflight outputs and all raw samples; successful empty build logs and
-reproducible binaries are omitted.
+reproducible binaries are omitted. Literal patch context and raw tool-output
+trailing spaces are preserved; path-specific Git whitespace attributes prevent
+those evidence bytes from being mistaken for source formatting defects.
 
 ## Controlled comparison
 

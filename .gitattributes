@@ -29,3 +29,7 @@
 /docs/ddoc-style.md export-ignore
 /docs/osm-editor-workflow-requirements.md export-ignore
 /docs/performance.md export-ignore
+
+# Retain literal context spaces in evidence patches and raw tool output.
+benchmarks/segment-polygon/results/20261001-capacity/**/*.patch whitespace=-blank-at-eol
+benchmarks/segment-polygon/results/20261001-capacity/*.log whitespace=-blank-at-eol

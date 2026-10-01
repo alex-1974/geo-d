@@ -18,7 +18,7 @@ The audit does not change the frozen v2 public API.
 
 ## Post-v2 development surface
 
-Post-v2 compatible development has added three consumer/research-backed API
+Post-v2 compatible development has added six consumer/research-backed API
 families without rewriting the frozen v2.0.0 API record:
 
 - A1 vector metric and directional primitives add six pages:
@@ -36,16 +36,19 @@ families without rewriting the frozen v2.0.0 API record:
   `classifyPolygonRelationship`.
 - segment/polygon relationship adds six pages:
   `SegmentPolygonRelationship`, its four documented fact members, and
-  `classifySegmentPolygonRelationship`.
+  `classifySegmentPolygonRelationship`;
+- segment/polygon clipping adds eight pages:
+  `SegmentPolygonClipStatus`, `SegmentPolygonClipResult`, its five
+  documented result members, and `clipSegmentToPolygon`.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 50 |
+| Existing rendered examples | 51 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 87 |
-| **Total public symbol pages** | **137** |
+| Deliberately family-covered declarations | 94 |
+| **Total public symbol pages** | **145** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -360,6 +363,19 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `SegmentPolygonRelationship.hasBoundaryOverlap` | **family** | classifySegmentPolygonRelationship |
 | `classifySegmentPolygonRelationship` | **existing** | segment/polygon relationship rendered Example |
 
+## `geo.segment_polygon_clip`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `SegmentPolygonClipStatus` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult.status` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult.succeeded` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult.length` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult.empty` | **family** | clipSegmentToPolygon |
+| `SegmentPolygonClipResult.opIndex` | **family** | clipSegmentToPolygon |
+| `clipSegmentToPolygon` | **existing** | segment/polygon clipping rendered Example |
+
 ## `geo.simplification`
 
 | Public declaration | Classification | Coverage |
@@ -433,7 +449,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-137 public symbol pages: 50 with rendered examples, 87 family-covered, and
+145 public symbol pages: 51 with rendered examples, 94 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

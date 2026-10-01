@@ -169,3 +169,9 @@ The [safeonly XPS comparison](results/20261001-xps-safeonly/README.md)
 now supplies the consumer-release evidence. It recommends PR #84 with an
 explicit documented allocation/latency trade-off. The historical observations
 above remain unchanged; the broader #82/#52 qualification remains open.
+
+## C/C++ reference qualification
+
+See the [reference assessment](reference/README.md) for the executed, untimed
+GEOS semantic probe, candidate matrix and native comparison plan. It uses the
+same corpus via `--export-corpus`; it does not establish a C/C++ speed ranking.

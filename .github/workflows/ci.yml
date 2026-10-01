@@ -55,6 +55,10 @@ jobs:
           cd tests/consumer
           dub run --compiler="$DC" --force
 
+      - name: Verify and build consumer archive
+        shell: bash
+        run: bash tests/consumer-archive/run.sh "$DC"
+
       - name: Run 2D/3D family coexistence test
         shell: bash
         run: bash tests/family-consumer/run.sh "$DC"

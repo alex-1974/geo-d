@@ -133,6 +133,24 @@ GDC support is best effort unless explicitly stated otherwise.
 
 ## Formatting and repository hygiene
 
+After packaging changes, commit the candidate and verify its actual consumer
+archive, including a build against the extracted package:
+
+~~~sh
+bash tests/consumer-archive/run.sh dmd
+bash tests/consumer-archive/run.sh ldc2
+~~~
+
+The compiler-independent manifest check can also run alone:
+
+~~~sh
+python3 tools/verify-consumer-archive.py
+~~~
+
+See `tests/consumer-archive/README.md` for the approved package boundary and
+checks against downloaded archives. Gates inspect committed content rather
+than uncommitted working-tree changes.
+
 Before committing, run:
 
 ~~~sh

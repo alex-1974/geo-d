@@ -18,6 +18,12 @@ They are intended primarily for:
 Absolute timings are machine-, compiler- and build-dependent and are not
 part of the public API contract.
 
+The integrated segment/polygon relationship and clipping family has a
+separate public-API harness, semantic preflight, raw timing/GC-byte records,
+and compiler/platform metadata. See
+[`segment-polygon/README.md`](segment-polygon/README.md) for its corpus,
+measurement boundaries, commands, and outstanding qualification limits.
+
 ## External differential references
 
 Independent diagnostic reference implementations live under

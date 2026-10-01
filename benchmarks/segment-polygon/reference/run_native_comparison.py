@@ -181,6 +181,9 @@ def main():
         for path in (source, Path(__file__), corpus_path, assessment_path):
             shutil.copyfile(path, out / path.name)
         shutil.copyfile(header, out / "geos_c.h")
+        installation = header.parent / "installation.json"
+        if installation.is_file():
+            shutil.copyfile(installation, out / "geos-installation.json")
         export_header = header.parent / "geos/export.h"
         if export_header.is_file():
             (out / "geos").mkdir()

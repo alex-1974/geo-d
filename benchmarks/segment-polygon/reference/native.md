@@ -66,6 +66,16 @@ After smoke, use a clean immutable checkout for measurements:
 python3 benchmarks/segment-polygon/reference/run_native_comparison.py --compiler=dmd --compiler=ldc2 --geos-header=build/native-geos-headers/geos_c.h --geos-library="$GEOS_NATIVE_LIB" --cpu=0 --rounds=7 --target-ms=20 --notes="record actual power/turbo/background settings here" --output=build/native-geos-comparison
 ```
 
+On the XPS, the convenience wrapper sets up a fresh pinned wheel/header directory,
+runs both D compilers and creates an archive containing all raw records and
+provenance (regenerable executables/objects excluded):
+
+```sh
+bash benchmarks/segment-polygon/reference/run_xps_native_comparison.sh 0 "record actual power/turbo/background settings here"
+```
+
+It removes nothing and prints the record, archive path and archive checksum.
+
 The runner performs native debug/release preflight, D debug/release preflight,
 and equality of fresh D exports to the retained 92-case corpus before measurement.
 For each D compiler it runs D/native, then native/D serially. Both programs use

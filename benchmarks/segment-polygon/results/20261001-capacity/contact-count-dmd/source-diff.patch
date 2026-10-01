@@ -1,0 +1,151 @@
+diff --git a/source/geo/internal/segment_polygon_clip_p1.d b/source/geo/internal/segment_polygon_clip_p1.d
+index d8eb1b2..5824a2e 100644
+--- a/source/geo/internal/segment_polygon_clip_p1.d
++++ b/source/geo/internal/segment_polygon_clip_p1.d
+@@ -128,6 +128,62 @@ if (isSegmentPolygonClipScalar!T)
+ }
+ 
+ 
++/*
++ * Counts raw event slots before allocating the large exact-point records.
++ *
++ * The two query endpoints are seeded once. appendSegmentPairNodingEvents
++ * then appends exactly zero events for none, one for touch/properCrossing,
++ * and two for overlap. Shared vertices and query-endpoint contacts remain
++ * duplicated here because sorting/deduplication happens only after insertion.
++ * Thus this capacity covers every write, while never exceeding 2n + 2.
++ *
++ * This adds one O(n), allocation-free contact pass. It does not construct or
++ * round coordinates, change the event stream, or expose a public workspace.
++ */
++private size_t queryBoundaryEventCapacity(T)(
++    Segment2!T query,
++    scope Polygon2View!T polygon
++)
++    @safe
++if (isSegmentPolygonClipScalar!T)
++{
++    size_t capacity = 2;
++
++    foreach (ringIndex; 0 .. polygon.length)
++    {
++        const auto ring = polygon[ringIndex];
++
++        foreach (edgeIndex; 0 .. ring.segmentCount)
++        {
++            const contact = segmentContactKind(query, ring.segment(edgeIndex));
++            size_t required;
++
++            final switch (contact)
++            {
++                case SegmentContactKind.none:
++                    break;
++
++                case SegmentContactKind.touch:
++                case SegmentContactKind.properCrossing:
++                    required = 1;
++                    break;
++
++                case SegmentContactKind.overlap:
++                    required = 2;
++                    break;
++            }
++
++            if (required > size_t.max - capacity)
++                onOutOfMemoryError();
++
++            capacity += required;
++        }
++    }
++
++    return capacity;
++}
++
++
+ /*
+  * Finds one exact event in an already sorted unique query event list.
+  */
+@@ -471,16 +527,11 @@ if (isSegmentPolygonClipScalar!T)
+     }
+ 
+ 
+-    if (
+-        edgeCount >
+-        (size_t.max - 2) / 2
+-    )
+-    {
+-        onOutOfMemoryError();
+-    }
+-
+     const size_t eventCapacity =
+-        edgeCount * 2 + 2;
++        queryBoundaryEventCapacity(query, polygon);
++
++    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
++        onOutOfMemoryError();
+ 
+     auto events =
+         new ExactOverlayPoint[
+@@ -523,7 +574,8 @@ if (isSegmentPolygonClipScalar!T)
+                 );
+ 
+             /*
+-             * 2n + 2 is the proved hard query-event capacity bound.
++             * The contact-count pass reserves every raw insertion, including
++             * duplicates. The global 2n + 2 bound remains valid.
+              */
+             assert(appended);
+         }
+@@ -1083,3 +1135,52 @@ if (isSegmentPolygonClipScalar!T)
+     return
+         SegmentPolygonClipInternalStatus.success;
+ }
++
++
++@safe unittest
++{
++    import geo.linear_ring_view : LinearRing2View;
++    import std.meta : AliasSeq;
++
++    static foreach (T; AliasSeq!(int, long, float, double))
++    {{
++        alias P = Point2!T;
++        alias S = Segment2!T;
++        P[4] points = [P(0, 0), P(10, 0), P(10, 10), P(0, 10)];
++        LinearRing2View!T[1] rings = [LinearRing2View!T(points[])];
++        auto polygon = Polygon2View!T(rings[]);
++        S[7] queries = [
++            S(P(-2, 2), P(-1, 8)), // no contacts
++            S(P(1, 1), P(9, 1)),   // interior, no contacts
++            S(P(-1, 5), P(11, 5)), // two proper crossings
++            S(P(-2, 2), P(2, -2)), // one vertex, two raw touches
++            S(P(-1, 0), P(11, 0)), // overlap plus two endpoint touches
++            S(P(0, 0), P(10, 0)),  // seeded endpoints still duplicated
++            S(P(0, 5), P(5, 5)),   // one seeded endpoint contact
++        ];
++        size_t[7] expected = [2, 2, 4, 4, 6, 6, 3];
++
++        foreach (i, original; queries)
++        {
++            foreach (query; [original, S(original.b, original.a)])
++            {
++                const capacity = queryBoundaryEventCapacity(query, polygon);
++                assert(capacity == expected[i]);
++
++                // Exercise the existing writer at exactly that capacity.
++                auto events = new ExactOverlayPoint[capacity];
++                size_t count;
++                assert(seedExactEdgeEvents(query, events, count));
++                foreach (edgeIndex; 0 .. rings[0].segmentCount)
++                {
++                    ExactOverlayPoint[2] ignored;
++                    size_t ignoredCount;
++                    assert(appendSegmentPairNodingEvents(query,
++                        rings[0].segment(edgeIndex), events, count,
++                        ignored[], ignoredCount));
++                }
++                assert(count == capacity);
++            }
++        }
++    }}
++}

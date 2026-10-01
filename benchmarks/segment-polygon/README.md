@@ -143,3 +143,8 @@ measurement and investigation of material costs/reference gaps.
 The first retained [cloud diagnostic](results/20261001-cloud/README.md) validates
 the harness on both baseline compilers and identifies allocation costs for
 follow-up. It does not close the performance qualification.
+
+An [allocation prototype and fresh differential checks](results/20261001-capacity/README.md)
+explain the exact-event reservation cost. Its latency gate remains outstanding;
+`run_segment_polygon_comparison.py` provides the serial immutable-revision
+comparison for a controlled machine.

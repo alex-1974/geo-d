@@ -1,0 +1,39 @@
+{
+  "profile_sources": {
+    "baseline": "b47bac9d2f6db2557dd7d133ef4498f75c9a5b6d",
+    "candidate": "4828889625ff2dd25b44dc545a5e9addb27310ef"
+  },
+  "compiler": "DMD 2.111.0",
+  "flags": [
+    "-O",
+    "-inline",
+    "-release",
+    "-boundscheck=safeonly",
+    "-profile"
+  ],
+  "driver_sha256": "988a091a48258cae903ed39a952881b1948f82f3fa3477fa4a11d7268b49b0ac",
+  "iterations": {
+    "crossing": 1000,
+    "sparse-64": 1000,
+    "dense-64": 100
+  },
+  "cpu": 0,
+  "multiply_198x132_counts": {
+    "baseline": {
+      "crossing": 13026,
+      "sparse-64": 13026,
+      "dense-64": 531624
+    },
+    "candidate": {
+      "crossing": 5010,
+      "sparse-64": 5010,
+      "dense-64": 16728
+    }
+  },
+  "limitations": [
+    "Instrumentation changes code generation and runtime costs; ticks are not nanoseconds.",
+    "Corpus setup and semantic preflight are included; preflight validates two query directions using enforce.",
+    "Baseline profile includes the envelope candidate; timing comparison baseline is develop 7deb69f.",
+    "Use counts as mechanism evidence, not a GEOS speed or profiler wall-time claim."
+  ]
+}

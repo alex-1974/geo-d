@@ -1,0 +1,9 @@
+square: cumulative checked 14641
+square-reversed: cumulative checked 29282
+concave-u: cumulative checked 43923
+concave-l: cumulative checked 53923
+with-hole: cumulative checked 82484
+with-hole-reversed: cumulative checked 111045
+redundant-collinear: cumulative checked 125686
+TOTAL 125686
+SEGMENT POLYGON PUBLIC CLIP DIFFERENTIAL PASS

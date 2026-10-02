@@ -1,0 +1,103 @@
+{
+  "correction": "Earlier -release verifier invocations disabled runtime assert comparisons and did not establish the claimed independent validation; these assert-enabled runs supersede those claims for the listed sources.",
+  "verifier_sha256": "ca012d85cc70e0fc56f914678a36971a25657a970a9a45a239df0bfa75f6ab3d",
+  "verifier_repository": "alex-1974/geo-d-research",
+  "verifier_path": "research/branches/verification__segment-polygon-clipping/docs/verification/segment_polygon_clip_public_differential.d",
+  "assertion_probe_source": "import std.exception : enforce;\nbool mark(ref bool executed) { executed = true; return true; }\nvoid main() { bool executed; assert(mark(executed)); enforce(executed, \"Assertions are disabled\"); }\n",
+  "core_commit": "e727c58d7e6bea35de1cf6eeb2c806480c631e28",
+  "runs": [
+    {
+      "label": "base",
+      "source_commit": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "compiler_version": "DMD64 D Compiler v2.111.0\nCopyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved written by Walter Bright\n",
+      "flags": [
+        "-O",
+        "-inline",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "bc77efe49a8401512bbd18c9b7553817e430a2f5c09dc81799bcca228ca6b53b"
+    },
+    {
+      "label": "base",
+      "source_commit": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "compiler_version": "LDC - the LLVM D compiler (1.41.0):\n  based on DMD v2.111.0 and LLVM 20.1.5\n  built with LDC - the LLVM D compiler (1.41.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  http://dlang.org - http://wiki.dlang.org/LDC\n\n\n  Registered Targets:\n    aarch64     - AArch64 (little endian)\n    aarch64_32  - AArch64 (little endian ILP32)\n    aarch64_be  - AArch64 (big endian)\n    amdgcn      - AMD GCN GPUs\n    arm         - ARM\n    arm64       - ARM64 (little endian)\n    arm64_32    - ARM64 (little endian ILP32)\n    armeb       - ARM (big endian)\n    avr         - Atmel AVR Microcontroller\n    bpf         - BPF (host endian)\n    bpfeb       - BPF (big endian)\n    bpfel       - BPF (little endian)\n    hexagon     - Hexagon\n    lanai       - Lanai\n    loongarch32 - 32-bit LoongArch\n    loongarch64 - 64-bit LoongArch\n    mips        - MIPS (32-bit big endian)\n    mips64      - MIPS (64-bit big endian)\n    mips64el    - MIPS (64-bit little endian)\n    mipsel      - MIPS (32-bit little endian)\n    msp430      - MSP430 [experimental]\n    nvptx       - NVIDIA PTX 32-bit\n    nvptx64     - NVIDIA PTX 64-bit\n    ppc32       - PowerPC 32\n    ppc32le     - PowerPC 32 LE\n    ppc64       - PowerPC 64\n    ppc64le     - PowerPC 64 LE\n    r600        - AMD GPUs HD2XXX-HD6XXX\n    riscv32     - 32-bit RISC-V\n    riscv64     - 64-bit RISC-V\n    sparc       - Sparc\n    sparcel     - Sparc LE\n    sparcv9     - Sparc V9\n    spirv       - SPIR-V Logical\n    spirv32     - SPIR-V 32-bit\n    spirv64     - SPIR-V 64-bit\n    systemz     - SystemZ\n    thumb       - Thumb\n    thumbeb     - Thumb (big endian)\n    ve          - VE\n    wasm32      - WebAssembly 32-bit\n    wasm64      - WebAssembly 64-bit\n    x86         - 32-bit X86: Pentium-Pro and above\n    x86-64      - 64-bit X86: EM64T and AMD64\n    xcore       - XCore\n    xtensa      - Xtensa 32\n",
+      "flags": [
+        "-O3",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "bca12000dcd73310d0dfef6e404135cb83bf352aac5edf0f8bf3abfb0f3e2af1"
+    },
+    {
+      "label": "envelope",
+      "source_commit": "b47bac9d2f6db2557dd7d133ef4498f75c9a5b6d",
+      "compiler_version": "DMD64 D Compiler v2.111.0\nCopyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved written by Walter Bright\n",
+      "flags": [
+        "-O",
+        "-inline",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "929f4149174462ce84bc01ccbde8ab674371089a03667441446527a90cb49de9"
+    },
+    {
+      "label": "envelope",
+      "source_commit": "b47bac9d2f6db2557dd7d133ef4498f75c9a5b6d",
+      "compiler_version": "LDC - the LLVM D compiler (1.41.0):\n  based on DMD v2.111.0 and LLVM 20.1.5\n  built with LDC - the LLVM D compiler (1.41.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  http://dlang.org - http://wiki.dlang.org/LDC\n\n\n  Registered Targets:\n    aarch64     - AArch64 (little endian)\n    aarch64_32  - AArch64 (little endian ILP32)\n    aarch64_be  - AArch64 (big endian)\n    amdgcn      - AMD GCN GPUs\n    arm         - ARM\n    arm64       - ARM64 (little endian)\n    arm64_32    - ARM64 (little endian ILP32)\n    armeb       - ARM (big endian)\n    avr         - Atmel AVR Microcontroller\n    bpf         - BPF (host endian)\n    bpfeb       - BPF (big endian)\n    bpfel       - BPF (little endian)\n    hexagon     - Hexagon\n    lanai       - Lanai\n    loongarch32 - 32-bit LoongArch\n    loongarch64 - 64-bit LoongArch\n    mips        - MIPS (32-bit big endian)\n    mips64      - MIPS (64-bit big endian)\n    mips64el    - MIPS (64-bit little endian)\n    mipsel      - MIPS (32-bit little endian)\n    msp430      - MSP430 [experimental]\n    nvptx       - NVIDIA PTX 32-bit\n    nvptx64     - NVIDIA PTX 64-bit\n    ppc32       - PowerPC 32\n    ppc32le     - PowerPC 32 LE\n    ppc64       - PowerPC 64\n    ppc64le     - PowerPC 64 LE\n    r600        - AMD GPUs HD2XXX-HD6XXX\n    riscv32     - 32-bit RISC-V\n    riscv64     - 64-bit RISC-V\n    sparc       - Sparc\n    sparcel     - Sparc LE\n    sparcv9     - Sparc V9\n    spirv       - SPIR-V Logical\n    spirv32     - SPIR-V 32-bit\n    spirv64     - SPIR-V 64-bit\n    systemz     - SystemZ\n    thumb       - Thumb\n    thumbeb     - Thumb (big endian)\n    ve          - VE\n    wasm32      - WebAssembly 32-bit\n    wasm64      - WebAssembly 64-bit\n    x86         - 32-bit X86: Pentium-Pro and above\n    x86-64      - 64-bit X86: EM64T and AMD64\n    xcore       - XCore\n    xtensa      - Xtensa 32\n",
+      "flags": [
+        "-O3",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "954f01fcefa6743f665d019c6b9b281414535e3529fea8ac081f8b81b2e24adf"
+    },
+    {
+      "label": "denominator",
+      "source_commit": "4828889625ff2dd25b44dc545a5e9addb27310ef",
+      "compiler_version": "DMD64 D Compiler v2.111.0\nCopyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved written by Walter Bright\n",
+      "flags": [
+        "-O",
+        "-inline",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "1b6df605d016f8585186e939a74be2f80cac04a86fc80342ce99394a90566ccb"
+    },
+    {
+      "label": "denominator",
+      "source_commit": "4828889625ff2dd25b44dc545a5e9addb27310ef",
+      "compiler_version": "LDC - the LLVM D compiler (1.41.0):\n  based on DMD v2.111.0 and LLVM 20.1.5\n  built with LDC - the LLVM D compiler (1.41.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  http://dlang.org - http://wiki.dlang.org/LDC\n\n\n  Registered Targets:\n    aarch64     - AArch64 (little endian)\n    aarch64_32  - AArch64 (little endian ILP32)\n    aarch64_be  - AArch64 (big endian)\n    amdgcn      - AMD GCN GPUs\n    arm         - ARM\n    arm64       - ARM64 (little endian)\n    arm64_32    - ARM64 (little endian ILP32)\n    armeb       - ARM (big endian)\n    avr         - Atmel AVR Microcontroller\n    bpf         - BPF (host endian)\n    bpfeb       - BPF (big endian)\n    bpfel       - BPF (little endian)\n    hexagon     - Hexagon\n    lanai       - Lanai\n    loongarch32 - 32-bit LoongArch\n    loongarch64 - 64-bit LoongArch\n    mips        - MIPS (32-bit big endian)\n    mips64      - MIPS (64-bit big endian)\n    mips64el    - MIPS (64-bit little endian)\n    mipsel      - MIPS (32-bit little endian)\n    msp430      - MSP430 [experimental]\n    nvptx       - NVIDIA PTX 32-bit\n    nvptx64     - NVIDIA PTX 64-bit\n    ppc32       - PowerPC 32\n    ppc32le     - PowerPC 32 LE\n    ppc64       - PowerPC 64\n    ppc64le     - PowerPC 64 LE\n    r600        - AMD GPUs HD2XXX-HD6XXX\n    riscv32     - 32-bit RISC-V\n    riscv64     - 64-bit RISC-V\n    sparc       - Sparc\n    sparcel     - Sparc LE\n    sparcv9     - Sparc V9\n    spirv       - SPIR-V Logical\n    spirv32     - SPIR-V 32-bit\n    spirv64     - SPIR-V 64-bit\n    systemz     - SystemZ\n    thumb       - Thumb\n    thumbeb     - Thumb (big endian)\n    ve          - VE\n    wasm32      - WebAssembly 32-bit\n    wasm64      - WebAssembly 64-bit\n    x86         - 32-bit X86: Pentium-Pro and above\n    x86-64      - 64-bit X86: EM64T and AMD64\n    xcore       - XCore\n    xtensa      - Xtensa 32\n",
+      "flags": [
+        "-O3",
+        "-boundscheck=safeonly",
+        "-i"
+      ],
+      "assertions_enabled": true,
+      "assertion_side_effect_probe": "passed under the same compiler/flags",
+      "queries": 125686,
+      "status": "passed",
+      "binary_sha256": "3eb4bb14cc1c6aede1b9cec55e1fead5afe23fbac43363907206de1cef786d2d"
+    }
+  ]
+}

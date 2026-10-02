@@ -1,3 +1,15 @@
+## Verification correction — 2026-10-02
+
+Earlier public BigInt verifier invocations used `-release`, which disabled its
+runtime `assert` comparisons. Their independent PASS claims below are withdrawn.
+Superseding runs without `-release` pass all 125,686 queries for develop 7deb69f
+and the retained envelope source b47bac9 with each of DMD 2.111.0 and LDC 1.41.0.
+Same-flags assertion-side-effect probes confirm active assertions. Rejected
+98e0e7 and 4354545 variants remain independently unqualified by the old runs.
+Unit tests and release-active benchmark preflights are unaffected. Raw timings
+remain valid within their stated measurement limits. See the adjacent
+`../assert-enabled-verification-20261002.json` for flags and provenance.
+
 # Rejected inline dispatch experiment — 2026-10-02
 
 Source `4354545676603c2ebb47f53badce67987bd1d839`, baseline `7deb69f074208ddabe2b18316820965b16cf2966`.

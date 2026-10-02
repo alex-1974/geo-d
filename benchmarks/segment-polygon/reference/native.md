@@ -127,3 +127,7 @@ Primary native API and ownership reference:
 [GEOS C API programming](https://libgeos.org/usage/c_api/).
 Header configuration source:
 [GEOS 3.13.1 Version.txt](https://github.com/libgeos/geos/blob/3.13.1/Version.txt).
+
+[XPS evidence and bounded follow-up](results/20261002-xps-native/README.md):
+eight audited runs with seven rounds; actual power/background limitations and
+material gaps remain explicit.

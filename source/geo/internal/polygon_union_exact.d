@@ -935,12 +935,10 @@ if (isPolygonUnionExactScalar!T)
 
 
 /*
- * Restores the max-heap property in events[root .. end).
- *
- * PreferEqualDenominator is selected once by the enclosing sort from the
- * measured event-count context, so no runtime mode branch occurs per compare.
+ * Dense-event heap helper. This is separate from the baseline sift helper so
+ * sparse/crossing sorts retain the established develop call path.
  */
-private void siftDownExactEdgeEvents(bool PreferEqualDenominator, T)(
+private void siftDownExactEdgeEventsEqualPreferred(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events,
     size_t root,
@@ -959,64 +957,30 @@ if (isPolygonUnionExactScalar!T)
 
         size_t largest = root;
 
-        static if (PreferEqualDenominator)
+        if (
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
+                source,
+                events[largest],
+                events[left]
+            ) < 0
+        )
         {
-            if (
-                compareExactOverlayPointsAlongSegmentEqualPreferred(
-                    source,
-                    events[largest],
-                    events[left]
-                ) < 0
-            )
-            {
-                largest = left;
-            }
-        }
-        else
-        {
-            if (
-                compareExactOverlayPointsAlongSegment(
-                    source,
-                    events[largest],
-                    events[left]
-                ) < 0
-            )
-            {
-                largest = left;
-            }
+            largest = left;
         }
 
         const size_t right =
             left + 1;
 
-        if (right < end)
+        if (
+            right < end &&
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
+                source,
+                events[largest],
+                events[right]
+            ) < 0
+        )
         {
-            static if (PreferEqualDenominator)
-            {
-                if (
-                    compareExactOverlayPointsAlongSegmentEqualPreferred(
-                        source,
-                        events[largest],
-                        events[right]
-                    ) < 0
-                )
-                {
-                    largest = right;
-                }
-            }
-            else
-            {
-                if (
-                    compareExactOverlayPointsAlongSegment(
-                        source,
-                        events[largest],
-                        events[right]
-                    ) < 0
-                )
-                {
-                    largest = right;
-                }
-            }
+            largest = right;
         }
 
         if (largest == root)
@@ -1036,7 +1000,7 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-private void heapSortExactEdgeEvents(bool PreferEqualDenominator, T)(
+private size_t sortUniqueExactEdgeEventsEqualPreferred(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events
 )
@@ -1050,10 +1014,7 @@ if (isPolygonUnionExactScalar!T)
     {
         --start;
 
-        siftDownExactEdgeEvents!(
-            PreferEqualDenominator,
-            T
-        )(
+        siftDownExactEdgeEventsEqualPreferred(
             source,
             events,
             start,
@@ -1077,15 +1038,98 @@ if (isPolygonUnionExactScalar!T)
         events[end] =
             temporary;
 
-        siftDownExactEdgeEvents!(
-            PreferEqualDenominator,
-            T
-        )(
+        siftDownExactEdgeEventsEqualPreferred(
             source,
             events,
             0,
             end
         );
+    }
+
+    size_t write = 1;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactOverlayPointsEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            if (write != read)
+                events[write] = events[read];
+
+            ++write;
+        }
+    }
+
+    return write;
+}
+
+
+/*
+ * Restores the max-heap property in events[root .. end), using exact
+ * source-edge order as the key.
+ */
+private void siftDownExactEdgeEvents(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    size_t root,
+    size_t end
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    while (true)
+    {
+        const size_t left =
+            root * 2 + 1;
+
+        if (left >= end)
+            return;
+
+        size_t largest = root;
+
+        if (
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[largest],
+                events[left]
+            ) < 0
+        )
+        {
+            largest = left;
+        }
+
+        const size_t right =
+            left + 1;
+
+        if (
+            right < end &&
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[largest],
+                events[right]
+            ) < 0
+        )
+        {
+            largest = right;
+        }
+
+        if (largest == root)
+            return;
+
+        const ExactOverlayPoint temporary =
+            events[root];
+
+        events[root] =
+            events[largest];
+
+        events[largest] =
+            temporary;
+
+        root = largest;
     }
 }
 
@@ -1094,11 +1138,9 @@ if (isPolygonUnionExactScalar!T)
  * Sorts exact edge events in source.a -> source.b order and removes exact
  * duplicates in-place.
  *
- * Research on the public clipping corpus found that 2-4-event sorts are the
- * sparse/crossing regime where denominator equality is only about 50%, while
- * 9+ event sorts are the dense regime where equal denominators become common
- * enough to amortize the equality probe. Event counts 5-8 were not observed,
- * so they conservatively retain the baseline comparator.
+ * Event-count research showed that 2-4-event sorts are the sparse/crossing
+ * regime, while measured dense sorts begin at 9 events. Unobserved 5-8-event
+ * sorts conservatively retain this baseline path.
  */
 size_t sortUniqueExactEdgeEvents(T)(
     Segment2!T source,
@@ -1116,16 +1158,49 @@ if (isPolygonUnionExactScalar!T)
 
     if (events.length >= equalPreferredEventThreshold)
     {
-        heapSortExactEdgeEvents!(true, T)(
+        return
+            sortUniqueExactEdgeEventsEqualPreferred(
+                source,
+                events
+            );
+    }
+
+    size_t start =
+        events.length / 2;
+
+    while (start > 0)
+    {
+        --start;
+
+        siftDownExactEdgeEvents(
             source,
-            events
+            events,
+            start,
+            events.length
         );
     }
-    else
+
+    size_t end =
+        events.length;
+
+    while (end > 1)
     {
-        heapSortExactEdgeEvents!(false, T)(
+        --end;
+
+        const ExactOverlayPoint temporary =
+            events[0];
+
+        events[0] =
+            events[end];
+
+        events[end] =
+            temporary;
+
+        siftDownExactEdgeEvents(
             source,
-            events
+            events,
+            0,
+            end
         );
     }
 

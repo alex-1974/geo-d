@@ -601,11 +601,13 @@ if (isPolygonUnionExactScalar!T)
     if (source.a.x != source.b.x)
     {
         comparison =
-            compareExactCoordinates(
+            compareExactCoordinatesFingerprinted(
                 lhs.xNumerator,
                 lhs.denominator,
+                lhs.denominatorFingerprint,
                 rhs.xNumerator,
-                rhs.denominator
+                rhs.denominator,
+                rhs.denominatorFingerprint
             );
 
         return

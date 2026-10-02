@@ -277,7 +277,13 @@ int compareExactCoordinates(
     // Equal positive denominators cancel exactly. Avoid constructing two
     // 330-limb products for comparisons within one rational event family.
     // Distinct representations retain the general exact cross-product path.
-    if (lhsDenominator.limb == rhsDenominator.limb)
+    // In the clipping corpus, limb 67 is a cheap rejection key for
+    // distinct product denominators. It is only a necessary condition for
+    // equality: a match still requires the complete 132-limb comparison.
+    if (
+        lhsDenominator.limb[67] == rhsDenominator.limb[67] &&
+        lhsDenominator.limb == rhsDenominator.limb
+    )
     {
         const comparison = compareUnsigned(
             lhsNumerator.magnitude, rhsNumerator.magnitude);

@@ -647,49 +647,52 @@ static assert(finiteBoundarySelfCheck(3));
 }
 
 
-private bool equalDenominatorComparisonLaws()
-    pure nothrow @safe @nogc
+version (unittest)
 {
-    foreach (denominatorIndex; [size_t(0), size_t(65), size_t(131)])
+    private bool equalDenominatorComparisonLaws()
+        pure nothrow @safe @nogc
     {
-        DyadicProductMagnitude denominator;
-        denominator.limb[denominatorIndex] = 3;
-        foreach (numeratorIndex; [size_t(0), size_t(64), size_t(197)])
+        foreach (denominatorIndex; [size_t(0), size_t(65), size_t(131)])
         {
-            SignedExactCoordinateNumerator a, b;
-            a.magnitude.limb[numeratorIndex] = 1;
-            b.magnitude.limb[numeratorIndex] = 2;
-            foreach (sign; [-1, 1])
+            DyadicProductMagnitude denominator;
+            denominator.limb[denominatorIndex] = 3;
+            foreach (numeratorIndex; [size_t(0), size_t(64), size_t(197)])
             {
-                a.sign = sign;
-                b.sign = sign;
-                if (compareExactCoordinates(a, denominator, b, denominator) != -sign)
-                    return false;
-                if (compareExactCoordinates(b, denominator, a, denominator) != sign)
-                    return false;
-                if (compareExactCoordinates(a, denominator, a, denominator) != 0)
-                    return false;
+                SignedExactCoordinateNumerator a, b;
+                a.magnitude.limb[numeratorIndex] = 1;
+                b.magnitude.limb[numeratorIndex] = 2;
+                foreach (sign; [-1, 1])
+                {
+                    a.sign = sign;
+                    b.sign = sign;
+                    if (compareExactCoordinates(a, denominator, b, denominator) != -sign)
+                        return false;
+                    if (compareExactCoordinates(b, denominator, a, denominator) != sign)
+                        return false;
+                    if (compareExactCoordinates(a, denominator, a, denominator) != 0)
+                        return false;
+                }
             }
         }
+        // Equivalent rational representations still use the general path.
+        SignedExactCoordinateNumerator one, two, zero;
+        one.sign = two.sign = 1;
+        one.magnitude.limb[0] = 1;
+        two.magnitude.limb[0] = 2;
+        DyadicProductMagnitude three, six;
+        three.limb[0] = 3;
+        six.limb[0] = 6;
+        if (compareExactCoordinates(one, three, two, six) != 0) return false;
+        if (compareExactCoordinates(zero, three, one, three) != -1) return false;
+        one.sign = two.sign = -1;
+        if (compareExactCoordinates(one, three, two, six) != 0) return false;
+        return compareExactCoordinates(zero, three, one, three) == 1;
     }
-    // Equivalent rational representations still use the general path.
-    SignedExactCoordinateNumerator one, two, zero;
-    one.sign = two.sign = 1;
-    one.magnitude.limb[0] = 1;
-    two.magnitude.limb[0] = 2;
-    DyadicProductMagnitude three, six;
-    three.limb[0] = 3;
-    six.limb[0] = 6;
-    if (compareExactCoordinates(one, three, two, six) != 0) return false;
-    if (compareExactCoordinates(zero, three, one, three) != -1) return false;
-    one.sign = two.sign = -1;
-    if (compareExactCoordinates(one, three, two, six) != 0) return false;
-    return compareExactCoordinates(zero, three, one, three) == 1;
-}
-
-static assert(equalDenominatorComparisonLaws());
-
-@safe unittest
-{
-    assert(equalDenominatorComparisonLaws());
+    
+    static assert(equalDenominatorComparisonLaws());
+    
+    @safe unittest
+    {
+        assert(equalDenominatorComparisonLaws());
+    }
 }

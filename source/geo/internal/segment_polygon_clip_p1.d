@@ -167,6 +167,12 @@ if (isSegmentPolygonClipScalar!T)
  * prove zero insertions. Thus the writer remains covered and the global
  * 2n + 2 bound remains valid. False-positive candidates only over-reserve.
  *
+ * Zero capacity means every boundary vertex lies strictly on one side of the
+ * query bounds, so the entire polygon is separated and the result is empty.
+ * The valid-polygon precondition ensures every ring vertex belongs to an edge.
+ * Equality never rejects. Interior queries with no boundary candidates retain
+ * the two seeds. The separation proof shares the existing comparison pass.
+ *
  * This adds one O(n), allocation-free comparison pass instead of repeating
  * the robust contact predicates. Event generation, ordering, labeling and
  * materialization below remain unchanged.
@@ -183,6 +189,9 @@ if (isSegmentPolygonClipScalar!T)
     assert(bounded && !queryBounds.empty);
 
     size_t capacity = 2;
+    bool left = true, right = true, below = true, above = true;
+    const lower = queryBounds.min;
+    const upper = queryBounds.max;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -190,7 +199,17 @@ if (isSegmentPolygonClipScalar!T)
 
         foreach (edgeIndex; 0 .. ring.segmentCount)
         {
-            if (!edgeBoundsMayMeetQuery(queryBounds, ring.segment(edgeIndex)))
+            const edge = ring.segment(edgeIndex);
+            // Once all four proofs fail, no later vertex can restore them.
+            if (left || right || below || above)
+            {
+                left = left && edge.a.x < lower.x;
+                right = right && edge.a.x > upper.x;
+                below = below && edge.a.y < lower.y;
+                above = above && edge.a.y > upper.y;
+            }
+
+            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
                 continue;
 
             if (capacity > size_t.max - 2)
@@ -200,7 +219,7 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-    return capacity;
+    return left || right || below || above ? 0 : capacity;
 }
 
 
@@ -549,6 +568,13 @@ if (isSegmentPolygonClipScalar!T)
 
     const size_t eventCapacity =
         queryBoundaryEventCapacity(query, polygon);
+
+    if (eventCapacity == 0)
+    {
+        Segment2!double[] emptyComponents;
+        owned = takeSegmentPolygonClipOwnedResultInternal(emptyComponents);
+        return SegmentPolygonClipInternalStatus.success;
+    }
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
@@ -1179,7 +1205,7 @@ if (isSegmentPolygonClipScalar!T)
             S(P(0, 5), P(5, 5)),   // one seeded endpoint contact
             S(P(-2, 1), P(1, -2)), // overlapping bounds, no actual contacts
         ];
-        size_t[8] expectedCapacity = [2, 2, 6, 6, 8, 8, 4, 6];
+        size_t[8] expectedCapacity = [0, 2, 6, 6, 8, 8, 4, 6];
         size_t[8] expectedRawCount = [2, 2, 4, 4, 6, 6, 3, 2];
 
         foreach (i, original; queries)
@@ -1188,6 +1214,15 @@ if (isSegmentPolygonClipScalar!T)
             {
                 const capacity = queryBoundaryEventCapacity(query, polygon);
                 assert(capacity == expectedCapacity[i]);
+
+                if (capacity == 0)
+                {
+                    SegmentPolygonClipOwnedResultInternal owned;
+                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                        SegmentPolygonClipInternalStatus.success);
+                    assert(owned.empty);
+                    continue;
+                }
 
                 // Exercise the existing writer at exactly that capacity.
                 auto events = new ExactOverlayPoint[capacity];
@@ -1204,6 +1239,52 @@ if (isSegmentPolygonClipScalar!T)
                 assert(count == expectedRawCount[i]);
                 assert(count <= capacity);
             }
+        }
+    }}
+}
+
+
+@safe unittest
+{
+    import geo.linear_ring_view : LinearRing2View;
+    import std.meta : AliasSeq;
+
+    // Translation, axis exchange and traversal reversal preserve strict
+    // separation; equality must still admit boundary overlap and contact.
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {{
+        alias P = Point2!T;
+        alias S = Segment2!T;
+        foreach (T offset; [T(-100), T(0), T(100)])
+        {
+            P[4] points = [P(offset, offset), P(offset + 10, offset),
+                P(offset + 10, offset + 10), P(offset, offset + 10)];
+            LinearRing2View!T[1] rings = [LinearRing2View!T(points[])];
+            auto polygon = Polygon2View!T(rings[]);
+            S[4] separated = [
+                S(P(offset - 2, offset), P(offset - 1, offset + 10)),
+                S(P(offset + 11, offset), P(offset + 12, offset + 10)),
+                S(P(offset, offset - 2), P(offset + 10, offset - 1)),
+                S(P(offset, offset + 11), P(offset + 10, offset + 12))];
+            foreach (original; separated)
+                foreach (query; [original, S(original.b, original.a)])
+                {
+                    assert(queryBoundaryEventCapacity(query, polygon) == 0);
+                    SegmentPolygonClipOwnedResultInternal owned;
+                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                        SegmentPolygonClipInternalStatus.success);
+                    assert(owned.empty);
+                }
+            S[2] touching = [S(points[0], points[1]), S(points[0], points[3])];
+            foreach (original; touching)
+                foreach (query; [original, S(original.b, original.a)])
+                {
+                    assert(queryBoundaryEventCapacity(query, polygon) >= 2);
+                    SegmentPolygonClipOwnedResultInternal owned;
+                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                        SegmentPolygonClipInternalStatus.success);
+                    assert(owned.length == 1);
+                }
         }
     }}
 }

@@ -277,7 +277,19 @@ int compareExactCoordinates(
     // Equal positive denominators cancel exactly. Avoid constructing two
     // 330-limb products for comparisons within one rational event family.
     // Distinct representations retain the general exact cross-product path.
-    if (lhsDenominator.limb == rhsDenominator.limb)
+    // DMD lowers fixed-array equality here to a forward byte comparison over
+    // the complete 528-byte denominator. The existing fixed-width comparator
+    // walks significant limbs from the high end and is faster for this
+    // representation on DMD. LDC optimizes array equality substantially better,
+    // so retain its native lowering.
+    version (DigitalMars)
+        const denominatorsEqual =
+            compareUnsigned(lhsDenominator, rhsDenominator) == 0;
+    else
+        const denominatorsEqual =
+            lhsDenominator.limb == rhsDenominator.limb;
+
+    if (denominatorsEqual)
     {
         const comparison = compareUnsigned(
             lhsNumerator.magnitude, rhsNumerator.magnitude);

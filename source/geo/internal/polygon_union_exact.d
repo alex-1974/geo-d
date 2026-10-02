@@ -953,6 +953,35 @@ if (isPolygonUnionExactScalar!T)
 
 
 /*
+ * Research-only sort-context counters.
+ *
+ * DMD -profile uses these no-inline helpers only to count the event-set sizes
+ * presented to exact edge sorting. They do not affect ordering semantics and
+ * are not latency evidence.
+ */
+pragma(inline, false) private void eventCount2To4() pure nothrow @safe @nogc {}
+pragma(inline, false) private void eventCount5To8() pure nothrow @safe @nogc {}
+pragma(inline, false) private void eventCount9To16() pure nothrow @safe @nogc {}
+pragma(inline, false) private void eventCount17To32() pure nothrow @safe @nogc {}
+pragma(inline, false) private void eventCount33Plus() pure nothrow @safe @nogc {}
+
+private void recordExactEdgeEventCount(size_t count)
+    pure nothrow @safe @nogc
+{
+    if (count <= 4)
+        eventCount2To4();
+    else if (count <= 8)
+        eventCount5To8();
+    else if (count <= 16)
+        eventCount9To16();
+    else if (count <= 32)
+        eventCount17To32();
+    else
+        eventCount33Plus();
+}
+
+
+/*
  * Sorts exact edge events in source.a -> source.b order and removes exact
  * duplicates in-place.
  *
@@ -973,6 +1002,8 @@ if (isPolygonUnionExactScalar!T)
 
     if (events.length < 2)
         return events.length;
+
+    recordExactEdgeEventCount(events.length);
 
     size_t start =
         events.length / 2;

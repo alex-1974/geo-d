@@ -115,9 +115,9 @@ def main():
     ap.add_argument("--base",default="4828889625ff2dd25b44dc545a5e9addb27310ef")
     ap.add_argument("--candidate",default="5fe9abcece98ad8c8d0c29d97c9aa28591d20bcc")
     ap.add_argument("--cpu",type=int,default=0)
-    ap.add_argument("--cycles",type=int,default=5)
-    ap.add_argument("--rounds",type=int,default=11)
-    ap.add_argument("--target-ms",type=int,default=100)
+    ap.add_argument("--cycles",type=int,default=3)
+    ap.add_argument("--rounds",type=int,default=7)
+    ap.add_argument("--target-ms",type=int,default=50)
     ap.add_argument("--output",type=Path)
     a=ap.parse_args()
 
@@ -144,12 +144,14 @@ def main():
         binaries={}
         try:
             for label,sha in rev.items():
+                print(f"[worktree] {label} {sha[:8]}", flush=True)
                 p=Path(tmp)/label
                 git("worktree","add","--detach",str(p),sha)
                 wt[label]=p
 
             for compiler in ["dmd","ldc2"]:
                 for label in ["base","candidate"]:
+                    print(f"[build] {compiler} {label}", flush=True)
                     bd=out/"build"/compiler/label
                     bd.mkdir(parents=True,exist_ok=False)
                     binary,version=build_binary(wt[label],compiler,bd)
@@ -160,12 +162,13 @@ def main():
                         "binary_sha256":hashlib.sha256(binary.read_bytes()).hexdigest()
                     })
 
-            targets=[(s,c) for s in ["int","long","float","double"]
-                     for c in ["sparse-1","sparse-4","sparse-16","sparse-64","dense-64"]]
+            targets=[(s,c) for s in ["int","long","double"]
+                     for c in ["sparse-4","sparse-16","sparse-64","dense-64"]]
 
             for compiler in ["dmd","ldc2"]:
                 # Warm both immutable binaries before any recorded pair.
                 for label in ["base","candidate"]:
+                    print(f"[warmup] {compiler} {label}", flush=True)
                     warm=out/"warmup"/compiler/label
                     run_one(binaries[(compiler,label)],warm,"int","sparse-1",3,20)
 
@@ -174,6 +177,7 @@ def main():
                         order=["base","candidate","candidate","base"] if cycle%2==0 else ["candidate","base","base","candidate"]
                         for pos,label in enumerate(order):
                             name=f"{compiler}-{scalar}-{case}-c{cycle}-p{pos}-{label}"
+                            print(f"[measure] {name}", flush=True)
                             dest=out/"runs"/name
                             cmd=run_one(
                                 binaries[(compiler,label)],dest,

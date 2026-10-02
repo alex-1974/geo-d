@@ -528,6 +528,32 @@ if (isSegmentPolygonClipScalar!T)
 
 
 /*
+ * Keep the rejection outside the exact kernel: changing its control flow
+ * changes LDC's inlining decisions for unrelated exact arithmetic. Delegation
+ * retains the original kernel body for every overlapping-envelope query.
+ */
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipBoundsInternal(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    assert(query.isFinite);
+    if (query.a != query.b && !polygon.empty &&
+        polygonBoundsSeparated(query, polygon))
+    {
+        owned = SegmentPolygonClipOwnedResultInternal.init;
+        return SegmentPolygonClipInternalStatus.success;
+    }
+    return trySegmentPolygonClipP1Internal(query, polygon, owned);
+}
+
+
+/*
  * Production P1 clipping kernel.
  *
  * Preconditions:
@@ -574,7 +600,7 @@ if (isSegmentPolygonClipScalar!T)
             polygon
         );
 
-    if (edgeCount == 0 || polygonBoundsSeparated(query, polygon))
+    if (edgeCount == 0)
     {
         Segment2!double[] emptyComponents;
 
@@ -1277,7 +1303,7 @@ if (isSegmentPolygonClipScalar!T)
                 {
                     assert(polygonBoundsSeparated(query, polygon));
                     SegmentPolygonClipOwnedResultInternal owned;
-                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                    assert(trySegmentPolygonClipBoundsInternal(query, polygon, owned) ==
                         SegmentPolygonClipInternalStatus.success);
                     assert(owned.empty);
                 }
@@ -1287,7 +1313,7 @@ if (isSegmentPolygonClipScalar!T)
                 {
                     assert(!polygonBoundsSeparated(query, polygon));
                     SegmentPolygonClipOwnedResultInternal owned;
-                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                    assert(trySegmentPolygonClipBoundsInternal(query, polygon, owned) ==
                         SegmentPolygonClipInternalStatus.success);
                     assert(owned.length == 1);
                 }

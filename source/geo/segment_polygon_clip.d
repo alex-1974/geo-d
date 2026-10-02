@@ -20,7 +20,7 @@ import geo.intersection :
 
 import geo.internal.segment_polygon_clip_p1 :
     SegmentPolygonClipInternalStatus,
-    trySegmentPolygonClipP1Internal;
+    trySegmentPolygonClipP1Internal = trySegmentPolygonClipBoundsInternal;
 
 import geo.internal.segment_polygon_clip_result :
     SegmentPolygonClipOwnedResultInternal;

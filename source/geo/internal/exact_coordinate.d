@@ -323,14 +323,29 @@ private int compareFingerprintCollisionDenominators(
 )
     pure nothrow @safe @nogc
 {
-    return
-        compareFingerprintRejectedDenominators(
-            lhsNumerator,
-            lhsDenominator,
-            rhsNumerator,
-            rhsDenominator,
-            lhsSign
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
         );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(is(typeof(lhsScaled) == typeof(rhsScaled)));
+
+    const comparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return lhsSign > 0
+        ? comparison
+        : -comparison;
 }
 
 

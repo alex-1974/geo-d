@@ -1,0 +1,154 @@
+{
+  "format": 2,
+  "purpose": "comparison",
+  "status": "passed",
+  "revisions": {
+    "base": "7deb69f074208ddabe2b18316820965b16cf2966",
+    "candidate": "95d9d844e7012868b364dd41960fbcd22c6b6bdc"
+  },
+  "cpu": 0,
+  "boundscheck": "safeonly",
+  "comparison_runner_sha256": "7ecae91a0d935de4067ef8cbb5ccb81bef96279e85827b9f56c3c2029fdce329",
+  "measurement_runner_sha256": "1189f79c754814e851e72d1b752908707c110e3ef69d65b29d4f61830863a810",
+  "notes": "Power/turbo/background settings not attested.",
+  "runs": [
+    {
+      "name": "dmd-block0-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/base",
+        "--boundscheck=safeonly",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/dmd-block0-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "dmd-block0-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/dmd-block0-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "dmd-block1-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/dmd-block1-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "dmd-block1-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/base",
+        "--boundscheck=safeonly",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/dmd-block1-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block0-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/base",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/ldc2-block0-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block0-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/ldc2-block0-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block1-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/ldc2-block1-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block1-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-z1ilgqi7/base",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/envelope-xps.VP44x22J/record/ldc2-block1-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    }
+  ],
+  "started_utc": "20261002T065726711113Z",
+  "finished_utc": "2026-10-02T07:04:11.686235+00:00"
+}

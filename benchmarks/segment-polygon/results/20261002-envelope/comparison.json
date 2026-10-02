@@ -1,0 +1,86 @@
+{
+  "format": 2,
+  "purpose": "comparison",
+  "status": "passed",
+  "revisions": {
+    "base": "7deb69f074208ddabe2b18316820965b16cf2966",
+    "candidate": "95d9d844e7012868b364dd41960fbcd22c6b6bdc"
+  },
+  "cpu": 0,
+  "boundscheck": "safeonly",
+  "comparison_runner_sha256": "7ecae91a0d935de4067ef8cbb5ccb81bef96279e85827b9f56c3c2029fdce329",
+  "measurement_runner_sha256": "1189f79c754814e851e72d1b752908707c110e3ef69d65b29d4f61830863a810",
+  "notes": "Cloud diagnostic; power/turbo/background controls not attested.",
+  "runs": [
+    {
+      "name": "ldc2-block0-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-zspekhss/base",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/envelope-v2-comparison/ldc2-block0-base",
+        "--rounds=7",
+        "--target-ms=10"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block0-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-zspekhss/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/envelope-v2-comparison/ldc2-block0-candidate",
+        "--rounds=7",
+        "--target-ms=10"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block1-candidate",
+      "revision": "95d9d844e7012868b364dd41960fbcd22c6b6bdc",
+      "command": [
+        "python3",
+        "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-zspekhss/candidate",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/envelope-v2-comparison/ldc2-block1-candidate",
+        "--rounds=7",
+        "--target-ms=10"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    },
+    {
+      "name": "ldc2-block1-base",
+      "revision": "7deb69f074208ddabe2b18316820965b16cf2966",
+      "command": [
+        "python3",
+        "/workspace/scratch/2e7d5a4f32c1/geo-d/benchmarks/run_segment_polygon.py",
+        "--source-root=/tmp/geo-d-segment-polygon-zspekhss/base",
+        "--boundscheck=safeonly",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/workspace/scratch/2e7d5a4f32c1/geo-d/build/envelope-v2-comparison/ldc2-block1-base",
+        "--rounds=7",
+        "--target-ms=10"
+      ],
+      "returncode": 0,
+      "record_verified": true
+    }
+  ],
+  "started_utc": "20261002T064237749587Z",
+  "finished_utc": "2026-10-02T06:45:09.328203+00:00"
+}

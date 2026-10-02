@@ -160,6 +160,47 @@ if (isSegmentPolygonClipScalar!T)
 
 
 /*
+ * Strict closed-envelope separation proves an empty result without exact
+ * construction or allocation. Only represented finite comparisons are used;
+ * equality retains boundary contact, signed zero and subnormal inputs.
+ * Valid rings represent every vertex. Once all four separation proofs fail,
+ * later vertices cannot restore any proof, so intersecting-envelope queries
+ * normally leave this scan early. Borrowed inputs are never cached.
+ * Keep this rejection scan outside the large exact kernel's inline body.
+ */
+pragma(inline, false)
+private bool polygonBoundsSeparated(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    Bounds2!T bounds;
+    const bool bounded = tryBounds(query, bounds);
+    assert(bounded && !bounds.empty);
+    const lower = bounds.min;
+    const upper = bounds.max;
+    bool left = true, right = true, below = true, above = true;
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const ring = polygon[ringIndex];
+        foreach (vertexIndex; 0 .. ring.length)
+        {
+            const point = ring[vertexIndex];
+            left = left && point.x < lower.x;
+            right = right && point.x > upper.x;
+            below = below && point.y < lower.y;
+            above = above && point.y > upper.y;
+            if (!(left || right || below || above))
+                return false;
+        }
+    }
+    return left || right || below || above;
+}
+
+
+/*
  * Reserves two seeds plus two raw events per possible boundary-edge contact.
  *
  * Each candidate may append at most two events (overlap), including duplicate
@@ -533,7 +574,7 @@ if (isSegmentPolygonClipScalar!T)
             polygon
         );
 
-    if (edgeCount == 0)
+    if (edgeCount == 0 || polygonBoundsSeparated(query, polygon))
     {
         Segment2!double[] emptyComponents;
 
@@ -1204,6 +1245,52 @@ if (isSegmentPolygonClipScalar!T)
                 assert(count == expectedRawCount[i]);
                 assert(count <= capacity);
             }
+        }
+    }}
+}
+
+
+@safe unittest
+{
+    import geo.linear_ring_view : LinearRing2View;
+    import std.meta : AliasSeq;
+
+    // Translation, axis exchange and traversal reversal preserve strict
+    // separation; equality must still admit boundary overlap and contact.
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {{
+        alias P = Point2!T;
+        alias S = Segment2!T;
+        foreach (T offset; [T(-100), T(0), T(100)])
+        {
+            P[4] points = [P(offset, offset), P(offset + 10, offset),
+                P(offset + 10, offset + 10), P(offset, offset + 10)];
+            LinearRing2View!T[1] rings = [LinearRing2View!T(points[])];
+            auto polygon = Polygon2View!T(rings[]);
+            S[4] separated = [
+                S(P(offset - 2, offset), P(offset - 1, offset + 10)),
+                S(P(offset + 11, offset), P(offset + 12, offset + 10)),
+                S(P(offset, offset - 2), P(offset + 10, offset - 1)),
+                S(P(offset, offset + 11), P(offset + 10, offset + 12))];
+            foreach (original; separated)
+                foreach (query; [original, S(original.b, original.a)])
+                {
+                    assert(polygonBoundsSeparated(query, polygon));
+                    SegmentPolygonClipOwnedResultInternal owned;
+                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                        SegmentPolygonClipInternalStatus.success);
+                    assert(owned.empty);
+                }
+            S[2] touching = [S(points[0], points[1]), S(points[0], points[3])];
+            foreach (original; touching)
+                foreach (query; [original, S(original.b, original.a)])
+                {
+                    assert(!polygonBoundsSeparated(query, polygon));
+                    SegmentPolygonClipOwnedResultInternal owned;
+                    assert(trySegmentPolygonClipP1Internal(query, polygon, owned) ==
+                        SegmentPolygonClipInternalStatus.success);
+                    assert(owned.length == 1);
+                }
         }
     }}
 }

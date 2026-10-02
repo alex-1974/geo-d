@@ -1,0 +1,4530 @@
+{
+  "purpose": "comparison",
+  "warning": "subset with weaker GEOS semantics; smoke is not performance evidence",
+  "pairs": [
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 26745.996,
+      "native_median_ns": 4947.475,
+      "d_over_native": 5.405989115660008
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 28583.887,
+      "native_median_ns": 6607.891,
+      "d_over_native": 4.325720112513962
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 105357.031,
+      "native_median_ns": 14509.529,
+      "d_over_native": 7.261230257715464
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 44573.047,
+      "native_median_ns": 8229.604,
+      "d_over_native": 5.416183694865513
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 12.73,
+      "native_median_ns": 3478.373,
+      "d_over_native": 0.0036597570185831134
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 12.686,
+      "native_median_ns": 1300.026,
+      "d_over_native": 0.009758266373134076
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 44632.031,
+      "native_median_ns": 8409.77,
+      "d_over_native": 5.307164286300339
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 1122668.75,
+      "native_median_ns": 147797.629,
+      "d_over_native": 7.595986198127712
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 235349.219,
+      "native_median_ns": 28483.243,
+      "d_over_native": 8.262725526022441
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 5237300.0,
+      "native_median_ns": 627416.859,
+      "d_over_native": 8.34740081474285
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 15.338,
+      "native_median_ns": 130.155,
+      "d_over_native": 0.1178441089470247
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 6822.192,
+      "native_median_ns": 136.513,
+      "d_over_native": 49.97466907913532
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 105719.531,
+      "native_median_ns": 15491.725,
+      "d_over_native": 6.824258176542638
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 105464.062,
+      "native_median_ns": 15214.512,
+      "d_over_native": 6.931807079977327
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 16703.027,
+      "native_median_ns": 5461.319,
+      "d_over_native": 3.058423615247525
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 13691.699,
+      "native_median_ns": 5830.038,
+      "d_over_native": 2.348475087126362
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 44330.273,
+      "native_median_ns": 8304.055,
+      "d_over_native": 5.338388654699421
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 44854.102,
+      "native_median_ns": 8542.218,
+      "d_over_native": 5.250873016820689
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 113402.344,
+      "native_median_ns": 14393.882,
+      "d_over_native": 7.878510050311653
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 60804.688,
+      "native_median_ns": 10509.348,
+      "d_over_native": 5.785771676796696
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 322882.812,
+      "native_median_ns": 27644.553,
+      "d_over_native": 11.679798620726476
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 27485.645,
+      "native_median_ns": 4991.844,
+      "d_over_native": 5.5061105675578
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 29661.621,
+      "native_median_ns": 6772.66,
+      "d_over_native": 4.379611703525645
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 105658.984,
+      "native_median_ns": 15375.053,
+      "d_over_native": 6.872105351441715
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 45069.141,
+      "native_median_ns": 8172.332,
+      "d_over_native": 5.514844600048065
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 11.195,
+      "native_median_ns": 3563.279,
+      "d_over_native": 0.003141769140165561
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 11.151,
+      "native_median_ns": 1329.832,
+      "d_over_native": 0.008385269718280203
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 44875.195,
+      "native_median_ns": 8244.437,
+      "d_over_native": 5.443087866400095
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 1124168.75,
+      "native_median_ns": 150506.977,
+      "d_over_native": 7.469213536858161
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 236374.219,
+      "native_median_ns": 28388.465,
+      "d_over_native": 8.32641775453516
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 5328850.0,
+      "native_median_ns": 628732.641,
+      "d_over_native": 8.475542150196716
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 13.281,
+      "native_median_ns": 145.446,
+      "d_over_native": 0.09131223959407615
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 7544.434,
+      "native_median_ns": 134.03,
+      "d_over_native": 56.28914422144296
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 107967.969,
+      "native_median_ns": 15712.829,
+      "d_over_native": 6.871325908275334
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 106075.781,
+      "native_median_ns": 15485.898,
+      "d_over_native": 6.84983079444279
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 17256.494,
+      "native_median_ns": 5514.383,
+      "d_over_native": 3.1293608006553044
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 14254.443,
+      "native_median_ns": 5752.459,
+      "d_over_native": 2.477973854311695
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 46967.578,
+      "native_median_ns": 8285.767,
+      "d_over_native": 5.668464729939908
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 45066.602,
+      "native_median_ns": 8602.462,
+      "d_over_native": 5.238802798547672
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 45342.188,
+      "native_median_ns": 8236.441,
+      "d_over_native": 5.50507045458105
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 111215.625,
+      "native_median_ns": 14425.848,
+      "d_over_native": 7.70946879517932
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 58869.922,
+      "native_median_ns": 10513.359,
+      "d_over_native": 5.599535029670346
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 320290.625,
+      "native_median_ns": 28511.929,
+      "d_over_native": 11.233565606872828
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 45445.898,
+      "native_median_ns": 8191.257,
+      "d_over_native": 5.5480981734549415
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 27890.43,
+      "native_median_ns": 4925.172,
+      "d_over_native": 5.662833704081807
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 30248.73,
+      "native_median_ns": 6663.441,
+      "d_over_native": 4.539505939949044
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 102900.391,
+      "native_median_ns": 14556.327,
+      "d_over_native": 7.069117848204427
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 43455.078,
+      "native_median_ns": 8230.848,
+      "d_over_native": 5.279538390212042
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 27.954,
+      "native_median_ns": 3487.288,
+      "d_over_native": 0.008015971150074212
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 27.559,
+      "native_median_ns": 1286.699,
+      "d_over_native": 0.021418373683355627
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 43601.367,
+      "native_median_ns": 8606.51,
+      "d_over_native": 5.0660914819131095
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 1111271.875,
+      "native_median_ns": 150349.309,
+      "d_over_native": 7.391266926274998
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 231647.656,
+      "native_median_ns": 29225.64,
+      "d_over_native": 7.92617906742162
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 5177575.0,
+      "native_median_ns": 625840.562,
+      "d_over_native": 8.272993657448492
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 25.926,
+      "native_median_ns": 131.052,
+      "d_over_native": 0.19782986905960992
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 7299.536,
+      "native_median_ns": 136.624,
+      "d_over_native": 53.42791896006558
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 101789.453,
+      "native_median_ns": 15525.328,
+      "d_over_native": 6.5563479882679445
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 102979.688,
+      "native_median_ns": 15693.128,
+      "d_over_native": 6.562088068102165
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 16835.449,
+      "native_median_ns": 5591.01,
+      "d_over_native": 3.0111641724840412
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 12940.186,
+      "native_median_ns": 5793.473,
+      "d_over_native": 2.2335800995361503
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 43088.086,
+      "native_median_ns": 8665.59,
+      "d_over_native": 4.9723199459009715
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 43577.539,
+      "native_median_ns": 8524.191,
+      "d_over_native": 5.112219916236039
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 114448.047,
+      "native_median_ns": 14807.839,
+      "d_over_native": 7.728882452057995
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 57743.555,
+      "native_median_ns": 10726.41,
+      "d_over_native": 5.383306716785952
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 342907.812,
+      "native_median_ns": 28273.423,
+      "d_over_native": 12.128273679490453
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 45646.68,
+      "native_median_ns": 8357.044,
+      "d_over_native": 5.462060508476442
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 27931.055,
+      "native_median_ns": 4937.263,
+      "d_over_native": 5.657194076961264
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 30116.895,
+      "native_median_ns": 6697.399,
+      "d_over_native": 4.496804655060868
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 102771.094,
+      "native_median_ns": 14932.188,
+      "d_over_native": 6.882520766548077
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 43521.875,
+      "native_median_ns": 8353.329,
+      "d_over_native": 5.2101234130728
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 33.446,
+      "native_median_ns": 3496.267,
+      "d_over_native": 0.009566203038841141
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 34.627,
+      "native_median_ns": 1319.017,
+      "d_over_native": 0.02625212563598498
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 43312.5,
+      "native_median_ns": 8280.826,
+      "d_over_native": 5.230456478616989
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 1102340.625,
+      "native_median_ns": 146878.949,
+      "d_over_native": 7.505096084259154
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 231101.562,
+      "native_median_ns": 29295.93,
+      "d_over_native": 7.888521101736658
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 5139300.0,
+      "native_median_ns": 625859.078,
+      "d_over_native": 8.211592961826465
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 31.74,
+      "native_median_ns": 140.445,
+      "d_over_native": 0.2259959414717505
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 7782.69,
+      "native_median_ns": 135.222,
+      "d_over_native": 57.55490970404224
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 103107.422,
+      "native_median_ns": 15801.786,
+      "d_over_native": 6.525048624250449
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 102601.562,
+      "native_median_ns": 15350.985,
+      "d_over_native": 6.68371195724574
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 17132.812,
+      "native_median_ns": 5522.84,
+      "d_over_native": 3.10217424368622
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 13169.434,
+      "native_median_ns": 5844.132,
+      "d_over_native": 2.2534456785028127
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 43238.477,
+      "native_median_ns": 8355.577,
+      "d_over_native": 5.174804444983273
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 43588.867,
+      "native_median_ns": 8238.404,
+      "d_over_native": 5.29093584145667
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 115683.984,
+      "native_median_ns": 14241.996,
+      "d_over_native": 8.122736728756278
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 58549.023,
+      "native_median_ns": 10432.879,
+      "d_over_native": 5.611971824843363
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 347568.75,
+      "native_median_ns": 27835.13,
+      "d_over_native": 12.48669397268847
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 26880.566,
+      "native_median_ns": 4949.931,
+      "d_over_native": 5.430493071519583
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 28878.223,
+      "native_median_ns": 6710.539,
+      "d_over_native": 4.303413332371663
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 105985.547,
+      "native_median_ns": 14383.002,
+      "d_over_native": 7.368805691607357
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 44654.102,
+      "native_median_ns": 8182.997,
+      "d_over_native": 5.456937354370287
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 12.389,
+      "native_median_ns": 3516.271,
+      "d_over_native": 0.003523334805536888
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 13.29,
+      "native_median_ns": 1315.557,
+      "d_over_native": 0.010102184854020008
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 45103.906,
+      "native_median_ns": 8202.39,
+      "d_over_native": 5.498873620981202
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 1127756.25,
+      "native_median_ns": 147903.883,
+      "d_over_native": 7.624926588303297
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 237299.219,
+      "native_median_ns": 28367.637,
+      "d_over_native": 8.365138731858421
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 5195025.0,
+      "native_median_ns": 620622.188,
+      "d_over_native": 8.370672367904449
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 15.109,
+      "native_median_ns": 137.995,
+      "d_over_native": 0.10948947425631363
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 7002.93,
+      "native_median_ns": 142.415,
+      "d_over_native": 49.17269950496788
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 107276.172,
+      "native_median_ns": 15635.009,
+      "d_over_native": 6.861279836807258
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 106244.922,
+      "native_median_ns": 15212.247,
+      "d_over_native": 6.984170188664437
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 16735.498,
+      "native_median_ns": 5501.99,
+      "d_over_native": 3.0417172695697374
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 14616.943,
+      "native_median_ns": 5759.437,
+      "d_over_native": 2.537911778529742
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 44422.461,
+      "native_median_ns": 8289.923,
+      "d_over_native": 5.358609603490889
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 45072.656,
+      "native_median_ns": 8098.838,
+      "d_over_native": 5.565323815589348
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 112948.047,
+      "native_median_ns": 14342.11,
+      "d_over_native": 7.875274070551683
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 58263.867,
+      "native_median_ns": 10443.381,
+      "d_over_native": 5.579023402478565
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 329626.562,
+      "native_median_ns": 27675.802,
+      "d_over_native": 11.910280395849052
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 29486.816,
+      "native_median_ns": 4957.793,
+      "d_over_native": 5.94756900903285
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 31451.855,
+      "native_median_ns": 6646.481,
+      "d_over_native": 4.732106358236788
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 110678.516,
+      "native_median_ns": 14753.758,
+      "d_over_native": 7.5017169184962915
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 45533.008,
+      "native_median_ns": 8197.662,
+      "d_over_native": 5.554389532039745
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 12.093,
+      "native_median_ns": 3496.725,
+      "d_over_native": 0.0034583789116959442
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 12.276,
+      "native_median_ns": 1309.721,
+      "d_over_native": 0.009372988598335064
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 45461.133,
+      "native_median_ns": 8159.694,
+      "d_over_native": 5.571426207894561
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 1121712.5,
+      "native_median_ns": 148142.328,
+      "d_over_native": 7.571856842967932
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 237290.625,
+      "native_median_ns": 28355.303,
+      "d_over_native": 8.368474320306152
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 5222200.0,
+      "native_median_ns": 623152.156,
+      "d_over_native": 8.380296769766773
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 13.551,
+      "native_median_ns": 138.026,
+      "d_over_native": 0.09817715502876269
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 7675.806,
+      "native_median_ns": 141.625,
+      "d_over_native": 54.19810061782877
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 112527.734,
+      "native_median_ns": 15603.998,
+      "d_over_native": 7.21146811221073
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 111316.016,
+      "native_median_ns": 15220.631,
+      "d_over_native": 7.3134954786040085
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 17881.982,
+      "native_median_ns": 5508.124,
+      "d_over_native": 3.2464741171404277
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 15588.623,
+      "native_median_ns": 5824.343,
+      "d_over_native": 2.6764603320923923
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 46805.859,
+      "native_median_ns": 8198.06,
+      "d_over_native": 5.7093823416759575
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 46968.945,
+      "native_median_ns": 8291.353,
+      "d_over_native": 5.664810676858169
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 46928.711,
+      "native_median_ns": 8162.735,
+      "d_over_native": 5.749140576044672
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 114801.953,
+      "native_median_ns": 14301.916,
+      "d_over_native": 8.027033091230573
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 59372.461,
+      "native_median_ns": 10403.097,
+      "d_over_native": 5.707190945157967
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 324201.562,
+      "native_median_ns": 27639.777,
+      "d_over_native": 11.729528859802306
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 44720.508,
+      "native_median_ns": 8167.267,
+      "d_over_native": 5.475578060567875
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 28017.188,
+      "native_median_ns": 4883.948,
+      "d_over_native": 5.7365860570178056
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 29941.016,
+      "native_median_ns": 6625.999,
+      "d_over_native": 4.5187172530512
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 104025.781,
+      "native_median_ns": 14521.569,
+      "d_over_native": 7.163535909928191
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 43607.617,
+      "native_median_ns": 8157.251,
+      "d_over_native": 5.345871666815205
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 27.344,
+      "native_median_ns": 3516.031,
+      "d_over_native": 0.007776950772049507
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 28.542,
+      "native_median_ns": 1322.398,
+      "d_over_native": 0.021583517216450722
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 43708.984,
+      "native_median_ns": 8053.861,
+      "d_over_native": 5.427084475383918
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 1107878.125,
+      "native_median_ns": 150109.602,
+      "d_over_native": 7.380461411122787
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 229316.406,
+      "native_median_ns": 28256.613,
+      "d_over_native": 8.115495158602341
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 5193600.0,
+      "native_median_ns": 624288.375,
+      "d_over_native": 8.319232277871585
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 25.418,
+      "native_median_ns": 137.24,
+      "d_over_native": 0.18520839405421158
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 7333.472,
+      "native_median_ns": 142.088,
+      "d_over_native": 51.612183998648725
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 103567.578,
+      "native_median_ns": 15451.414,
+      "d_over_native": 6.702789660544982
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 102093.359,
+      "native_median_ns": 15279.761,
+      "d_over_native": 6.681607061785848
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 16831.494,
+      "native_median_ns": 5436.154,
+      "d_over_native": 3.0962136098425463
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 12850.732,
+      "native_median_ns": 5685.38,
+      "d_over_native": 2.260311887683849
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 43204.883,
+      "native_median_ns": 8217.228,
+      "d_over_native": 5.257841573825139
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 44279.492,
+      "native_median_ns": 8116.334,
+      "d_over_native": 5.455602492455338
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 114605.078,
+      "native_median_ns": 14218.342,
+      "d_over_native": 8.060368642138442
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 58355.273,
+      "native_median_ns": 10259.686,
+      "d_over_native": 5.687822512306907
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 345776.562,
+      "native_median_ns": 27723.0,
+      "d_over_native": 12.472552104750568
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 45169.922,
+      "native_median_ns": 8268.196,
+      "d_over_native": 5.463092795574754
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 28190.723,
+      "native_median_ns": 4949.737,
+      "d_over_native": 5.695398159538578
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 30078.223,
+      "native_median_ns": 6643.336,
+      "d_over_native": 4.527578162537616
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 103150.0,
+      "native_median_ns": 14470.427,
+      "d_over_native": 7.128331458359868
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 43975.391,
+      "native_median_ns": 8201.739,
+      "d_over_native": 5.361715484972151
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 34.009,
+      "native_median_ns": 3671.101,
+      "d_over_native": 0.0092639782996981
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 33.511,
+      "native_median_ns": 1310.903,
+      "d_over_native": 0.02556329491960885
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 43680.469,
+      "native_median_ns": 8254.167,
+      "d_over_native": 5.291929397600025
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 1112971.875,
+      "native_median_ns": 147761.555,
+      "d_over_native": 7.532215500845264
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 232271.094,
+      "native_median_ns": 29986.429,
+      "d_over_native": 7.745873775100063
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 5194325.0,
+      "native_median_ns": 623196.078,
+      "d_over_native": 8.334977037515952
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 33.151,
+      "native_median_ns": 139.865,
+      "d_over_native": 0.23702141350588068
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 7750.317,
+      "native_median_ns": 140.249,
+      "d_over_native": 55.26112129141741
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 103851.172,
+      "native_median_ns": 15627.921,
+      "d_over_native": 6.645232721614091
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 103960.547,
+      "native_median_ns": 15323.249,
+      "d_over_native": 6.784497661037813
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 17019.629,
+      "native_median_ns": 5461.966,
+      "d_over_native": 3.1160261707963763
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 13191.26,
+      "native_median_ns": 5794.198,
+      "d_over_native": 2.276632590049563
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 43765.234,
+      "native_median_ns": 8301.412,
+      "d_over_native": 5.272022879963071
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 44338.672,
+      "native_median_ns": 8241.026,
+      "d_over_native": 5.380236878272195
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 119867.969,
+      "native_median_ns": 14258.25,
+      "d_over_native": 8.406920133957533
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 58029.492,
+      "native_median_ns": 10583.632,
+      "d_over_native": 5.482946874948033
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 353973.438,
+      "native_median_ns": 27637.196,
+      "d_over_native": 12.807863648685634
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 11341.162,
+      "native_median_ns": 5059.898,
+      "d_over_native": 2.2413815456359
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 12146.973,
+      "native_median_ns": 6818.576,
+      "d_over_native": 1.7814530482611033
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 41605.078,
+      "native_median_ns": 14786.049,
+      "d_over_native": 2.813806311611709
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 17839.551,
+      "native_median_ns": 8421.599,
+      "d_over_native": 2.118309242698447
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.329,
+      "native_median_ns": 3581.184,
+      "d_over_native": 0.001208818089212953
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.329,
+      "native_median_ns": 1343.445,
+      "d_over_native": 0.0032223127854136193
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 18046.191,
+      "native_median_ns": 8565.646,
+      "d_over_native": 2.106810274438145
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 435695.312,
+      "native_median_ns": 145770.414,
+      "d_over_native": 2.988914554362177
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 91729.297,
+      "native_median_ns": 28030.148,
+      "d_over_native": 3.272522749433931
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 2023025.0,
+      "native_median_ns": 630369.812,
+      "d_over_native": 3.2092669437666532
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 4.381,
+      "native_median_ns": 129.638,
+      "d_over_native": 0.03379410358074022
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 3378.101,
+      "native_median_ns": 142.681,
+      "d_over_native": 23.675899383940397
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 42585.156,
+      "native_median_ns": 15736.875,
+      "d_over_native": 2.706074490646968
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 41678.32,
+      "native_median_ns": 15435.809,
+      "d_over_native": 2.7001059678828625
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 7944.165,
+      "native_median_ns": 5693.726,
+      "d_over_native": 1.39524891081868
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 6188.281,
+      "native_median_ns": 5912.027,
+      "d_over_native": 1.0467274591269626
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 18059.277,
+      "native_median_ns": 8364.438,
+      "d_over_native": 2.159054439760328
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 17966.553,
+      "native_median_ns": 8490.26,
+      "d_over_native": 2.1161369616478174
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 46975.195,
+      "native_median_ns": 14653.945,
+      "d_over_native": 3.205634728395664
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 23502.832,
+      "native_median_ns": 10712.947,
+      "d_over_native": 2.193871770298126
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 125985.938,
+      "native_median_ns": 28147.175,
+      "d_over_native": 4.475970963338239
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 11288.818,
+      "native_median_ns": 5241.747,
+      "d_over_native": 2.153636564298124
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 12067.529,
+      "native_median_ns": 6820.423,
+      "d_over_native": 1.7693226651778051
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 40656.445,
+      "native_median_ns": 14802.862,
+      "d_over_native": 2.7465259758552096
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 17885.986,
+      "native_median_ns": 8464.862,
+      "d_over_native": 2.112968409880752
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 14.008,
+      "native_median_ns": 3709.488,
+      "d_over_native": 0.003776262384458448
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.623,
+      "native_median_ns": 1292.719,
+      "d_over_native": 0.003576183223113453
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 17722.949,
+      "native_median_ns": 8450.115,
+      "d_over_native": 2.097361870223068
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 423228.125,
+      "native_median_ns": 145542.023,
+      "d_over_native": 2.907944497926898
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 89209.375,
+      "native_median_ns": 28545.806,
+      "d_over_native": 3.125130710970291
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 1961937.5,
+      "native_median_ns": 641243.766,
+      "d_over_native": 3.0595814010611373
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 4.663,
+      "native_median_ns": 132.089,
+      "d_over_native": 0.035301955499700964
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 3143.323,
+      "native_median_ns": 140.139,
+      "d_over_native": 22.430037320089337
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 40711.133,
+      "native_median_ns": 15805.77,
+      "d_over_native": 2.575713362904813
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 40515.43,
+      "native_median_ns": 15561.021,
+      "d_over_native": 2.6036485652194674
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 7670.923,
+      "native_median_ns": 5562.851,
+      "d_over_native": 1.378955323448354
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 6142.407,
+      "native_median_ns": 5769.094,
+      "d_over_native": 1.0647091207042214
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 18844.678,
+      "native_median_ns": 8469.494,
+      "d_over_native": 2.2250063581130113
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 17520.752,
+      "native_median_ns": 8452.24,
+      "d_over_native": 2.072912269410239
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 17607.959,
+      "native_median_ns": 8525.994,
+      "d_over_native": 2.065208936342202
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 43905.273,
+      "native_median_ns": 14578.437,
+      "d_over_native": 3.011658451451277
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 23155.762,
+      "native_median_ns": 10745.0,
+      "d_over_native": 2.1550267100977196
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 128126.562,
+      "native_median_ns": 27697.285,
+      "d_over_native": 4.625961064414797
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 17535.107,
+      "native_median_ns": 8440.772,
+      "d_over_native": 2.077429292012626
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 10450.586,
+      "native_median_ns": 5134.585,
+      "d_over_native": 2.0353321641379
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 11013.379,
+      "native_median_ns": 6909.854,
+      "d_over_native": 1.5938656591007567
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 38504.492,
+      "native_median_ns": 14847.516,
+      "d_over_native": 2.593328877369117
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 16215.479,
+      "native_median_ns": 8559.994,
+      "d_over_native": 1.8943329866819998
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 3.45,
+      "native_median_ns": 3677.635,
+      "d_over_native": 0.0009381028840545622
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 3.418,
+      "native_median_ns": 1301.398,
+      "d_over_native": 0.002626406372224331
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 16568.701,
+      "native_median_ns": 8556.831,
+      "d_over_native": 1.9363127541025411
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 406679.688,
+      "native_median_ns": 147997.344,
+      "d_over_native": 2.747885043126179
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 85716.797,
+      "native_median_ns": 28637.712,
+      "d_over_native": 2.9931440402780782
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 1893375.0,
+      "native_median_ns": 622924.016,
+      "d_over_native": 3.0394959118095715
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 3.528,
+      "native_median_ns": 131.059,
+      "d_over_native": 0.026919173807216597
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 2720.667,
+      "native_median_ns": 133.875,
+      "d_over_native": 20.322442577030813
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 38608.008,
+      "native_median_ns": 15839.505,
+      "d_over_native": 2.4374504127496412
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 38622.363,
+      "native_median_ns": 15414.204,
+      "d_over_native": 2.505634608183465
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 7196.533,
+      "native_median_ns": 5697.391,
+      "d_over_native": 1.2631278070962657
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 4381.958,
+      "native_median_ns": 5871.47,
+      "d_over_native": 0.7463136148187761
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 16547.266,
+      "native_median_ns": 8496.896,
+      "d_over_native": 1.9474483387815973
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 16427.051,
+      "native_median_ns": 8430.604,
+      "d_over_native": 1.9485022662670433
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 37661.719,
+      "native_median_ns": 14647.278,
+      "d_over_native": 2.571243544363669
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 20878.516,
+      "native_median_ns": 10818.664,
+      "d_over_native": 1.9298608404882525
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 103142.578,
+      "native_median_ns": 28005.055,
+      "d_over_native": 3.682998587219343
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 17885.791,
+      "native_median_ns": 8606.067,
+      "d_over_native": 2.0782769876181537
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 10935.4,
+      "native_median_ns": 5172.361,
+      "d_over_native": 2.1141989122568976
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 11729.688,
+      "native_median_ns": 6866.228,
+      "d_over_native": 1.7083161234960447
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 39341.602,
+      "native_median_ns": 14819.582,
+      "d_over_native": 2.6547038911083995
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 17345.41,
+      "native_median_ns": 8587.207,
+      "d_over_native": 2.0199128773767767
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 5.396,
+      "native_median_ns": 3703.856,
+      "d_over_native": 0.0014568600939129381
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.784,
+      "native_median_ns": 1344.974,
+      "d_over_native": 0.003556946082229099
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 16849.268,
+      "native_median_ns": 8628.649,
+      "d_over_native": 1.9527121800875202
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 412885.938,
+      "native_median_ns": 148323.625,
+      "d_over_native": 2.7836828960996605
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 86862.109,
+      "native_median_ns": 28764.084,
+      "d_over_native": 3.019811407865448
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 1969850.0,
+      "native_median_ns": 628573.531,
+      "d_over_native": 3.1338417907387197
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 4.784,
+      "native_median_ns": 131.044,
+      "d_over_native": 0.03650682213607643
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 3172.009,
+      "native_median_ns": 136.183,
+      "d_over_native": 23.292253805541076
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 38972.07,
+      "native_median_ns": 15910.643,
+      "d_over_native": 2.449434004647078
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 38996.094,
+      "native_median_ns": 15468.682,
+      "d_over_native": 2.520970694206526
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 7664.185,
+      "native_median_ns": 5725.583,
+      "d_over_native": 1.3385859570981682
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 5029.663,
+      "native_median_ns": 5973.27,
+      "d_over_native": 0.8420284032029356
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 16835.254,
+      "native_median_ns": 8653.213,
+      "d_over_native": 1.9455494739352888
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 16850.684,
+      "native_median_ns": 8603.18,
+      "d_over_native": 1.9586576126502062
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 40309.375,
+      "native_median_ns": 14635.97,
+      "d_over_native": 2.754130747739986
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 21685.254,
+      "native_median_ns": 10714.337,
+      "d_over_native": 2.0239473520386753
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 114114.844,
+      "native_median_ns": 28040.302,
+      "d_over_native": 4.069672430774818
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 11364.551,
+      "native_median_ns": 5078.756,
+      "d_over_native": 2.237664302045619
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 12245.215,
+      "native_median_ns": 6696.123,
+      "d_over_native": 1.8287022206730672
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 41627.344,
+      "native_median_ns": 14466.234,
+      "d_over_native": 2.8775522364701134
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 17951.367,
+      "native_median_ns": 8300.686,
+      "d_over_native": 2.162636557990508
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.329,
+      "native_median_ns": 3497.667,
+      "d_over_native": 0.0012376821464135952
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.762,
+      "native_median_ns": 1342.411,
+      "d_over_native": 0.0035473487627857635
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 18047.363,
+      "native_median_ns": 8189.829,
+      "d_over_native": 2.203631235768171
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 435003.125,
+      "native_median_ns": 145754.148,
+      "d_over_native": 2.984499110104229
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 91958.203,
+      "native_median_ns": 28073.836,
+      "d_over_native": 3.2755838211778396
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 2021756.25,
+      "native_median_ns": 625655.438,
+      "d_over_native": 3.231421205996135
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 4.329,
+      "native_median_ns": 127.874,
+      "d_over_native": 0.033853637174093246
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 3392.993,
+      "native_median_ns": 133.619,
+      "d_over_native": 25.393042905574806
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 41610.547,
+      "native_median_ns": 15537.492,
+      "d_over_native": 2.678073591284874
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 41649.805,
+      "native_median_ns": 15572.632,
+      "d_over_native": 2.674551418154619
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 7987.769,
+      "native_median_ns": 5636.556,
+      "d_over_native": 1.4171364570847873
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 6166.479,
+      "native_median_ns": 5820.657,
+      "d_over_native": 1.059412880710889
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 17887.988,
+      "native_median_ns": 8294.822,
+      "d_over_native": 2.1565246366950372
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 18075.684,
+      "native_median_ns": 8163.453,
+      "d_over_native": 2.2142203795379234
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 43914.258,
+      "native_median_ns": 14241.901,
+      "d_over_native": 3.083454800029856
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 23475.684,
+      "native_median_ns": 10497.717,
+      "d_over_native": 2.2362656566184818
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 127617.578,
+      "native_median_ns": 27841.825,
+      "d_over_native": 4.5836642533310945
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 11358.154,
+      "native_median_ns": 4916.511,
+      "d_over_native": 2.3102061604255537
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 12032.617,
+      "native_median_ns": 6659.351,
+      "d_over_native": 1.8068753246374911
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 40541.602,
+      "native_median_ns": 14494.193,
+      "d_over_native": 2.7970927391404268
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 17489.795,
+      "native_median_ns": 8222.563,
+      "d_over_native": 2.12704907216886
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.561,
+      "native_median_ns": 3495.322,
+      "d_over_native": 0.0013048869317333282
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.663,
+      "native_median_ns": 1319.429,
+      "d_over_native": 0.0035341045255182354
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 17664.844,
+      "native_median_ns": 8324.366,
+      "d_over_native": 2.122064791480817
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 431335.938,
+      "native_median_ns": 147587.141,
+      "d_over_native": 2.9225848205840643
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 90011.719,
+      "native_median_ns": 28289.634,
+      "d_over_native": 3.181791570721629
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 1996656.25,
+      "native_median_ns": 624255.438,
+      "d_over_native": 3.198460323224289
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 4.558,
+      "native_median_ns": 129.029,
+      "d_over_native": 0.035325391966147146
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 3147.656,
+      "native_median_ns": 134.082,
+      "d_over_native": 23.475604480840083
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 41026.953,
+      "native_median_ns": 15767.418,
+      "d_over_native": 2.6020083313577405
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 40848.047,
+      "native_median_ns": 15100.479,
+      "d_over_native": 2.7050828652521552
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 7720.972,
+      "native_median_ns": 5622.814,
+      "d_over_native": 1.373150881391417
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 6263.672,
+      "native_median_ns": 5802.632,
+      "d_over_native": 1.0794535996768364
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 18822.949,
+      "native_median_ns": 8304.67,
+      "d_over_native": 2.266549905053422
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 17566.26,
+      "native_median_ns": 8350.928,
+      "d_over_native": 2.1035099332672966
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 17810.303,
+      "native_median_ns": 8304.786,
+      "d_over_native": 2.1445830151433163
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 43892.383,
+      "native_median_ns": 14391.127,
+      "d_over_native": 3.049961479736785
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 23218.359,
+      "native_median_ns": 10566.521,
+      "d_over_native": 2.1973513325719978
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 126420.312,
+      "native_median_ns": 27711.96,
+      "d_over_native": 4.561940476242027
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 17501.074,
+      "native_median_ns": 8335.714,
+      "d_over_native": 2.09952908653056
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 10281.738,
+      "native_median_ns": 4929.13,
+      "d_over_native": 2.0859133356190647
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 11004.883,
+      "native_median_ns": 6632.458,
+      "d_over_native": 1.659246541779835
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 38666.699,
+      "native_median_ns": 14592.743,
+      "d_over_native": 2.6497210976716303
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 16439.6,
+      "native_median_ns": 8076.341,
+      "d_over_native": 2.035525741174128
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 3.682,
+      "native_median_ns": 3467.634,
+      "d_over_native": 0.0010618190962483353
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 3.418,
+      "native_median_ns": 1369.519,
+      "d_over_native": 0.0024957667619069177
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 16560.791,
+      "native_median_ns": 8217.188,
+      "d_over_native": 2.0153842165957503
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 405676.562,
+      "native_median_ns": 146950.18,
+      "d_over_native": 2.760640116262532
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 85317.188,
+      "native_median_ns": 27872.522,
+      "d_over_native": 3.060978407336085
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 1897056.25,
+      "native_median_ns": 619637.875,
+      "d_over_native": 3.061556316259719
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 3.456,
+      "native_median_ns": 130.096,
+      "d_over_native": 0.02656499815520846
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 2610.352,
+      "native_median_ns": 133.113,
+      "d_over_native": 19.610045600354585
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 38485.84,
+      "native_median_ns": 15710.752,
+      "d_over_native": 2.4496497685152177
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 38455.566,
+      "native_median_ns": 15322.023,
+      "d_over_native": 2.5098230174957967
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 7139.062,
+      "native_median_ns": 5501.678,
+      "d_over_native": 1.2976153820707064
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 4309.326,
+      "native_median_ns": 5800.733,
+      "d_over_native": 0.742893355029442
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 16492.09,
+      "native_median_ns": 8416.132,
+      "d_over_native": 1.9595807195039243
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 16432.861,
+      "native_median_ns": 8300.893,
+      "d_over_native": 1.9796497798489874
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 37093.457,
+      "native_median_ns": 14089.248,
+      "d_over_native": 2.632749242542966
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 20694.629,
+      "native_median_ns": 10531.097,
+      "d_over_native": 1.9650971783851199
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 100810.938,
+      "native_median_ns": 27756.496,
+      "d_over_native": 3.6319763849154447
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 17813.623,
+      "native_median_ns": 8343.249,
+      "d_over_native": 2.135094254048992
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 11307.178,
+      "native_median_ns": 5060.895,
+      "d_over_native": 2.2342249740411524
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 12042.871,
+      "native_median_ns": 6735.599,
+      "d_over_native": 1.787943581558225
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 41680.469,
+      "native_median_ns": 14692.965,
+      "d_over_native": 2.8367636484535286
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 16956.689,
+      "native_median_ns": 8471.004,
+      "d_over_native": 2.001733088545348
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 5.438,
+      "native_median_ns": 3474.806,
+      "d_over_native": 0.0015649794549681335
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.784,
+      "native_median_ns": 1338.147,
+      "d_over_native": 0.003575093020423018
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 17215.43,
+      "native_median_ns": 8192.21,
+      "d_over_native": 2.1014390500243527
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 413467.188,
+      "native_median_ns": 148524.012,
+      "d_over_native": 2.7838406896791885
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 87943.75,
+      "native_median_ns": 28345.395,
+      "d_over_native": 3.1025762738533014
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 1938787.5,
+      "native_median_ns": 627487.531,
+      "d_over_native": 3.089762591633076
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 4.784,
+      "native_median_ns": 129.838,
+      "d_over_native": 0.03684591567953912
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 3134.863,
+      "native_median_ns": 133.724,
+      "d_over_native": 23.442785139541144
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 39094.336,
+      "native_median_ns": 15575.378,
+      "d_over_native": 2.5100088100590563
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 39570.508,
+      "native_median_ns": 15203.135,
+      "d_over_native": 2.602786070109882
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 7556.03,
+      "native_median_ns": 5611.47,
+      "d_over_native": 1.3465330831315145
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 4865.991,
+      "native_median_ns": 5764.41,
+      "d_over_native": 0.8441438065647655
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 16948.291,
+      "native_median_ns": 8303.785,
+      "d_over_native": 2.041032011305688
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 16762.305,
+      "native_median_ns": 8230.183,
+      "d_over_native": 2.0366867905610357
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 39676.758,
+      "native_median_ns": 14186.065,
+      "d_over_native": 2.7968825745546773
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 21895.41,
+      "native_median_ns": 10636.667,
+      "d_over_native": 2.05848410973099
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 117106.25,
+      "native_median_ns": 27747.502,
+      "d_over_native": 4.220424959335078
+    }
+  ]
+}

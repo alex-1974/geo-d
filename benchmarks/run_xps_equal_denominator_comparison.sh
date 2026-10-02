@@ -3,7 +3,7 @@ set -euo pipefail
 root=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 cd "$root"
 base=7deb69f074208ddabe2b18316820965b16cf2966
-candidate=4828889625ff2dd25b44dc545a5e9addb27310ef
+candidate=f1a47fa743bb97eacece8652bd27c0687a84d8b4
 cpu=${1:-0}
 notes=${2:-Power/turbo/background settings not attested.}
 git fetch origin develop perf/clipping-equal-denominator

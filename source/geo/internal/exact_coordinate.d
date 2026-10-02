@@ -224,6 +224,115 @@ void negateExactCoordinateNumerator(
 
 
 /*
+ * Compact deterministic fingerprint for one exact denominator.
+ *
+ * This is only a rejection filter. Unequal fingerprints prove that the full
+ * denominator arrays differ. Equal fingerprints MUST still be confirmed by
+ * complete limb equality before denominator cancellation.
+ */
+ulong exactDenominatorFingerprint(
+    ref const DyadicProductMagnitude denominator
+)
+    pure nothrow @safe @nogc
+{
+    ulong result = 14695981039346656037UL;
+
+    foreach (limb; denominator.limb)
+    {
+        result ^= cast(ulong) limb;
+        result *= 1099511628211UL;
+    }
+
+    return result;
+}
+
+
+/*
+ * Fingerprint-aware exact coordinate comparison.
+ *
+ * The authoritative arithmetic remains identical to compareExactCoordinates:
+ * a mismatch skips only the 132-limb equality scan; a match still requires
+ * complete denominator equality before the numerator-only fast path.
+ */
+int compareExactCoordinatesFingerprinted(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ulong lhsDenominatorFingerprint,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator,
+    ulong rhsDenominatorFingerprint
+)
+    pure nothrow @safe @nogc
+{
+    assert(!lhsDenominator.isZero);
+    assert(!rhsDenominator.isZero);
+
+    const int lhsSign =
+        lhsNumerator.magnitude.isZero
+            ? 0
+            : lhsNumerator.sign;
+
+    const int rhsSign =
+        rhsNumerator.magnitude.isZero
+            ? 0
+            : rhsNumerator.sign;
+
+    assert(lhsSign >= -1 && lhsSign <= 1);
+    assert(rhsSign >= -1 && rhsSign <= 1);
+
+    if (lhsSign < rhsSign)
+        return -1;
+
+    if (lhsSign > rhsSign)
+        return 1;
+
+    if (lhsSign == 0)
+        return 0;
+
+    if (
+        lhsDenominatorFingerprint ==
+            rhsDenominatorFingerprint &&
+        lhsDenominator.limb ==
+            rhsDenominator.limb
+    )
+    {
+        const comparison = compareUnsigned(
+            lhsNumerator.magnitude,
+            rhsNumerator.magnitude
+        );
+
+        return lhsSign > 0
+            ? comparison
+            : -comparison;
+    }
+
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
+        );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(is(typeof(lhsScaled) == typeof(rhsScaled)));
+
+    const int magnitudeComparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return lhsSign > 0
+        ? magnitudeComparison
+        : -magnitudeComparison;
+}
+
+
+/*
  * Exact comparison of two rational constructed coordinates.
  *
  * Both values use the common 2^-1074 coordinate scale:

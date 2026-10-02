@@ -77,6 +77,10 @@ build provenance in `results/provenance.json`.
 
 ## Next measurement decision
 
+The [native driver and serial comparison runner](native.md) implement the
+ordinary-domain measurement lane below. Semantic differences remain explicit;
+native preflight is required independently of the retained Shapely results.
+
 1. Implement a native C++ driver calling the stable GEOS C API, pinned to 3.13.1.
    Admit only the 87 matched undirected fixtures from this assessment, and list
    all five exclusions before measurement. Repeat semantic preflight in the

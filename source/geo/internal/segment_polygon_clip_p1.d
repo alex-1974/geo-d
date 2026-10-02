@@ -29,7 +29,8 @@ import geo.internal.polygon_union_exact :
     exactOverlayPoint,
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
-    sortUniqueExactEdgeEvents;
+    sortUniqueExactEdgeEvents,
+    sortUniqueExactEdgeEventsEqualPreferred;
 
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
@@ -601,11 +602,24 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-    eventCount =
-        sortUniqueExactEdgeEvents(
-            query,
-            events[0 .. eventCount]
-        );
+    enum size_t equalPreferredEventThreshold = 9;
+
+    if (eventCount >= equalPreferredEventThreshold)
+    {
+        eventCount =
+            sortUniqueExactEdgeEventsEqualPreferred(
+                query,
+                events[0 .. eventCount]
+            );
+    }
+    else
+    {
+        eventCount =
+            sortUniqueExactEdgeEvents(
+                query,
+                events[0 .. eventCount]
+            );
+    }
 
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);

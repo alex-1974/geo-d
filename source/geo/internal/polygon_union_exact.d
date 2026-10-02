@@ -1000,7 +1000,7 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-private size_t sortUniqueExactEdgeEventsEqualPreferred(T)(
+size_t sortUniqueExactEdgeEventsEqualPreferred(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events
 )
@@ -1153,17 +1153,6 @@ if (isPolygonUnionExactScalar!T)
 
     if (events.length < 2)
         return events.length;
-
-    enum size_t equalPreferredEventThreshold = 9;
-
-    if (events.length >= equalPreferredEventThreshold)
-    {
-        return
-            sortUniqueExactEdgeEventsEqualPreferred(
-                source,
-                events
-            );
-    }
 
     size_t start =
         events.length / 2;

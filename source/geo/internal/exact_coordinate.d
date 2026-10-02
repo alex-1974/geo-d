@@ -257,6 +257,94 @@ ulong exactDenominatorFingerprint(
  * it does not skip the authoritative exact cross-products. A fingerprint
  * match still confirms complete denominator equality before cancellation.
  */
+pragma(inline, false)
+private int compareFingerprintRejectedDenominators(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator,
+    int lhsSign
+)
+    pure nothrow @safe @nogc
+{
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
+        );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(is(typeof(lhsScaled) == typeof(rhsScaled)));
+
+    const comparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return lhsSign > 0
+        ? comparison
+        : -comparison;
+}
+
+
+pragma(inline, false)
+private int compareFingerprintConfirmedEqualDenominators(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    int lhsSign
+)
+    pure nothrow @safe @nogc
+{
+    const comparison =
+        compareUnsigned(
+            lhsNumerator.magnitude,
+            rhsNumerator.magnitude
+        );
+
+    return lhsSign > 0
+        ? comparison
+        : -comparison;
+}
+
+
+pragma(inline, false)
+private int compareFingerprintCollisionDenominators(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator,
+    int lhsSign
+)
+    pure nothrow @safe @nogc
+{
+    return
+        compareFingerprintRejectedDenominators(
+            lhsNumerator,
+            lhsDenominator,
+            rhsNumerator,
+            rhsDenominator,
+            lhsSign
+        );
+}
+
+
+/*
+ * Fingerprint-aware variant of exact coordinate comparison.
+ *
+ * A fingerprint mismatch skips only the 132-limb denominator equality test;
+ * it does not skip the authoritative exact cross-products. A fingerprint
+ * match still confirms complete denominator equality before cancellation.
+ *
+ * The no-inline branch helpers are deliberate research instrumentation so DMD
+ * -profile can count cheap rejects, confirmed equal denominators and hash
+ * collisions independently. They are not a production source-shape proposal.
+ */
 int compareExactCoordinatesFingerprinted(
     ref const SignedExactCoordinateNumerator lhsNumerator,
     ref const DyadicProductMagnitude lhsDenominator,
@@ -301,45 +389,41 @@ int compareExactCoordinatesFingerprinted(
         return 0;
 
     if (
-        lhsDenominatorFingerprint ==
-            rhsDenominatorFingerprint &&
-        lhsDenominator.limb ==
-            rhsDenominator.limb
+        lhsDenominatorFingerprint !=
+        rhsDenominatorFingerprint
     )
     {
-        const comparison = compareUnsigned(
-            lhsNumerator.magnitude,
-            rhsNumerator.magnitude
-        );
-
-        return lhsSign > 0
-            ? comparison
-            : -comparison;
+        return
+            compareFingerprintRejectedDenominators(
+                lhsNumerator,
+                lhsDenominator,
+                rhsNumerator,
+                rhsDenominator,
+                lhsSign
+            );
     }
 
-    const auto lhsScaled =
-        multiplyUnsigned(
-            lhsNumerator.magnitude,
-            rhsDenominator
+    if (
+        lhsDenominator.limb ==
+        rhsDenominator.limb
+    )
+    {
+        return
+            compareFingerprintConfirmedEqualDenominators(
+                lhsNumerator,
+                rhsNumerator,
+                lhsSign
+            );
+    }
+
+    return
+        compareFingerprintCollisionDenominators(
+            lhsNumerator,
+            lhsDenominator,
+            rhsNumerator,
+            rhsDenominator,
+            lhsSign
         );
-
-    const auto rhsScaled =
-        multiplyUnsigned(
-            rhsNumerator.magnitude,
-            lhsDenominator
-        );
-
-    static assert(is(typeof(lhsScaled) == typeof(rhsScaled)));
-
-    const int magnitudeComparison =
-        compareUnsigned(
-            lhsScaled,
-            rhsScaled
-        );
-
-    return lhsSign > 0
-        ? magnitudeComparison
-        : -magnitudeComparison;
 }
 
 
@@ -764,6 +848,53 @@ static assert(finiteBoundarySelfCheck(3));
 
     assert(differenceProduct.sign == 1);
     assert(!differenceProduct.magnitude.isZero);
+}
+
+
+private bool denominatorFingerprintLaws()
+    pure nothrow @safe @nogc
+{
+    DyadicProductMagnitude one;
+    one.limb[0] = 1;
+
+    DyadicProductMagnitude same = one;
+
+    DyadicProductMagnitude lowDifferent = one;
+    lowDifferent.limb[1] = 7;
+
+    DyadicProductMagnitude highDifferent = one;
+    highDifferent.limb[131] = 9;
+
+    const oneFingerprint =
+        exactDenominatorFingerprint(one);
+
+    if (
+        oneFingerprint !=
+        exactDenominatorFingerprint(same)
+    )
+        return false;
+
+    if (
+        oneFingerprint ==
+        exactDenominatorFingerprint(lowDifferent)
+    )
+        return false;
+
+    if (
+        oneFingerprint ==
+        exactDenominatorFingerprint(highDifferent)
+    )
+        return false;
+
+    return true;
+}
+
+
+static assert(denominatorFingerprintLaws());
+
+@safe unittest
+{
+    assert(denominatorFingerprintLaws());
 }
 
 

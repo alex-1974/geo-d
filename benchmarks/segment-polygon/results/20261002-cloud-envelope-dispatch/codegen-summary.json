@@ -1,0 +1,33 @@
+{
+  "scope": "LDC 1.41.0 LLVM 20.1.5 release. Kernel instruction text; PC-relative displacements and call/jump addresses normalized. Remaining differences are immediate arguments before array bounds and OOM failure calls (path lengths/source line numbers). Not whole-binary equality or a performance proof.",
+  "scalars": {
+    "i": {
+      "base_bytes": 7412,
+      "candidate_bytes": 7412,
+      "instruction_rows": 1674,
+      "error_argument_immediate_differences": 46,
+      "otherwise_relocation_normalized_instruction_text_equal": true
+    },
+    "l": {
+      "base_bytes": 26724,
+      "candidate_bytes": 26724,
+      "instruction_rows": 5714,
+      "error_argument_immediate_differences": 47,
+      "otherwise_relocation_normalized_instruction_text_equal": true
+    },
+    "f": {
+      "base_bytes": 7687,
+      "candidate_bytes": 7687,
+      "instruction_rows": 1625,
+      "error_argument_immediate_differences": 47,
+      "otherwise_relocation_normalized_instruction_text_equal": true
+    },
+    "d": {
+      "base_bytes": 24302,
+      "candidate_bytes": 24302,
+      "instruction_rows": 5066,
+      "error_argument_immediate_differences": 49,
+      "otherwise_relocation_normalized_instruction_text_equal": true
+    }
+  }
+}

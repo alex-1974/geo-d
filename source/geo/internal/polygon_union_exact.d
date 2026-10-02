@@ -7,8 +7,9 @@ import geo.internal.dyadic :
 
 import geo.internal.exact_coordinate :
     SignedExactCoordinateNumerator,
-    compareExactCoordinates,
-    exactCoordinateNumeratorLimbs;
+    compareExactCoordinatesFingerprinted,
+    exactCoordinateNumeratorLimbs,
+    exactDenominatorFingerprint;
 
 import geo.internal.fixed_uint :
     UIntFixed,
@@ -66,6 +67,7 @@ struct ExactOverlayPoint
     SignedExactCoordinateNumerator yNumerator;
 
     DyadicProductMagnitude denominator;
+    ulong denominatorFingerprint;
 }
 
 
@@ -121,6 +123,8 @@ if (isPolygonUnionExactScalar!T)
         );
 
     result.denominator.limb[0] = 1;
+    result.denominatorFingerprint =
+        exactDenominatorFingerprint(result.denominator);
 
     return result;
 }
@@ -141,7 +145,10 @@ ExactOverlayPoint exactOverlayPoint(
         ExactOverlayPoint(
             intersection.xNumerator,
             intersection.yNumerator,
-            intersection.denominator
+            intersection.denominator,
+            exactDenominatorFingerprint(
+                intersection.denominator
+            )
         );
 }
 
@@ -527,22 +534,26 @@ int compareExactOverlayPoints(
     pure nothrow @safe @nogc
 {
     const int xComparison =
-        compareExactCoordinates(
+        compareExactCoordinatesFingerprinted(
             lhs.xNumerator,
             lhs.denominator,
+            lhs.denominatorFingerprint,
             rhs.xNumerator,
-            rhs.denominator
+            rhs.denominator,
+            rhs.denominatorFingerprint
         );
 
     if (xComparison != 0)
         return xComparison;
 
     return
-        compareExactCoordinates(
+        compareExactCoordinatesFingerprinted(
             lhs.yNumerator,
             lhs.denominator,
+            lhs.denominatorFingerprint,
             rhs.yNumerator,
-            rhs.denominator
+            rhs.denominator,
+            rhs.denominatorFingerprint
         );
 }
 
@@ -604,11 +615,13 @@ if (isPolygonUnionExactScalar!T)
     }
 
     comparison =
-        compareExactCoordinates(
+        compareExactCoordinatesFingerprinted(
             lhs.yNumerator,
             lhs.denominator,
+            lhs.denominatorFingerprint,
             rhs.yNumerator,
-            rhs.denominator
+            rhs.denominator,
+            rhs.denominatorFingerprint
         );
 
     return

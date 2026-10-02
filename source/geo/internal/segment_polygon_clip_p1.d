@@ -532,6 +532,7 @@ if (isSegmentPolygonClipScalar!T)
  * changes LDC's inlining decisions for unrelated exact arithmetic. Delegation
  * retains the original kernel body for every overlapping-envelope query.
  */
+pragma(inline, true)
 package(geo)
 SegmentPolygonClipInternalStatus
 trySegmentPolygonClipBoundsInternal(T)(
@@ -543,7 +544,7 @@ trySegmentPolygonClipBoundsInternal(T)(
 if (isSegmentPolygonClipScalar!T)
 {
     assert(query.isFinite);
-    if (query.a != query.b && !polygon.empty &&
+    if (query.a == query.b || polygon.empty ||
         polygonBoundsSeparated(query, polygon))
     {
         owned = SegmentPolygonClipOwnedResultInternal.init;

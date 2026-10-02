@@ -516,6 +516,67 @@ static assert(
 
 
 /*
+ * Research-only call-site counters for denominator equality.
+ *
+ * DMD -profile uses these no-inline zero-cost bodies only to count how often
+ * each comparator context sees equal versus distinct raw denominators.
+ * They do not affect comparison results and are not latency evidence.
+ */
+pragma(inline, false) private void overlayXEqual() pure nothrow @safe @nogc {}
+pragma(inline, false) private void overlayXDistinct() pure nothrow @safe @nogc {}
+pragma(inline, false) private void overlayYEqual() pure nothrow @safe @nogc {}
+pragma(inline, false) private void overlayYDistinct() pure nothrow @safe @nogc {}
+pragma(inline, false) private void alongXEqual() pure nothrow @safe @nogc {}
+pragma(inline, false) private void alongXDistinct() pure nothrow @safe @nogc {}
+pragma(inline, false) private void alongYEqual() pure nothrow @safe @nogc {}
+pragma(inline, false) private void alongYDistinct() pure nothrow @safe @nogc {}
+
+private void recordOverlayXDenominators(
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+) pure nothrow @safe @nogc
+{
+    if (lhs.denominator.limb == rhs.denominator.limb)
+        overlayXEqual();
+    else
+        overlayXDistinct();
+}
+
+private void recordOverlayYDenominators(
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+) pure nothrow @safe @nogc
+{
+    if (lhs.denominator.limb == rhs.denominator.limb)
+        overlayYEqual();
+    else
+        overlayYDistinct();
+}
+
+private void recordAlongXDenominators(
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+) pure nothrow @safe @nogc
+{
+    if (lhs.denominator.limb == rhs.denominator.limb)
+        alongXEqual();
+    else
+        alongXDistinct();
+}
+
+private void recordAlongYDenominators(
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+) pure nothrow @safe @nogc
+{
+    if (lhs.denominator.limb == rhs.denominator.limb)
+        alongYEqual();
+    else
+        alongYDistinct();
+}
+
+
+/*
  * Exact lexicographic ordering of arrangement points.
  *
  * Raw unreduced numerator/denominator storage is not used as identity.
@@ -526,6 +587,8 @@ int compareExactOverlayPoints(
 )
     pure nothrow @safe @nogc
 {
+    recordOverlayXDenominators(lhs, rhs);
+
     const int xComparison =
         compareExactCoordinates(
             lhs.xNumerator,
@@ -536,6 +599,8 @@ int compareExactOverlayPoints(
 
     if (xComparison != 0)
         return xComparison;
+
+    recordOverlayYDenominators(lhs, rhs);
 
     return
         compareExactCoordinates(
@@ -589,6 +654,8 @@ if (isPolygonUnionExactScalar!T)
 
     if (source.a.x != source.b.x)
     {
+        recordAlongXDenominators(lhs, rhs);
+
         comparison =
             compareExactCoordinates(
                 lhs.xNumerator,
@@ -602,6 +669,8 @@ if (isPolygonUnionExactScalar!T)
                 ? comparison
                 : -comparison;
     }
+
+    recordAlongYDenominators(lhs, rhs);
 
     comparison =
         compareExactCoordinates(

@@ -8,6 +8,7 @@ import geo.internal.dyadic :
 import geo.internal.exact_coordinate :
     SignedExactCoordinateNumerator,
     compareExactCoordinates,
+    compareExactCoordinatesEqualPreferred,
     exactCoordinateNumeratorLimbs;
 
 import geo.internal.fixed_uint :
@@ -890,7 +891,56 @@ if (isPolygonUnionExactScalar!T)
  * Restores the max-heap property in events[root .. end), using exact
  * source-edge order as the key.
  */
-private void siftDownExactEdgeEvents(T)(
+private int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
+    Segment2!T source,
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+
+    int comparison;
+
+    if (source.a.x != source.b.x)
+    {
+        comparison =
+            compareExactCoordinatesEqualPreferred(
+                lhs.xNumerator,
+                lhs.denominator,
+                rhs.xNumerator,
+                rhs.denominator
+            );
+
+        return
+            source.a.x < source.b.x
+                ? comparison
+                : -comparison;
+    }
+
+    comparison =
+        compareExactCoordinatesEqualPreferred(
+            lhs.yNumerator,
+            lhs.denominator,
+            rhs.yNumerator,
+            rhs.denominator
+        );
+
+    return
+        source.a.y < source.b.y
+            ? comparison
+            : -comparison;
+}
+
+
+/*
+ * Restores the max-heap property in events[root .. end).
+ *
+ * PreferEqualDenominator is selected once by the enclosing sort from the
+ * measured event-count context, so no runtime mode branch occurs per compare.
+ */
+private void siftDownExactEdgeEvents(bool PreferEqualDenominator, T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events,
     size_t root,
@@ -909,30 +959,64 @@ if (isPolygonUnionExactScalar!T)
 
         size_t largest = root;
 
-        if (
-            compareExactOverlayPointsAlongSegment(
-                source,
-                events[largest],
-                events[left]
-            ) < 0
-        )
+        static if (PreferEqualDenominator)
         {
-            largest = left;
+            if (
+                compareExactOverlayPointsAlongSegmentEqualPreferred(
+                    source,
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
+        }
+        else
+        {
+            if (
+                compareExactOverlayPointsAlongSegment(
+                    source,
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
         }
 
         const size_t right =
             left + 1;
 
-        if (
-            right < end &&
-            compareExactOverlayPointsAlongSegment(
-                source,
-                events[largest],
-                events[right]
-            ) < 0
-        )
+        if (right < end)
         {
-            largest = right;
+            static if (PreferEqualDenominator)
+            {
+                if (
+                    compareExactOverlayPointsAlongSegmentEqualPreferred(
+                        source,
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+            }
+            else
+            {
+                if (
+                    compareExactOverlayPointsAlongSegment(
+                        source,
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+            }
         }
 
         if (largest == root)
@@ -952,28 +1036,13 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-/*
- * Sorts exact edge events in source.a -> source.b order and removes exact
- * duplicates in-place.
- *
- * Heap sort keeps the helper allocation-free and O(m log m), where m is the
- * event count for this source edge. Exact duplicate removal is linear after
- * sorting.
- *
- * The return value is the number of unique events in events[0 .. result].
- */
-size_t sortUniqueExactEdgeEvents(T)(
+private void heapSortExactEdgeEvents(bool PreferEqualDenominator, T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events
 )
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
-    assert(source.a != source.b);
-
-    if (events.length < 2)
-        return events.length;
-
     size_t start =
         events.length / 2;
 
@@ -981,7 +1050,10 @@ if (isPolygonUnionExactScalar!T)
     {
         --start;
 
-        siftDownExactEdgeEvents(
+        siftDownExactEdgeEvents!(
+            PreferEqualDenominator,
+            T
+        )(
             source,
             events,
             start,
@@ -1005,11 +1077,55 @@ if (isPolygonUnionExactScalar!T)
         events[end] =
             temporary;
 
-        siftDownExactEdgeEvents(
+        siftDownExactEdgeEvents!(
+            PreferEqualDenominator,
+            T
+        )(
             source,
             events,
             0,
             end
+        );
+    }
+}
+
+
+/*
+ * Sorts exact edge events in source.a -> source.b order and removes exact
+ * duplicates in-place.
+ *
+ * Research on the public clipping corpus found that 2-4-event sorts are the
+ * sparse/crossing regime where denominator equality is only about 50%, while
+ * 9+ event sorts are the dense regime where equal denominators become common
+ * enough to amortize the equality probe. Event counts 5-8 were not observed,
+ * so they conservatively retain the baseline comparator.
+ */
+size_t sortUniqueExactEdgeEvents(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+
+    if (events.length < 2)
+        return events.length;
+
+    enum size_t equalPreferredEventThreshold = 9;
+
+    if (events.length >= equalPreferredEventThreshold)
+    {
+        heapSortExactEdgeEvents!(true, T)(
+            source,
+            events
+        );
+    }
+    else
+    {
+        heapSortExactEdgeEvents!(false, T)(
+            source,
+            events
         );
     }
 

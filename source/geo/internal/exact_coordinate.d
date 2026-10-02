@@ -224,6 +224,87 @@ void negateExactCoordinateNumerator(
 
 
 /*
+ * Research-only signature classifiers for distinct denominators.
+ *
+ * These helpers are deliberately no-inline so DMD -profile can count which
+ * constant-time projections would have rejected a denominator mismatch before
+ * the full 132-limb equality scan. They do not affect the comparison result.
+ */
+pragma(inline, false)
+private void signatureRejectLimb67()
+    pure nothrow @safe @nogc
+{
+}
+
+pragma(inline, false)
+private void signatureRejectBand66To68()
+    pure nothrow @safe @nogc
+{
+}
+
+pragma(inline, false)
+private void signatureRejectFiveSamples()
+    pure nothrow @safe @nogc
+{
+}
+
+pragma(inline, false)
+private void signatureRejectNineSamples()
+    pure nothrow @safe @nogc
+{
+}
+
+pragma(inline, false)
+private void signatureNeedsFullScan()
+    pure nothrow @safe @nogc
+{
+}
+
+
+private void classifyDistinctDenominatorSignature(
+    ref const DyadicProductMagnitude lhs,
+    ref const DyadicProductMagnitude rhs
+)
+    pure nothrow @safe @nogc
+{
+    const bool limb67 =
+        lhs.limb[67] != rhs.limb[67];
+
+    const bool band66To68 =
+        limb67 ||
+        lhs.limb[66] != rhs.limb[66] ||
+        lhs.limb[68] != rhs.limb[68];
+
+    const bool fiveSamples =
+        band66To68 ||
+        lhs.limb[0] != rhs.limb[0] ||
+        lhs.limb[131] != rhs.limb[131];
+
+    const bool nineSamples =
+        fiveSamples ||
+        lhs.limb[32] != rhs.limb[32] ||
+        lhs.limb[64] != rhs.limb[64] ||
+        lhs.limb[96] != rhs.limb[96] ||
+        lhs.limb[99] != rhs.limb[99];
+
+    if (limb67)
+        signatureRejectLimb67();
+
+    if (band66To68)
+        signatureRejectBand66To68();
+
+    if (fiveSamples)
+        signatureRejectFiveSamples();
+
+    if (nineSamples)
+        signatureRejectNineSamples();
+
+    if (!nineSamples)
+        signatureNeedsFullScan();
+}
+
+
+/*
  * Exact comparison of two rational constructed coordinates.
  *
  * Both values use the common 2^-1074 coordinate scale:
@@ -283,6 +364,11 @@ int compareExactCoordinates(
             lhsNumerator.magnitude, rhsNumerator.magnitude);
         return lhsSign > 0 ? comparison : -comparison;
     }
+
+    classifyDistinctDenominatorSignature(
+        lhsDenominator,
+        rhsDenominator
+    );
 
     const auto lhsScaled =
         multiplyUnsigned(

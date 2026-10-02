@@ -80,28 +80,33 @@ private int compareEqualFast(
     return lhsSign > 0 ? comparison : -comparison;
 }
 
+private uint nextWord(ref uint state)
+    pure nothrow @safe @nogc
+{
+    state = cast(uint)(cast(ulong) state * 1664525 + 1013904223);
+    return state | 1;
+}
+
 private void fill(ref SignedExactCoordinateNumerator value, uint seed)
     pure nothrow @safe @nogc
 {
     value.sign = 1;
     uint state = seed;
-    foreach (ref limb; value.magnitude.limb)
-    {
-        state = cast(uint)(cast(ulong) state * 1664525 + 1013904223);
-        limb = state;
-    }
+    // Exact dyadic construction values occupy sparse spans in the large
+    // fixed-width carrier. Exercise low/middle/high positions without turning
+    // this into an unrelated dense-BigInt multiplication benchmark.
+    value.magnitude.limb[0] = nextWord(state);
+    value.magnitude.limb[64] = nextWord(state);
+    value.magnitude.limb[197] = nextWord(state);
 }
 
 private void fill(ref DyadicProductMagnitude value, uint seed)
     pure nothrow @safe @nogc
 {
     uint state = seed;
-    foreach (ref limb; value.limb)
-    {
-        state = cast(uint)(cast(ulong) state * 1664525 + 1013904223);
-        limb = state;
-    }
-    value.limb[$ - 1] |= 1;
+    value.limb[0] = nextWord(state);
+    value.limb[65] = nextWord(state);
+    value.limb[131] = nextWord(state);
 }
 
 private void measure(alias comparator)(

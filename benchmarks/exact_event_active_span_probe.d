@@ -3,8 +3,6 @@ module geo.internal.exact_event_active_span_probe;
 import core.memory : GC;
 import core.volatile : volatileLoad;
 
-import geo.internal.exact_coordinate :
-    compareCanonicalExactCoordinatesEqualPreferred;
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     properIntersectionExactKnownCrossing;
@@ -241,27 +239,28 @@ private int compareBounded(T)(
             useX
         );
 
-    const int comparison =
-        bounded != 2
-            ? bounded
-            : compareExactOverlayPointsAlongSegmentEqualPreferred(
+    if (bounded == 2)
+    {
+        return
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
                 source,
                 lhs,
                 rhs
             );
+    }
 
     if (useX)
     {
         return
             source.a.x < source.b.x
-                ? comparison
-                : -comparison;
+                ? bounded
+                : -bounded;
     }
 
     return
         source.a.y < source.b.y
-            ? comparison
-            : -comparison;
+            ? bounded
+            : -bounded;
 }
 
 private void siftDownCurrent(T)(

@@ -22,6 +22,12 @@ import geo.internal.intersection_exact :
     ExactProperIntersection,
     tryProperIntersectionExact;
 
+import geo.intersection :
+    SegmentContactKind,
+    segmentContactKind,
+    trySegmentIntersectionOverlap,
+    trySegmentTouchPoint;
+
 import geo.point :
     Point2;
 
@@ -694,9 +700,10 @@ private bool appendExactEdgeEvent(
  * Capacity is checked before any writes, so a false return leaves both counts
  * unchanged.
  */
-bool appendSegmentPairNodingEvents(T)(
+bool appendSegmentPairNodingEventsKnownContact(T)(
     Segment2!T first,
     Segment2!T second,
+    SegmentContactKind contact,
     scope ExactOverlayPoint[] firstEvents,
     ref size_t firstCount,
     scope ExactOverlayPoint[] secondEvents,
@@ -705,18 +712,6 @@ bool appendSegmentPairNodingEvents(T)(
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
-    import geo.intersection :
-        SegmentContactKind,
-        segmentContactKind,
-        trySegmentIntersectionOverlap,
-        trySegmentTouchPoint;
-
-    const SegmentContactKind contact =
-        segmentContactKind(
-            first,
-            second
-        );
-
     size_t required = 0;
 
     final switch (contact)
@@ -884,6 +879,36 @@ if (isPolygonUnionExactScalar!T)
             return true;
         }
     }
+}
+
+
+bool appendSegmentPairNodingEvents(T)(
+    Segment2!T first,
+    Segment2!T second,
+    scope ExactOverlayPoint[] firstEvents,
+    ref size_t firstCount,
+    scope ExactOverlayPoint[] secondEvents,
+    ref size_t secondCount
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    const SegmentContactKind contact =
+        segmentContactKind(
+            first,
+            second
+        );
+
+    return
+        appendSegmentPairNodingEventsKnownContact(
+            first,
+            second,
+            contact,
+            firstEvents,
+            firstCount,
+            secondEvents,
+            secondCount
+        );
 }
 
 

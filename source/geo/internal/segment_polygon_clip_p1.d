@@ -173,15 +173,13 @@ if (isSegmentPolygonClipScalar!T)
  * materialization below remain unchanged.
  */
 private size_t queryBoundaryEventCapacity(T)(
-    Segment2!T query,
+    Bounds2!T queryBounds,
     scope Polygon2View!T polygon
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
-    Bounds2!T queryBounds;
-    const bool bounded = tryBounds(query, queryBounds);
-    assert(bounded && !queryBounds.empty);
+    assert(!queryBounds.empty);
 
     size_t capacity = 2;
 
@@ -548,8 +546,33 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
+    Bounds2!T queryBounds;
+    const bool bounded =
+        tryBounds(query, queryBounds);
+
+    assert(bounded && !queryBounds.empty);
+
     const size_t eventCapacity =
-        queryBoundaryEventCapacity(query, polygon);
+        queryBoundaryEventCapacity(
+            queryBounds,
+            polygon
+        );
+
+    assert(eventCapacity >= 2);
+    assert((eventCapacity - 2) % 2 == 0);
+
+    const size_t candidateEdgeCount =
+        (eventCapacity - 2) / 2;
+
+    /*
+     * The capacity pass already establishes the number of edges whose closed
+     * bounds can meet the query. Retained corpus evidence separates the sparse
+     * regime (<= 12.5% candidates) from crossing/dense (50% candidates).
+     * Apply the repeated per-edge bounds rejection only when at most one
+     * quarter of boundary edges survive that first cheap pass.
+     */
+    const bool useEdgeBoundsPrefilter =
+        candidateEdgeCount <= edgeCount / 4;
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
@@ -581,13 +604,29 @@ if (isSegmentPolygonClipScalar!T)
 
         foreach (edgeIndex; 0 .. ring.segmentCount)
         {
+            const S edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
+                )
+            )
+            {
+                continue;
+            }
+
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
 
             const bool appended =
                 appendSegmentPairNodingEvents(
                     query,
-                    ring.segment(edgeIndex),
+                    edge,
                     events[],
                     eventCount,
                     ignoredEdgeEvents[],
@@ -686,6 +725,17 @@ if (isSegmentPolygonClipScalar!T)
                 ring.segment(
                     edgeIndex
                 );
+
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
+                )
+            )
+            {
+                continue;
+            }
 
             const SegmentContactKind contact =
                 segmentContactKind(
@@ -1200,7 +1250,20 @@ if (isSegmentPolygonClipScalar!T)
         {
             foreach (query; [original, S(original.b, original.a)])
             {
-                const capacity = queryBoundaryEventCapacity(query, polygon);
+                Bounds2!T queryBounds;
+                assert(
+                    tryBounds(
+                        query,
+                        queryBounds
+                    )
+                );
+
+                const capacity =
+                    queryBoundaryEventCapacity(
+                        queryBounds,
+                        polygon
+                    );
+
                 assert(capacity == expectedCapacity[i]);
 
                 // Exercise the existing writer at exactly that capacity.

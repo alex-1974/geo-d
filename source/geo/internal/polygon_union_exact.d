@@ -28,7 +28,8 @@ import geo.internal.intersection_exact :
     tryProperIntersectionExact;
 
 import geo.intersection :
-    SegmentContactKind;
+    SegmentContactKind,
+    segmentContactKind;
 
 import geo.point :
     Point2;

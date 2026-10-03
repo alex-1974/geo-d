@@ -702,6 +702,8 @@ if (isSegmentPolygonClipScalar!T)
         flatEdgeIndex = 0;
     }
 
+    provenanceEdgeIndex = 0;
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -746,6 +748,9 @@ if (isSegmentPolygonClipScalar!T)
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
+
+            const size_t rawEventStart =
+                eventCount;
 
             version (DigitalMars)
             bool appended;
@@ -804,6 +809,21 @@ if (isSegmentPolygonClipScalar!T)
              */
             assert(appended);
 
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+
+                if (eventCount != rawEventStart)
+                {
+                    edgeFirstRawEventPlusOne[
+                        provenanceEdgeIndex
+                    ] =
+                        rawEventStart + 1;
+                }
+
+                ++provenanceEdgeIndex;
+            }
+
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
@@ -816,14 +836,34 @@ if (isSegmentPolygonClipScalar!T)
         assert(flatEdgeIndex == edgeCount);
     }
 
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
+
+    const bool reuseProperCrossingEventIndex =
+        prepareEventProvenance &&
+        eventCount >= equalPreferredEventThreshold;
+
 
     if (eventCount >= equalPreferredEventThreshold)
     {
-        eventCount =
-            sortUniqueExactEdgeEventsEqualPreferred(
-                query,
-                events[0 .. eventCount]
-            );
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferred(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
     }
     else
     {

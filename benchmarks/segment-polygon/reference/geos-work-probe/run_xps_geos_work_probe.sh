@@ -13,7 +13,7 @@ task_dir=$(mktemp -d "$root/build/geos-work-probe-xps.XXXXXXXX")
 record="$task_dir/record"
 archive="$task_dir/geo-geos-work-probe-xps.tar.gz"
 
-python3 -m py_compile \
+PYTHONPYCACHEPREFIX="$task_dir/pycache" python3 -m py_compile \
     benchmarks/segment-polygon/reference/geos-work-probe/apply_geos_work_probe.py \
     benchmarks/segment-polygon/reference/geos-work-probe/analyze_geos_work_probe.py \
     benchmarks/segment-polygon/reference/geos-work-probe/run_geos_work_probe.py

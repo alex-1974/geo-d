@@ -31,7 +31,8 @@ import geo.internal.polygon_union_exact :
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
     sortUniqueExactEdgeEvents,
-    sortUniqueExactEdgeEventsEqualPreferred;
+    sortUniqueExactEdgeEventsEqualPreferred,
+    sortUniqueExactEdgeEventsEqualPreferredWithRawMapping;
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
@@ -594,6 +595,59 @@ if (isSegmentPolygonClipScalar!T)
         candidateEdgeCount <= edgeCount / 4;
 
     /*
+     * Dense first-pass events already contain every exact proper crossing.
+     * Retain only compact slot provenance so pass 2 can reuse the final unique
+     * event index without reconstructing or searching the 2120-byte carrier.
+     */
+    const bool prepareEventProvenance =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 16;
+
+    size_t[] eventProvenanceWorkspace;
+    size_t[] edgeFirstRawEventPlusOne;
+    size_t[] rawEventIndices;
+    size_t[] rawToUnique;
+
+    if (prepareEventProvenance)
+    {
+        if (
+            eventCapacity >
+            (size_t.max - edgeCount) / 2
+        )
+        {
+            onOutOfMemoryError();
+        }
+
+        const size_t workspaceLength =
+            edgeCount +
+            2 * eventCapacity;
+
+        eventProvenanceWorkspace =
+            new size_t[
+                workspaceLength
+            ];
+
+        edgeFirstRawEventPlusOne =
+            eventProvenanceWorkspace[
+                0 .. edgeCount
+            ];
+
+        rawEventIndices =
+            eventProvenanceWorkspace[
+                edgeCount ..
+                edgeCount + eventCapacity
+            ];
+
+        rawToUnique =
+            eventProvenanceWorkspace[
+                edgeCount + eventCapacity ..
+                workspaceLength
+            ];
+    }
+
+    size_t provenanceEdgeIndex;
+
+    /*
      * DMD benefits from retaining first-pass contact kinds for sufficiently
      * large dense candidate sets. LDC deliberately does not compile this
      * workspace state into the clipping hot path.
@@ -648,6 +702,8 @@ if (isSegmentPolygonClipScalar!T)
         flatEdgeIndex = 0;
     }
 
+    provenanceEdgeIndex = 0;
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -692,6 +748,9 @@ if (isSegmentPolygonClipScalar!T)
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
+
+            const size_t rawEventStart =
+                eventCount;
 
             version (DigitalMars)
             bool appended;
@@ -750,6 +809,21 @@ if (isSegmentPolygonClipScalar!T)
              */
             assert(appended);
 
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+
+                if (eventCount != rawEventStart)
+                {
+                    edgeFirstRawEventPlusOne[
+                        provenanceEdgeIndex
+                    ] =
+                        rawEventStart + 1;
+                }
+
+                ++provenanceEdgeIndex;
+            }
+
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
@@ -762,14 +836,34 @@ if (isSegmentPolygonClipScalar!T)
         assert(flatEdgeIndex == edgeCount);
     }
 
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
+
+    const bool reuseProperCrossingEventIndex =
+        prepareEventProvenance &&
+        eventCount >= equalPreferredEventThreshold;
+
 
     if (eventCount >= equalPreferredEventThreshold)
     {
-        eventCount =
-            sortUniqueExactEdgeEventsEqualPreferred(
-                query,
-                events[0 .. eventCount]
-            );
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferred(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
     }
     else
     {
@@ -817,6 +911,8 @@ if (isSegmentPolygonClipScalar!T)
     {
         flatEdgeIndex = 0;
     }
+
+    provenanceEdgeIndex = 0;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -896,6 +992,15 @@ if (isSegmentPolygonClipScalar!T)
                     edge
                 );
 
+            const size_t currentProvenanceEdgeIndex =
+                provenanceEdgeIndex;
+
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+                ++provenanceEdgeIndex;
+            }
+
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
@@ -908,28 +1013,52 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.properCrossing:
                 {
-                    ExactProperIntersection crossing;
+                    size_t index;
 
-                    const bool found =
-                        tryProperIntersectionExact(
-                            query,
-                            edge,
-                            crossing
-                        );
+                    if (reuseProperCrossingEventIndex)
+                    {
+                        const size_t rawEventPlusOne =
+                            edgeFirstRawEventPlusOne[
+                                currentProvenanceEdgeIndex
+                            ];
 
-                    assert(found);
+                        assert(rawEventPlusOne != 0);
 
-                    const auto event =
-                        exactOverlayPoint(
-                            crossing
-                        );
+                        const size_t rawEventIndex =
+                            rawEventPlusOne - 1;
 
-                    const size_t index =
-                        findExactEventIndex(
-                            query,
-                            events[],
-                            event
-                        );
+                        assert(rawEventIndex < rawToUnique.length);
+
+                        index =
+                            rawToUnique[
+                                rawEventIndex
+                            ];
+                    }
+                    else
+                    {
+                        ExactProperIntersection crossing;
+
+                        const bool found =
+                            tryProperIntersectionExact(
+                                query,
+                                edge,
+                                crossing
+                            );
+
+                        assert(found);
+
+                        const auto event =
+                            exactOverlayPoint(
+                                crossing
+                            );
+
+                        index =
+                            findExactEventIndex(
+                                query,
+                                events[],
+                                event
+                            );
+                    }
 
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
@@ -1151,6 +1280,9 @@ if (isSegmentPolygonClipScalar!T)
     {
         assert(flatEdgeIndex == edgeCount);
     }
+
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
 
     auto retained =
         new bool[

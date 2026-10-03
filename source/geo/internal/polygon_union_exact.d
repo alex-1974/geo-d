@@ -1076,6 +1076,301 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+/*
+ * Dense provenance sorts already own rawToUnique scratch storage that is dead
+ * until deduplication. During heap ordering, reuse one size_t per event for
+ * three packed past-last-nonzero limb ends:
+ *
+ *     x numerator | y numerator | denominator
+ *
+ * Each fixed-width carrier currently needs fewer than 256 limbs, so one byte
+ * per end is sufficient even on 32-bit targets. The scratch words are
+ * overwritten with the normal raw-to-unique mapping immediately after sort.
+ */
+private enum size_t denseEventEndMask = 0xff;
+private enum size_t denseEventYEndShift = 8;
+private enum size_t denseEventDenominatorEndShift = 16;
+
+static assert(exactCoordinateNumeratorLimbs <= denseEventEndMask);
+static assert(dyadicProductLimbs <= denseEventEndMask);
+
+
+private size_t pastLastNonZeroLimb(
+    scope const(uint)[] limbs
+)
+    pure nothrow @safe @nogc
+{
+    size_t end = limbs.length;
+
+    while (end != 0)
+    {
+        if (limbs[end - 1] != 0)
+            return end;
+
+        --end;
+    }
+
+    return 0;
+}
+
+
+private size_t packDenseEventEnds(
+    ref const ExactOverlayPoint event
+)
+    pure nothrow @safe @nogc
+{
+    const size_t xEnd =
+        pastLastNonZeroLimb(
+            event.xNumerator.magnitude.limb[]
+        );
+
+    const size_t yEnd =
+        pastLastNonZeroLimb(
+            event.yNumerator.magnitude.limb[]
+        );
+
+    const size_t denominatorEnd =
+        pastLastNonZeroLimb(
+            event.denominator.limb[]
+        );
+
+    assert(xEnd <= denseEventEndMask);
+    assert(yEnd <= denseEventEndMask);
+    assert(denominatorEnd != 0);
+    assert(denominatorEnd <= denseEventEndMask);
+
+    return
+        xEnd |
+        (yEnd << denseEventYEndShift) |
+        (
+            denominatorEnd <<
+            denseEventDenominatorEndShift
+        );
+}
+
+
+private size_t denseEventXEnd(size_t metadata)
+    pure nothrow @safe @nogc
+{
+    return metadata & denseEventEndMask;
+}
+
+
+private size_t denseEventYEnd(size_t metadata)
+    pure nothrow @safe @nogc
+{
+    return
+        (
+            metadata >>
+            denseEventYEndShift
+        ) &
+        denseEventEndMask;
+}
+
+
+private size_t denseEventDenominatorEnd(size_t metadata)
+    pure nothrow @safe @nogc
+{
+    return
+        (
+            metadata >>
+            denseEventDenominatorEndShift
+        ) &
+        denseEventEndMask;
+}
+
+
+private bool equalUnsignedBounded(
+    scope const(uint)[] lhs,
+    size_t lhsEnd,
+    scope const(uint)[] rhs,
+    size_t rhsEnd
+)
+    pure nothrow @safe @nogc
+{
+    if (lhsEnd != rhsEnd)
+        return false;
+
+    foreach (i; 0 .. lhsEnd)
+    {
+        if (lhs[i] != rhs[i])
+            return false;
+    }
+
+    return true;
+}
+
+
+private int compareUnsignedBounded(
+    scope const(uint)[] lhs,
+    size_t lhsEnd,
+    scope const(uint)[] rhs,
+    size_t rhsEnd
+)
+    pure nothrow @safe @nogc
+{
+    if (lhsEnd < rhsEnd)
+        return -1;
+
+    if (lhsEnd > rhsEnd)
+        return 1;
+
+    size_t i = lhsEnd;
+
+    while (i != 0)
+    {
+        --i;
+
+        if (lhs[i] < rhs[i])
+            return -1;
+
+        if (lhs[i] > rhs[i])
+            return 1;
+    }
+
+    return 0;
+}
+
+
+private int compareCanonicalExactCoordinatesEqualPreferredBounded(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    size_t lhsNumeratorEnd,
+    size_t lhsDenominatorEnd,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator,
+    size_t rhsNumeratorEnd,
+    size_t rhsDenominatorEnd
+)
+    pure nothrow @safe @nogc
+{
+    assert(!lhsDenominator.isZero);
+    assert(!rhsDenominator.isZero);
+
+    const bool equalDenominator =
+        equalUnsignedBounded(
+            lhsDenominator.limb[],
+            lhsDenominatorEnd,
+            rhsDenominator.limb[],
+            rhsDenominatorEnd
+        );
+
+    if (!equalDenominator)
+    {
+        return
+            compareCanonicalExactCoordinatesEqualPreferred(
+                lhsNumerator,
+                lhsDenominator,
+                rhsNumerator,
+                rhsDenominator
+            );
+    }
+
+    const int lhsSign =
+        lhsNumerator.sign;
+
+    const int rhsSign =
+        rhsNumerator.sign;
+
+    assert(lhsSign >= -1 && lhsSign <= 1);
+    assert(rhsSign >= -1 && rhsSign <= 1);
+
+    assert(
+        (lhsSign == 0) ==
+        lhsNumerator.magnitude.isZero
+    );
+
+    assert(
+        (rhsSign == 0) ==
+        rhsNumerator.magnitude.isZero
+    );
+
+    if (lhsSign < rhsSign)
+        return -1;
+
+    if (lhsSign > rhsSign)
+        return 1;
+
+    if (lhsSign == 0)
+        return 0;
+
+    const int magnitudeComparison =
+        compareUnsignedBounded(
+            lhsNumerator.magnitude.limb[],
+            lhsNumeratorEnd,
+            rhsNumerator.magnitude.limb[],
+            rhsNumeratorEnd
+        );
+
+    return
+        lhsSign > 0
+            ? magnitudeComparison
+            : -magnitudeComparison;
+}
+
+
+private int compareExactOverlayPointsAlongSegmentEqualPreferredBounded(T)(
+    Segment2!T source,
+    ref const ExactOverlayPoint lhs,
+    size_t lhsMetadata,
+    ref const ExactOverlayPoint rhs,
+    size_t rhsMetadata
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+
+    int comparison;
+
+    if (source.a.x != source.b.x)
+    {
+        comparison =
+            compareCanonicalExactCoordinatesEqualPreferredBounded(
+                lhs.xNumerator,
+                lhs.denominator,
+                denseEventXEnd(lhsMetadata),
+                denseEventDenominatorEnd(lhsMetadata),
+                rhs.xNumerator,
+                rhs.denominator,
+                denseEventXEnd(rhsMetadata),
+                denseEventDenominatorEnd(rhsMetadata)
+            );
+
+        if (source.a.x > source.b.x)
+            comparison = -comparison;
+    }
+    else
+    {
+        comparison =
+            compareCanonicalExactCoordinatesEqualPreferredBounded(
+                lhs.yNumerator,
+                lhs.denominator,
+                denseEventYEnd(lhsMetadata),
+                denseEventDenominatorEnd(lhsMetadata),
+                rhs.yNumerator,
+                rhs.denominator,
+                denseEventYEnd(rhsMetadata),
+                denseEventDenominatorEnd(rhsMetadata)
+            );
+
+        if (source.a.y > source.b.y)
+            comparison = -comparison;
+    }
+
+    assert(
+        comparison ==
+        compareExactOverlayPointsAlongSegmentEqualPreferred(
+            source,
+            lhs,
+            rhs
+        )
+    );
+
+    return comparison;
+}
+
+
 package(geo) int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
     Segment2!T source,
     ref const ExactOverlayPoint lhs,
@@ -1188,6 +1483,7 @@ if (isPolygonUnionExactScalar!T)
 private void siftDownExactEdgeEventsEqualPreferredWithRawIndices(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events,
+    scope size_t[] eventEndMetadata,
     scope size_t[] rawIndices,
     size_t root,
     size_t end
@@ -1195,6 +1491,7 @@ private void siftDownExactEdgeEventsEqualPreferredWithRawIndices(T)(
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
+    assert(eventEndMetadata.length >= events.length);
     assert(rawIndices.length >= events.length);
 
     while (true)
@@ -1208,10 +1505,12 @@ if (isPolygonUnionExactScalar!T)
         size_t largest = root;
 
         if (
-            compareExactOverlayPointsAlongSegmentEqualPreferred(
+            compareExactOverlayPointsAlongSegmentEqualPreferredBounded(
                 source,
                 events[largest],
-                events[left]
+                eventEndMetadata[largest],
+                events[left],
+                eventEndMetadata[left]
             ) < 0
         )
         {
@@ -1223,10 +1522,12 @@ if (isPolygonUnionExactScalar!T)
 
         if (
             right < end &&
-            compareExactOverlayPointsAlongSegmentEqualPreferred(
+            compareExactOverlayPointsAlongSegmentEqualPreferredBounded(
                 source,
                 events[largest],
-                events[right]
+                eventEndMetadata[largest],
+                events[right],
+                eventEndMetadata[right]
             ) < 0
         )
         {
@@ -1244,6 +1545,15 @@ if (isPolygonUnionExactScalar!T)
 
         events[largest] =
             temporaryEvent;
+
+        const size_t temporaryMetadata =
+            eventEndMetadata[root];
+
+        eventEndMetadata[root] =
+            eventEndMetadata[largest];
+
+        eventEndMetadata[largest] =
+            temporaryMetadata;
 
         const size_t temporaryRawIndex =
             rawIndices[root];
@@ -1263,9 +1573,14 @@ if (isPolygonUnionExactScalar!T)
  * Dense exact-event sort with compact provenance.
  *
  * rawIndices is scratch storage for the raw pre-sort event identity.
- * rawToUnique receives, for every raw input slot, the final unique event
- * index after sort/dedup. Duplicate raw events therefore map to the same
- * unique index without retaining another ExactOverlayPoint carrier.
+ *
+ * During heap ordering, rawToUnique temporarily holds packed x/y/denominator
+ * active-end metadata aligned with the mutable event slots. Once ordering is
+ * complete that metadata is dead, and rawToUnique is overwritten with the
+ * final mapping from every raw input slot to its unique event index.
+ *
+ * Duplicate raw events therefore map to the same unique index without
+ * retaining another ExactOverlayPoint carrier or allocating metadata storage.
  */
 package(geo)
 size_t sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(T)(
@@ -1284,7 +1599,14 @@ if (isPolygonUnionExactScalar!T)
         return 0;
 
     foreach (i; 0 .. events.length)
+    {
         rawIndices[i] = i;
+
+        rawToUnique[i] =
+            packDenseEventEnds(
+                events[i]
+            );
+    }
 
     size_t start =
         events.length / 2;
@@ -1296,6 +1618,7 @@ if (isPolygonUnionExactScalar!T)
         siftDownExactEdgeEventsEqualPreferredWithRawIndices(
             source,
             events,
+            rawToUnique,
             rawIndices,
             start,
             events.length
@@ -1318,6 +1641,15 @@ if (isPolygonUnionExactScalar!T)
         events[end] =
             temporaryEvent;
 
+        const size_t temporaryMetadata =
+            rawToUnique[0];
+
+        rawToUnique[0] =
+            rawToUnique[end];
+
+        rawToUnique[end] =
+            temporaryMetadata;
+
         const size_t temporaryRawIndex =
             rawIndices[0];
 
@@ -1330,6 +1662,7 @@ if (isPolygonUnionExactScalar!T)
         siftDownExactEdgeEventsEqualPreferredWithRawIndices(
             source,
             events,
+            rawToUnique,
             rawIndices,
             0,
             end

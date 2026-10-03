@@ -584,9 +584,16 @@ if (isSegmentPolygonClipScalar!T)
      * not allocate this cache. Dense-4 and tiny crossing cases retain the baseline
      * path to avoid paying an extra allocation for only a few edge tests.
      */
-    const bool reuseBoundaryContacts =
-        !useEdgeBoundsPrefilter &&
-        edgeCount >= 64;
+    version (DigitalMars)
+    {
+        const bool reuseBoundaryContacts =
+            !useEdgeBoundsPrefilter &&
+            edgeCount >= 64;
+    }
+    else
+    {
+        enum bool reuseBoundaryContacts = false;
+    }
 
     SegmentContactKind[] boundaryContacts;
 

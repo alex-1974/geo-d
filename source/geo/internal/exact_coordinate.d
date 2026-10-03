@@ -387,6 +387,103 @@ int compareExactCoordinatesEqualPreferred(
 }
 
 
+/*
+ * Equal-denominator-preferred comparison for canonical internal numerators.
+ *
+ * Unlike the general exact-coordinate comparator, this helper may trust sign
+ * as the zero-state discriminator. Callers must guarantee:
+ *
+ *     sign == 0  <=>  magnitude == 0
+ *
+ * Debug builds verify that precondition. Release builds avoid rescanning all
+ * numerator limbs merely to rediscover zero for already-canonical values.
+ *
+ * This helper is intentionally package-internal and must not replace the
+ * general comparator where stale sign metadata is accepted by contract.
+ */
+package(geo)
+int compareCanonicalExactCoordinatesEqualPreferred(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator
+)
+    pure nothrow @safe @nogc
+{
+    assert(!lhsDenominator.isZero);
+    assert(!rhsDenominator.isZero);
+
+    const int lhsSign =
+        lhsNumerator.sign;
+
+    const int rhsSign =
+        rhsNumerator.sign;
+
+    assert(lhsSign >= -1 && lhsSign <= 1);
+    assert(rhsSign >= -1 && rhsSign <= 1);
+
+    assert(
+        (lhsSign == 0) ==
+        lhsNumerator.magnitude.isZero
+    );
+
+    assert(
+        (rhsSign == 0) ==
+        rhsNumerator.magnitude.isZero
+    );
+
+    if (lhsSign < rhsSign)
+        return -1;
+
+    if (lhsSign > rhsSign)
+        return 1;
+
+    if (lhsSign == 0)
+        return 0;
+
+    if (lhsDenominator.limb == rhsDenominator.limb)
+    {
+        const int comparison =
+            compareUnsigned(
+                lhsNumerator.magnitude,
+                rhsNumerator.magnitude
+            );
+
+        return
+            lhsSign > 0
+                ? comparison
+                : -comparison;
+    }
+
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
+        );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(
+        is(typeof(lhsScaled) == typeof(rhsScaled))
+    );
+
+    const int magnitudeComparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return
+        lhsSign > 0
+            ? magnitudeComparison
+            : -magnitudeComparison;
+}
+
+
 version (unittest)
 {
     private bool equalPreferredComparisonLaws()
@@ -445,6 +542,60 @@ version (unittest)
     @safe unittest
     {
         assert(equalPreferredComparisonLaws());
+    }
+
+    @safe unittest
+    {
+        SignedExactCoordinateNumerator zero, one, two;
+        one.sign = 1;
+        two.sign = -1;
+        one.magnitude.limb[0] = 1;
+        two.magnitude.limb[0] = 2;
+
+        DyadicProductMagnitude denominator;
+        denominator.limb[0] = 3;
+
+        assert(
+            compareCanonicalExactCoordinatesEqualPreferred(
+                zero,
+                denominator,
+                zero,
+                denominator
+            ) == 0
+        );
+
+        assert(
+            compareCanonicalExactCoordinatesEqualPreferred(
+                zero,
+                denominator,
+                one,
+                denominator
+            ) < 0
+        );
+
+        assert(
+            compareCanonicalExactCoordinatesEqualPreferred(
+                two,
+                denominator,
+                zero,
+                denominator
+            ) < 0
+        );
+
+        assert(
+            compareCanonicalExactCoordinatesEqualPreferred(
+                one,
+                denominator,
+                two,
+                denominator
+            ) ==
+            compareExactCoordinatesEqualPreferred(
+                one,
+                denominator,
+                two,
+                denominator
+            )
+        );
     }
 }
 

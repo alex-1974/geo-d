@@ -7,6 +7,7 @@ import geo.internal.dyadic :
 
 import geo.internal.exact_coordinate :
     SignedExactCoordinateNumerator,
+    compareCanonicalExactCoordinatesEqualPreferred,
     compareExactCoordinates,
     compareExactCoordinatesEqualPreferred,
     exactCoordinateNumeratorLimbs;
@@ -1090,7 +1091,7 @@ if (isPolygonUnionExactScalar!T)
     if (source.a.x != source.b.x)
     {
         comparison =
-            compareExactCoordinatesEqualPreferred(
+            compareCanonicalExactCoordinatesEqualPreferred(
                 lhs.xNumerator,
                 lhs.denominator,
                 rhs.xNumerator,
@@ -1104,7 +1105,7 @@ if (isPolygonUnionExactScalar!T)
     }
 
     comparison =
-        compareExactCoordinatesEqualPreferred(
+        compareCanonicalExactCoordinatesEqualPreferred(
             lhs.yNumerator,
             lhs.denominator,
             rhs.yNumerator,
@@ -1586,6 +1587,43 @@ if (isPolygonUnionExactScalar!T)
 {
     alias P = Point2!int;
     alias S = Segment2!int;
+
+    /*
+     * ExactOverlayPoint producers keep zero numerators canonical. This is the
+     * precondition used by the dense canonical comparator; the general exact
+     * comparator deliberately retains stale-sign tolerance for other callers.
+     */
+    {
+        const auto representedZero =
+            exactOverlayPoint(
+                P(0, 0)
+            );
+
+        assert(representedZero.xNumerator.sign == 0);
+        assert(representedZero.xNumerator.magnitude.isZero);
+        assert(representedZero.yNumerator.sign == 0);
+        assert(representedZero.yNumerator.magnitude.isZero);
+
+        ExactProperIntersection crossing;
+
+        properIntersectionExactKnownCrossing(
+            S(P(-1, -1), P(1, 1)),
+            S(P(-1, 1), P(1, -1)),
+            crossing
+        );
+
+        const auto constructedZero =
+            exactOverlayPoint(
+                crossing
+            );
+
+        assert(constructedZero.xNumerator.sign == 0);
+        assert(constructedZero.xNumerator.magnitude.isZero);
+        assert(constructedZero.yNumerator.sign == 0);
+        assert(constructedZero.yNumerator.magnitude.isZero);
+    }
+
+
 
     /*
      * Dense provenance sort preserves exact order and maps duplicate raw

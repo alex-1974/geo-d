@@ -21,12 +21,15 @@ import geo.internal.fixed_uint :
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
+    PreparedExactSegment,
+    prepareExactSegment,
     properIntersectionExactKnownCrossing,
+    properIntersectionExactKnownCrossingPreparedFirst,
     tryProperIntersectionExact;
 
-version (DigitalMars)
 import geo.intersection :
-    SegmentContactKind;
+    SegmentContactKind,
+    segmentContactKind;
 
 import geo.point :
     Point2;
@@ -890,8 +893,6 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-version (DigitalMars)
-{
 bool appendSegmentPairNodingEventsKnownContact(T)(
     Segment2!T first,
     Segment2!T second,
@@ -1073,6 +1074,127 @@ if (isPolygonUnionExactScalar!T)
         }
     }
 }
+
+
+/*
+ * Appends one source-pair event while allowing the first/source segment's
+ * exact dyadic coordinates to be prepared lazily and then reused by the
+ * caller across many boundary edges.
+ *
+ * Non-crossing contacts delegate to the established known-contact writer.
+ * Only strict proper crossings use the prepared exact-construction path.
+ */
+bool appendSegmentPairNodingEventsKnownContactPreparedFirst(T)(
+    Segment2!T first,
+    Segment2!T second,
+    SegmentContactKind contact,
+    ref PreparedExactSegment preparedFirst,
+    ref bool preparedFirstReady,
+    scope ExactOverlayPoint[] firstEvents,
+    ref size_t firstCount,
+    scope ExactOverlayPoint[] secondEvents,
+    ref size_t secondCount
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    if (contact != SegmentContactKind.properCrossing)
+    {
+        return
+            appendSegmentPairNodingEventsKnownContact(
+                first,
+                second,
+                contact,
+                firstEvents,
+                firstCount,
+                secondEvents,
+                secondCount
+            );
+    }
+
+    if (
+        firstCount >= firstEvents.length ||
+        secondCount >= secondEvents.length
+    )
+    {
+        return false;
+    }
+
+    if (!preparedFirstReady)
+    {
+        preparedFirst =
+            prepareExactSegment(
+                first
+            );
+
+        preparedFirstReady = true;
+    }
+
+    ExactProperIntersection exact;
+
+    properIntersectionExactKnownCrossingPreparedFirst(
+        preparedFirst,
+        second,
+        exact
+    );
+
+    const auto event =
+        exactOverlayPoint(
+            exact
+        );
+
+    const bool firstAdded =
+        appendExactEdgeEvent(
+            firstEvents,
+            firstCount,
+            event
+        );
+
+    const bool secondAdded =
+        appendExactEdgeEvent(
+            secondEvents,
+            secondCount,
+            event
+        );
+
+    assert(firstAdded);
+    assert(secondAdded);
+
+    return true;
+}
+
+
+bool appendSegmentPairNodingEventsPreparedFirst(T)(
+    Segment2!T first,
+    Segment2!T second,
+    ref PreparedExactSegment preparedFirst,
+    ref bool preparedFirstReady,
+    scope ExactOverlayPoint[] firstEvents,
+    ref size_t firstCount,
+    scope ExactOverlayPoint[] secondEvents,
+    ref size_t secondCount
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    const SegmentContactKind contact =
+        segmentContactKind(
+            first,
+            second
+        );
+
+    return
+        appendSegmentPairNodingEventsKnownContactPreparedFirst(
+            first,
+            second,
+            contact,
+            preparedFirst,
+            preparedFirstReady,
+            firstEvents,
+            firstCount,
+            secondEvents,
+            secondCount
+        );
 }
 
 

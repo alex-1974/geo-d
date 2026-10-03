@@ -1,6 +1,7 @@
 module geo.internal.orientation_dyadic;
 
 import geo.internal.dyadic :
+    SignedDyadicCoordinate,
     SignedDyadicProduct,
     decodeBinary64Coordinate,
     decodeDyadicCoordinate,
@@ -85,6 +86,69 @@ import std.math.traits : isFinite;
  * than only its sign. Robust orientation consumes the sign; geometric
  * construction may additionally consume the exact magnitude.
  */
+/*
+ * Exact orient2d determinant from coordinates that are already decoded into
+ * the common dyadic domain.
+ *
+ * This package-internal entry point exists for construction hot paths that
+ * deliberately hoist scalar decoding out of repeated edge work. The ordinary
+ * scalar wrapper below remains unchanged.
+ */
+package(geo)
+SignedDyadicProduct orientationDeterminantDyadicDecoded(
+    ref const SignedDyadicCoordinate aX,
+    ref const SignedDyadicCoordinate aY,
+    ref const SignedDyadicCoordinate bX,
+    ref const SignedDyadicCoordinate bY,
+    ref const SignedDyadicCoordinate cX,
+    ref const SignedDyadicCoordinate cY
+)
+    pure nothrow @safe @nogc
+{
+    const auto bAx =
+        subtractDyadicCoordinates(
+            bX,
+            aX
+        );
+
+    const auto bAy =
+        subtractDyadicCoordinates(
+            bY,
+            aY
+        );
+
+    const auto cAx =
+        subtractDyadicCoordinates(
+            cX,
+            aX
+        );
+
+    const auto cAy =
+        subtractDyadicCoordinates(
+            cY,
+            aY
+        );
+
+    const auto p =
+        multiplyDyadicDifferences(
+            bAx,
+            cAy
+        );
+
+    const auto q =
+        multiplyDyadicDifferences(
+            bAy,
+            cAx
+        );
+
+    return
+        subtractDyadicProducts(
+            p,
+            q
+        );
+}
+
+
 SignedDyadicProduct orientationDeterminantDyadic(T)(
     T ax,
     T ay,
@@ -267,6 +331,36 @@ int orientationDyadicExact(
         fromInt.magnitude.limb ==
         fromDouble.magnitude.limb
     );
+
+
+    /*
+     * Prepared-coordinate construction uses the same determinant arithmetic
+     * as the scalar wrapper.
+     */
+    {
+        const auto aX = decodeDyadicCoordinate(0.0);
+        const auto aY = decodeDyadicCoordinate(0.0);
+        const auto bX = decodeDyadicCoordinate(1.0);
+        const auto bY = decodeDyadicCoordinate(0.0);
+        const auto cX = decodeDyadicCoordinate(0.0);
+        const auto cY = decodeDyadicCoordinate(1.0);
+
+        const auto decoded =
+            orientationDeterminantDyadicDecoded(
+                aX,
+                aY,
+                bX,
+                bY,
+                cX,
+                cY
+            );
+
+        assert(decoded.sign == fromDouble.sign);
+        assert(
+            decoded.magnitude.limb ==
+            fromDouble.magnitude.limb
+        );
+    }
 
 
     /*

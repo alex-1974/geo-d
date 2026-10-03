@@ -206,6 +206,29 @@ if (isSegmentPolygonClipScalar!T)
 /*
  * Finds one exact event in an already sorted unique query event list.
  */
+/*
+ * Research-only dense clipping pass markers for DMD -profile.
+ */
+pragma(inline, false) private void profileFindExactEventCall()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondContactCall()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondNone()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondTouch()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondProperCrossing()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondOverlap()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileSecondProperConstruction()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileVertexContactCall()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profilePointClassificationFallback()
+    pure nothrow @safe @nogc {}
+
+
 private size_t findExactEventIndex(T)(
     Segment2!T query,
     scope const(ExactOverlayPoint)[] events,
@@ -214,6 +237,8 @@ private size_t findExactEventIndex(T)(
     pure nothrow @safe @nogc
 if (isSegmentPolygonClipScalar!T)
 {
+    profileFindExactEventCall();
+
     size_t lower = 0;
     size_t upper = events.length;
 
@@ -737,6 +762,8 @@ if (isSegmentPolygonClipScalar!T)
                 continue;
             }
 
+            profileSecondContactCall();
+
             const SegmentContactKind contact =
                 segmentContactKind(
                     query,
@@ -746,10 +773,14 @@ if (isSegmentPolygonClipScalar!T)
             final switch (contact)
             {
                 case SegmentContactKind.none:
+                    profileSecondNone();
                     break;
 
                 case SegmentContactKind.properCrossing:
                 {
+                    profileSecondProperCrossing();
+                    profileSecondProperConstruction();
+
                     ExactProperIntersection crossing;
 
                     const bool found =
@@ -790,6 +821,8 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.touch:
                 {
+                    profileSecondTouch();
+
                     Point2!T point;
 
                     const bool found =
@@ -843,6 +876,8 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.overlap:
                 {
+                    profileSecondOverlap();
+
                     S overlap;
 
                     const bool found =
@@ -924,6 +959,8 @@ if (isSegmentPolygonClipScalar!T)
             {
                 const Point2!T vertex =
                     ring[vertexIndex];
+
+                profileVertexContactCall();
 
                 if (
                     segmentContactKind(
@@ -1039,6 +1076,8 @@ if (isSegmentPolygonClipScalar!T)
             assert(intervalIndex == 0);
 
             PointPolygonLocation location;
+
+            profilePointClassificationFallback();
 
             const bool classified =
                 tryClassifyPointInPolygon(

@@ -697,9 +697,7 @@ private bool appendExactEdgeEvent(
  * Capacity is checked before any writes, so a false return leaves both counts
  * unchanged.
  */
-bool appendSegmentPairNodingEventsKnownContact(T)(
-    Segment2!T first,
-    Segment2bool appendSegmentPairNodingEvents(T)(
+bool appendSegmentPairNodingEvents(T)(
     Segment2!T first,
     Segment2!T second,
     scope ExactOverlayPoint[] firstEvents,
@@ -905,7 +903,6 @@ bool appendSegmentPairNodingEventsKnownContact(T)(
 if (isPolygonUnionExactScalar!T)
 {
     import geo.intersection :
-        SegmentContactKind,
         trySegmentIntersectionOverlap,
         trySegmentTouchPoint;
 
@@ -1076,48 +1073,6 @@ if (isPolygonUnionExactScalar!T)
             return true;
         }
     }
-}-edge order as the key.
- */
-private int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
-    Segment2!T source,
-    ref const ExactOverlayPoint lhs,
-    ref const ExactOverlayPoint rhs
-)
-    pure nothrow @safe @nogc
-if (isPolygonUnionExactScalar!T)
-{
-    assert(source.a != source.b);
-
-    int comparison;
-
-    if (source.a.x != source.b.x)
-    {
-        comparison =
-            compareExactCoordinatesEqualPreferred(
-                lhs.xNumerator,
-                lhs.denominator,
-                rhs.xNumerator,
-                rhs.denominator
-            );
-
-        return
-            source.a.x < source.b.x
-                ? comparison
-                : -comparison;
-    }
-
-    comparison =
-        compareExactCoordinatesEqualPreferred(
-            lhs.yNumerator,
-            lhs.denominator,
-            rhs.yNumerator,
-            rhs.denominator
-        );
-
-    return
-        source.a.y < source.b.y
-            ? comparison
-            : -comparison;
 }
 
 

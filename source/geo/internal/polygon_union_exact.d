@@ -694,6 +694,24 @@ private bool appendExactEdgeEvent(
  * Capacity is checked before any writes, so a false return leaves both counts
  * unchanged.
  */
+/*
+ * Research-only dense clipping call-path markers.
+ *
+ * DMD -profile counts these no-inline no-op calls. They preserve source
+ * semantics and are mechanism evidence only, not latency evidence.
+ */
+pragma(inline, false) private void profileNodingPairCall()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileNodingNone()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileNodingTouch()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileNodingProperCrossing()
+    pure nothrow @safe @nogc {}
+pragma(inline, false) private void profileNodingOverlap()
+    pure nothrow @safe @nogc {}
+
+
 bool appendSegmentPairNodingEvents(T)(
     Segment2!T first,
     Segment2!T second,
@@ -711,6 +729,8 @@ if (isPolygonUnionExactScalar!T)
         trySegmentIntersectionOverlap,
         trySegmentTouchPoint;
 
+    profileNodingPairCall();
+
     const SegmentContactKind contact =
         segmentContactKind(
             first,
@@ -722,14 +742,21 @@ if (isPolygonUnionExactScalar!T)
     final switch (contact)
     {
         case SegmentContactKind.none:
+            profileNodingNone();
             return true;
 
         case SegmentContactKind.touch:
+            profileNodingTouch();
+            required = 1;
+            break;
+
         case SegmentContactKind.properCrossing:
+            profileNodingProperCrossing();
             required = 1;
             break;
 
         case SegmentContactKind.overlap:
+            profileNodingOverlap();
             required = 2;
             break;
     }

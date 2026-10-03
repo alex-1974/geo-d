@@ -1218,7 +1218,20 @@ if (isSegmentPolygonClipScalar!T)
         {
             foreach (query; [original, S(original.b, original.a)])
             {
-                const capacity = queryBoundaryEventCapacity((() { Bounds2!int b; assert(tryBounds(query, b)); return b; })(), polygon);
+                Bounds2!T queryBounds;
+                assert(
+                    tryBounds(
+                        query,
+                        queryBounds
+                    )
+                );
+
+                const capacity =
+                    queryBoundaryEventCapacity(
+                        queryBounds,
+                        polygon
+                    );
+
                 assert(capacity == expectedCapacity[i]);
 
                 // Exercise the existing writer at exactly that capacity.

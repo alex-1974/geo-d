@@ -20,6 +20,7 @@ import geo.internal.fixed_uint :
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
+    properIntersectionExactKnownCrossing,
     tryProperIntersectionExact;
 
 version (DigitalMars)
@@ -795,14 +796,11 @@ if (isPolygonUnionExactScalar!T)
         {
             ExactProperIntersection exact;
 
-            const bool found =
-                tryProperIntersectionExact(
-                    first,
-                    second,
-                    exact
-                );
-
-            assert(found);
+            properIntersectionExactKnownCrossing(
+                first,
+                second,
+                exact
+            );
 
             const auto event =
                 exactOverlayPoint(
@@ -983,14 +981,11 @@ if (isPolygonUnionExactScalar!T)
         {
             ExactProperIntersection exact;
 
-            const bool found =
-                tryProperIntersectionExact(
-                    first,
-                    second,
-                    exact
-                );
-
-            assert(found);
+            properIntersectionExactKnownCrossing(
+                first,
+                second,
+                exact
+            );
 
             const auto event =
                 exactOverlayPoint(

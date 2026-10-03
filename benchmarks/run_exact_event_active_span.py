@@ -75,7 +75,7 @@ def parse_output(text):
         if fields[0] == "sizeof" and len(fields) == 3:
             sizes[fields[1]] = int(fields[2])
 
-        elif fields[0] == "span" and len(fields) == 13:
+        elif fields[0] == "span" and len(fields) == 14:
             spans.append({
                 "scalar": fields[1],
                 "case": fields[2],
@@ -89,6 +89,7 @@ def parse_output(text):
                 "y_avg_width": float(fields[10]),
                 "d_first_min": int(fields[11]),
                 "d_end_max": int(fields[12]),
+                "d_avg_width": float(fields[13]),
             })
 
         elif fields[0] == "summary" and len(fields) == 7:

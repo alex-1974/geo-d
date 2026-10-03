@@ -19,7 +19,8 @@ import geo.internal.fixed_uint :
     subtractUnsigned;
 
 import geo.internal.orientation_dyadic :
-    orientationDeterminantDyadic;
+    orientationDeterminantDyadic,
+    orientationDeterminantDyadicDecoded;
 
 import geo.segment :
     Segment2;
@@ -54,6 +55,56 @@ private enum bool isExactIntersectionScalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+
+/*
+ * Package-internal exact representation of one already-decoded segment.
+ *
+ * This is execution state, not public geometry. It exists so callers with a
+ * repeated source segment can hoist scalar-to-dyadic decoding out of an edge
+ * loop without changing the exact arithmetic or result representation.
+ */
+package(geo)
+struct PreparedExactSegment
+{
+    SignedDyadicCoordinate aX;
+    SignedDyadicCoordinate aY;
+    SignedDyadicCoordinate bX;
+    SignedDyadicCoordinate bY;
+}
+
+
+package(geo)
+PreparedExactSegment prepareExactSegment(T)(
+    Segment2!T segment
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    PreparedExactSegment result;
+
+    result.aX =
+        decodeDyadicCoordinate(
+            segment.a.x
+        );
+
+    result.aY =
+        decodeDyadicCoordinate(
+            segment.a.y
+        );
+
+    result.bX =
+        decodeDyadicCoordinate(
+            segment.b.x
+        );
+
+    result.bY =
+        decodeDyadicCoordinate(
+            segment.b.y
+        );
+
+    return result;
+}
 
 
 /**
@@ -373,6 +424,84 @@ if (isExactIntersectionScalar!T)
 }
 
 
+/*
+ * Exact construction for a strict crossing when the first/source segment has
+ * already been decoded once by a caller that reuses it across many edges.
+ *
+ * The second segment is still decoded exactly once per crossing. Arithmetic,
+ * fixed widths and exact rational result are identical to
+ * properIntersectionExactKnownCrossing().
+ */
+package(geo)
+void properIntersectionExactKnownCrossingPreparedFirst(T)(
+    ref const PreparedExactSegment first,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    const auto dA =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY
+        );
+
+    const auto dB =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY
+        );
+
+    assert(dA.sign != 0);
+    assert(dB.sign != 0);
+    assert(dA.sign != dB.sign);
+
+    const DyadicProductMagnitude weightA =
+        dB.magnitude;
+
+    const DyadicProductMagnitude weightB =
+        dA.magnitude;
+
+    result.denominator =
+        addUnsigned(
+            weightA,
+            weightB
+        );
+
+    assert(!result.denominator.isZero);
+
+    result.xNumerator =
+        weightedCoordinate(
+            weightA,
+            first.aX,
+            weightB,
+            first.bX
+        );
+
+    result.yNumerator =
+        weightedCoordinate(
+            weightA,
+            first.aY,
+            weightB,
+            first.bY
+        );
+}
+
+
 /**
  * Builds exact rational construction data for a proper crossing.
  *
@@ -536,6 +665,69 @@ if (isExactIntersectionScalar!T)
         assert(
             exact.yNumerator.magnitude.limb ==
             expected.limb
+        );
+    }
+
+
+    /*
+     * A prepared first segment must produce bit-identical exact construction.
+     */
+    {
+        const first =
+            S(
+                P(0, 0),
+                P(10, 10)
+            );
+
+        const second =
+            S(
+                P(0, 10),
+                P(10, 0)
+            );
+
+        ExactProperIntersection regular;
+        ExactProperIntersection preparedResult;
+
+        properIntersectionExactKnownCrossing(
+            first,
+            second,
+            regular
+        );
+
+        const auto preparedFirst =
+            prepareExactSegment(
+                first
+            );
+
+        properIntersectionExactKnownCrossingPreparedFirst(
+            preparedFirst,
+            second,
+            preparedResult
+        );
+
+        assert(
+            regular.xNumerator.sign ==
+            preparedResult.xNumerator.sign
+        );
+
+        assert(
+            regular.xNumerator.magnitude.limb ==
+            preparedResult.xNumerator.magnitude.limb
+        );
+
+        assert(
+            regular.yNumerator.sign ==
+            preparedResult.yNumerator.sign
+        );
+
+        assert(
+            regular.yNumerator.magnitude.limb ==
+            preparedResult.yNumerator.magnitude.limb
+        );
+
+        assert(
+            regular.denominator.limb ==
+            preparedResult.denominator.limb
         );
     }
 

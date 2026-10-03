@@ -20,11 +20,13 @@ import geo.internal.exact_coordinate_round :
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
-    properIntersectionExactKnownCrossing;
+    PreparedExactSegment,
+    properIntersectionExactKnownCrossingPreparedFirst;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
+    appendSegmentPairNodingEventsPreparedFirst,
     compareExactOverlayPointsAlongSegment,
     compareExactOverlayPointsAlongSegmentEqualPreferred,
     exactOverlayPoint,
@@ -36,7 +38,8 @@ import geo.internal.polygon_union_exact :
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
-    appendSegmentPairNodingEventsKnownContact;
+    appendSegmentPairNodingEventsKnownContact,
+    appendSegmentPairNodingEventsKnownContactPreparedFirst;
 
 
 import geo.internal.polygon_union_input :
@@ -722,6 +725,15 @@ if (isSegmentPolygonClipScalar!T)
 
 
     /*
+     * Prepare the exact query lazily on the first strict proper crossing and
+     * keep it for both boundary passes. Sparse/non-crossing calls therefore do
+     * not pay scalar-to-dyadic decode cost merely for enabling this path.
+     */
+    PreparedExactSegment preparedExactQuery;
+    bool preparedExactQueryReady;
+
+
+    /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
     version (DigitalMars)
@@ -783,9 +795,11 @@ if (isSegmentPolygonClipScalar!T)
             bool appended;
             else
             const bool appended =
-                appendSegmentPairNodingEvents(
+                appendSegmentPairNodingEventsPreparedFirst(
                     query,
                     edge,
+                    preparedExactQuery,
+                    preparedExactQueryReady,
                     events[],
                     eventCount,
                     ignoredEdgeEvents[],
@@ -806,10 +820,12 @@ if (isSegmentPolygonClipScalar!T)
                         contact;
 
                     appended =
-                        appendSegmentPairNodingEventsKnownContact(
+                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
                             query,
                             edge,
                             contact,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
                             events[],
                             eventCount,
                             ignoredEdgeEvents[],
@@ -819,9 +835,11 @@ if (isSegmentPolygonClipScalar!T)
                 else
                 {
                     appended =
-                        appendSegmentPairNodingEvents(
+                        appendSegmentPairNodingEventsPreparedFirst(
                             query,
                             edge,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
                             events[],
                             eventCount,
                             ignoredEdgeEvents[],
@@ -1065,8 +1083,10 @@ if (isSegmentPolygonClipScalar!T)
                     {
                         ExactProperIntersection crossing;
 
-                        properIntersectionExactKnownCrossing(
-                            query,
+                        assert(preparedExactQueryReady);
+
+                        properIntersectionExactKnownCrossingPreparedFirst(
+                            preparedExactQuery,
                             edge,
                             crossing
                         );

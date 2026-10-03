@@ -129,6 +129,12 @@ def main():
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--target-ms", type=int, default=50)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--compiler",
+        action="append",
+        dest="compilers",
+        help="compiler executable/name; repeat for multiple compilers",
+    )
     args = parser.parse_args()
 
     if args.cpu not in os.sched_getaffinity(0):
@@ -138,7 +144,9 @@ def main():
 
     compilers = []
 
-    for name in ("dmd", "ldc2"):
+    requested = args.compilers or ["dmd", "ldc2"]
+
+    for name in requested:
         path = shutil.which(name)
 
         if not path:
@@ -194,6 +202,8 @@ def main():
             )
 
             if completed.returncode:
+                sys.stderr.write(completed.stdout)
+                sys.stderr.write(completed.stderr)
                 raise RuntimeError(
                     "build failed for " + label
                 )
@@ -223,6 +233,8 @@ def main():
             )
 
             if run.returncode:
+                sys.stderr.write(run.stdout)
+                sys.stderr.write(run.stderr)
                 raise RuntimeError(
                     "probe failed for " + label
                 )

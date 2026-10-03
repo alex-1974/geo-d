@@ -32,6 +32,11 @@ import geo.internal.polygon_union_exact :
     sortUniqueExactEdgeEvents,
     sortUniqueExactEdgeEventsEqualPreferred;
 
+version (DigitalMars)
+import geo.internal.polygon_union_exact :
+    appendSegmentPairNodingEventsKnownContact;
+
+
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
 
@@ -574,6 +579,33 @@ if (isSegmentPolygonClipScalar!T)
     const bool useEdgeBoundsPrefilter =
         candidateEdgeCount <= edgeCount / 4;
 
+    /*
+     * DMD benefits from retaining first-pass contact kinds for sufficiently
+     * large dense candidate sets. LDC deliberately does not compile this
+     * workspace state into the clipping hot path.
+     */
+    version (DigitalMars)
+    const bool reuseBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 64;
+
+    version (DigitalMars)
+    SegmentContactKind[] boundaryContacts;
+
+    version (DigitalMars)
+    size_t flatEdgeIndex;
+
+    version (DigitalMars)
+    {
+        if (reuseBoundaryContacts)
+        {
+            boundaryContacts =
+                new SegmentContactKind[
+                    edgeCount
+                ];
+        }
+    }
+
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
 
@@ -597,6 +629,11 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -609,20 +646,42 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            if (
-                useEdgeBoundsPrefilter &&
-                !edgeBoundsMayMeetQuery(
-                    queryBounds,
-                    edge
-                )
-            )
+            version (DigitalMars)
             {
-                continue;
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    ++flatEdgeIndex;
+                    continue;
+                }
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
 
+            version (DigitalMars)
+            bool appended;
+            else
             const bool appended =
                 appendSegmentPairNodingEvents(
                     query,
@@ -633,13 +692,62 @@ if (isSegmentPolygonClipScalar!T)
                     ignoredCount
                 );
 
+            version (DigitalMars)
+            {
+                if (reuseBoundaryContacts)
+                {
+                    const SegmentContactKind contact =
+                        segmentContactKind(
+                            query,
+                            edge
+                        );
+
+                    boundaryContacts[flatEdgeIndex] =
+                        contact;
+
+                    appended =
+                        appendSegmentPairNodingEventsKnownContact(
+                            query,
+                            edge,
+                            contact,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+                else
+                {
+                    appended =
+                        appendSegmentPairNodingEvents(
+                            query,
+                            edge,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+            }
+
             /*
-             * The conservative bounds pass covers every raw insertion, including
-             * duplicates. The global 2n + 2 bound remains valid.
+             * The conservative bounds pass covers every raw insertion,
+             * including duplicates. The global 2n + 2 bound remains valid.
              */
             assert(appended);
+
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
         }
     }
+
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
+
 
     enum size_t equalPreferredEventThreshold = 9;
 
@@ -693,6 +801,11 @@ if (isSegmentPolygonClipScalar!T)
      * - classify proper edge crossings and strict edge-interior endpoint
      *   contacts on their outgoing query ray.
      */
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -726,22 +839,55 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            if (
-                useEdgeBoundsPrefilter &&
-                !edgeBoundsMayMeetQuery(
-                    queryBounds,
-                    edge
-                )
-            )
+            version (DigitalMars)
             {
-                continue;
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    ++flatEdgeIndex;
+                    continue;
+                }
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
             }
 
+            version (DigitalMars)
+            const SegmentContactKind contact =
+                reuseBoundaryContacts
+                    ? boundaryContacts[flatEdgeIndex]
+                    : segmentContactKind(
+                        query,
+                        edge
+                    );
+            else
             const SegmentContactKind contact =
                 segmentContactKind(
                     query,
                     edge
                 );
+
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
 
             final switch (contact)
             {
@@ -988,6 +1134,11 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
+
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
 
     auto retained =
         new bool[

@@ -1,6 +1,7 @@
 module geo.internal.orientation_dyadic;
 
 import geo.internal.dyadic :
+    SignedDyadicCoordinate,
     SignedDyadicProduct,
     decodeBinary64Coordinate,
     decodeDyadicCoordinate,
@@ -85,6 +86,67 @@ import std.math.traits : isFinite;
  * than only its sign. Robust orientation consumes the sign; geometric
  * construction may additionally consume the exact magnitude.
  */
+/*
+ * Exact determinant from coordinates that have already been decoded into the
+ * common dyadic domain.
+ *
+ * This is package-internal so exact-construction hot paths can reuse decoded
+ * segment coordinates without weakening the public scalar-level contract.
+ */
+package(geo)
+SignedDyadicProduct orientationDeterminantDyadicDecoded(
+    ref const SignedDyadicCoordinate aX,
+    ref const SignedDyadicCoordinate aY,
+    ref const SignedDyadicCoordinate bX,
+    ref const SignedDyadicCoordinate bY,
+    ref const SignedDyadicCoordinate cX,
+    ref const SignedDyadicCoordinate cY
+)
+    pure nothrow @safe @nogc
+{
+    const auto bAx =
+        subtractDyadicCoordinates(
+            bX,
+            aX
+        );
+
+    const auto bAy =
+        subtractDyadicCoordinates(
+            bY,
+            aY
+        );
+
+    const auto cAx =
+        subtractDyadicCoordinates(
+            cX,
+            aX
+        );
+
+    const auto cAy =
+        subtractDyadicCoordinates(
+            cY,
+            aY
+        );
+
+    const auto p =
+        multiplyDyadicDifferences(
+            bAx,
+            cAy
+        );
+
+    const auto q =
+        multiplyDyadicDifferences(
+            bAy,
+            cAx
+        );
+
+    return subtractDyadicProducts(
+        p,
+        q
+    );
+}
+
+
 SignedDyadicProduct orientationDeterminantDyadic(T)(
     T ax,
     T ay,
@@ -132,46 +194,15 @@ if (
     const auto cY =
         decodeDyadicCoordinate(cy);
 
-    const auto bAx =
-        subtractDyadicCoordinates(
+    return
+        orientationDeterminantDyadicDecoded(
+            aX,
+            aY,
             bX,
-            aX
-        );
-
-    const auto bAy =
-        subtractDyadicCoordinates(
             bY,
-            aY
-        );
-
-    const auto cAx =
-        subtractDyadicCoordinates(
             cX,
-            aX
+            cY
         );
-
-    const auto cAy =
-        subtractDyadicCoordinates(
-            cY,
-            aY
-        );
-
-    const auto p =
-        multiplyDyadicDifferences(
-            bAx,
-            cAy
-        );
-
-    const auto q =
-        multiplyDyadicDifferences(
-            bAy,
-            cAx
-        );
-
-    return subtractDyadicProducts(
-        p,
-        q
-    );
 }
 
 
@@ -267,6 +298,36 @@ int orientationDyadicExact(
         fromInt.magnitude.limb ==
         fromDouble.magnitude.limb
     );
+
+
+    /*
+     * The decoded-coordinate helper is exactly equivalent to the scalar
+     * wrapper. It exists only to reuse already-decoded construction inputs.
+     */
+    {
+        const auto aX = decodeDyadicCoordinate(0.0);
+        const auto aY = decodeDyadicCoordinate(0.0);
+        const auto bX = decodeDyadicCoordinate(1.0);
+        const auto bY = decodeDyadicCoordinate(0.0);
+        const auto cX = decodeDyadicCoordinate(0.0);
+        const auto cY = decodeDyadicCoordinate(1.0);
+
+        const auto decoded =
+            orientationDeterminantDyadicDecoded(
+                aX,
+                aY,
+                bX,
+                bY,
+                cX,
+                cY
+            );
+
+        assert(decoded.sign == fromDouble.sign);
+        assert(
+            decoded.magnitude.limb ==
+            fromDouble.magnitude.limb
+        );
+    }
 
 
     /*

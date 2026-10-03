@@ -175,6 +175,33 @@ if (isSegmentPolygonClipScalar!T)
 
 
 /*
+ * Conservative point/query candidate test for the vertex-topology pass.
+ *
+ * Every point on a closed segment lies inside that segment's closed axis-
+ * aligned bounds. A represented polygon vertex outside queryBounds therefore
+ * cannot contact the query and can skip the robust point/segment classifier.
+ * Equality is retained; no subtraction, epsilon or rounded construction is
+ * involved.
+ */
+private bool pointBoundsMayMeetQuery(T)(
+    Bounds2!T queryBounds,
+    Point2!T point
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    const lower = queryBounds.min;
+    const upper = queryBounds.max;
+
+    return
+        point.x >= lower.x &&
+        point.x <= upper.x &&
+        point.y >= lower.y &&
+        point.y <= upper.y;
+}
+
+
+/*
  * Reserves two seeds plus two raw events per possible boundary-edge contact.
  *
  * Each candidate may append at most two events (overlap), including duplicate
@@ -1208,6 +1235,16 @@ if (isSegmentPolygonClipScalar!T)
             {
                 const Point2!T vertex =
                     ring[vertexIndex];
+
+                if (
+                    !pointBoundsMayMeetQuery(
+                        queryBounds,
+                        vertex
+                    )
+                )
+                {
+                    continue;
+                }
 
                 if (
                     segmentContactKind(

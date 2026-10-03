@@ -1189,6 +1189,189 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+private void siftDownExactEdgeEventsEqualPreferredWithRawIndices(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices,
+    size_t root,
+    size_t end
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(rawIndices.length >= events.length);
+
+    while (true)
+    {
+        const size_t left =
+            root * 2 + 1;
+
+        if (left >= end)
+            return;
+
+        size_t largest = root;
+
+        if (
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
+                source,
+                events[largest],
+                events[left]
+            ) < 0
+        )
+        {
+            largest = left;
+        }
+
+        const size_t right =
+            left + 1;
+
+        if (
+            right < end &&
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
+                source,
+                events[largest],
+                events[right]
+            ) < 0
+        )
+        {
+            largest = right;
+        }
+
+        if (largest == root)
+            return;
+
+        const ExactOverlayPoint temporaryEvent =
+            events[root];
+
+        events[root] =
+            events[largest];
+
+        events[largest] =
+            temporaryEvent;
+
+        const size_t temporaryRawIndex =
+            rawIndices[root];
+
+        rawIndices[root] =
+            rawIndices[largest];
+
+        rawIndices[largest] =
+            temporaryRawIndex;
+
+        root = largest;
+    }
+}
+
+
+/*
+ * Dense exact-event sort with compact provenance.
+ *
+ * rawIndices is scratch storage for the raw pre-sort event identity.
+ * rawToUnique receives, for every raw input slot, the final unique event
+ * index after sort/dedup. Duplicate raw events therefore map to the same
+ * unique index without retaining another ExactOverlayPoint carrier.
+ */
+package(geo)
+size_t sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices,
+    scope size_t[] rawToUnique
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(rawIndices.length >= events.length);
+    assert(rawToUnique.length >= events.length);
+
+    if (events.length == 0)
+        return 0;
+
+    foreach (i; 0 .. events.length)
+        rawIndices[i] = i;
+
+    size_t start =
+        events.length / 2;
+
+    while (start > 0)
+    {
+        --start;
+
+        siftDownExactEdgeEventsEqualPreferredWithRawIndices(
+            source,
+            events,
+            rawIndices,
+            start,
+            events.length
+        );
+    }
+
+    size_t end =
+        events.length;
+
+    while (end > 1)
+    {
+        --end;
+
+        const ExactOverlayPoint temporaryEvent =
+            events[0];
+
+        events[0] =
+            events[end];
+
+        events[end] =
+            temporaryEvent;
+
+        const size_t temporaryRawIndex =
+            rawIndices[0];
+
+        rawIndices[0] =
+            rawIndices[end];
+
+        rawIndices[end] =
+            temporaryRawIndex;
+
+        siftDownExactEdgeEventsEqualPreferredWithRawIndices(
+            source,
+            events,
+            rawIndices,
+            0,
+            end
+        );
+    }
+
+    size_t write = 1;
+
+    rawToUnique[rawIndices[0]] = 0;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactOverlayPointsEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            if (write != read)
+                events[write] = events[read];
+
+            rawToUnique[rawIndices[read]] =
+                write;
+
+            ++write;
+        }
+        else
+        {
+            rawToUnique[rawIndices[read]] =
+                write - 1;
+        }
+    }
+
+    return write;
+}
+
+
 size_t sortUniqueExactEdgeEventsEqualPreferred(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events
@@ -1408,6 +1591,67 @@ if (isPolygonUnionExactScalar!T)
 {
     alias P = Point2!int;
     alias S = Segment2!int;
+
+    /*
+     * Dense provenance sort preserves exact order and maps duplicate raw
+     * slots to one final unique event index.
+     */
+    {
+        const S source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        ExactOverlayPoint[4] events = [
+            exactOverlayPoint(P(10, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(5, 0)),
+        ];
+
+        size_t[4] rawIndices;
+        size_t[4] rawToUnique;
+
+        const size_t count =
+            sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
+                source,
+                events[],
+                rawIndices[],
+                rawToUnique[]
+            );
+
+        assert(count == 3);
+
+        assert(
+            exactOverlayPointsEqual(
+                events[0],
+                exactOverlayPoint(P(0, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[1],
+                exactOverlayPoint(P(5, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[2],
+                exactOverlayPoint(P(10, 0))
+            )
+        );
+
+        assert(rawToUnique[0] == 2);
+        assert(rawToUnique[1] == 1);
+        assert(rawToUnique[2] == 0);
+        assert(rawToUnique[3] == 1);
+    }
+
+
+
 
     /*
      * Proper crossing: both edges receive the same exact rational event.

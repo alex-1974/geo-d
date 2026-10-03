@@ -912,6 +912,8 @@ if (isSegmentPolygonClipScalar!T)
         flatEdgeIndex = 0;
     }
 
+    provenanceEdgeIndex = 0;
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -990,6 +992,15 @@ if (isSegmentPolygonClipScalar!T)
                     edge
                 );
 
+            const size_t currentProvenanceEdgeIndex =
+                provenanceEdgeIndex;
+
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+                ++provenanceEdgeIndex;
+            }
+
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
@@ -1002,28 +1013,52 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.properCrossing:
                 {
-                    ExactProperIntersection crossing;
+                    size_t index;
 
-                    const bool found =
-                        tryProperIntersectionExact(
-                            query,
-                            edge,
-                            crossing
-                        );
+                    if (reuseProperCrossingEventIndex)
+                    {
+                        const size_t rawEventPlusOne =
+                            edgeFirstRawEventPlusOne[
+                                currentProvenanceEdgeIndex
+                            ];
 
-                    assert(found);
+                        assert(rawEventPlusOne != 0);
 
-                    const auto event =
-                        exactOverlayPoint(
-                            crossing
-                        );
+                        const size_t rawEventIndex =
+                            rawEventPlusOne - 1;
 
-                    const size_t index =
-                        findExactEventIndex(
-                            query,
-                            events[],
-                            event
-                        );
+                        assert(rawEventIndex < rawToUnique.length);
+
+                        index =
+                            rawToUnique[
+                                rawEventIndex
+                            ];
+                    }
+                    else
+                    {
+                        ExactProperIntersection crossing;
+
+                        const bool found =
+                            tryProperIntersectionExact(
+                                query,
+                                edge,
+                                crossing
+                            );
+
+                        assert(found);
+
+                        const auto event =
+                            exactOverlayPoint(
+                                crossing
+                            );
+
+                        index =
+                            findExactEventIndex(
+                                query,
+                                events[],
+                                event
+                            );
+                    }
 
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
@@ -1245,6 +1280,9 @@ if (isSegmentPolygonClipScalar!T)
     {
         assert(flatEdgeIndex == edgeCount);
     }
+
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
 
     auto retained =
         new bool[

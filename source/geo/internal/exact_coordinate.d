@@ -304,6 +304,152 @@ int compareExactCoordinates(
 
 
 /*
+ * Exact coordinate comparison optimized for contexts where equal raw
+ * denominators are expected to dominate.
+ *
+ * This is intentionally separate from compareExactCoordinates: callers must
+ * already have contextual evidence that denominator equality is common.
+ * Distinct denominators retain the authoritative exact cross-product path.
+ */
+int compareExactCoordinatesEqualPreferred(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator
+)
+    pure nothrow @safe @nogc
+{
+    assert(!lhsDenominator.isZero);
+    assert(!rhsDenominator.isZero);
+
+    const int lhsSign =
+        lhsNumerator.magnitude.isZero
+            ? 0
+            : lhsNumerator.sign;
+
+    const int rhsSign =
+        rhsNumerator.magnitude.isZero
+            ? 0
+            : rhsNumerator.sign;
+
+    assert(lhsSign >= -1 && lhsSign <= 1);
+    assert(rhsSign >= -1 && rhsSign <= 1);
+
+    if (lhsSign < rhsSign)
+        return -1;
+
+    if (lhsSign > rhsSign)
+        return 1;
+
+    if (lhsSign == 0)
+        return 0;
+
+    if (lhsDenominator.limb == rhsDenominator.limb)
+    {
+        const int comparison =
+            compareUnsigned(
+                lhsNumerator.magnitude,
+                rhsNumerator.magnitude
+            );
+
+        return
+            lhsSign > 0
+                ? comparison
+                : -comparison;
+    }
+
+    const auto lhsScaled =
+        multiplyUnsigned(
+            lhsNumerator.magnitude,
+            rhsDenominator
+        );
+
+    const auto rhsScaled =
+        multiplyUnsigned(
+            rhsNumerator.magnitude,
+            lhsDenominator
+        );
+
+    static assert(
+        is(typeof(lhsScaled) == typeof(rhsScaled))
+    );
+
+    const int magnitudeComparison =
+        compareUnsigned(
+            lhsScaled,
+            rhsScaled
+        );
+
+    return
+        lhsSign > 0
+            ? magnitudeComparison
+            : -magnitudeComparison;
+}
+
+
+version (unittest)
+{
+    private bool equalPreferredComparisonLaws()
+        pure nothrow @safe @nogc
+    {
+        foreach (denominatorIndex; [size_t(0), size_t(65), size_t(131)])
+        {
+            DyadicProductMagnitude denominator;
+            denominator.limb[denominatorIndex] = 3;
+
+            foreach (numeratorIndex; [size_t(0), size_t(64), size_t(197)])
+            {
+                SignedExactCoordinateNumerator a, b;
+                a.magnitude.limb[numeratorIndex] = 1;
+                b.magnitude.limb[numeratorIndex] = 2;
+
+                foreach (sign; [-1, 1])
+                {
+                    a.sign = sign;
+                    b.sign = sign;
+
+                    if (
+                        compareExactCoordinatesEqualPreferred(
+                            a, denominator, b, denominator
+                        ) != -sign
+                    )
+                        return false;
+
+                    if (
+                        compareExactCoordinatesEqualPreferred(
+                            b, denominator, a, denominator
+                        ) != sign
+                    )
+                        return false;
+                }
+            }
+        }
+
+        SignedExactCoordinateNumerator one, two;
+        one.sign = two.sign = 1;
+        one.magnitude.limb[0] = 1;
+        two.magnitude.limb[0] = 2;
+
+        DyadicProductMagnitude three, six;
+        three.limb[0] = 3;
+        six.limb[0] = 6;
+
+        return
+            compareExactCoordinatesEqualPreferred(
+                one, three, two, six
+            ) == 0;
+    }
+
+    static assert(equalPreferredComparisonLaws());
+
+    @safe unittest
+    {
+        assert(equalPreferredComparisonLaws());
+    }
+}
+
+
+/*
  * Exact equality of two rational constructed coordinates.
  */
 bool exactCoordinatesEqual(

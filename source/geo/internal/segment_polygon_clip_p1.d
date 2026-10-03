@@ -26,6 +26,7 @@ import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
     compareExactOverlayPointsAlongSegment,
+    compareExactOverlayPointsAlongSegmentEqualPreferred,
     exactOverlayPoint,
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
@@ -103,6 +104,13 @@ private enum bool isSegmentPolygonClipScalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+/*
+ * Event-count research showed that the dense exact-event regime begins at
+ * nine raw/unique query events. The same threshold already selects the
+ * equal-denominator-preferred dense sort path.
+ */
+private enum size_t equalPreferredEventThreshold = 9;
 
 
 /*
@@ -228,11 +236,17 @@ if (isSegmentPolygonClipScalar!T)
             lower + (upper - lower) / 2;
 
         const int comparison =
-            compareExactOverlayPointsAlongSegment(
-                query,
-                events[middle],
-                target
-            );
+            events.length >= equalPreferredEventThreshold
+                ? compareExactOverlayPointsAlongSegmentEqualPreferred(
+                    query,
+                    events[middle],
+                    target
+                )
+                : compareExactOverlayPointsAlongSegment(
+                    query,
+                    events[middle],
+                    target
+                );
 
         if (comparison < 0)
             lower = middle + 1;
@@ -748,8 +762,6 @@ if (isSegmentPolygonClipScalar!T)
         assert(flatEdgeIndex == edgeCount);
     }
 
-
-    enum size_t equalPreferredEventThreshold = 9;
 
     if (eventCount >= equalPreferredEventThreshold)
     {

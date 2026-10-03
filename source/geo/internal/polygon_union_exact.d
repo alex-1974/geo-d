@@ -1080,7 +1080,7 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-private int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
+package(geo) int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
     Segment2!T source,
     ref const ExactOverlayPoint lhs,
     ref const ExactOverlayPoint rhs

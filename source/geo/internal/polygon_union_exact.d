@@ -23,10 +23,7 @@ import geo.internal.intersection_exact :
     tryProperIntersectionExact;
 
 import geo.intersection :
-    SegmentContactKind,
-    segmentContactKind,
-    trySegmentIntersectionOverlap,
-    trySegmentTouchPoint;
+    SegmentContactKind;
 
 import geo.point :
     Point2;
@@ -702,8 +699,9 @@ private bool appendExactEdgeEvent(
  */
 bool appendSegmentPairNodingEventsKnownContact(T)(
     Segment2!T first,
+    Segment2bool appendSegmentPairNodingEvents(T)(
+    Segment2!T first,
     Segment2!T second,
-    SegmentContactKind contact,
     scope ExactOverlayPoint[] firstEvents,
     ref size_t firstCount,
     scope ExactOverlayPoint[] secondEvents,
@@ -712,6 +710,18 @@ bool appendSegmentPairNodingEventsKnownContact(T)(
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
+    import geo.intersection :
+        SegmentContactKind,
+        segmentContactKind,
+        trySegmentIntersectionOverlap,
+        trySegmentTouchPoint;
+
+    const SegmentContactKind contact =
+        segmentContactKind(
+            first,
+            second
+        );
+
     size_t required = 0;
 
     final switch (contact)
@@ -882,9 +892,10 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-bool appendSegmentPairNodingEvents(T)(
+bool appendSegmentPairNodingEventsKnownContact(T)(
     Segment2!T first,
     Segment2!T second,
+    SegmentContactKind contact,
     scope ExactOverlayPoint[] firstEvents,
     ref size_t firstCount,
     scope ExactOverlayPoint[] secondEvents,
@@ -893,28 +904,179 @@ bool appendSegmentPairNodingEvents(T)(
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
-    const SegmentContactKind contact =
-        segmentContactKind(
-            first,
-            second
-        );
+    import geo.intersection :
+        SegmentContactKind,
+        trySegmentIntersectionOverlap,
+        trySegmentTouchPoint;
 
-    return
-        appendSegmentPairNodingEventsKnownContact(
-            first,
-            second,
-            contact,
-            firstEvents,
-            firstCount,
-            secondEvents,
-            secondCount
-        );
-}
+    size_t required = 0;
 
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            return true;
 
-/*
- * Restores the max-heap property in events[root .. end), using exact
- * source-edge order as the key.
+        case SegmentContactKind.touch:
+        case SegmentContactKind.properCrossing:
+            required = 1;
+            break;
+
+        case SegmentContactKind.overlap:
+            required = 2;
+            break;
+    }
+
+    if (
+        firstCount > firstEvents.length ||
+        secondCount > secondEvents.length ||
+        required > firstEvents.length - firstCount ||
+        required > secondEvents.length - secondCount
+    )
+    {
+        return false;
+    }
+
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            assert(false);
+
+        case SegmentContactKind.touch:
+        {
+            Point2!T point;
+
+            const bool found =
+                trySegmentTouchPoint(
+                    first,
+                    second,
+                    point
+                );
+
+            assert(found);
+
+            const auto event =
+                exactOverlayPoint(
+                    point
+                );
+
+            const bool firstAdded =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    event
+                );
+
+            const bool secondAdded =
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    event
+                );
+
+            assert(firstAdded);
+            assert(secondAdded);
+
+            return true;
+        }
+
+        case SegmentContactKind.properCrossing:
+        {
+            ExactProperIntersection exact;
+
+            const bool found =
+                tryProperIntersectionExact(
+                    first,
+                    second,
+                    exact
+                );
+
+            assert(found);
+
+            const auto event =
+                exactOverlayPoint(
+                    exact
+                );
+
+            const bool firstAdded =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    event
+                );
+
+            const bool secondAdded =
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    event
+                );
+
+            assert(firstAdded);
+            assert(secondAdded);
+
+            return true;
+        }
+
+        case SegmentContactKind.overlap:
+        {
+            Segment2!T overlap;
+
+            const bool found =
+                trySegmentIntersectionOverlap(
+                    first,
+                    second,
+                    overlap
+                );
+
+            assert(found);
+
+            const auto lower =
+                exactOverlayPoint(
+                    overlap.a
+                );
+
+            const auto upper =
+                exactOverlayPoint(
+                    overlap.b
+                );
+
+            bool added =
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    lower
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    firstEvents,
+                    firstCount,
+                    upper
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    lower
+                );
+
+            added =
+                added &&
+                appendExactEdgeEvent(
+                    secondEvents,
+                    secondCount,
+                    upper
+                );
+
+            assert(added);
+
+            return true;
+        }
+    }
+}-edge order as the key.
  */
 private int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
     Segment2!T source,

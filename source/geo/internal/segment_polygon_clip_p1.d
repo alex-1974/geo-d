@@ -25,6 +25,7 @@ import geo.internal.intersection_exact :
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
+    appendSegmentPairNodingEventsKnownContact,
     compareExactOverlayPointsAlongSegment,
     exactOverlayPoint,
     exactOverlayPointsEqual,
@@ -574,6 +575,29 @@ if (isSegmentPolygonClipScalar!T)
     const bool useEdgeBoundsPrefilter =
         candidateEdgeCount <= edgeCount / 4;
 
+    /*
+     * Dense candidate sets repeat the same segment-contact classification in
+     * the second boundary pass. Cache the first-pass classification once the
+     * edge count is large enough to amortize one compact workspace array.
+     *
+     * Sparse candidate sets keep using the AABB prefilter from #103 and do
+     * not allocate this cache. Tiny dense/crossing cases retain the baseline
+     * path to avoid paying an extra allocation for only a few edge tests.
+     */
+    const bool reuseBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 16;
+
+    SegmentContactKind[] boundaryContacts;
+
+    if (reuseBoundaryContacts)
+    {
+        boundaryContacts =
+            new SegmentContactKind[
+                edgeCount
+            ];
+    }
+
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
 
@@ -596,7 +620,13 @@ if (isSegmentPolygonClipScalar!T)
 
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
+     *
+     * For sufficiently large dense candidate sets, retain each contact kind
+     * for the second pass so robust segment-contact classification is not
+     * repeated.
      */
+    size_t flatEdgeIndex = 0;
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -609,6 +639,8 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
+            assert(flatEdgeIndex < edgeCount);
+
             if (
                 useEdgeBoundsPrefilter &&
                 !edgeBoundsMayMeetQuery(
@@ -617,29 +649,61 @@ if (isSegmentPolygonClipScalar!T)
                 )
             )
             {
+                ++flatEdgeIndex;
                 continue;
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
+            bool appended;
 
-            const bool appended =
-                appendSegmentPairNodingEvents(
-                    query,
-                    edge,
-                    events[],
-                    eventCount,
-                    ignoredEdgeEvents[],
-                    ignoredCount
-                );
+            if (reuseBoundaryContacts)
+            {
+                const SegmentContactKind contact =
+                    segmentContactKind(
+                        query,
+                        edge
+                    );
+
+                boundaryContacts[flatEdgeIndex] =
+                    contact;
+
+                appended =
+                    appendSegmentPairNodingEventsKnownContact(
+                        query,
+                        edge,
+                        contact,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
+            }
+            else
+            {
+                appended =
+                    appendSegmentPairNodingEvents(
+                        query,
+                        edge,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
+            }
 
             /*
-             * The conservative bounds pass covers every raw insertion, including
-             * duplicates. The global 2n + 2 bound remains valid.
+             * The conservative bounds pass covers every raw insertion,
+             * including duplicates. The global 2n + 2 bound remains valid.
              */
             assert(appended);
+
+            ++flatEdgeIndex;
         }
     }
+
+    assert(flatEdgeIndex == edgeCount);
+
 
     enum size_t equalPreferredEventThreshold = 9;
 
@@ -693,6 +757,8 @@ if (isSegmentPolygonClipScalar!T)
      * - classify proper edge crossings and strict edge-interior endpoint
      *   contacts on their outgoing query ray.
      */
+    flatEdgeIndex = 0;
+
     foreach (ringIndex; 0 .. polygon.length)
     {
         const auto ring =
@@ -726,6 +792,8 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
+            assert(flatEdgeIndex < edgeCount);
+
             if (
                 useEdgeBoundsPrefilter &&
                 !edgeBoundsMayMeetQuery(
@@ -734,14 +802,19 @@ if (isSegmentPolygonClipScalar!T)
                 )
             )
             {
+                ++flatEdgeIndex;
                 continue;
             }
 
             const SegmentContactKind contact =
-                segmentContactKind(
-                    query,
-                    edge
-                );
+                reuseBoundaryContacts
+                    ? boundaryContacts[flatEdgeIndex]
+                    : segmentContactKind(
+                        query,
+                        edge
+                    );
+
+            ++flatEdgeIndex;
 
             final switch (contact)
             {
@@ -988,6 +1061,8 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
+
+    assert(flatEdgeIndex == edgeCount);
 
     auto retained =
         new bool[

@@ -558,6 +558,22 @@ if (isSegmentPolygonClipScalar!T)
             polygon
         );
 
+    assert(eventCapacity >= 2);
+    assert((eventCapacity - 2) % 2 == 0);
+
+    const size_t candidateEdgeCount =
+        (eventCapacity - 2) / 2;
+
+    /*
+     * The capacity pass already establishes the number of edges whose closed
+     * bounds can meet the query. Retained corpus evidence separates the sparse
+     * regime (<= 12.5% candidates) from crossing/dense (50% candidates).
+     * Apply the repeated per-edge bounds rejection only when at most one
+     * quarter of boundary edges survive that first cheap pass.
+     */
+    const bool useEdgeBoundsPrefilter =
+        candidateEdgeCount <= edgeCount / 4;
+
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
 
@@ -593,8 +609,16 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
+                )
+            )
+            {
                 continue;
+            }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
@@ -702,8 +726,16 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
+                )
+            )
+            {
                 continue;
+            }
 
             const SegmentContactKind contact =
                 segmentContactKind(

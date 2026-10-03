@@ -158,7 +158,7 @@ private ulong exactConstructionReplay(T)(
     ref Fixture!T fixture,
     size_t iteration
 )
-    @safe @nogc
+    @nogc
 {
     const size_t direction =
         volatileLoad(&iteration) & 1;
@@ -196,7 +196,7 @@ private ulong carrierReadReplay(T)(
     ref Fixture!T fixture,
     size_t iteration
 )
-    @safe @nogc
+    @nogc
 {
     const size_t direction =
         volatileLoad(&iteration) & 1;
@@ -218,7 +218,7 @@ private ulong contactClassificationReplay(T)(
     ref Fixture!T fixture,
     size_t iteration
 )
-    @safe @nogc
+    @nogc
 {
     const size_t direction =
         volatileLoad(&iteration) & 1;

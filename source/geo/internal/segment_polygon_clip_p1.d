@@ -581,12 +581,12 @@ if (isSegmentPolygonClipScalar!T)
      * edge count is large enough to amortize one compact workspace array.
      *
      * Sparse candidate sets keep using the AABB prefilter from #103 and do
-     * not allocate this cache. Tiny dense/crossing cases retain the baseline
+     * not allocate this cache. Dense-4 and tiny crossing cases retain the baseline
      * path to avoid paying an extra allocation for only a few edge tests.
      */
     const bool reuseBoundaryContacts =
         !useEdgeBoundsPrefilter &&
-        edgeCount >= 16;
+        edgeCount >= 64;
 
     SegmentContactKind[] boundaryContacts;
 

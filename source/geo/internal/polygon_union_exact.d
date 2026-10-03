@@ -1076,6 +1076,49 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+private int compareExactOverlayPointsAlongSegmentEqualPreferred(T)(
+    Segment2!T source,
+    ref const ExactOverlayPoint lhs,
+    ref const ExactOverlayPoint rhs
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+
+    int comparison;
+
+    if (source.a.x != source.b.x)
+    {
+        comparison =
+            compareExactCoordinatesEqualPreferred(
+                lhs.xNumerator,
+                lhs.denominator,
+                rhs.xNumerator,
+                rhs.denominator
+            );
+
+        return
+            source.a.x < source.b.x
+                ? comparison
+                : -comparison;
+    }
+
+    comparison =
+        compareExactCoordinatesEqualPreferred(
+            lhs.yNumerator,
+            lhs.denominator,
+            rhs.yNumerator,
+            rhs.denominator
+        );
+
+    return
+        source.a.y < source.b.y
+            ? comparison
+            : -comparison;
+}
+
+
 /*
  * Dense-event heap helper. This is separate from the baseline sift helper so
  * sparse/crossing sorts retain the established develop call path.

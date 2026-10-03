@@ -252,18 +252,33 @@ int compareExactCoordinates(
     assert(!lhsDenominator.isZero);
     assert(!rhsDenominator.isZero);
 
+    /*
+     * SignedExactCoordinateNumerator maintains canonical zero:
+     *
+     *     sign == 0  <=>  magnitude == 0
+     *
+     * Use that representation invariant directly in release builds instead
+     * of rescanning all 198 magnitude limbs for every exact comparison.
+     * Debug builds retain the full invariant check.
+     */
     const int lhsSign =
-        lhsNumerator.magnitude.isZero
-            ? 0
-            : lhsNumerator.sign;
+        lhsNumerator.sign;
 
     const int rhsSign =
-        rhsNumerator.magnitude.isZero
-            ? 0
-            : rhsNumerator.sign;
+        rhsNumerator.sign;
 
     assert(lhsSign >= -1 && lhsSign <= 1);
     assert(rhsSign >= -1 && rhsSign <= 1);
+
+    assert(
+        (lhsSign == 0) ==
+        lhsNumerator.magnitude.isZero
+    );
+
+    assert(
+        (rhsSign == 0) ==
+        rhsNumerator.magnitude.isZero
+    );
 
     if (lhsSign < rhsSign)
         return -1;
@@ -322,18 +337,33 @@ int compareExactCoordinatesEqualPreferred(
     assert(!lhsDenominator.isZero);
     assert(!rhsDenominator.isZero);
 
+    /*
+     * SignedExactCoordinateNumerator maintains canonical zero:
+     *
+     *     sign == 0  <=>  magnitude == 0
+     *
+     * Use that representation invariant directly in release builds instead
+     * of rescanning all 198 magnitude limbs for every exact comparison.
+     * Debug builds retain the full invariant check.
+     */
     const int lhsSign =
-        lhsNumerator.magnitude.isZero
-            ? 0
-            : lhsNumerator.sign;
+        lhsNumerator.sign;
 
     const int rhsSign =
-        rhsNumerator.magnitude.isZero
-            ? 0
-            : rhsNumerator.sign;
+        rhsNumerator.sign;
 
     assert(lhsSign >= -1 && lhsSign <= 1);
     assert(rhsSign >= -1 && rhsSign <= 1);
+
+    assert(
+        (lhsSign == 0) ==
+        lhsNumerator.magnitude.isZero
+    );
+
+    assert(
+        (rhsSign == 0) ==
+        rhsNumerator.magnitude.isZero
+    );
 
     if (lhsSign < rhsSign)
         return -1;

@@ -19,7 +19,8 @@ import geo.internal.fixed_uint :
     subtractUnsigned;
 
 import geo.internal.orientation_dyadic :
-    orientationDeterminantDyadic;
+    orientationDeterminantDyadic,
+    orientationDeterminantDyadicDecoded;
 
 import geo.segment :
     Segment2;
@@ -54,6 +55,54 @@ private enum bool isExactIntersectionScalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+
+/*
+ * Exact dyadic form of one source segment.
+ *
+ * Keeping the four decoded coordinates together lets strict-crossing
+ * construction reuse them across both determinant evaluations and the final
+ * weighted-coordinate build.
+ */
+private struct DecodedExactSegment
+{
+    SignedDyadicCoordinate aX;
+    SignedDyadicCoordinate aY;
+    SignedDyadicCoordinate bX;
+    SignedDyadicCoordinate bY;
+}
+
+
+private DecodedExactSegment decodeExactSegment(T)(
+    Segment2!T segment
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    DecodedExactSegment result;
+
+    result.aX =
+        decodeDyadicCoordinate(
+            segment.a.x
+        );
+
+    result.aY =
+        decodeDyadicCoordinate(
+            segment.a.y
+        );
+
+    result.bX =
+        decodeDyadicCoordinate(
+            segment.b.x
+        );
+
+    result.bY =
+        decodeDyadicCoordinate(
+            segment.b.y
+        );
+
+    return result;
+}
 
 
 /**
@@ -253,17 +302,16 @@ private SignedExactCoordinateNumerator weightedCoordinate(
 
 
 /*
- * Constructs exact rational data from the two already established
- * opposite-side determinants of A and B relative to CD.
+ * Constructs exact rational data from decoded source coordinates and the two
+ * already established opposite-side determinants of A and B relative to CD.
  */
-private void buildProperIntersectionExact(T)(
-    Segment2!T first,
+private void buildProperIntersectionExactDecoded(
+    ref const DecodedExactSegment first,
     ref const SignedDyadicProduct dA,
     ref const SignedDyadicProduct dB,
     ref ExactProperIntersection result
 )
     pure nothrow @safe @nogc
-if (isExactIntersectionScalar!T)
 {
     assert(dA.sign != 0);
     assert(dB.sign != 0);
@@ -283,41 +331,48 @@ if (isExactIntersectionScalar!T)
 
     assert(!result.denominator.isZero);
 
-    const auto aX =
-        decodeDyadicCoordinate(
-            first.a.x
-        );
-
-    const auto aY =
-        decodeDyadicCoordinate(
-            first.a.y
-        );
-
-    const auto bX =
-        decodeDyadicCoordinate(
-            first.b.x
-        );
-
-    const auto bY =
-        decodeDyadicCoordinate(
-            first.b.y
-        );
-
     result.xNumerator =
         weightedCoordinate(
             weightA,
-            aX,
+            first.aX,
             weightB,
-            bX
+            first.bX
         );
 
     result.yNumerator =
         weightedCoordinate(
             weightA,
-            aY,
+            first.aY,
             weightB,
-            bY
+            first.bY
         );
+}
+
+
+/*
+ * Scalar-segment wrapper retained for the independent general proper-crossing
+ * checker. The known-crossing hot path below decodes both segments only once.
+ */
+private void buildProperIntersectionExact(T)(
+    Segment2!T first,
+    ref const SignedDyadicProduct dA,
+    ref const SignedDyadicProduct dB,
+    ref ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    const auto decodedFirst =
+        decodeExactSegment(
+            first
+        );
+
+    buildProperIntersectionExactDecoded(
+        decodedFirst,
+        dA,
+        dB,
+        result
+    );
 }
 
 
@@ -337,24 +392,40 @@ void properIntersectionExactKnownCrossing(T)(
     pure nothrow @safe @nogc
 if (isExactIntersectionScalar!T)
 {
+    /*
+     * Research #118 showed that repeated scalar-to-dyadic decoding is a
+     * measurable part of exact construction. Decode each segment once and
+     * reuse the exact coordinates for both required determinants and for the
+     * final weighted-coordinate construction.
+     */
+    const auto decodedFirst =
+        decodeExactSegment(
+            first
+        );
+
+    const auto decodedSecond =
+        decodeExactSegment(
+            second
+        );
+
     const auto dA =
-        orientationDeterminantDyadic(
-            second.a.x,
-            second.a.y,
-            second.b.x,
-            second.b.y,
-            first.a.x,
-            first.a.y
+        orientationDeterminantDyadicDecoded(
+            decodedSecond.aX,
+            decodedSecond.aY,
+            decodedSecond.bX,
+            decodedSecond.bY,
+            decodedFirst.aX,
+            decodedFirst.aY
         );
 
     const auto dB =
-        orientationDeterminantDyadic(
-            second.a.x,
-            second.a.y,
-            second.b.x,
-            second.b.y,
-            first.b.x,
-            first.b.y
+        orientationDeterminantDyadicDecoded(
+            decodedSecond.aX,
+            decodedSecond.aY,
+            decodedSecond.bX,
+            decodedSecond.bY,
+            decodedFirst.bX,
+            decodedFirst.bY
         );
 
     /*
@@ -364,8 +435,8 @@ if (isExactIntersectionScalar!T)
     assert(dB.sign != 0);
     assert(dA.sign != dB.sign);
 
-    buildProperIntersectionExact(
-        first,
+    buildProperIntersectionExactDecoded(
+        decodedFirst,
         dA,
         dB,
         result
@@ -757,6 +828,39 @@ if (isExactIntersectionScalar!T)
             second,
             exact
         )
+    );
+
+    ExactProperIntersection knownCrossing;
+
+    properIntersectionExactKnownCrossing(
+        first,
+        second,
+        knownCrossing
+    );
+
+    assert(
+        knownCrossing.xNumerator.sign ==
+        exact.xNumerator.sign
+    );
+
+    assert(
+        knownCrossing.xNumerator.magnitude.limb ==
+        exact.xNumerator.magnitude.limb
+    );
+
+    assert(
+        knownCrossing.yNumerator.sign ==
+        exact.yNumerator.sign
+    );
+
+    assert(
+        knownCrossing.yNumerator.magnitude.limb ==
+        exact.yNumerator.magnitude.limb
+    );
+
+    assert(
+        knownCrossing.denominator.limb ==
+        exact.denominator.limb
     );
 
     assert(!exact.denominator.isZero);

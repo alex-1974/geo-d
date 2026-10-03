@@ -22,6 +22,7 @@ import geo.internal.intersection_exact :
     ExactProperIntersection,
     tryProperIntersectionExact;
 
+version (DigitalMars)
 import geo.intersection :
     SegmentContactKind;
 
@@ -890,6 +891,8 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+version (DigitalMars)
+{
 bool appendSegmentPairNodingEventsKnownContact(T)(
     Segment2!T first,
     Segment2!T second,
@@ -1073,6 +1076,7 @@ if (isPolygonUnionExactScalar!T)
             return true;
         }
     }
+}
 }
 
 

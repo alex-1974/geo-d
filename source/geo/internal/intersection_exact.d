@@ -209,6 +209,105 @@ if (isExactIntersectionScalar!T)
  *
  * Both weights are non-negative exact orientation magnitudes.
  */
+
+/*
+ * Exact weighted sum for the strict-proper-crossing path where both weights
+ * are already proven nonzero.
+ *
+ * multiplyUnsigned is exact. Therefore a nonzero coordinate magnitude times
+ * a nonzero weight cannot produce a zero product. Coordinate sign alone is
+ * sufficient to recognize a zero term, avoiding a full 198-limb isZero scan
+ * of each product.
+ */
+private SignedExactCoordinateNumerator weightedCoordinateNonZeroWeights(
+    ref const DyadicProductMagnitude weightA,
+    ref const SignedDyadicCoordinate a,
+    ref const DyadicProductMagnitude weightB,
+    ref const SignedDyadicCoordinate b
+)
+    pure nothrow @safe @nogc
+{
+    assert(!weightA.isZero);
+    assert(!weightB.isZero);
+
+    SignedExactCoordinateNumerator result;
+
+    const auto magnitudeA =
+        multiplyUnsigned(
+            weightA,
+            a.magnitude
+        );
+
+    const auto magnitudeB =
+        multiplyUnsigned(
+            weightB,
+            b.magnitude
+        );
+
+    if (a.sign == 0)
+    {
+        if (b.sign == 0)
+            return result;
+
+        result.sign = b.sign;
+        result.magnitude = magnitudeB;
+        return result;
+    }
+
+    if (b.sign == 0)
+    {
+        result.sign = a.sign;
+        result.magnitude = magnitudeA;
+        return result;
+    }
+
+    if (a.sign == b.sign)
+    {
+        result.sign = a.sign;
+
+        result.magnitude =
+            addUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            magnitudeA,
+            magnitudeB
+        );
+
+    if (comparison == 0)
+        return result;
+
+    if (comparison > 0)
+    {
+        result.sign = a.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+    }
+    else
+    {
+        result.sign = b.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeB,
+                magnitudeA
+            );
+    }
+
+    return result;
+}
+
+
 private SignedExactCoordinateNumerator weightedCoordinate(
     ref const DyadicProductMagnitude weightA,
     ref const SignedDyadicCoordinate a,
@@ -485,7 +584,7 @@ if (isExactIntersectionScalar!T)
     assert(!result.denominator.isZero);
 
     result.xNumerator =
-        weightedCoordinate(
+        weightedCoordinateNonZeroWeights(
             weightA,
             first.aX,
             weightB,
@@ -493,7 +592,7 @@ if (isExactIntersectionScalar!T)
         );
 
     result.yNumerator =
-        weightedCoordinate(
+        weightedCoordinateNonZeroWeights(
             weightA,
             first.aY,
             weightB,

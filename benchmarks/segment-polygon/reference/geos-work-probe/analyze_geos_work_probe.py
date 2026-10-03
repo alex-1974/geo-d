@@ -203,6 +203,39 @@ def aggregate(rows):
     for key in numeric:
         result[key] = fmean(row[key] for row in rows)
 
+    orientation_calls = sum(row["orientation_calls_per_call"] for row in rows)
+    orientation_dd = sum(row["orientation_dd_fallbacks_per_call"] for row in rows)
+    result["orientation_dd_fraction"] = (
+        orientation_dd / orientation_calls
+        if orientation_calls else 0.0
+    )
+
+    floating_attempts = sum(row["floating_overlay_attempts_per_call"] for row in rows)
+    floating_successes = sum(row["floating_overlay_successes_per_call"] for row in rows)
+    result["floating_success_fraction"] = (
+        floating_successes / floating_attempts
+        if floating_attempts else 0.0
+    )
+
+    polygon_input = sum(row["polygon_segments_input_per_call"] for row in rows)
+    polygon_after = sum(row["polygon_segments_after_clip_per_call"] for row in rows)
+    result["polygon_clip_retention"] = (
+        polygon_after / polygon_input
+        if polygon_input else 0.0
+    )
+
+    stage_total = sum(
+        row["instrumented_stage_total_ns_per_call"]
+        for row in rows
+    )
+    for field in TIME_FIELDS:
+        stage_key = field.replace("_ns", "") + "_stage_fraction"
+        field_total = sum(row[field + "_per_call"] for row in rows)
+        result[stage_key] = (
+            field_total / stage_total
+            if stage_total else 0.0
+        )
+
     return result
 
 

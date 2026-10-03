@@ -20,7 +20,7 @@ import geo.internal.exact_coordinate_round :
 
 import geo.internal.intersection_exact :
     ExactProperIntersection,
-    tryProperIntersectionExact;
+    properIntersectionExactKnownCrossing;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
@@ -1038,14 +1038,11 @@ if (isSegmentPolygonClipScalar!T)
                     {
                         ExactProperIntersection crossing;
 
-                        const bool found =
-                            tryProperIntersectionExact(
-                                query,
-                                edge,
-                                crossing
-                            );
-
-                        assert(found);
+                        properIntersectionExactKnownCrossing(
+                            query,
+                            edge,
+                            crossing
+                        );
 
                         const auto event =
                             exactOverlayPoint(

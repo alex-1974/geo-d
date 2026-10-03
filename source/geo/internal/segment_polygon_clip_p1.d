@@ -31,7 +31,8 @@ import geo.internal.polygon_union_exact :
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
     sortUniqueExactEdgeEvents,
-    sortUniqueExactEdgeEventsEqualPreferred;
+    sortUniqueExactEdgeEventsEqualPreferred,
+    sortUniqueExactEdgeEventsEqualPreferredWithRawMapping;
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
@@ -592,6 +593,59 @@ if (isSegmentPolygonClipScalar!T)
      */
     const bool useEdgeBoundsPrefilter =
         candidateEdgeCount <= edgeCount / 4;
+
+    /*
+     * Dense first-pass events already contain every exact proper crossing.
+     * Retain only compact slot provenance so pass 2 can reuse the final unique
+     * event index without reconstructing or searching the 2120-byte carrier.
+     */
+    const bool prepareEventProvenance =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 16;
+
+    size_t[] eventProvenanceWorkspace;
+    size_t[] edgeFirstRawEventPlusOne;
+    size_t[] rawEventIndices;
+    size_t[] rawToUnique;
+
+    if (prepareEventProvenance)
+    {
+        if (
+            eventCapacity >
+            (size_t.max - edgeCount) / 2
+        )
+        {
+            onOutOfMemoryError();
+        }
+
+        const size_t workspaceLength =
+            edgeCount +
+            2 * eventCapacity;
+
+        eventProvenanceWorkspace =
+            new size_t[
+                workspaceLength
+            ];
+
+        edgeFirstRawEventPlusOne =
+            eventProvenanceWorkspace[
+                0 .. edgeCount
+            ];
+
+        rawEventIndices =
+            eventProvenanceWorkspace[
+                edgeCount ..
+                edgeCount + eventCapacity
+            ];
+
+        rawToUnique =
+            eventProvenanceWorkspace[
+                edgeCount + eventCapacity ..
+                workspaceLength
+            ];
+    }
+
+    size_t provenanceEdgeIndex;
 
     /*
      * DMD benefits from retaining first-pass contact kinds for sufficiently

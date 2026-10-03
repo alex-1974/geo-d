@@ -173,15 +173,13 @@ if (isSegmentPolygonClipScalar!T)
  * materialization below remain unchanged.
  */
 private size_t queryBoundaryEventCapacity(T)(
-    Segment2!T query,
+    Bounds2!T queryBounds,
     scope Polygon2View!T polygon
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
-    Bounds2!T queryBounds;
-    const bool bounded = tryBounds(query, queryBounds);
-    assert(bounded && !queryBounds.empty);
+    assert(!queryBounds.empty);
 
     size_t capacity = 2;
 
@@ -548,8 +546,17 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
+    Bounds2!T queryBounds;
+    const bool bounded =
+        tryBounds(query, queryBounds);
+
+    assert(bounded && !queryBounds.empty);
+
     const size_t eventCapacity =
-        queryBoundaryEventCapacity(query, polygon);
+        queryBoundaryEventCapacity(
+            queryBounds,
+            polygon
+        );
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
@@ -581,13 +588,21 @@ if (isSegmentPolygonClipScalar!T)
 
         foreach (edgeIndex; 0 .. ring.segmentCount)
         {
+            const S edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
+                continue;
+
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
 
             const bool appended =
                 appendSegmentPairNodingEvents(
                     query,
-                    ring.segment(edgeIndex),
+                    edge,
                     events[],
                     eventCount,
                     ignoredEdgeEvents[],
@@ -686,6 +701,9 @@ if (isSegmentPolygonClipScalar!T)
                 ring.segment(
                     edgeIndex
                 );
+
+            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
+                continue;
 
             const SegmentContactKind contact =
                 segmentContactKind(
@@ -1200,7 +1218,7 @@ if (isSegmentPolygonClipScalar!T)
         {
             foreach (query; [original, S(original.b, original.a)])
             {
-                const capacity = queryBoundaryEventCapacity(query, polygon);
+                const capacity = queryBoundaryEventCapacity((() { Bounds2!int b; assert(tryBounds(query, b)); return b; })(), polygon);
                 assert(capacity == expectedCapacity[i]);
 
                 // Exercise the existing writer at exactly that capacity.

@@ -18,6 +18,7 @@ PYTHONPYCACHEPREFIX="$task_dir/pycache" python3 -m py_compile \
     benchmarks/segment-polygon/reference/geos-work-probe/analyze_geos_work_probe.py \
     benchmarks/segment-polygon/reference/geos-work-probe/run_geos_work_probe.py
 
+PYTHONDONTWRITEBYTECODE=1 \
 python3 benchmarks/segment-polygon/reference/geos-work-probe/run_geos_work_probe.py \
     --cpu="$cpu" \
     --iterations="$iterations" \

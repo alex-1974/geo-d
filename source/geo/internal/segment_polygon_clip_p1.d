@@ -25,13 +25,17 @@ import geo.internal.intersection_exact :
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
-    appendSegmentPairNodingEventsKnownContact,
     compareExactOverlayPointsAlongSegment,
     exactOverlayPoint,
     exactOverlayPointsEqual,
     seedExactEdgeEvents,
     sortUniqueExactEdgeEvents,
     sortUniqueExactEdgeEventsEqualPreferred;
+
+version (DigitalMars)
+import geo.internal.polygon_union_exact :
+    appendSegmentPairNodingEventsKnownContact;
+
 
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
@@ -576,33 +580,30 @@ if (isSegmentPolygonClipScalar!T)
         candidateEdgeCount <= edgeCount / 4;
 
     /*
-     * Dense candidate sets repeat the same segment-contact classification in
-     * the second boundary pass. Cache the first-pass classification once the
-     * edge count is large enough to amortize one compact workspace array.
-     *
-     * Sparse candidate sets keep using the AABB prefilter from #103 and do
-     * not allocate this cache. Dense-4 and tiny crossing cases retain the baseline
-     * path to avoid paying an extra allocation for only a few edge tests.
+     * DMD benefits from retaining first-pass contact kinds for sufficiently
+     * large dense candidate sets. LDC deliberately does not compile this
+     * workspace state into the clipping hot path.
      */
     version (DigitalMars)
-    {
-        const bool reuseBoundaryContacts =
-            !useEdgeBoundsPrefilter &&
-            edgeCount >= 64;
-    }
-    else
-    {
-        enum bool reuseBoundaryContacts = false;
-    }
+    const bool reuseBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 64;
 
+    version (DigitalMars)
     SegmentContactKind[] boundaryContacts;
 
-    if (reuseBoundaryContacts)
+    version (DigitalMars)
+    size_t flatEdgeIndex;
+
+    version (DigitalMars)
     {
-        boundaryContacts =
-            new SegmentContactKind[
-                edgeCount
-            ];
+        if (reuseBoundaryContacts)
+        {
+            boundaryContacts =
+                new SegmentContactKind[
+                    edgeCount
+                ];
+        }
     }
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
@@ -627,12 +628,11 @@ if (isSegmentPolygonClipScalar!T)
 
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
-     *
-     * For sufficiently large dense candidate sets, retain each contact kind
-     * for the second pass so robust segment-contact classification is not
-     * repeated.
      */
-    size_t flatEdgeIndex = 0;
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -646,57 +646,88 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            assert(flatEdgeIndex < edgeCount);
-
-            if (
-                useEdgeBoundsPrefilter &&
-                !edgeBoundsMayMeetQuery(
-                    queryBounds,
-                    edge
-                )
-            )
+            version (DigitalMars)
             {
-                ++flatEdgeIndex;
-                continue;
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    ++flatEdgeIndex;
+                    continue;
+                }
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
             size_t ignoredCount;
+
+            version (DigitalMars)
             bool appended;
-
-            if (reuseBoundaryContacts)
-            {
-                const SegmentContactKind contact =
-                    segmentContactKind(
-                        query,
-                        edge
-                    );
-
-                boundaryContacts[flatEdgeIndex] =
-                    contact;
-
-                appended =
-                    appendSegmentPairNodingEventsKnownContact(
-                        query,
-                        edge,
-                        contact,
-                        events[],
-                        eventCount,
-                        ignoredEdgeEvents[],
-                        ignoredCount
-                    );
-            }
             else
+            const bool appended =
+                appendSegmentPairNodingEvents(
+                    query,
+                    edge,
+                    events[],
+                    eventCount,
+                    ignoredEdgeEvents[],
+                    ignoredCount
+                );
+
+            version (DigitalMars)
             {
-                appended =
-                    appendSegmentPairNodingEvents(
-                        query,
-                        edge,
-                        events[],
-                        eventCount,
-                        ignoredEdgeEvents[],
-                        ignoredCount
-                    );
+                if (reuseBoundaryContacts)
+                {
+                    const SegmentContactKind contact =
+                        segmentContactKind(
+                            query,
+                            edge
+                        );
+
+                    boundaryContacts[flatEdgeIndex] =
+                        contact;
+
+                    appended =
+                        appendSegmentPairNodingEventsKnownContact(
+                            query,
+                            edge,
+                            contact,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+                else
+                {
+                    appended =
+                        appendSegmentPairNodingEvents(
+                            query,
+                            edge,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
             }
 
             /*
@@ -705,11 +736,17 @@ if (isSegmentPolygonClipScalar!T)
              */
             assert(appended);
 
-            ++flatEdgeIndex;
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
         }
     }
 
-    assert(flatEdgeIndex == edgeCount);
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
 
 
     enum size_t equalPreferredEventThreshold = 9;
@@ -764,7 +801,10 @@ if (isSegmentPolygonClipScalar!T)
      * - classify proper edge crossings and strict edge-interior endpoint
      *   contacts on their outgoing query ray.
      */
-    flatEdgeIndex = 0;
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -799,20 +839,37 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            assert(flatEdgeIndex < edgeCount);
-
-            if (
-                useEdgeBoundsPrefilter &&
-                !edgeBoundsMayMeetQuery(
-                    queryBounds,
-                    edge
-                )
-            )
+            version (DigitalMars)
             {
-                ++flatEdgeIndex;
-                continue;
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    ++flatEdgeIndex;
+                    continue;
+                }
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
             }
 
+            version (DigitalMars)
             const SegmentContactKind contact =
                 reuseBoundaryContacts
                     ? boundaryContacts[flatEdgeIndex]
@@ -820,8 +877,17 @@ if (isSegmentPolygonClipScalar!T)
                         query,
                         edge
                     );
+            else
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    query,
+                    edge
+                );
 
-            ++flatEdgeIndex;
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
 
             final switch (contact)
             {
@@ -1069,7 +1135,10 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
-    assert(flatEdgeIndex == edgeCount);
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
 
     auto retained =
         new bool[

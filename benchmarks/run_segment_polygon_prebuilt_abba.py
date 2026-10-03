@@ -163,8 +163,10 @@ def main():
                     })
 
             targets=[(s,c) for s in ["int","long","float","double"]
-                     for c in ["crossing","sparse-4","sparse-16","sparse-64",
-                               "dense-4","dense-16","dense-64"]]
+                     for c in ["exterior","crossing",
+                               "sparse-4","sparse-16","sparse-64",
+                               "dense-64",
+                               "degenerate-interior","empty"]]
 
             for compiler in ["dmd","ldc2"]:
                 # Warm both immutable binaries before any recorded pair.

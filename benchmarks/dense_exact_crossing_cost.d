@@ -1,4 +1,4 @@
-module dense_exact_crossing_cost;
+module geo.internal.dense_exact_crossing_cost_probe;
 
 import core.memory : GC;
 import core.volatile : volatileLoad;

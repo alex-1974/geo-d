@@ -5,7 +5,7 @@ root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
 base=66e23b1174bb92df642f4b5673e7871edf2260e4
-candidate=1d8e6954b9369ebadd4982b2f58400b70f09d65c
+candidate=bab631d730b64d4a2de01ccd25a7e176763f27b0
 cpu=${1:-0}
 
 mkdir -p build

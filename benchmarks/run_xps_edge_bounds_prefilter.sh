@@ -5,7 +5,7 @@ root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
 base=ac98f4b039b682ec954ab646c6220d1103ce4a5c
-candidate=2e1cc1a67b8dc913fbda03408dd33f58f8952dde
+candidate=7effcf1bc1f3168748b4300006534957ec70eaf8
 cpu=${1:-0}
 notes=${2:-"XPS controlled serial run; otherwise idle."}
 

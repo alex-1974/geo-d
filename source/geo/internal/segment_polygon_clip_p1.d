@@ -776,12 +776,16 @@ if (isSegmentPolygonClipScalar!T)
      */
     if (!prepareEventProvenance)
     {
-        return
+        const auto baselineStatus =
             trySegmentPolygonClipP1InternalBaselineResearch(
                 query,
                 polygon,
                 owned
             );
+
+        return
+            cast(SegmentPolygonClipInternalStatus)
+                baselineStatus;
     }
 
     size_t[] eventProvenanceWorkspace;

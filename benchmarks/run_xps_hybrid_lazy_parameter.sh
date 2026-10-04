@@ -5,7 +5,7 @@ root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
 base=7f9237f7c4be993b7ac987a46f40d05bde8355c8
-candidate=205b258dabc8ab6f7c773a3fa6de19ed5459b365
+candidate=1a691342a25abf68580f862113fd58402641d1a4
 cpu=${1:-0}
 cycles=${2:-3}
 rounds=${3:-7}

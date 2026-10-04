@@ -1176,24 +1176,21 @@ if (isSegmentPolygonClipScalar!T)
                     }
                     else
                     {
-                        ExactProperIntersection crossing;
-
                         assert(preparedExactQueryReady);
 
-                        properIntersectionExactKnownCrossingPreparedFirst(
-                            preparedExactQuery,
-                            edge,
-                            crossing
-                        );
+                        const auto crossing =
+                            properIntersectionParameterKnownCrossingPreparedFirst(
+                                preparedExactQuery,
+                                edge
+                            );
 
                         const auto event =
-                            exactOverlayPoint(
+                            exactSourceParameter(
                                 crossing
                             );
 
                         index =
-                            findExactEventIndex(
-                                query,
+                            findExactSourceParameterIndex(
                                 events[],
                                 event
                             );
@@ -1241,13 +1238,13 @@ if (isSegmentPolygonClipScalar!T)
                     }
 
                     const auto event =
-                        exactOverlayPoint(
+                        exactSourceParameter(
+                            query,
                             point
                         );
 
                     const size_t index =
-                        findExactEventIndex(
-                            query,
+                        findExactSourceParameterIndex(
                             events[],
                             event
                         );
@@ -1282,25 +1279,25 @@ if (isSegmentPolygonClipScalar!T)
                     assert(overlap.a != overlap.b);
 
                     const auto first =
-                        exactOverlayPoint(
+                        exactSourceParameter(
+                            query,
                             overlap.a
                         );
 
                     const auto second =
-                        exactOverlayPoint(
+                        exactSourceParameter(
+                            query,
                             overlap.b
                         );
 
                     const size_t firstIndex =
-                        findExactEventIndex(
-                            query,
+                        findExactSourceParameterIndex(
                             events[],
                             first
                         );
 
                     const size_t secondIndex =
-                        findExactEventIndex(
-                            query,
+                        findExactSourceParameterIndex(
                             events[],
                             second
                         );
@@ -1402,13 +1399,13 @@ if (isSegmentPolygonClipScalar!T)
                 }
 
                 const auto event =
-                    exactOverlayPoint(
+                    exactSourceParameter(
+                        query,
                         vertex
                     );
 
                 const size_t index =
-                    findExactEventIndex(
-                        query,
+                    findExactSourceParameterIndex(
                         events[],
                         event
                     );

@@ -636,6 +636,102 @@ if (isExactIntersectionScalar!T)
 }
 
 
+/*
+ * Exact construction for a strict crossing when the first/source segment and
+ * its coordinate active spans were prepared once by a repeated-edge caller.
+ *
+ * The second segment is decoded once per crossing. Determinant-weight spans are
+ * discovered once per crossing and reused for both x/y weighted products.
+ */
+package(geo)
+void properIntersectionExactKnownCrossingPreparedFirstSpanned(T)(
+    ref const PreparedExactSegment first,
+    ref const PreparedExactSegmentSpans firstSpans,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    const auto dA =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY
+        );
+
+    const auto dB =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY
+        );
+
+    assert(dA.sign != 0);
+    assert(dB.sign != 0);
+    assert(dA.sign != dB.sign);
+
+    const DyadicProductMagnitude weightA =
+        dB.magnitude;
+
+    const DyadicProductMagnitude weightB =
+        dA.magnitude;
+
+    const UIntActiveSpan weightASpan =
+        activeUnsignedSpan(
+            weightA
+        );
+
+    const UIntActiveSpan weightBSpan =
+        activeUnsignedSpan(
+            weightB
+        );
+
+    result.denominator =
+        addUnsigned(
+            weightA,
+            weightB
+        );
+
+    assert(!result.denominator.isZero);
+
+    result.xNumerator =
+        weightedCoordinateSpanned(
+            weightA,
+            weightASpan,
+            first.aX,
+            firstSpans.aX,
+            weightB,
+            weightBSpan,
+            first.bX,
+            firstSpans.bX
+        );
+
+    result.yNumerator =
+        weightedCoordinateSpanned(
+            weightA,
+            weightASpan,
+            first.aY,
+            firstSpans.aY,
+            weightB,
+            weightBSpan,
+            first.bY,
+            firstSpans.bY
+        );
+}
+
+
 /**
  * Builds exact rational construction data for a proper crossing.
  *

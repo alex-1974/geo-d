@@ -71,7 +71,11 @@ jobs:
         if: matrix.compiler == 'dmd-2.111.0' || matrix.compiler == 'ldc-1.41.0'
         shell: bash
         run: |
-          "$DC" -O -release -inline -boundscheck=off \
+          flags=(-O -release -boundscheck=off)
+          if [[ "$DC" == *dmd* ]]; then
+            flags+=(-inline)
+          fi
+          "$DC" "${flags[@]}" \
             -Isource \
             benchmarks/determinant_kernel_decomposition_bench.d \
             source/geo/internal/dyadic.d \

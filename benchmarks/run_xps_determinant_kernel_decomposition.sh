@@ -45,8 +45,19 @@ dub test --compiler=ldc2 --force 2>&1 | tee "$record/dub-test-ldc2.log"
 build_probe() {
     local compiler=$1
     local output=$2
+    local -a flags=(-O -release -boundscheck=off)
 
-    "$compiler"         -O -release -inline -boundscheck=off         -Isource         benchmarks/determinant_kernel_decomposition_bench.d         source/geo/internal/dyadic.d         source/geo/internal/fixed_uint.d         source/geo/internal/orientation_dyadic.d         -of="$output"
+    if [[ "$compiler" == "dmd" ]]; then
+        flags+=(-inline)
+    fi
+
+    "$compiler" "${flags[@]}" \
+        -Isource \
+        benchmarks/determinant_kernel_decomposition_bench.d \
+        source/geo/internal/dyadic.d \
+        source/geo/internal/fixed_uint.d \
+        source/geo/internal/orientation_dyadic.d \
+        -of="$output"
 }
 
 run_samples() {

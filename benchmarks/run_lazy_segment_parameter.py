@@ -66,7 +66,7 @@ def parse_output(text):
                 "median_ns": float(fields[4]),
             })
 
-        elif fields[0] == "derived" and len(fields) == 9:
+        elif fields[0] == "derived" and len(fields) == 12:
             derived.append({
                 "scalar": fields[1],
                 "case": fields[2],
@@ -74,8 +74,11 @@ def parse_output(text):
                 "parameter_build_ns": float(fields[4]),
                 "current_build_sort_ns": float(fields[5]),
                 "parameter_build_sort_ns": float(fields[6]),
-                "build_ratio": float(fields[7]),
-                "build_sort_ratio": float(fields[8]),
+                "current_build_sort_materialize_ns": float(fields[7]),
+                "parameter_build_sort_materialize_ns": float(fields[8]),
+                "build_ratio": float(fields[9]),
+                "build_sort_ratio": float(fields[10]),
+                "full_ratio": float(fields[11]),
             })
 
         elif fields[0] == "sink" and len(fields) == 2:
@@ -84,8 +87,8 @@ def parse_output(text):
     if len(layouts) != 4:
         raise RuntimeError(f"expected 4 layout rows, got {len(layouts)}")
 
-    if len(summaries) != 48:
-        raise RuntimeError(f"expected 48 summaries, got {len(summaries)}")
+    if len(summaries) != 72:
+        raise RuntimeError(f"expected 72 summaries, got {len(summaries)}")
 
     if len(derived) != 12:
         raise RuntimeError(f"expected 12 derived rows, got {len(derived)}")

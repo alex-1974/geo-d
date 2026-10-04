@@ -132,7 +132,7 @@ version (GeoResearchClipEventCensus)
         size_t componentCount;
     }
 
-    private __gshared SegmentPolygonClipEventCensus
+    private SegmentPolygonClipEventCensus
         researchClipEventCensus;
 
     package(geo)

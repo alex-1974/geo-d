@@ -49,3 +49,7 @@ jobs:
             --rounds=1 \
             --target-ms=1 \
             --output=build/mixed-segment-parameter-smoke
+
+          python3 benchmarks/run_clip_event_survivor_probe.py \
+            --compiler="$DC" \
+            --output=build/clip-event-survivor-census

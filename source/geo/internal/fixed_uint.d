@@ -311,6 +311,77 @@ UIntActiveSpan activeUnsignedSpan(size_t Limbs)(
 }
 
 
+package(geo)
+UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsignedLeftSpanned(
+    size_t LhsLimbs,
+    size_t RhsLimbs
+)(
+    ref const UIntFixed!LhsLimbs lhs,
+    UIntActiveSpan lhsSpan,
+    ref const UIntFixed!RhsLimbs rhs
+)
+    pure nothrow @safe @nogc
+{
+    UIntFixed!(LhsLimbs + RhsLimbs) result;
+
+    if (lhsSpan.isZero)
+        return result;
+
+    const size_t rhsFirst =
+        firstNonZeroLimb(rhs);
+
+    if (rhsFirst == RhsLimbs)
+        return result;
+
+    const size_t rhsEnd =
+        pastLastNonZeroLimb(rhs);
+
+    foreach (i; lhsSpan.first .. lhsSpan.end)
+    {
+        const uint lhsWord =
+            lhs.limb[i];
+
+        if (lhsWord == 0)
+            continue;
+
+        ulong carry = 0;
+
+        foreach (j; rhsFirst .. rhsEnd)
+        {
+            const size_t index =
+                i + j;
+
+            const ulong accumulated =
+                cast(ulong) lhsWord *
+                    cast(ulong) rhs.limb[j]
+                + cast(ulong) result.limb[index]
+                + carry;
+
+            result.limb[index] =
+                cast(uint) accumulated;
+
+            carry =
+                accumulated >> 32;
+        }
+
+        const size_t carryIndex =
+            i + rhsEnd;
+
+        assert(
+            carryIndex <
+            LhsLimbs + RhsLimbs
+        );
+
+        assert(result.limb[carryIndex] == 0);
+
+        result.limb[carryIndex] =
+            cast(uint) carry;
+    }
+
+    return result;
+}
+
+
 /**
  * Exact fixed-width multiplication.
  *

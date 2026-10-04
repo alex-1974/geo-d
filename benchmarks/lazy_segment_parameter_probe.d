@@ -5,9 +5,13 @@ import core.volatile : volatileLoad;
 
 import geo.internal.dyadic :
     DyadicProductMagnitude;
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator;
 import geo.internal.fixed_uint :
+    addUnsigned,
     compareUnsigned,
-    multiplyUnsigned;
+    multiplyUnsigned,
+    subtractUnsigned;
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     PreparedExactSegment,
@@ -135,6 +139,150 @@ private ExactSegmentParameter buildParameter(T)(
             dA.magnitude
         );
 }
+
+private SignedExactCoordinateNumerator weightedCoordinate(
+    ref const DyadicProductMagnitude weightA,
+    ref const typeof(PreparedExactSegment.init.aX) a,
+    ref const DyadicProductMagnitude weightB,
+    ref const typeof(PreparedExactSegment.init.aX) b
+)
+    pure nothrow @safe @nogc
+{
+    SignedExactCoordinateNumerator result;
+
+    const auto magnitudeA =
+        multiplyUnsigned(
+            weightA,
+            a.magnitude
+        );
+
+    const auto magnitudeB =
+        multiplyUnsigned(
+            weightB,
+            b.magnitude
+        );
+
+    const bool zeroA =
+        a.sign == 0 ||
+        magnitudeA.isZero;
+
+    const bool zeroB =
+        b.sign == 0 ||
+        magnitudeB.isZero;
+
+    if (zeroA)
+    {
+        if (zeroB)
+            return result;
+
+        result.sign = b.sign;
+        result.magnitude = magnitudeB;
+        return result;
+    }
+
+    if (zeroB)
+    {
+        result.sign = a.sign;
+        result.magnitude = magnitudeA;
+        return result;
+    }
+
+    if (a.sign == b.sign)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            addUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            magnitudeA,
+            magnitudeB
+        );
+
+    if (comparison == 0)
+        return result;
+
+    if (comparison > 0)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+    }
+    else
+    {
+        result.sign = b.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeB,
+                magnitudeA
+            );
+    }
+
+    return result;
+}
+
+private void materializeParameter(
+    ref const PreparedExactSegment first,
+    ref const ExactSegmentParameter parameter,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+{
+    result.denominator =
+        addUnsigned(
+            parameter.weightA,
+            parameter.weightB
+        );
+
+    result.xNumerator =
+        weightedCoordinate(
+            parameter.weightA,
+            first.aX,
+            parameter.weightB,
+            first.bX
+        );
+
+    result.yNumerator =
+        weightedCoordinate(
+            parameter.weightA,
+            first.aY,
+            parameter.weightB,
+            first.bY
+        );
+}
+
+private ulong hashExact(
+    ref const ExactProperIntersection exact
+)
+    pure nothrow @safe @nogc
+{
+    ulong result =
+        cast(ulong)(exact.xNumerator.sign + 2);
+
+    foreach (limb; exact.xNumerator.magnitude.limb)
+        result = result * 1_000_003UL + limb;
+
+    result =
+        result * 1_000_003UL +
+        cast(ulong)(exact.yNumerator.sign + 2);
+
+    foreach (limb; exact.yNumerator.magnitude.limb)
+        result = result * 1_000_003UL + limb;
+
+    foreach (limb; exact.denominator.limb)
+        result = result * 1_000_003UL + limb;
+
+    return result;
+}
+
 
 private size_t strideFor(size_t count)
 {
@@ -584,6 +732,67 @@ private ulong parameterBuildSortReplay(T)(
         volatileLoad(&iteration);
 }
 
+pragma(inline, false)
+private ulong currentBuildSortMaterializeReplay(T)(
+    ref Fixture!T fixture,
+    scope CurrentEvent[] buffer,
+    size_t iteration
+)
+    @nogc
+{
+    currentBuildSortReplay(
+        fixture,
+        buffer,
+        iteration
+    );
+
+    ulong result = 1;
+
+    foreach (ref event; buffer)
+        result = result * 1_000_003UL + hashExact(event.exact);
+
+    return
+        result +
+        volatileLoad(&iteration);
+}
+
+pragma(inline, false)
+private ulong parameterBuildSortMaterializeReplay(T)(
+    ref Fixture!T fixture,
+    scope ParameterEvent[] buffer,
+    size_t iteration
+)
+    @nogc
+{
+    parameterBuildSortReplay(
+        fixture,
+        buffer,
+        iteration
+    );
+
+    ulong result = 1;
+
+    foreach (ref event; buffer)
+    {
+        ExactProperIntersection exact;
+
+        materializeParameter(
+            fixture.preparedQuery,
+            event.parameter,
+            exact
+        );
+
+        result =
+            result * 1_000_003UL +
+            hashExact(exact);
+    }
+
+    return
+        result +
+        volatileLoad(&iteration);
+}
+
+
 private double measureCurrent(alias operation, T)(
     ref Fixture!T fixture,
     string operationName,
@@ -800,16 +1009,36 @@ private void runFixture(T)(
             targetMilliseconds
         );
 
+    const double currentBuildSortMaterialize =
+        measureCurrent!currentBuildSortMaterializeReplay(
+            fixture,
+            "current-build-sort-materialize",
+            rounds,
+            targetMilliseconds
+        );
+
+    const double parameterBuildSortMaterialize =
+        measureParameter!parameterBuildSortMaterializeReplay(
+            fixture,
+            "parameter-build-sort-materialize",
+            rounds,
+            targetMilliseconds
+        );
+
     writefln(
-        "derived,%s,%s,%.3f,%.3f,%.3f,%.3f,%.6f,%.6f",
+        "derived,%s,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.6f,%.6f,%.6f",
         T.stringof,
         fixture.name,
         currentBuild,
         parameterBuild,
         currentBuildSort,
         parameterBuildSort,
+        currentBuildSortMaterialize,
+        parameterBuildSortMaterialize,
         currentBuild / parameterBuild,
-        currentBuildSort / parameterBuildSort
+        currentBuildSort / parameterBuildSort,
+        currentBuildSortMaterialize /
+            parameterBuildSortMaterialize
     );
 }
 

@@ -21,7 +21,8 @@ import geo.internal.exact_coordinate_round :
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     PreparedExactSegment,
-    properIntersectionExactKnownCrossingPreparedFirst;
+    prepareExactSegment,
+    properIntersectionParameterKnownCrossingPreparedFirst;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
@@ -41,6 +42,14 @@ import geo.internal.polygon_union_exact :
     appendSegmentPairNodingEventsKnownContact,
     appendSegmentPairNodingEventsKnownContactPreparedFirst;
 
+
+import geo.internal.segment_parameter_event :
+    ExactSourceParameter,
+    exactSourceParameter,
+    findExactSourceParameterIndex,
+    materializeExactSourceParameter,
+    sortUniqueExactSourceParameters,
+    sortUniqueExactSourceParametersWithRawMapping;
 
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
@@ -115,6 +124,127 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+private bool appendQueryParameterEventsKnownContactPreparedFirst(T)(
+    Segment2!T query,
+    Segment2!T edge,
+    SegmentContactKind contact,
+    ref PreparedExactSegment preparedQuery,
+    ref bool preparedQueryReady,
+    scope ExactSourceParameter[] events,
+    ref size_t eventCount
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    size_t required;
+
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            return true;
+
+        case SegmentContactKind.touch:
+        case SegmentContactKind.properCrossing:
+            required = 1;
+            break;
+
+        case SegmentContactKind.overlap:
+            required = 2;
+            break;
+    }
+
+    if (
+        eventCount > events.length ||
+        required > events.length - eventCount
+    )
+    {
+        return false;
+    }
+
+    final switch (contact)
+    {
+        case SegmentContactKind.none:
+            assert(false);
+
+        case SegmentContactKind.touch:
+        {
+            Point2!T point;
+
+            const bool found =
+                trySegmentTouchPoint(
+                    query,
+                    edge,
+                    point
+                );
+
+            assert(found);
+
+            events[eventCount++] =
+                exactSourceParameter(
+                    query,
+                    point
+                );
+
+            return true;
+        }
+
+        case SegmentContactKind.properCrossing:
+        {
+            if (!preparedQueryReady)
+            {
+                preparedQuery =
+                    prepareExactSegment(
+                        query
+                    );
+
+                preparedQueryReady = true;
+            }
+
+            const auto crossing =
+                properIntersectionParameterKnownCrossingPreparedFirst(
+                    preparedQuery,
+                    edge
+                );
+
+            events[eventCount++] =
+                exactSourceParameter(
+                    crossing
+                );
+
+            return true;
+        }
+
+        case SegmentContactKind.overlap:
+        {
+            Segment2!T overlap;
+
+            const bool found =
+                trySegmentIntersectionOverlap(
+                    query,
+                    edge,
+                    overlap
+                );
+
+            assert(found);
+
+            events[eventCount++] =
+                exactSourceParameter(
+                    query,
+                    overlap.a
+                );
+
+            events[eventCount++] =
+                exactSourceParameter(
+                    query,
+                    overlap.b
+                );
+
+            return true;
+        }
+    }
+}
 
 
 /*

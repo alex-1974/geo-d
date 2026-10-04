@@ -117,6 +117,41 @@ private enum bool isSegmentPolygonClipScalar(T) =
 private enum size_t equalPreferredEventThreshold = 9;
 
 
+version (GeoResearchClipEventCensus)
+{
+    package(geo)
+    struct SegmentPolygonClipEventCensus
+    {
+        size_t properCrossings;
+        size_t secondPassCrossingReconstructions;
+        size_t rawEventCount;
+        size_t uniqueEventCount;
+        size_t uniqueProperCrossingEventCount;
+        size_t materializedEndpointCount;
+        size_t materializedProperCrossingEndpointCount;
+        size_t componentCount;
+    }
+
+    private __gshared SegmentPolygonClipEventCensus
+        researchClipEventCensus;
+
+    package(geo)
+    void resetSegmentPolygonClipEventCensus()
+        nothrow @safe @nogc
+    {
+        researchClipEventCensus =
+            SegmentPolygonClipEventCensus.init;
+    }
+
+    package(geo)
+    SegmentPolygonClipEventCensus segmentPolygonClipEventCensus()
+        nothrow @safe @nogc
+    {
+        return researchClipEventCensus;
+    }
+}
+
+
 /*
  * Computes total represented polygon boundary-edge count with resource-size
  * overflow mapped to the normal allocation failure path.
@@ -714,6 +749,11 @@ if (isSegmentPolygonClipScalar!T)
 
     size_t eventCount;
 
+    version (GeoResearchClipEventCensus)
+    {
+        resetSegmentPolygonClipEventCensus();
+    }
+
     const bool seeded =
         seedExactEdgeEvents(
             query,
@@ -889,6 +929,12 @@ if (isSegmentPolygonClipScalar!T)
         eventCount >= equalPreferredEventThreshold;
 
 
+    version (GeoResearchClipEventCensus)
+    {
+        researchClipEventCensus.rawEventCount =
+            eventCount;
+    }
+
     if (eventCount >= equalPreferredEventThreshold)
     {
         if (reuseProperCrossingEventIndex)
@@ -922,8 +968,18 @@ if (isSegmentPolygonClipScalar!T)
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 
+    version (GeoResearchClipEventCensus)
+    {
+        researchClipEventCensus.uniqueEventCount =
+            eventCount;
+    }
+
     events.length =
         eventCount;
+
+    version (GeoResearchClipEventCensus)
+    auto researchProperCrossingUnique =
+        new bool[eventCount];
 
 
     /*

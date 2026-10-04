@@ -1,4 +1,4 @@
-module determinant_kernel_decomposition_bench;
+module geo.internal.determinant_kernel_decomposition_bench;
 
 import geo.internal.dyadic :
     SignedDyadicCoordinate,

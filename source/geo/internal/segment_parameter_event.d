@@ -739,41 +739,35 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
         return 0;
 
     size_t write = 1;
-    size_t writeMetadata =
-        rawToUnique[0];
 
     rawToUnique[rawEventIndices[0]] = 0;
 
     foreach (read; 1 .. events.length)
     {
-        const size_t readMetadata =
-            rawToUnique[read];
-
         if (
-            compareExactSourceParametersEqualPreferredBounded(
+            !exactSourceParametersEqual(
                 events[write - 1],
-                writeMetadata,
-                events[read],
-                readMetadata
-            ) != 0
+                events[read]
+            )
         )
         {
-            events[write] =
-                events[read];
+            if (write != read)
+                events[write] = events[read];
 
-            rawEventIndices[write] =
-                rawEventIndices[read];
-
-            writeMetadata =
-                readMetadata;
+            rawToUnique[
+                rawEventIndices[read]
+            ] =
+                write;
 
             ++write;
         }
-
-        rawToUnique[
-            rawEventIndices[read]
-        ] =
-            write - 1;
+        else
+        {
+            rawToUnique[
+                rawEventIndices[read]
+            ] =
+                write - 1;
+        }
     }
 
     return write;

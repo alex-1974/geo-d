@@ -7,7 +7,6 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates;
 
 import geo.internal.fixed_uint :
-    addUnsigned,
     compareUnsigned,
     multiplyUnsigned,
     subtractUnsigned;
@@ -30,11 +29,14 @@ import geo.segment :
  *
  * Exact source-segment parameter ordering for clipping/noding events.
  *
- * Every event is represented as one exact rational t in [0,1]:
+ * Every event is represented by the two nonnegative exact source weights:
  *
- *     t = numerator / denominator
+ *     P = (weightA * A + weightB * B) / (weightA + weightB)
+ *     t = weightB / (weightA + weightB)
  *
- * No Cartesian exact intersection is required for ordering/equality.
+ * Storing the direct weights preserves the high-performing proper-crossing
+ * research shape and avoids materializing dense denominator carriers merely
+ * for event ordering.
  */
 
 
@@ -48,8 +50,8 @@ private enum bool isExactSourceParameterScalar(T) =
 package(geo)
 struct ExactSourceParameter
 {
-    DyadicProductMagnitude numerator;
-    DyadicProductMagnitude denominator;
+    DyadicProductMagnitude weightA;
+    DyadicProductMagnitude weightB;
 }
 
 
@@ -116,24 +118,32 @@ if (isExactSourceParameterScalar!T)
         part.sign == total.sign
     );
 
-    ExactSourceParameter result;
+    DyadicProductMagnitude totalMagnitude;
+    DyadicProductMagnitude partMagnitude;
 
     embedCoordinateMagnitude(
-        result.denominator,
+        totalMagnitude,
         total.magnitude
     );
 
     if (part.sign != 0)
     {
         embedCoordinateMagnitude(
-            result.numerator,
+            partMagnitude,
             part.magnitude
         );
     }
 
-    assert(!result.denominator.isZero);
+    assert(!totalMagnitude.isZero);
 
-    return result;
+    return
+        ExactSourceParameter(
+            subtractUnsigned(
+                totalMagnitude,
+                partMagnitude
+            ),
+            partMagnitude
+        );
 }
 
 
@@ -148,11 +158,8 @@ ExactSourceParameter exactSourceParameter(
 
     return
         ExactSourceParameter(
-            crossing.weightB,
-            addUnsigned(
-                crossing.weightA,
-                crossing.weightB
-            )
+            crossing.weightA,
+            crossing.weightB
         );
 }
 
@@ -164,19 +171,26 @@ int compareExactSourceParameters(
 )
     pure nothrow @safe @nogc
 {
-    assert(!lhs.denominator.isZero);
-    assert(!rhs.denominator.isZero);
+    assert(
+        !lhs.weightA.isZero ||
+        !lhs.weightB.isZero
+    );
+
+    assert(
+        !rhs.weightA.isZero ||
+        !rhs.weightB.isZero
+    );
 
     const auto left =
         multiplyUnsigned(
-            lhs.numerator,
-            rhs.denominator
+            lhs.weightB,
+            rhs.weightA
         );
 
     const auto right =
         multiplyUnsigned(
-            rhs.numerator,
-            lhs.denominator
+            rhs.weightB,
+            lhs.weightA
         );
 
     return compareUnsigned(left, right);
@@ -191,21 +205,15 @@ void materializeExactSourceParameter(
 )
     pure nothrow @safe @nogc
 {
-    assert(!parameter.denominator.isZero);
-
-    const DyadicProductMagnitude weightB =
-        parameter.numerator;
-
-    const DyadicProductMagnitude weightA =
-        subtractUnsigned(
-            parameter.denominator,
-            parameter.numerator
-        );
+    assert(
+        !parameter.weightA.isZero ||
+        !parameter.weightB.isZero
+    );
 
     materializeExactSegmentWeights(
         source,
-        weightA,
-        weightB,
+        parameter.weightA,
+        parameter.weightB,
         result
     );
 }

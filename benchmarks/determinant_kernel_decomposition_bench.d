@@ -98,7 +98,8 @@ private ulong finalSubtract(size_t i)
     const auto cay = subtractDyadicCoordinates(v.cy, v.ay);
     const auto p = multiplyDyadicDifferences(bax, cay);
     const auto q = multiplyDyadicDifferences(bay, cax);
-    return fingerprint(subtractDyadicProducts(p, q));
+    const auto result = subtractDyadicProducts(p, q);
+    return fingerprint(result);
 }
 
 private void oracle()

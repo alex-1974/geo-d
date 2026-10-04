@@ -4,7 +4,7 @@ set -euo pipefail
 root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
-expected_head=1cdb8f90a7caf357cd9a597687a3a1ab811be585
+expected_head=b21ed86067c9fd7fc8a11d4357f15c6af4980698
 cpu=${1:-0}
 samples=${2:-12}
 

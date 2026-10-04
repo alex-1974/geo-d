@@ -22,9 +22,12 @@ import geo.internal.fixed_uint :
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     PreparedExactSegment,
+    PreparedExactSegmentSpans,
     prepareExactSegment,
+    prepareExactSegmentSpans,
     properIntersectionExactKnownCrossing,
     properIntersectionExactKnownCrossingPreparedFirst,
+    properIntersectionExactKnownCrossingPreparedFirstSpanned,
     tryProperIntersectionExact;
 
 import geo.intersection :
@@ -1089,6 +1092,7 @@ bool appendSegmentPairNodingEventsKnownContactPreparedFirst(T)(
     Segment2!T second,
     SegmentContactKind contact,
     ref PreparedExactSegment preparedFirst,
+    ref PreparedExactSegmentSpans preparedFirstSpans,
     ref bool preparedFirstReady,
     scope ExactOverlayPoint[] firstEvents,
     ref size_t firstCount,
@@ -1127,13 +1131,19 @@ if (isPolygonUnionExactScalar!T)
                 first
             );
 
+        preparedFirstSpans =
+            prepareExactSegmentSpans(
+                preparedFirst
+            );
+
         preparedFirstReady = true;
     }
 
     ExactProperIntersection exact;
 
-    properIntersectionExactKnownCrossingPreparedFirst(
+    properIntersectionExactKnownCrossingPreparedFirstSpanned(
         preparedFirst,
+        preparedFirstSpans,
         second,
         exact
     );
@@ -1168,6 +1178,7 @@ bool appendSegmentPairNodingEventsPreparedFirst(T)(
     Segment2!T first,
     Segment2!T second,
     ref PreparedExactSegment preparedFirst,
+    ref PreparedExactSegmentSpans preparedFirstSpans,
     ref bool preparedFirstReady,
     scope ExactOverlayPoint[] firstEvents,
     ref size_t firstCount,
@@ -1189,6 +1200,7 @@ if (isPolygonUnionExactScalar!T)
             second,
             contact,
             preparedFirst,
+            preparedFirstSpans,
             preparedFirstReady,
             firstEvents,
             firstCount,

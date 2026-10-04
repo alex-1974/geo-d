@@ -122,6 +122,24 @@ struct ExactProperIntersection
 
 
 /*
+ * Exact source-segment parameter for one strict proper crossing.
+ *
+ * For source A -> B:
+ *
+ *     P = (weightA * A + weightB * B) / (weightA + weightB)
+ *     t = weightB / (weightA + weightB)
+ *
+ * Both weights are positive exact determinant magnitudes.
+ */
+package(geo)
+struct ExactSegmentParameter
+{
+    DyadicProductMagnitude weightA;
+    DyadicProductMagnitude weightB;
+}
+
+
+/*
  * Exact equality of two proper-intersection events.
  *
  * Equivalent events can carry different raw denominators. Equality therefore
@@ -432,6 +450,88 @@ if (isExactIntersectionScalar!T)
  * fixed widths and exact rational result are identical to
  * properIntersectionExactKnownCrossing().
  */
+package(geo)
+ExactSegmentParameter properIntersectionParameterKnownCrossingPreparedFirst(T)(
+    ref const PreparedExactSegment first,
+    Segment2!T second
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    const auto dA =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY
+        );
+
+    const auto dB =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY
+        );
+
+    assert(dA.sign != 0);
+    assert(dB.sign != 0);
+    assert(dA.sign != dB.sign);
+
+    return
+        ExactSegmentParameter(
+            dB.magnitude,
+            dA.magnitude
+        );
+}
+
+
+package(geo)
+void materializeProperIntersectionParameter(
+    ref const PreparedExactSegment first,
+    ref const ExactSegmentParameter parameter,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+{
+    assert(!parameter.weightA.isZero);
+    assert(!parameter.weightB.isZero);
+
+    result.denominator =
+        addUnsigned(
+            parameter.weightA,
+            parameter.weightB
+        );
+
+    assert(!result.denominator.isZero);
+
+    result.xNumerator =
+        weightedCoordinate(
+            parameter.weightA,
+            first.aX,
+            parameter.weightB,
+            first.bX
+        );
+
+    result.yNumerator =
+        weightedCoordinate(
+            parameter.weightA,
+            first.aY,
+            parameter.weightB,
+            first.bY
+        );
+}
+
+
 package(geo)
 void properIntersectionExactKnownCrossingPreparedFirst(T)(
     ref const PreparedExactSegment first,

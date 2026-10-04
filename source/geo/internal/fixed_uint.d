@@ -276,6 +276,109 @@ private size_t pastLastNonZeroLimb(size_t Limbs)(
 }
 
 
+package(geo)
+struct UIntActiveSpan
+{
+    size_t first;
+    size_t end;
+
+    @property bool isZero() const
+        pure nothrow @safe @nogc
+    {
+        return first >= end;
+    }
+}
+
+
+package(geo)
+UIntActiveSpan activeUnsignedSpan(size_t Limbs)(
+    ref const UIntFixed!Limbs value
+)
+    pure nothrow @safe @nogc
+{
+    const size_t first =
+        firstNonZeroLimb(value);
+
+    if (first == Limbs)
+        return UIntActiveSpan(Limbs, 0);
+
+    const size_t end =
+        pastLastNonZeroLimb(value);
+
+    assert(first < end);
+
+    return UIntActiveSpan(first, end);
+}
+
+
+package(geo)
+UIntFixed!(LhsLimbs + RhsLimbs) multiplyUnsignedSpanned(
+    size_t LhsLimbs,
+    size_t RhsLimbs
+)(
+    ref const UIntFixed!LhsLimbs lhs,
+    UIntActiveSpan lhsSpan,
+    ref const UIntFixed!RhsLimbs rhs,
+    UIntActiveSpan rhsSpan
+)
+    pure nothrow @safe @nogc
+{
+    UIntFixed!(LhsLimbs + RhsLimbs) result;
+
+    if (
+        lhsSpan.isZero ||
+        rhsSpan.isZero
+    )
+    {
+        return result;
+    }
+
+    foreach (i; lhsSpan.first .. lhsSpan.end)
+    {
+        const uint lhsWord =
+            lhs.limb[i];
+
+        if (lhsWord == 0)
+            continue;
+
+        ulong carry = 0;
+
+        foreach (j; rhsSpan.first .. rhsSpan.end)
+        {
+            const size_t index =
+                i + j;
+
+            const ulong accumulated =
+                cast(ulong) lhsWord *
+                    cast(ulong) rhs.limb[j]
+                + cast(ulong) result.limb[index]
+                + carry;
+
+            result.limb[index] =
+                cast(uint) accumulated;
+
+            carry =
+                accumulated >> 32;
+        }
+
+        const size_t carryIndex =
+            i + rhsSpan.end;
+
+        assert(
+            carryIndex <
+            LhsLimbs + RhsLimbs
+        );
+
+        assert(result.limb[carryIndex] == 0);
+
+        result.limb[carryIndex] =
+            cast(uint) carry;
+    }
+
+    return result;
+}
+
+
 /**
  * Exact fixed-width multiplication.
  *

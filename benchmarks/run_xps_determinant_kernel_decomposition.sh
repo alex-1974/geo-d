@@ -4,12 +4,12 @@ set -euo pipefail
 root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
-expected_head=b21ed86067c9fd7fc8a11d4357f15c6af4980698
 cpu=${1:-0}
 samples=${2:-12}
+expected_head=${3:-}
 
 actual_head=$(git rev-parse HEAD)
-if [[ "$actual_head" != "$expected_head" ]]; then
+if [[ -n "$expected_head" && "$actual_head" != "$expected_head" ]]; then
     echo "ERROR: expected HEAD $expected_head, got $actual_head" >&2
     exit 1
 fi

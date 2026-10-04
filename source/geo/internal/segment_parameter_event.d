@@ -640,29 +640,51 @@ bool exactSourceParametersEqual(
             P(10.0, 0.0)
         );
 
-    const a =
+    const start =
         exactSourceParameter(
             source,
-            P(2.0, 0.0)
+            P(0.0, 0.0)
         );
 
-    const b =
+    const midpoint =
         exactSourceParameter(
             source,
-            P(7.0, 0.0)
+            P(5.0, 0.0)
+        );
+
+    const end =
+        exactSourceParameter(
+            source,
+            P(10.0, 0.0)
+        );
+
+    ExactSegmentParameter crossing;
+    crossing.weightA.limb[0] = 1;
+    crossing.weightB.limb[0] = 1;
+
+    const crossingMidpoint =
+        exactSourceParameter(
+            crossing
         );
 
     assert(
         compareExactSourceParameters(
-            a,
-            b
+            start,
+            midpoint
+        ) < 0
+    );
+
+    assert(
+        compareExactSourceParameters(
+            midpoint,
+            end
         ) < 0
     );
 
     assert(
         exactSourceParametersEqual(
-            a,
-            a
+            midpoint,
+            crossingMidpoint
         )
     );
 }

@@ -51,6 +51,10 @@ import geo.internal.segment_parameter_event :
     sortUniqueExactSourceParameters,
     sortUniqueExactSourceParametersWithRawMapping;
 
+import geo.internal.segment_polygon_clip_p1_baseline_research :
+    trySegmentPolygonClipP1InternalBaselineResearch;
+
+
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
 
@@ -762,6 +766,23 @@ if (isSegmentPolygonClipScalar!T)
     const bool prepareEventProvenance =
         !useEdgeBoundsPrefilter &&
         edgeCount >= 16;
+
+    /*
+     * Research-only hybrid dispatch.
+     *
+     * Preserve the exact current-develop clipping implementation for
+     * crossing/sparse workloads. Only workloads already classified as dense
+     * by the established provenance predicate use the lazy parameter path.
+     */
+    if (!prepareEventProvenance)
+    {
+        return
+            trySegmentPolygonClipP1InternalBaselineResearch(
+                query,
+                polygon,
+                owned
+            );
+    }
 
     size_t[] eventProvenanceWorkspace;
     size_t[] edgeFirstRawEventPlusOne;

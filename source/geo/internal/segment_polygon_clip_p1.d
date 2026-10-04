@@ -21,8 +21,7 @@ import geo.internal.exact_coordinate_round :
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     PreparedExactSegment,
-    prepareExactSegment,
-    properIntersectionParameterKnownCrossingPreparedFirst;
+    properIntersectionExactKnownCrossingPreparedFirst;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
@@ -43,24 +42,15 @@ import geo.internal.polygon_union_exact :
     appendSegmentPairNodingEventsKnownContactPreparedFirst;
 
 
-import geo.internal.segment_parameter_event :
-    ExactSourceParameter,
-    exactSourceParameter,
-    findExactSourceParameterIndex,
-    materializeExactSourceParameter,
-    sortUniqueExactSourceParameters,
-    sortUniqueExactSourceParametersWithRawMapping;
-
-import geo.internal.segment_polygon_clip_p1_baseline_research :
-    trySegmentPolygonClipP1InternalBaselineResearch;
-
-
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
 
 import geo.internal.segment_polygon_clip_result :
     SegmentPolygonClipOwnedResultInternal,
     takeSegmentPolygonClipOwnedResultInternal;
+
+import geo.internal.segment_polygon_clip_p1_dense_parameter_research :
+    trySegmentPolygonClipP1DenseParameterResearch;
 
 import geo.orientation :
     Orientation2,
@@ -128,148 +118,6 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
-
-
-version (GeoResearchHybridDispatchProbe)
-{
-    package(geo)
-    enum HybridClipPath : ubyte
-    {
-        unknown,
-        baseline,
-        denseParameter,
-    }
-
-    private HybridClipPath researchHybridClipPath;
-
-    package(geo)
-    HybridClipPath hybridClipPath()
-        nothrow @safe @nogc
-    {
-        return researchHybridClipPath;
-    }
-}
-
-
-private bool appendQueryParameterEventsKnownContactPreparedFirst(T)(
-    Segment2!T query,
-    Segment2!T edge,
-    SegmentContactKind contact,
-    ref PreparedExactSegment preparedQuery,
-    ref bool preparedQueryReady,
-    scope ExactSourceParameter[] events,
-    ref size_t eventCount
-)
-    pure nothrow @safe @nogc
-if (isSegmentPolygonClipScalar!T)
-{
-    size_t required;
-
-    final switch (contact)
-    {
-        case SegmentContactKind.none:
-            return true;
-
-        case SegmentContactKind.touch:
-        case SegmentContactKind.properCrossing:
-            required = 1;
-            break;
-
-        case SegmentContactKind.overlap:
-            required = 2;
-            break;
-    }
-
-    if (
-        eventCount > events.length ||
-        required > events.length - eventCount
-    )
-    {
-        return false;
-    }
-
-    final switch (contact)
-    {
-        case SegmentContactKind.none:
-            assert(false);
-
-        case SegmentContactKind.touch:
-        {
-            Point2!T point;
-
-            const bool found =
-                trySegmentTouchPoint(
-                    query,
-                    edge,
-                    point
-                );
-
-            assert(found);
-
-            events[eventCount++] =
-                exactSourceParameter(
-                    query,
-                    point
-                );
-
-            return true;
-        }
-
-        case SegmentContactKind.properCrossing:
-        {
-            if (!preparedQueryReady)
-            {
-                preparedQuery =
-                    prepareExactSegment(
-                        query
-                    );
-
-                preparedQueryReady = true;
-            }
-
-            const auto crossing =
-                properIntersectionParameterKnownCrossingPreparedFirst(
-                    preparedQuery,
-                    edge
-                );
-
-            events[eventCount++] =
-                exactSourceParameter(
-                    crossing
-                );
-
-            return true;
-        }
-
-        case SegmentContactKind.overlap:
-        {
-            Segment2!T overlap;
-
-            const bool found =
-                trySegmentIntersectionOverlap(
-                    query,
-                    edge,
-                    overlap
-                );
-
-            assert(found);
-
-            events[eventCount++] =
-                exactSourceParameter(
-                    query,
-                    overlap.a
-                );
-
-            events[eventCount++] =
-                exactSourceParameter(
-                    query,
-                    overlap.b
-                );
-
-            return true;
-        }
-    }
-}
 
 
 /*
@@ -788,37 +636,21 @@ if (isSegmentPolygonClipScalar!T)
         !useEdgeBoundsPrefilter &&
         edgeCount >= 16;
 
-    /*
-     * Research-only hybrid dispatch.
-     *
-     * Preserve the exact current-develop clipping implementation for
-     * crossing/sparse workloads. Only workloads already classified as dense
-     * by the established provenance predicate use the lazy parameter path.
-     */
-    if (!prepareEventProvenance)
+    if (prepareEventProvenance)
     {
-        version (GeoResearchHybridDispatchProbe)
-        {
-            researchHybridClipPath =
-                HybridClipPath.baseline;
-        }
-
-        const auto baselineStatus =
-            trySegmentPolygonClipP1InternalBaselineResearch(
+        const auto denseStatus =
+            trySegmentPolygonClipP1DenseParameterResearch(
                 query,
                 polygon,
+                edgeCount,
+                queryBounds,
+                eventCapacity,
                 owned
             );
 
         return
             cast(SegmentPolygonClipInternalStatus)
-                baselineStatus;
-    }
-
-    version (GeoResearchHybridDispatchProbe)
-    {
-        researchHybridClipPath =
-            HybridClipPath.denseParameter;
+                denseStatus;
     }
 
     size_t[] eventProvenanceWorkspace;
@@ -892,27 +724,24 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-    if (eventCapacity > size_t.max / ExactSourceParameter.sizeof)
+    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
 
     auto events =
-        new ExactSourceParameter[
+        new ExactOverlayPoint[
             eventCapacity
         ];
 
-    size_t eventCount = 2;
+    size_t eventCount;
 
-    events[0] =
-        exactSourceParameter(
+    const bool seeded =
+        seedExactEdgeEvents(
             query,
-            query.a
+            events[],
+            eventCount
         );
 
-    events[1] =
-        exactSourceParameter(
-            query,
-            query.b
-        );
+    assert(seeded);
 
 
     /*
@@ -976,43 +805,68 @@ if (isSegmentPolygonClipScalar!T)
                 }
             }
 
+            ExactOverlayPoint[2] ignoredEdgeEvents;
+            size_t ignoredCount;
+
             const size_t rawEventStart =
                 eventCount;
 
             version (DigitalMars)
-            SegmentContactKind contact;
+            bool appended;
             else
-            const SegmentContactKind contact =
-                segmentContactKind(
+            const bool appended =
+                appendSegmentPairNodingEventsPreparedFirst(
                     query,
-                    edge
+                    edge,
+                    preparedExactQuery,
+                    preparedExactQueryReady,
+                    events[],
+                    eventCount,
+                    ignoredEdgeEvents[],
+                    ignoredCount
                 );
 
             version (DigitalMars)
             {
-                contact =
-                    segmentContactKind(
-                        query,
-                        edge
-                    );
-
                 if (reuseBoundaryContacts)
                 {
+                    const SegmentContactKind contact =
+                        segmentContactKind(
+                            query,
+                            edge
+                        );
+
                     boundaryContacts[flatEdgeIndex] =
                         contact;
+
+                    appended =
+                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
+                            query,
+                            edge,
+                            contact,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+                else
+                {
+                    appended =
+                        appendSegmentPairNodingEventsPreparedFirst(
+                            query,
+                            edge,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
                 }
             }
-
-            const bool appended =
-                appendQueryParameterEventsKnownContactPreparedFirst(
-                    query,
-                    edge,
-                    contact,
-                    preparedExactQuery,
-                    preparedExactQueryReady,
-                    events[],
-                    eventCount
-                );
 
             /*
              * The conservative bounds pass covers every raw insertion,
@@ -1055,19 +909,32 @@ if (isSegmentPolygonClipScalar!T)
         eventCount >= equalPreferredEventThreshold;
 
 
-    if (reuseProperCrossingEventIndex)
+    if (eventCount >= equalPreferredEventThreshold)
     {
-        eventCount =
-            sortUniqueExactSourceParametersWithRawMapping(
-                events[0 .. eventCount],
-                rawEventIndices[0 .. eventCount],
-                rawToUnique[0 .. eventCount]
-            );
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferred(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
     }
     else
     {
         eventCount =
-            sortUniqueExactSourceParameters(
+            sortUniqueExactEdgeEvents(
+                query,
                 events[0 .. eventCount]
             );
     }
@@ -1234,21 +1101,24 @@ if (isSegmentPolygonClipScalar!T)
                     }
                     else
                     {
+                        ExactProperIntersection crossing;
+
                         assert(preparedExactQueryReady);
 
-                        const auto crossing =
-                            properIntersectionParameterKnownCrossingPreparedFirst(
-                                preparedExactQuery,
-                                edge
-                            );
+                        properIntersectionExactKnownCrossingPreparedFirst(
+                            preparedExactQuery,
+                            edge,
+                            crossing
+                        );
 
                         const auto event =
-                            exactSourceParameter(
+                            exactOverlayPoint(
                                 crossing
                             );
 
                         index =
-                            findExactSourceParameterIndex(
+                            findExactEventIndex(
+                                query,
                                 events[],
                                 event
                             );
@@ -1296,13 +1166,13 @@ if (isSegmentPolygonClipScalar!T)
                     }
 
                     const auto event =
-                        exactSourceParameter(
-                            query,
+                        exactOverlayPoint(
                             point
                         );
 
                     const size_t index =
-                        findExactSourceParameterIndex(
+                        findExactEventIndex(
+                            query,
                             events[],
                             event
                         );
@@ -1337,25 +1207,25 @@ if (isSegmentPolygonClipScalar!T)
                     assert(overlap.a != overlap.b);
 
                     const auto first =
-                        exactSourceParameter(
-                            query,
+                        exactOverlayPoint(
                             overlap.a
                         );
 
                     const auto second =
-                        exactSourceParameter(
-                            query,
+                        exactOverlayPoint(
                             overlap.b
                         );
 
                     const size_t firstIndex =
-                        findExactSourceParameterIndex(
+                        findExactEventIndex(
+                            query,
                             events[],
                             first
                         );
 
                     const size_t secondIndex =
-                        findExactSourceParameterIndex(
+                        findExactEventIndex(
+                            query,
                             events[],
                             second
                         );
@@ -1457,13 +1327,13 @@ if (isSegmentPolygonClipScalar!T)
                 }
 
                 const auto event =
-                    exactSourceParameter(
-                        query,
+                    exactOverlayPoint(
                         vertex
                     );
 
                 const size_t index =
-                    findExactSourceParameterIndex(
+                    findExactEventIndex(
+                        query,
                         events[],
                         event
                     );
@@ -1613,19 +1483,6 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
-    if (
-        componentCount != 0 &&
-        !preparedExactQueryReady
-    )
-    {
-        preparedExactQuery =
-            prepareExactSegment(
-                query
-            );
-
-        preparedExactQueryReady = true;
-    }
-
     auto components =
         new Segment2!double[
             componentCount
@@ -1667,40 +1524,13 @@ if (isSegmentPolygonClipScalar!T)
         Point2!double start;
         Point2!double end;
 
-        ExactProperIntersection exactStart;
-        ExactProperIntersection exactEnd;
-
-        assert(preparedExactQueryReady);
-
-        materializeExactSourceParameter(
-            preparedExactQuery,
-            events[runStart],
-            exactStart
-        );
-
-        materializeExactSourceParameter(
-            preparedExactQuery,
-            events[runEnd],
-            exactEnd
-        );
-
-        const auto startOverlay =
-            exactOverlayPoint(
-                exactStart
-            );
-
-        const auto endOverlay =
-            exactOverlayPoint(
-                exactEnd
-            );
-
         if (
             !tryMaterializeExactPoint(
-                startOverlay,
+                events[runStart],
                 start
             ) ||
             !tryMaterializeExactPoint(
-                endOverlay,
+                events[runEnd],
                 end
             )
         )

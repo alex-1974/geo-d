@@ -7,6 +7,7 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates;
 
 import geo.internal.fixed_uint :
+    addUnsigned,
     compareUnsigned,
     multiplyUnsigned,
     subtractUnsigned;
@@ -52,6 +53,7 @@ struct ExactSourceParameter
 {
     DyadicProductMagnitude weightA;
     DyadicProductMagnitude weightB;
+    DyadicProductMagnitude denominator;
 }
 
 
@@ -142,7 +144,8 @@ if (isExactSourceParameterScalar!T)
                 totalMagnitude,
                 partMagnitude
             ),
-            partMagnitude
+            partMagnitude,
+            totalMagnitude
         );
 }
 
@@ -159,7 +162,11 @@ ExactSourceParameter exactSourceParameter(
     return
         ExactSourceParameter(
             crossing.weightA,
-            crossing.weightB
+            crossing.weightB,
+            addUnsigned(
+                crossing.weightA,
+                crossing.weightB
+            )
         );
 }
 
@@ -372,6 +379,147 @@ size_t sortUniqueExactSourceParameters(
     }
 
     return write;
+}
+
+
+private size_t activeEnd(
+    ref const DyadicProductMagnitude value
+)
+    pure nothrow @safe @nogc
+{
+    for (size_t i = value.limb.length; i != 0; --i)
+    {
+        if (value.limb[i - 1] != 0)
+            return i;
+    }
+
+    return 0;
+}
+
+
+private size_t packDenseParameterEnds(
+    ref const ExactSourceParameter event
+)
+    pure nothrow @safe @nogc
+{
+    const size_t numeratorEnd =
+        activeEnd(event.weightB);
+
+    const size_t denominatorEnd =
+        activeEnd(event.denominator);
+
+    assert(numeratorEnd <= ushort.max);
+    assert(denominatorEnd <= ushort.max);
+
+    return
+        numeratorEnd |
+        (denominatorEnd << 16);
+}
+
+
+private size_t denseParameterNumeratorEnd(size_t metadata)
+    pure nothrow @safe @nogc
+{
+    return metadata & 0xFFFF;
+}
+
+
+private size_t denseParameterDenominatorEnd(size_t metadata)
+    pure nothrow @safe @nogc
+{
+    return (metadata >> 16) & 0xFFFF;
+}
+
+
+private bool equalUnsignedBounded(
+    ref const DyadicProductMagnitude lhs,
+    size_t lhsEnd,
+    ref const DyadicProductMagnitude rhs,
+    size_t rhsEnd
+)
+    pure nothrow @safe @nogc
+{
+    if (lhsEnd != rhsEnd)
+        return false;
+
+    foreach (i; 0 .. lhsEnd)
+    {
+        if (lhs.limb[i] != rhs.limb[i])
+            return false;
+    }
+
+    return true;
+}
+
+
+private int compareUnsignedBounded(
+    ref const DyadicProductMagnitude lhs,
+    size_t lhsEnd,
+    ref const DyadicProductMagnitude rhs,
+    size_t rhsEnd
+)
+    pure nothrow @safe @nogc
+{
+    if (lhsEnd < rhsEnd)
+        return -1;
+
+    if (lhsEnd > rhsEnd)
+        return 1;
+
+    size_t i = lhsEnd;
+
+    while (i != 0)
+    {
+        --i;
+
+        if (lhs.limb[i] < rhs.limb[i])
+            return -1;
+
+        if (lhs.limb[i] > rhs.limb[i])
+            return 1;
+    }
+
+    return 0;
+}
+
+
+private int compareExactSourceParametersEqualPreferredBounded(
+    ref const ExactSourceParameter lhs,
+    size_t lhsMetadata,
+    ref const ExactSourceParameter rhs,
+    size_t rhsMetadata
+)
+    pure nothrow @safe @nogc
+{
+    const size_t lhsDenominatorEnd =
+        denseParameterDenominatorEnd(lhsMetadata);
+
+    const size_t rhsDenominatorEnd =
+        denseParameterDenominatorEnd(rhsMetadata);
+
+    if (
+        equalUnsignedBounded(
+            lhs.denominator,
+            lhsDenominatorEnd,
+            rhs.denominator,
+            rhsDenominatorEnd
+        )
+    )
+    {
+        return
+            compareUnsignedBounded(
+                lhs.weightB,
+                denseParameterNumeratorEnd(lhsMetadata),
+                rhs.weightB,
+                denseParameterNumeratorEnd(rhsMetadata)
+            );
+    }
+
+    return
+        compareExactSourceParameters(
+            lhs,
+            rhs
+        );
 }
 
 

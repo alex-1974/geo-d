@@ -333,6 +333,111 @@ private SignedExactCoordinateNumerator weightedCoordinate(
 
 
 /*
+ * Exact weighted sum with caller-provided active operand spans.
+ *
+ * Arithmetic, product-zero checks and fixed-width results are identical to
+ * weightedCoordinate(); only repeated active-span discovery is avoided.
+ */
+private SignedExactCoordinateNumerator weightedCoordinateSpanned(
+    ref const DyadicProductMagnitude weightA,
+    UIntActiveSpan weightASpan,
+    ref const SignedDyadicCoordinate a,
+    UIntActiveSpan aSpan,
+    ref const DyadicProductMagnitude weightB,
+    UIntActiveSpan weightBSpan,
+    ref const SignedDyadicCoordinate b,
+    UIntActiveSpan bSpan
+)
+    pure nothrow @safe @nogc
+{
+    SignedExactCoordinateNumerator result;
+
+    const auto magnitudeA =
+        multiplyUnsignedSpanned(
+            weightA,
+            weightASpan,
+            a.magnitude,
+            aSpan
+        );
+
+    const auto magnitudeB =
+        multiplyUnsignedSpanned(
+            weightB,
+            weightBSpan,
+            b.magnitude,
+            bSpan
+        );
+
+    const bool zeroA =
+        a.sign == 0 ||
+        magnitudeA.isZero;
+
+    const bool zeroB =
+        b.sign == 0 ||
+        magnitudeB.isZero;
+
+    if (zeroA)
+    {
+        if (zeroB)
+            return result;
+
+        result.sign = b.sign;
+        result.magnitude = magnitudeB;
+        return result;
+    }
+
+    if (zeroB)
+    {
+        result.sign = a.sign;
+        result.magnitude = magnitudeA;
+        return result;
+    }
+
+    if (a.sign == b.sign)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            addUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            magnitudeA,
+            magnitudeB
+        );
+
+    if (comparison == 0)
+        return result;
+
+    if (comparison > 0)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+    }
+    else
+    {
+        result.sign = b.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeB,
+                magnitudeA
+            );
+    }
+
+    return result;
+}
+
+
+/*
  * Constructs exact rational data from the two already established
  * opposite-side determinants of A and B relative to CD.
  */

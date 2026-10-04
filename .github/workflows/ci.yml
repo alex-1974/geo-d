@@ -67,6 +67,19 @@ jobs:
         shell: bash
         run: dub build --build=release --compiler="$DC" --force
 
+      - name: Check determinant kernel decomposition probe
+        if: matrix.compiler == 'dmd-2.111.0' || matrix.compiler == 'ldc-1.41.0'
+        shell: bash
+        run: |
+          "$DC" -O -release -inline -boundscheck=off \
+            -Isource \
+            benchmarks/determinant_kernel_decomposition_bench.d \
+            source/geo/internal/dyadic.d \
+            source/geo/internal/fixed_uint.d \
+            source/geo/internal/orientation_dyadic.d \
+            -of=build/determinant-kernel-decomposition-probe
+          build/determinant-kernel-decomposition-probe
+
       - name: Check segment-polygon benchmark preflight and recording
         shell: bash
         run: python3 benchmarks/run_segment_polygon.py --compiler="$DC" --smoke

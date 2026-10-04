@@ -120,6 +120,27 @@ private enum bool isSegmentPolygonClipScalar(T) =
 private enum size_t equalPreferredEventThreshold = 9;
 
 
+version (GeoResearchHybridDispatchProbe)
+{
+    package(geo)
+    enum HybridClipPath : ubyte
+    {
+        unknown,
+        baseline,
+        denseParameter,
+    }
+
+    private HybridClipPath researchHybridClipPath;
+
+    package(geo)
+    HybridClipPath hybridClipPath()
+        nothrow @safe @nogc
+    {
+        return researchHybridClipPath;
+    }
+}
+
+
 /*
  * Computes total represented polygon boundary-edge count with resource-size
  * overflow mapped to the normal allocation failure path.
@@ -638,6 +659,12 @@ if (isSegmentPolygonClipScalar!T)
 
     if (prepareEventProvenance)
     {
+        version (GeoResearchHybridDispatchProbe)
+        {
+            researchHybridClipPath =
+                HybridClipPath.denseParameter;
+        }
+
         const auto denseStatus =
             trySegmentPolygonClipP1DenseParameterResearch(
                 query,
@@ -651,6 +678,12 @@ if (isSegmentPolygonClipScalar!T)
         return
             cast(SegmentPolygonClipInternalStatus)
                 denseStatus;
+    }
+
+    version (GeoResearchHybridDispatchProbe)
+    {
+        researchHybridClipPath =
+            HybridClipPath.baseline;
     }
 
     size_t[] eventProvenanceWorkspace;

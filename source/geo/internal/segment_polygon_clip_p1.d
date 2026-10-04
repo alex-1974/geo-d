@@ -130,6 +130,27 @@ private enum bool isSegmentPolygonClipScalar(T) =
 private enum size_t equalPreferredEventThreshold = 9;
 
 
+version (GeoResearchHybridDispatchProbe)
+{
+    package(geo)
+    enum HybridClipPath : ubyte
+    {
+        unknown,
+        baseline,
+        denseParameter,
+    }
+
+    private HybridClipPath researchHybridClipPath;
+
+    package(geo)
+    HybridClipPath hybridClipPath()
+        nothrow @safe @nogc
+    {
+        return researchHybridClipPath;
+    }
+}
+
+
 private bool appendQueryParameterEventsKnownContactPreparedFirst(T)(
     Segment2!T query,
     Segment2!T edge,
@@ -776,6 +797,12 @@ if (isSegmentPolygonClipScalar!T)
      */
     if (!prepareEventProvenance)
     {
+        version (GeoResearchHybridDispatchProbe)
+        {
+            researchHybridClipPath =
+                HybridClipPath.baseline;
+        }
+
         const auto baselineStatus =
             trySegmentPolygonClipP1InternalBaselineResearch(
                 query,
@@ -786,6 +813,12 @@ if (isSegmentPolygonClipScalar!T)
         return
             cast(SegmentPolygonClipInternalStatus)
                 baselineStatus;
+    }
+
+    version (GeoResearchHybridDispatchProbe)
+    {
+        researchHybridClipPath =
+            HybridClipPath.denseParameter;
     }
 
     size_t[] eventProvenanceWorkspace;

@@ -843,6 +843,7 @@ if (isSegmentPolygonClipScalar!T)
                             query,
                             edge,
                             preparedExactQuery,
+                            preparedExactQuerySpans,
                             preparedExactQueryReady,
                             events[],
                             eventCount,

@@ -9,10 +9,14 @@ import geo.internal.dyadic :
 import geo.internal.fixed_uint :
     addUnsigned,
     compareUnsigned,
-    multiplyUnsigned;
+    multiplyUnsigned,
+    subtractUnsigned;
 
 import geo.internal.intersection_exact :
-    ExactSegmentParameter;
+    ExactProperIntersection,
+    ExactSegmentParameter,
+    PreparedExactSegment,
+    materializeExactSegmentWeights;
 
 import geo.point :
     Point2;
@@ -176,6 +180,236 @@ int compareExactSourceParameters(
         );
 
     return compareUnsigned(left, right);
+}
+
+
+package(geo)
+void materializeExactSourceParameter(
+    ref const PreparedExactSegment source,
+    ref const ExactSourceParameter parameter,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+{
+    assert(!parameter.denominator.isZero);
+
+    const DyadicProductMagnitude weightB =
+        parameter.numerator;
+
+    const DyadicProductMagnitude weightA =
+        subtractUnsigned(
+            parameter.denominator,
+            parameter.numerator
+        );
+
+    materializeExactSegmentWeights(
+        source,
+        weightA,
+        weightB,
+        result
+    );
+}
+
+
+package(geo)
+size_t sortUniqueExactSourceParameters(
+    scope ExactSourceParameter[] events
+)
+    pure nothrow @safe @nogc
+{
+    if (events.length < 2)
+        return events.length;
+
+    size_t start =
+        events.length / 2;
+
+    while (start > 0)
+    {
+        --start;
+
+        size_t root = start;
+
+        while (true)
+        {
+            const size_t left =
+                root * 2 + 1;
+
+            if (left >= events.length)
+                break;
+
+            size_t largest = root;
+
+            if (
+                compareExactSourceParameters(
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
+
+            const size_t right =
+                left + 1;
+
+            if (
+                right < events.length &&
+                compareExactSourceParameters(
+                    events[largest],
+                    events[right]
+                ) < 0
+            )
+            {
+                largest = right;
+            }
+
+            if (largest == root)
+                break;
+
+            const auto temporary =
+                events[root];
+
+            events[root] =
+                events[largest];
+
+            events[largest] =
+                temporary;
+
+            root = largest;
+        }
+    }
+
+    size_t end =
+        events.length;
+
+    while (end > 1)
+    {
+        --end;
+
+        const auto temporary =
+            events[0];
+
+        events[0] =
+            events[end];
+
+        events[end] =
+            temporary;
+
+        size_t root = 0;
+
+        while (true)
+        {
+            const size_t left =
+                root * 2 + 1;
+
+            if (left >= end)
+                break;
+
+            size_t largest = root;
+
+            if (
+                compareExactSourceParameters(
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
+
+            const size_t right =
+                left + 1;
+
+            if (
+                right < end &&
+                compareExactSourceParameters(
+                    events[largest],
+                    events[right]
+                ) < 0
+            )
+            {
+                largest = right;
+            }
+
+            if (largest == root)
+                break;
+
+            const auto swapValue =
+                events[root];
+
+            events[root] =
+                events[largest];
+
+            events[largest] =
+                swapValue;
+
+            root = largest;
+        }
+    }
+
+    size_t write = 1;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactSourceParametersEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            events[write++] =
+                events[read];
+        }
+    }
+
+    return write;
+}
+
+
+package(geo)
+size_t findExactSourceParameterIndex(
+    scope const(ExactSourceParameter)[] events,
+    ref const ExactSourceParameter target
+)
+    pure nothrow @safe @nogc
+{
+    size_t lower = 0;
+    size_t upper =
+        events.length;
+
+    while (lower < upper)
+    {
+        const size_t middle =
+            lower + (upper - lower) / 2;
+
+        if (
+            compareExactSourceParameters(
+                events[middle],
+                target
+            ) < 0
+        )
+        {
+            lower = middle + 1;
+        }
+        else
+        {
+            upper = middle;
+        }
+    }
+
+    if (
+        lower < events.length &&
+        exactSourceParametersEqual(
+            events[lower],
+            target
+        )
+    )
+    {
+        return lower;
+    }
+
+    return size_t.max;
 }
 
 

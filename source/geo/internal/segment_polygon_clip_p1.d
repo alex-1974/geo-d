@@ -1114,6 +1114,11 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.properCrossing:
                 {
+                    version (GeoResearchClipEventCensus)
+                    {
+                        ++researchClipEventCensus.properCrossings;
+                    }
+
                     size_t index;
 
                     if (reuseProperCrossingEventIndex)
@@ -1137,6 +1142,12 @@ if (isSegmentPolygonClipScalar!T)
                     }
                     else
                     {
+                        version (GeoResearchClipEventCensus)
+                        {
+                            ++researchClipEventCensus
+                                .secondPassCrossingReconstructions;
+                        }
+
                         ExactProperIntersection crossing;
 
                         assert(preparedExactQueryReady);
@@ -1162,6 +1173,12 @@ if (isSegmentPolygonClipScalar!T)
 
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
+
+                    version (GeoResearchClipEventCensus)
+                    {
+                        researchProperCrossingUnique[index] =
+                            true;
+                    }
 
                     setAfterLocation(
                         afterLocation[index],
@@ -1519,6 +1536,21 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
+    version (GeoResearchClipEventCensus)
+    {
+        researchClipEventCensus.componentCount =
+            componentCount;
+
+        foreach (isCrossing; researchProperCrossingUnique)
+        {
+            if (isCrossing)
+            {
+                ++researchClipEventCensus
+                    .uniqueProperCrossingEventCount;
+            }
+        }
+    }
+
     auto components =
         new Segment2!double[
             componentCount
@@ -1559,6 +1591,24 @@ if (isSegmentPolygonClipScalar!T)
 
         Point2!double start;
         Point2!double end;
+
+        version (GeoResearchClipEventCensus)
+        {
+            researchClipEventCensus.materializedEndpointCount +=
+                2;
+
+            if (researchProperCrossingUnique[runStart])
+            {
+                ++researchClipEventCensus
+                    .materializedProperCrossingEndpointCount;
+            }
+
+            if (researchProperCrossingUnique[runEnd])
+            {
+                ++researchClipEventCensus
+                    .materializedProperCrossingEndpointCount;
+            }
+        }
 
         if (
             !tryMaterializeExactPoint(

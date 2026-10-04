@@ -13,9 +13,12 @@ import geo.internal.exact_coordinate :
     exactCoordinatesEqual;
 
 import geo.internal.fixed_uint :
+    UIntActiveSpan,
+    activeUnsignedSpan,
     addUnsigned,
     compareUnsigned,
     multiplyUnsigned,
+    multiplyUnsignedSpanned,
     subtractUnsigned;
 
 import geo.internal.orientation_dyadic :
@@ -303,6 +306,113 @@ private SignedExactCoordinateNumerator weightedCoordinate(
 }
 
 
+private SignedExactCoordinateNumerator weightedCoordinateWeightSpanned(
+    ref const DyadicProductMagnitude weightA,
+    UIntActiveSpan weightASpan,
+    ref const SignedDyadicCoordinate a,
+    ref const DyadicProductMagnitude weightB,
+    UIntActiveSpan weightBSpan,
+    ref const SignedDyadicCoordinate b
+)
+    pure nothrow @safe @nogc
+{
+    const UIntActiveSpan aSpan =
+        activeUnsignedSpan(
+            a.magnitude
+        );
+
+    const UIntActiveSpan bSpan =
+        activeUnsignedSpan(
+            b.magnitude
+        );
+
+    SignedExactCoordinateNumerator result;
+
+    const auto magnitudeA =
+        multiplyUnsignedSpanned(
+            weightA,
+            weightASpan,
+            a.magnitude,
+            aSpan
+        );
+
+    const auto magnitudeB =
+        multiplyUnsignedSpanned(
+            weightB,
+            weightBSpan,
+            b.magnitude,
+            bSpan
+        );
+
+    const bool zeroA =
+        a.sign == 0 ||
+        magnitudeA.isZero;
+
+    const bool zeroB =
+        b.sign == 0 ||
+        magnitudeB.isZero;
+
+    if (zeroA)
+    {
+        if (zeroB)
+            return result;
+
+        result.sign = b.sign;
+        result.magnitude = magnitudeB;
+        return result;
+    }
+
+    if (zeroB)
+    {
+        result.sign = a.sign;
+        result.magnitude = magnitudeA;
+        return result;
+    }
+
+    if (a.sign == b.sign)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            addUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+
+        return result;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            magnitudeA,
+            magnitudeB
+        );
+
+    if (comparison == 0)
+        return result;
+
+    if (comparison > 0)
+    {
+        result.sign = a.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeA,
+                magnitudeB
+            );
+    }
+    else
+    {
+        result.sign = b.sign;
+        result.magnitude =
+            subtractUnsigned(
+                magnitudeB,
+                magnitudeA
+            );
+    }
+
+    return result;
+}
+
+
 /*
  * Constructs exact rational data from the two already established
  * opposite-side determinants of A and B relative to CD.
@@ -476,6 +586,16 @@ if (isExactIntersectionScalar!T)
     const DyadicProductMagnitude weightB =
         dA.magnitude;
 
+    const UIntActiveSpan weightASpan =
+        activeUnsignedSpan(
+            weightA
+        );
+
+    const UIntActiveSpan weightBSpan =
+        activeUnsignedSpan(
+            weightB
+        );
+
     result.denominator =
         addUnsigned(
             weightA,
@@ -485,18 +605,22 @@ if (isExactIntersectionScalar!T)
     assert(!result.denominator.isZero);
 
     result.xNumerator =
-        weightedCoordinate(
+        weightedCoordinateWeightSpanned(
             weightA,
+            weightASpan,
             first.aX,
             weightB,
+            weightBSpan,
             first.bX
         );
 
     result.yNumerator =
-        weightedCoordinate(
+        weightedCoordinateWeightSpanned(
             weightA,
+            weightASpan,
             first.aY,
             weightB,
+            weightBSpan,
             first.bY
         );
 }

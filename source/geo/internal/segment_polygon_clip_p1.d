@@ -834,24 +834,27 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
+    if (eventCapacity > size_t.max / ExactSourceParameter.sizeof)
         onOutOfMemoryError();
 
     auto events =
-        new ExactOverlayPoint[
+        new ExactSourceParameter[
             eventCapacity
         ];
 
-    size_t eventCount;
+    size_t eventCount = 2;
 
-    const bool seeded =
-        seedExactEdgeEvents(
+    events[0] =
+        exactSourceParameter(
             query,
-            events[],
-            eventCount
+            query.a
         );
 
-    assert(seeded);
+    events[1] =
+        exactSourceParameter(
+            query,
+            query.b
+        );
 
 
     /*
@@ -915,68 +918,43 @@ if (isSegmentPolygonClipScalar!T)
                 }
             }
 
-            ExactOverlayPoint[2] ignoredEdgeEvents;
-            size_t ignoredCount;
-
             const size_t rawEventStart =
                 eventCount;
 
             version (DigitalMars)
-            bool appended;
+            SegmentContactKind contact;
             else
-            const bool appended =
-                appendSegmentPairNodingEventsPreparedFirst(
+            const SegmentContactKind contact =
+                segmentContactKind(
                     query,
-                    edge,
-                    preparedExactQuery,
-                    preparedExactQueryReady,
-                    events[],
-                    eventCount,
-                    ignoredEdgeEvents[],
-                    ignoredCount
+                    edge
                 );
 
             version (DigitalMars)
             {
+                contact =
+                    segmentContactKind(
+                        query,
+                        edge
+                    );
+
                 if (reuseBoundaryContacts)
                 {
-                    const SegmentContactKind contact =
-                        segmentContactKind(
-                            query,
-                            edge
-                        );
-
                     boundaryContacts[flatEdgeIndex] =
                         contact;
-
-                    appended =
-                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
-                            query,
-                            edge,
-                            contact,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
-                else
-                {
-                    appended =
-                        appendSegmentPairNodingEventsPreparedFirst(
-                            query,
-                            edge,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
                 }
             }
+
+            const bool appended =
+                appendQueryParameterEventsKnownContactPreparedFirst(
+                    query,
+                    edge,
+                    contact,
+                    preparedExactQuery,
+                    preparedExactQueryReady,
+                    events[],
+                    eventCount
+                );
 
             /*
              * The conservative bounds pass covers every raw insertion,
@@ -1019,32 +997,19 @@ if (isSegmentPolygonClipScalar!T)
         eventCount >= equalPreferredEventThreshold;
 
 
-    if (eventCount >= equalPreferredEventThreshold)
+    if (reuseProperCrossingEventIndex)
     {
-        if (reuseProperCrossingEventIndex)
-        {
-            eventCount =
-                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
-                    query,
-                    events[0 .. eventCount],
-                    rawEventIndices[0 .. eventCount],
-                    rawToUnique[0 .. eventCount]
-                );
-        }
-        else
-        {
-            eventCount =
-                sortUniqueExactEdgeEventsEqualPreferred(
-                    query,
-                    events[0 .. eventCount]
-                );
-        }
+        eventCount =
+            sortUniqueExactSourceParametersWithRawMapping(
+                events[0 .. eventCount],
+                rawEventIndices[0 .. eventCount],
+                rawToUnique[0 .. eventCount]
+            );
     }
     else
     {
         eventCount =
-            sortUniqueExactEdgeEvents(
-                query,
+            sortUniqueExactSourceParameters(
                 events[0 .. eventCount]
             );
     }

@@ -67,6 +67,13 @@ jobs:
         shell: bash
         run: dub build --build=release --compiler="$DC" --force
 
+      - name: Check hybrid clipping dispatch
+        shell: bash
+        run: |
+          python3 benchmarks/run_hybrid_dispatch_probe.py \
+            --compiler="$DC" \
+            --output=build/hybrid-dispatch-${{ matrix.compiler }}
+
       - name: Check segment-polygon benchmark preflight and recording
         shell: bash
         run: python3 benchmarks/run_segment_polygon.py --compiler="$DC" --smoke

@@ -535,7 +535,14 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
     assert(rawToUnique.length >= events.length);
 
     foreach (i; 0 .. events.length)
+    {
         rawEventIndices[i] = i;
+
+        rawToUnique[i] =
+            packDenseParameterEnds(
+                events[i]
+            );
+    }
 
     if (events.length >= 2)
     {
@@ -558,9 +565,11 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
                 size_t largest = root;
 
                 if (
-                    compareExactSourceParameters(
+                    compareExactSourceParametersEqualPreferredBounded(
                         events[largest],
-                        events[left]
+                        rawToUnique[largest],
+                        events[left],
+                        rawToUnique[left]
                     ) < 0
                 )
                 {
@@ -572,9 +581,11 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
 
                 if (
                     right < events.length &&
-                    compareExactSourceParameters(
+                    compareExactSourceParametersEqualPreferredBounded(
                         events[largest],
-                        events[right]
+                        rawToUnique[largest],
+                        events[right],
+                        rawToUnique[right]
                     ) < 0
                 )
                 {
@@ -592,6 +603,15 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
 
                 events[largest] =
                     eventSwap;
+
+                const size_t metadataSwap =
+                    rawToUnique[root];
+
+                rawToUnique[root] =
+                    rawToUnique[largest];
+
+                rawToUnique[largest] =
+                    metadataSwap;
 
                 const size_t indexSwap =
                     rawEventIndices[root];
@@ -622,6 +642,15 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
             events[end] =
                 eventSwap;
 
+            const size_t metadataSwap =
+                rawToUnique[0];
+
+            rawToUnique[0] =
+                rawToUnique[end];
+
+            rawToUnique[end] =
+                metadataSwap;
+
             const size_t indexSwap =
                 rawEventIndices[0];
 
@@ -644,9 +673,11 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
                 size_t largest = root;
 
                 if (
-                    compareExactSourceParameters(
+                    compareExactSourceParametersEqualPreferredBounded(
                         events[largest],
-                        events[left]
+                        rawToUnique[largest],
+                        events[left],
+                        rawToUnique[left]
                     ) < 0
                 )
                 {
@@ -658,9 +689,11 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
 
                 if (
                     right < end &&
-                    compareExactSourceParameters(
+                    compareExactSourceParametersEqualPreferredBounded(
                         events[largest],
-                        events[right]
+                        rawToUnique[largest],
+                        events[right],
+                        rawToUnique[right]
                     ) < 0
                 )
                 {
@@ -678,6 +711,15 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
 
                 events[largest] =
                     siftEvent;
+
+                const size_t siftMetadata =
+                    rawToUnique[root];
+
+                rawToUnique[root] =
+                    rawToUnique[largest];
+
+                rawToUnique[largest] =
+                    siftMetadata;
 
                 const size_t siftIndex =
                     rawEventIndices[root];
@@ -697,19 +739,33 @@ size_t sortUniqueExactSourceParametersWithRawMapping(
         return 0;
 
     size_t write = 1;
+    size_t writeMetadata =
+        rawToUnique[0];
+
     rawToUnique[rawEventIndices[0]] = 0;
 
     foreach (read; 1 .. events.length)
     {
+        const size_t readMetadata =
+            rawToUnique[read];
+
         if (
-            !exactSourceParametersEqual(
+            compareExactSourceParametersEqualPreferredBounded(
                 events[write - 1],
-                events[read]
-            )
+                writeMetadata,
+                events[read],
+                readMetadata
+            ) != 0
         )
         {
             events[write] =
                 events[read];
+
+            rawEventIndices[write] =
+                rawEventIndices[read];
+
+            writeMetadata =
+                readMetadata;
 
             ++write;
         }

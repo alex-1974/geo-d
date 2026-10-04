@@ -1555,6 +1555,19 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
+    if (
+        componentCount != 0 &&
+        !preparedExactQueryReady
+    )
+    {
+        preparedExactQuery =
+            prepareExactSegment(
+                query
+            );
+
+        preparedExactQueryReady = true;
+    }
+
     auto components =
         new Segment2!double[
             componentCount
@@ -1596,13 +1609,40 @@ if (isSegmentPolygonClipScalar!T)
         Point2!double start;
         Point2!double end;
 
+        ExactProperIntersection exactStart;
+        ExactProperIntersection exactEnd;
+
+        assert(preparedExactQueryReady);
+
+        materializeExactSourceParameter(
+            preparedExactQuery,
+            events[runStart],
+            exactStart
+        );
+
+        materializeExactSourceParameter(
+            preparedExactQuery,
+            events[runEnd],
+            exactEnd
+        );
+
+        const auto startOverlay =
+            exactOverlayPoint(
+                exactStart
+            );
+
+        const auto endOverlay =
+            exactOverlayPoint(
+                exactEnd
+            );
+
         if (
             !tryMaterializeExactPoint(
-                events[runStart],
+                startOverlay,
                 start
             ) ||
             !tryMaterializeExactPoint(
-                events[runEnd],
+                endOverlay,
                 end
             )
         )

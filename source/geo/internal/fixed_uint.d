@@ -276,6 +276,41 @@ private size_t pastLastNonZeroLimb(size_t Limbs)(
 }
 
 
+package(geo)
+struct UIntActiveSpan
+{
+    size_t first;
+    size_t end;
+
+    @property bool isZero() const
+        pure nothrow @safe @nogc
+    {
+        return first >= end;
+    }
+}
+
+
+package(geo)
+UIntActiveSpan activeUnsignedSpan(size_t Limbs)(
+    ref const UIntFixed!Limbs value
+)
+    pure nothrow @safe @nogc
+{
+    const size_t first =
+        firstNonZeroLimb(value);
+
+    if (first == Limbs)
+        return UIntActiveSpan(Limbs, 0);
+
+    const size_t end =
+        pastLastNonZeroLimb(value);
+
+    assert(first < end);
+
+    return UIntActiveSpan(first, end);
+}
+
+
 /**
  * Exact fixed-width multiplication.
  *

@@ -21,7 +21,8 @@ import geo.internal.exact_coordinate_round :
 import geo.internal.intersection_exact :
     ExactProperIntersection,
     PreparedExactSegment,
-    properIntersectionExactKnownCrossingPreparedFirst;
+    PreparedExactSegmentSpans,
+    properIntersectionExactKnownCrossingPreparedFirstSpanned;
 
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
@@ -730,6 +731,7 @@ if (isSegmentPolygonClipScalar!T)
      * not pay scalar-to-dyadic decode cost merely for enabling this path.
      */
     PreparedExactSegment preparedExactQuery;
+    PreparedExactSegmentSpans preparedExactQuerySpans;
     bool preparedExactQueryReady;
 
 
@@ -799,6 +801,7 @@ if (isSegmentPolygonClipScalar!T)
                     query,
                     edge,
                     preparedExactQuery,
+                    preparedExactQuerySpans,
                     preparedExactQueryReady,
                     events[],
                     eventCount,
@@ -825,6 +828,7 @@ if (isSegmentPolygonClipScalar!T)
                             edge,
                             contact,
                             preparedExactQuery,
+                            preparedExactQuerySpans,
                             preparedExactQueryReady,
                             events[],
                             eventCount,
@@ -1085,8 +1089,9 @@ if (isSegmentPolygonClipScalar!T)
 
                         assert(preparedExactQueryReady);
 
-                        properIntersectionExactKnownCrossingPreparedFirst(
+                        properIntersectionExactKnownCrossingPreparedFirstSpanned(
                             preparedExactQuery,
+                            preparedExactQuerySpans,
                             edge,
                             crossing
                         );

@@ -13,9 +13,12 @@ import geo.internal.exact_coordinate :
     exactCoordinatesEqual;
 
 import geo.internal.fixed_uint :
+    UIntActiveSpan,
+    activeUnsignedSpan,
     addUnsigned,
     compareUnsigned,
     multiplyUnsigned,
+    multiplyUnsignedSpanned,
     subtractUnsigned;
 
 import geo.internal.orientation_dyadic :
@@ -71,6 +74,32 @@ struct PreparedExactSegment
     SignedDyadicCoordinate aY;
     SignedDyadicCoordinate bX;
     SignedDyadicCoordinate bY;
+}
+
+
+package(geo)
+struct PreparedExactSegmentSpans
+{
+    UIntActiveSpan aX;
+    UIntActiveSpan aY;
+    UIntActiveSpan bX;
+    UIntActiveSpan bY;
+}
+
+
+package(geo)
+PreparedExactSegmentSpans prepareExactSegmentSpans(
+    ref const PreparedExactSegment segment
+)
+    pure nothrow @safe @nogc
+{
+    return
+        PreparedExactSegmentSpans(
+            activeUnsignedSpan(segment.aX.magnitude),
+            activeUnsignedSpan(segment.aY.magnitude),
+            activeUnsignedSpan(segment.bX.magnitude),
+            activeUnsignedSpan(segment.bY.magnitude)
+        );
 }
 
 

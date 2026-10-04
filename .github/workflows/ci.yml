@@ -83,6 +83,13 @@ jobs:
             source/geo/internal/orientation_dyadic.d \
             -of=build/determinant-kernel-decomposition-probe
           build/determinant-kernel-decomposition-probe
+          "$DC" "${flags[@]}" \
+            -Isource \
+            benchmarks/dyadic_product_subtraction_decomposition_bench.d \
+            source/geo/internal/dyadic.d \
+            source/geo/internal/fixed_uint.d \
+            -of=build/dyadic-product-subtraction-decomposition-probe
+          build/dyadic-product-subtraction-decomposition-probe
 
       - name: Check segment-polygon benchmark preflight and recording
         shell: bash

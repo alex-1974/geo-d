@@ -368,6 +368,207 @@ size_t sortUniqueExactSourceParameters(
 
 
 package(geo)
+size_t sortUniqueExactSourceParametersWithRawMapping(
+    scope ExactSourceParameter[] events,
+    scope size_t[] rawEventIndices,
+    scope size_t[] rawToUnique
+)
+    pure nothrow @safe @nogc
+{
+    assert(rawEventIndices.length >= events.length);
+    assert(rawToUnique.length >= events.length);
+
+    foreach (i; 0 .. events.length)
+        rawEventIndices[i] = i;
+
+    if (events.length >= 2)
+    {
+        size_t start =
+            events.length / 2;
+
+        while (start > 0)
+        {
+            --start;
+            size_t root = start;
+
+            while (true)
+            {
+                const size_t left =
+                    root * 2 + 1;
+
+                if (left >= events.length)
+                    break;
+
+                size_t largest = root;
+
+                if (
+                    compareExactSourceParameters(
+                        events[largest],
+                        events[left]
+                    ) < 0
+                )
+                {
+                    largest = left;
+                }
+
+                const size_t right =
+                    left + 1;
+
+                if (
+                    right < events.length &&
+                    compareExactSourceParameters(
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+
+                if (largest == root)
+                    break;
+
+                const auto eventSwap =
+                    events[root];
+
+                events[root] =
+                    events[largest];
+
+                events[largest] =
+                    eventSwap;
+
+                const size_t indexSwap =
+                    rawEventIndices[root];
+
+                rawEventIndices[root] =
+                    rawEventIndices[largest];
+
+                rawEventIndices[largest] =
+                    indexSwap;
+
+                root = largest;
+            }
+        }
+
+        size_t end =
+            events.length;
+
+        while (end > 1)
+        {
+            --end;
+
+            const auto eventSwap =
+                events[0];
+
+            events[0] =
+                events[end];
+
+            events[end] =
+                eventSwap;
+
+            const size_t indexSwap =
+                rawEventIndices[0];
+
+            rawEventIndices[0] =
+                rawEventIndices[end];
+
+            rawEventIndices[end] =
+                indexSwap;
+
+            size_t root = 0;
+
+            while (true)
+            {
+                const size_t left =
+                    root * 2 + 1;
+
+                if (left >= end)
+                    break;
+
+                size_t largest = root;
+
+                if (
+                    compareExactSourceParameters(
+                        events[largest],
+                        events[left]
+                    ) < 0
+                )
+                {
+                    largest = left;
+                }
+
+                const size_t right =
+                    left + 1;
+
+                if (
+                    right < end &&
+                    compareExactSourceParameters(
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+
+                if (largest == root)
+                    break;
+
+                const auto siftEvent =
+                    events[root];
+
+                events[root] =
+                    events[largest];
+
+                events[largest] =
+                    siftEvent;
+
+                const size_t siftIndex =
+                    rawEventIndices[root];
+
+                rawEventIndices[root] =
+                    rawEventIndices[largest];
+
+                rawEventIndices[largest] =
+                    siftIndex;
+
+                root = largest;
+            }
+        }
+    }
+
+    if (events.length == 0)
+        return 0;
+
+    size_t write = 1;
+    rawToUnique[rawEventIndices[0]] = 0;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactSourceParametersEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            events[write] =
+                events[read];
+
+            ++write;
+        }
+
+        rawToUnique[
+            rawEventIndices[read]
+        ] =
+            write - 1;
+    }
+
+    return write;
+}
+
+
+package(geo)
 size_t findExactSourceParameterIndex(
     scope const(ExactSourceParameter)[] events,
     ref const ExactSourceParameter target

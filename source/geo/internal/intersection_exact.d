@@ -496,6 +496,41 @@ if (isExactIntersectionScalar!T)
 
 
 package(geo)
+void materializeExactSegmentWeights(
+    ref const PreparedExactSegment first,
+    ref const DyadicProductMagnitude weightA,
+    ref const DyadicProductMagnitude weightB,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+{
+    result.denominator =
+        addUnsigned(
+            weightA,
+            weightB
+        );
+
+    assert(!result.denominator.isZero);
+
+    result.xNumerator =
+        weightedCoordinate(
+            weightA,
+            first.aX,
+            weightB,
+            first.bX
+        );
+
+    result.yNumerator =
+        weightedCoordinate(
+            weightA,
+            first.aY,
+            weightB,
+            first.bY
+        );
+}
+
+
+package(geo)
 void materializeProperIntersectionParameter(
     ref const PreparedExactSegment first,
     ref const ExactSegmentParameter parameter,
@@ -506,29 +541,12 @@ void materializeProperIntersectionParameter(
     assert(!parameter.weightA.isZero);
     assert(!parameter.weightB.isZero);
 
-    result.denominator =
-        addUnsigned(
-            parameter.weightA,
-            parameter.weightB
-        );
-
-    assert(!result.denominator.isZero);
-
-    result.xNumerator =
-        weightedCoordinate(
-            parameter.weightA,
-            first.aX,
-            parameter.weightB,
-            first.bX
-        );
-
-    result.yNumerator =
-        weightedCoordinate(
-            parameter.weightA,
-            first.aY,
-            parameter.weightB,
-            first.bY
-        );
+    materializeExactSegmentWeights(
+        first,
+        parameter.weightA,
+        parameter.weightB,
+        result
+    );
 }
 
 

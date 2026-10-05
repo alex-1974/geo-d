@@ -227,3 +227,189 @@ SignedDyadicDifference subtractDyadicCoordinatesFusedCandidate(
 
     return result;
 }
+
+
+/*
+ * RESEARCH ONLY — bounded candidate.
+ *
+ * Preserve the classic high-to-low comparison and its early exit. The first
+ * differing limb is also an exact upper bound for the subtraction result:
+ * all more-significant limbs are equal in lhs and rhs, and a borrow cannot
+ * escape past a limb where the larger operand is strictly greater.
+ */
+private struct ComparisonBound
+{
+    int comparison;
+    size_t end;
+}
+
+
+private ComparisonBound compareWithDifferenceBound(
+    ref const DyadicCoordinateMagnitude lhs,
+    ref const DyadicCoordinateMagnitude rhs
+)
+    pure nothrow @safe @nogc
+{
+    size_t index = lhs.limb.length;
+
+    while (index > 0)
+    {
+        --index;
+
+        if (lhs.limb[index] < rhs.limb[index])
+            return ComparisonBound(-1, index + 1);
+
+        if (lhs.limb[index] > rhs.limb[index])
+            return ComparisonBound(1, index + 1);
+    }
+
+    return ComparisonBound(0, 0);
+}
+
+
+private size_t firstNonZeroBefore(
+    ref const DyadicCoordinateMagnitude value,
+    size_t end
+)
+    pure nothrow @safe @nogc
+{
+    foreach (index; 0 .. end)
+    {
+        if (value.limb[index] != 0)
+            return index;
+    }
+
+    return end;
+}
+
+
+private void subtractBoundedInto(
+    ref DyadicCoordinateMagnitude output,
+    ref const DyadicCoordinateMagnitude larger,
+    ref const DyadicCoordinateMagnitude smaller,
+    size_t end
+)
+    pure nothrow @safe @nogc
+{
+    assert(end > 0);
+    assert(end <= output.limb.length);
+
+    const size_t first =
+        firstNonZeroBefore(smaller, end);
+
+    /*
+     * output is zero-initialized by SignedDyadicDifference. Limbs above end
+     * remain zero because the operands are equal there.
+     */
+    foreach (index; 0 .. first)
+        output.limb[index] = larger.limb[index];
+
+    ulong borrow = 0;
+
+    foreach (index; first .. end)
+    {
+        const ulong lhsValue =
+            cast(ulong) larger.limb[index];
+
+        const ulong rhsValue =
+            cast(ulong) smaller.limb[index] +
+            borrow;
+
+        if (lhsValue >= rhsValue)
+        {
+            output.limb[index] =
+                cast(uint)(lhsValue - rhsValue);
+            borrow = 0;
+        }
+        else
+        {
+            output.limb[index] =
+                cast(uint)(
+                    0x1_0000_0000UL +
+                    lhsValue -
+                    rhsValue
+                );
+            borrow = 1;
+        }
+    }
+
+    /*
+     * The most-significant differing limb belongs to larger and is strictly
+     * greater than smaller, so even an incoming borrow is absorbed by end.
+     */
+    assert(borrow == 0);
+}
+
+
+/*
+ * Narrow candidate: keep comparison early exit, reuse only the differing-limb
+ * upper bound, eliminate the high-to-low active-range scan, and construct the
+ * bounded result directly.
+ */
+SignedDyadicDifference subtractDyadicCoordinatesBoundedCandidate(
+    ref const SignedDyadicCoordinate lhs,
+    ref const SignedDyadicCoordinate rhs
+)
+    pure nothrow @safe @nogc
+{
+    SignedDyadicDifference result;
+
+    if (lhs.sign == 0)
+    {
+        result.sign = -rhs.sign;
+        result.magnitude = rhs.magnitude;
+        return result;
+    }
+
+    if (rhs.sign == 0)
+    {
+        result.sign = lhs.sign;
+        result.magnitude = lhs.magnitude;
+        return result;
+    }
+
+    if (lhs.sign != rhs.sign)
+    {
+        result.sign = lhs.sign;
+        result.magnitude =
+            addUnsigned(lhs.magnitude, rhs.magnitude);
+        return result;
+    }
+
+    const comparison =
+        compareWithDifferenceBound(
+            lhs.magnitude,
+            rhs.magnitude
+        );
+
+    if (comparison.comparison == 0)
+    {
+        result.sign = 0;
+        return result;
+    }
+
+    if (comparison.comparison > 0)
+    {
+        result.sign = lhs.sign;
+
+        subtractBoundedInto(
+            result.magnitude,
+            lhs.magnitude,
+            rhs.magnitude,
+            comparison.end
+        );
+    }
+    else
+    {
+        result.sign = -lhs.sign;
+
+        subtractBoundedInto(
+            result.magnitude,
+            rhs.magnitude,
+            lhs.magnitude,
+            comparison.end
+        );
+    }
+
+    return result;
+}

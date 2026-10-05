@@ -514,6 +514,7 @@ private void subtractCoordinateMagnitudeBoundedInto(
  *
  * The result remains expressed in units of 2^-1074.
  */
+pragma(inline, true)
 SignedDyadicDifference subtractDyadicCoordinates(
     ref const SignedDyadicCoordinate lhs,
     ref const SignedDyadicCoordinate rhs

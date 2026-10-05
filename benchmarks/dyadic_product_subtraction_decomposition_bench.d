@@ -5,6 +5,7 @@ import std.stdio : writefln;
 
 import geo.internal.dyadic :
     SignedDyadicCoordinate,
+    SignedDyadicDifference,
     SignedDyadicProduct,
     decodeDyadicCoordinate,
     multiplyDyadicDifferences,
@@ -19,18 +20,35 @@ private struct Inputs
     SignedDyadicCoordinate ax, ay, bx, by, cx, cy;
 }
 
-private struct ProductPair
+private struct PreparedCase
 {
-    SignedDyadicProduct lhs;
-    SignedDyadicProduct rhs;
+    Inputs input;
+    SignedDyadicDifference bax, bay, cax, cay;
+    SignedDyadicProduct p, q;
+    SignedDyadicProduct determinant;
 }
 
-private Inputs[2] cases;
-private ProductPair[2] pairs;
+private PreparedCase[2] cases;
+
+private ulong fingerprintDifference(ref const SignedDyadicDifference value)
+{
+    ulong result = cast(ulong)(value.sign + 1);
+    foreach (limb; value.magnitude.limb)
+        result = (result * 0x100000001b3UL) ^ limb;
+    return result;
+}
+
+private ulong fingerprintProduct(ref const SignedDyadicProduct value)
+{
+    ulong result = cast(ulong)(value.sign + 1);
+    foreach (limb; value.magnitude.limb)
+        result = (result * 0x100000001b3UL) ^ limb;
+    return result;
+}
 
 private void prepare()
 {
-    cases[0] = Inputs(
+    cases[0].input = Inputs(
         decodeDyadicCoordinate(0.0),
         decodeDyadicCoordinate(10.0),
         decodeDyadicCoordinate(10.0),
@@ -38,7 +56,7 @@ private void prepare()
         decodeDyadicCoordinate(0.0),
         decodeDyadicCoordinate(0.0)
     );
-    cases[1] = Inputs(
+    cases[1].input = Inputs(
         decodeDyadicCoordinate(1.0),
         decodeDyadicCoordinate(11.0),
         decodeDyadicCoordinate(11.0),
@@ -47,81 +65,116 @@ private void prepare()
         decodeDyadicCoordinate(1.0)
     );
 
-    foreach (i, ref const v; cases)
+    foreach (ref c; cases)
     {
+        ref const v = c.input;
+        c.bax = subtractDyadicCoordinates(v.bx, v.ax);
+        c.bay = subtractDyadicCoordinates(v.by, v.ay);
+        c.cax = subtractDyadicCoordinates(v.cx, v.ax);
+        c.cay = subtractDyadicCoordinates(v.cy, v.ay);
+        c.p = multiplyDyadicDifferences(c.bax, c.cay);
+        c.q = multiplyDyadicDifferences(c.bay, c.cax);
+        c.determinant = subtractDyadicProducts(c.p, c.q);
+    }
+}
+
+pragma(inline, false)
+private ulong coordinateBaseline(size_t i)
+{
+    ref const c = cases[i & 1];
+    return fingerprintDifference(c.bax)
+        ^ fingerprintDifference(c.bay)
+        ^ fingerprintDifference(c.cax)
+        ^ fingerprintDifference(c.cay);
+}
+
+pragma(inline, false)
+private ulong coordinateOperations(size_t i)
+{
+    ref const c = cases[i & 1];
+    ref const v = c.input;
+
+    const auto bax = subtractDyadicCoordinates(v.bx, v.ax);
+    const auto bay = subtractDyadicCoordinates(v.by, v.ay);
+    const auto cax = subtractDyadicCoordinates(v.cx, v.ax);
+    const auto cay = subtractDyadicCoordinates(v.cy, v.ay);
+
+    return fingerprintDifference(bax)
+        ^ fingerprintDifference(bay)
+        ^ fingerprintDifference(cax)
+        ^ fingerprintDifference(cay);
+}
+
+pragma(inline, false)
+private ulong productBaseline(size_t i)
+{
+    ref const c = cases[i & 1];
+    return fingerprintProduct(c.p)
+        ^ fingerprintProduct(c.q);
+}
+
+pragma(inline, false)
+private ulong productOperations(size_t i)
+{
+    ref const c = cases[i & 1];
+
+    const auto p = multiplyDyadicDifferences(c.bax, c.cay);
+    const auto q = multiplyDyadicDifferences(c.bay, c.cax);
+
+    return fingerprintProduct(p)
+        ^ fingerprintProduct(q);
+}
+
+pragma(inline, false)
+private ulong subtractionBaseline(size_t i)
+{
+    ref const c = cases[i & 1];
+    return fingerprintProduct(c.determinant);
+}
+
+pragma(inline, false)
+private ulong subtractionOperation(size_t i)
+{
+    ref const c = cases[i & 1];
+    const auto result = subtractDyadicProducts(c.p, c.q);
+    return fingerprintProduct(result);
+}
+
+private void oracle()
+{
+    foreach (ref const c; cases)
+    {
+        ref const v = c.input;
+
         const auto bax = subtractDyadicCoordinates(v.bx, v.ax);
         const auto bay = subtractDyadicCoordinates(v.by, v.ay);
         const auto cax = subtractDyadicCoordinates(v.cx, v.ax);
         const auto cay = subtractDyadicCoordinates(v.cy, v.ay);
 
-        pairs[i].lhs = multiplyDyadicDifferences(bax, cay);
-        pairs[i].rhs = multiplyDyadicDifferences(bay, cax);
-    }
-}
+        assert(bax.sign == c.bax.sign);
+        assert(bax.magnitude.limb == c.bax.magnitude.limb);
+        assert(bay.sign == c.bay.sign);
+        assert(bay.magnitude.limb == c.bay.magnitude.limb);
+        assert(cax.sign == c.cax.sign);
+        assert(cax.magnitude.limb == c.cax.magnitude.limb);
+        assert(cay.sign == c.cay.sign);
+        assert(cay.magnitude.limb == c.cay.magnitude.limb);
 
-private ulong fingerprint(ref const SignedDyadicProduct value)
-{
-    ulong result = cast(ulong)(value.sign + 1);
-    foreach (i; 0 .. value.magnitude.limb.length)
-        result = (result * 0x100000001b3UL) ^ value.magnitude.limb[i];
-    return result;
-}
+        const auto p = multiplyDyadicDifferences(bax, cay);
+        const auto q = multiplyDyadicDifferences(bay, cax);
 
-pragma(inline, false)
-private ulong observationBaseline(size_t i)
-{
-    ref const pair = pairs[i & 1];
-    return fingerprint(pair.lhs);
-}
+        assert(p.sign == c.p.sign);
+        assert(p.magnitude.limb == c.p.magnitude.limb);
+        assert(q.sign == c.q.sign);
+        assert(q.magnitude.limb == c.q.magnitude.limb);
 
-pragma(inline, false)
-private ulong reconstructedZeroRhs(size_t i)
-{
-    ref const pair = pairs[i & 1];
+        const auto determinant = subtractDyadicProducts(p, q);
+        assert(determinant.sign == c.determinant.sign);
+        assert(determinant.magnitude.limb == c.determinant.magnitude.limb);
 
-    SignedDyadicProduct result;
-    if (pair.rhs.sign == 0)
-    {
-        result.sign = pair.lhs.sign;
-        result.magnitude = pair.lhs.magnitude;
-    }
-    else
-    {
-        result.sign = pair.rhs.sign;
-        result.magnitude = pair.rhs.magnitude;
-    }
-
-    return fingerprint(result);
-}
-
-pragma(inline, false)
-private ulong authoritativeSubtract(size_t i)
-{
-    ref const pair = pairs[i & 1];
-    const auto result = subtractDyadicProducts(pair.lhs, pair.rhs);
-    return fingerprint(result);
-}
-
-private void oracle()
-{
-    foreach (ref const pair; pairs)
-    {
-        // These are exactly the two determinant cases used by
-        // determinant_kernel_decomposition_bench.d. Both exercise the
-        // rhs-sign-zero fast path in subtractDyadicProducts.
-        assert(pair.lhs.sign != 0);
-        assert(pair.rhs.sign == 0);
-
-        SignedDyadicProduct reconstructed;
-        reconstructed.sign = pair.lhs.sign;
-        reconstructed.magnitude = pair.lhs.magnitude;
-
-        const auto authoritative =
-            subtractDyadicProducts(pair.lhs, pair.rhs);
-
-        assert(authoritative.sign == reconstructed.sign);
-        assert(authoritative.magnitude.limb ==
-            reconstructed.magnitude.limb);
+        // These exact determinant cases use the rhs-zero fast path.
+        assert(c.p.sign != 0);
+        assert(c.q.sign == 0);
     }
 }
 
@@ -138,7 +191,7 @@ private void bench(alias operation)(string name)
     sw.stop();
 
     sink ^= local;
-    writefln("%-28s %12.2f ns/op", name,
+    writefln("%-30s %12.2f ns/op", name,
         cast(double) sw.peek.total!"nsecs" /
         cast(double) iterations);
 }
@@ -148,11 +201,15 @@ void main()
     prepare();
     oracle();
 
-    bench!observationBaseline("observation baseline");
-    bench!reconstructedZeroRhs("reconstructed rhs-zero");
-    bench!authoritativeSubtract("authoritative subtraction");
+    bench!coordinateBaseline("coordinate baseline");
+    bench!coordinateOperations("4 coordinate operations");
+    bench!productBaseline("product baseline");
+    bench!productOperations("2 product operations");
+    bench!subtractionBaseline("subtraction baseline");
+    bench!subtractionOperation("rhs-zero subtraction");
 
     writefln("path: rhs-sign-zero");
+    writefln("observation: matched-full-output");
     writefln("oracle: bit-identical");
     writefln("sink: %s", sink);
 }

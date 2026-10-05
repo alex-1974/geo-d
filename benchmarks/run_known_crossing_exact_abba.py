@@ -112,7 +112,7 @@ private void preflight()
 {
     preparedFirstValue = prepareExactSegment(first);
 
-    foreach (ref const second; seconds)
+    foreach (ref second; seconds)
     {
         ExactProperIntersection reference;
         ExactProperIntersection candidate;

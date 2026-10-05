@@ -97,11 +97,11 @@ private void oracle()
 
     foreach (lhsValue; values)
     {
-        const lhs = decodeDyadicCoordinate(lhsValue);
+        const lhs = decodeDyadicCoordinate(cast(double) lhsValue);
 
         foreach (rhsValue; values)
         {
-            const rhs = decodeDyadicCoordinate(rhsValue);
+            const rhs = decodeDyadicCoordinate(cast(double) rhsValue);
 
             const classic =
                 subtractDyadicCoordinates(lhs, rhs);

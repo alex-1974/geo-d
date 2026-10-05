@@ -447,7 +447,6 @@ private size_t firstCoordinateNonZeroBefore(
 }
 
 
-pragma(inline, true)
 private void subtractCoordinateMagnitudeBoundedInto(
     ref DyadicCoordinateMagnitude output,
     ref const DyadicCoordinateMagnitude larger,

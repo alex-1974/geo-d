@@ -140,6 +140,91 @@ private ulong subtractionOperation(size_t i)
     return fingerprintProduct(result);
 }
 
+
+pragma(inline, false)
+private ulong rhsZeroBaseline(size_t)
+{
+    return fingerprintDifference(cases[0].bax);
+}
+
+pragma(inline, false)
+private ulong rhsZeroOperation(size_t)
+{
+    ref const v = cases[0].input;
+    const auto result = subtractDyadicCoordinates(v.bx, v.ax);
+    return fingerprintDifference(result);
+}
+
+pragma(inline, false)
+private ulong lhsZeroBaseline(size_t)
+{
+    return fingerprintDifference(cases[0].bay);
+}
+
+pragma(inline, false)
+private ulong lhsZeroOperation(size_t)
+{
+    ref const v = cases[0].input;
+    const auto result = subtractDyadicCoordinates(v.by, v.ay);
+    return fingerprintDifference(result);
+}
+
+pragma(inline, false)
+private ulong zeroZeroBaseline(size_t)
+{
+    return fingerprintDifference(cases[0].cax);
+}
+
+pragma(inline, false)
+private ulong zeroZeroOperation(size_t)
+{
+    ref const v = cases[0].input;
+    const auto result = subtractDyadicCoordinates(v.cx, v.ax);
+    return fingerprintDifference(result);
+}
+
+pragma(inline, false)
+private ulong sameSignGreaterBaseline(size_t)
+{
+    return fingerprintDifference(cases[1].bax);
+}
+
+pragma(inline, false)
+private ulong sameSignGreaterOperation(size_t)
+{
+    ref const v = cases[1].input;
+    const auto result = subtractDyadicCoordinates(v.bx, v.ax);
+    return fingerprintDifference(result);
+}
+
+pragma(inline, false)
+private ulong sameSignLessBaseline(size_t)
+{
+    return fingerprintDifference(cases[1].bay);
+}
+
+pragma(inline, false)
+private ulong sameSignLessOperation(size_t)
+{
+    ref const v = cases[1].input;
+    const auto result = subtractDyadicCoordinates(v.by, v.ay);
+    return fingerprintDifference(result);
+}
+
+pragma(inline, false)
+private ulong sameSignEqualBaseline(size_t)
+{
+    return fingerprintDifference(cases[1].cax);
+}
+
+pragma(inline, false)
+private ulong sameSignEqualOperation(size_t)
+{
+    ref const v = cases[1].input;
+    const auto result = subtractDyadicCoordinates(v.cx, v.ax);
+    return fingerprintDifference(result);
+}
+
 private void oracle()
 {
     foreach (ref const c; cases)
@@ -172,7 +257,7 @@ private void oracle()
         assert(determinant.sign == c.determinant.sign);
         assert(determinant.magnitude.limb == c.determinant.magnitude.limb);
 
-        // These exact determinant cases use the rhs-zero fast path.
+        // These exact determinant cases use the rhs-zero product path.
         assert(c.p.sign != 0);
         assert(c.q.sign == 0);
     }
@@ -203,11 +288,26 @@ void main()
 
     bench!coordinateBaseline("coordinate baseline");
     bench!coordinateOperations("4 coordinate operations");
+
+    bench!rhsZeroBaseline("coord rhs-zero baseline");
+    bench!rhsZeroOperation("coord rhs-zero operation");
+    bench!lhsZeroBaseline("coord lhs-zero baseline");
+    bench!lhsZeroOperation("coord lhs-zero operation");
+    bench!zeroZeroBaseline("coord zero-zero baseline");
+    bench!zeroZeroOperation("coord zero-zero operation");
+    bench!sameSignGreaterBaseline("coord same-sign > baseline");
+    bench!sameSignGreaterOperation("coord same-sign > operation");
+    bench!sameSignLessBaseline("coord same-sign < baseline");
+    bench!sameSignLessOperation("coord same-sign < operation");
+    bench!sameSignEqualBaseline("coord same-sign = baseline");
+    bench!sameSignEqualOperation("coord same-sign = operation");
+
     bench!productBaseline("product baseline");
     bench!productOperations("2 product operations");
     bench!subtractionBaseline("subtraction baseline");
     bench!subtractionOperation("rhs-zero subtraction");
 
+    writefln("coordinate paths: rhs-zero,lhs-zero,zero-zero,same-sign>,same-sign<,same-sign=");
     writefln("path: rhs-sign-zero");
     writefln("observation: matched-full-output");
     writefln("oracle: bit-identical");

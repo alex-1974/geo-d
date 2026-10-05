@@ -44,7 +44,8 @@ dub test --compiler=ldc2 --force 2>&1 | tee "$record/dub-test-ldc2.log"
 
 build_probe() {
     local compiler=$1
-    local output=$2
+    local source=$2
+    local output=$3
     local -a flags=(-O -release -boundscheck=off)
 
     if [[ "$compiler" == "dmd" ]]; then
@@ -53,7 +54,7 @@ build_probe() {
 
     "$compiler" "${flags[@]}" \
         -Isource \
-        benchmarks/determinant_kernel_decomposition_bench.d \
+        "$source" \
         source/geo/internal/dyadic.d \
         source/geo/internal/fixed_uint.d \
         source/geo/internal/orientation_dyadic.d \
@@ -75,21 +76,31 @@ run_samples() {
 
 echo
 echo "=== BUILD DMD PROBE ==="
-build_probe dmd "$task_dir/probe-dmd"
+build_probe dmd benchmarks/determinant_kernel_decomposition_bench.d "$task_dir/probe-dmd"
+build_probe dmd benchmarks/dyadic_product_subtraction_decomposition_bench.d "$task_dir/product-subtraction-probe-dmd"
 
 echo
 echo "=== BUILD LDC PROBE ==="
-build_probe ldc2 "$task_dir/probe-ldc"
+build_probe ldc2 benchmarks/determinant_kernel_decomposition_bench.d "$task_dir/probe-ldc"
+build_probe ldc2 benchmarks/dyadic_product_subtraction_decomposition_bench.d "$task_dir/product-subtraction-probe-ldc"
 
 echo
 echo "=== DMD SAMPLES ==="
 run_samples dmd "$task_dir/probe-dmd" "$record/dmd-samples.log"
 
 echo
+echo "=== DMD PRODUCT SUBTRACTION SAMPLES ==="
+run_samples dmd "$task_dir/product-subtraction-probe-dmd" "$record/dmd-product-subtraction-samples.log"
+
+echo
 echo "=== LDC SAMPLES ==="
 run_samples ldc2 "$task_dir/probe-ldc" "$record/ldc-samples.log"
 
-tar --exclude='probe-*'     -czf "$task_dir/geo-determinant-kernel-decomposition-xps.tar.gz"     -C "$task_dir" record
+echo
+echo "=== LDC PRODUCT SUBTRACTION SAMPLES ==="
+run_samples ldc2 "$task_dir/product-subtraction-probe-ldc" "$record/ldc-product-subtraction-samples.log"
+
+tar --exclude='probe-*' --exclude='product-subtraction-probe-*'     -czf "$task_dir/geo-determinant-kernel-decomposition-xps.tar.gz"     -C "$task_dir" record
 
 sha256sum "$task_dir/geo-determinant-kernel-decomposition-xps.tar.gz"
 printf 'Archive: %s\n' "$task_dir/geo-determinant-kernel-decomposition-xps.tar.gz"

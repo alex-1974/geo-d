@@ -1,130 +1,158 @@
 module geo.internal.dyadic_product_subtraction_decomposition_bench;
 
-import core.stdc.stdio : printf;
-import core.time : MonoTime;
+import std.datetime.stopwatch : StopWatch;
+import std.stdio : writefln;
 
-import geo.internal.dyadic;
-import geo.internal.fixed_uint;
+import geo.internal.dyadic :
+    SignedDyadicCoordinate,
+    SignedDyadicProduct,
+    decodeDyadicCoordinate,
+    multiplyDyadicDifferences,
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
 
-private enum iterations = 1_000_000;
+enum size_t iterations = 100_000;
+__gshared ulong sink;
 
-private ulong fingerprint(ref const SignedDyadicProduct value) @safe pure nothrow @nogc
+private struct Inputs
 {
-    ulong hash = cast(ulong)(value.sign + 2);
-    foreach (limb; value.magnitude.limb)
-        hash = (hash * 0x100000001b3UL) ^ limb;
-    return hash;
+    SignedDyadicCoordinate ax, ay, bx, by, cx, cy;
 }
 
-private ulong fingerprintMagnitude(ref const DyadicProductMagnitude value) @safe pure nothrow @nogc
+private struct ProductPair
 {
-    ulong hash = 0xcbf29ce484222325UL;
-    foreach (limb; value.limb)
-        hash = (hash * 0x100000001b3UL) ^ limb;
-    return hash;
+    SignedDyadicProduct lhs;
+    SignedDyadicProduct rhs;
 }
 
-private SignedDyadicProduct[2] makeProducts() @safe
+private Inputs[2] cases;
+private ProductPair[2] pairs;
+
+private void prepare()
 {
-    const a = decodeDyadicCoordinate(123456789.125);
-    const b = decodeDyadicCoordinate(-98765.5);
-    const c = decodeDyadicCoordinate(0.03125);
+    cases[0] = Inputs(
+        decodeDyadicCoordinate(0.0),
+        decodeDyadicCoordinate(10.0),
+        decodeDyadicCoordinate(10.0),
+        decodeDyadicCoordinate(0.0),
+        decodeDyadicCoordinate(0.0),
+        decodeDyadicCoordinate(0.0)
+    );
+    cases[1] = Inputs(
+        decodeDyadicCoordinate(1.0),
+        decodeDyadicCoordinate(11.0),
+        decodeDyadicCoordinate(11.0),
+        decodeDyadicCoordinate(1.0),
+        decodeDyadicCoordinate(1.0),
+        decodeDyadicCoordinate(1.0)
+    );
 
-    const ab = subtractDyadicCoordinates(a, b);
-    const ac = subtractDyadicCoordinates(a, c);
-    const bc = subtractDyadicCoordinates(b, c);
+    foreach (i, ref const v; cases)
+    {
+        const auto bax = subtractDyadicCoordinates(v.bx, v.ax);
+        const auto bay = subtractDyadicCoordinates(v.by, v.ay);
+        const auto cax = subtractDyadicCoordinates(v.cx, v.ax);
+        const auto cay = subtractDyadicCoordinates(v.cy, v.ay);
 
-    return [
-        multiplyDyadicDifferences(ab, ac),
-        multiplyDyadicDifferences(ac, bc)
-    ];
+        pairs[i].lhs = multiplyDyadicDifferences(bax, cay);
+        pairs[i].rhs = multiplyDyadicDifferences(bay, cax);
+    }
 }
 
-private double measure(scope ulong delegate() @safe action)
+private ulong fingerprint(ref const SignedDyadicProduct value)
 {
-    const start = MonoTime.currTime;
-    immutable sink = action();
-    const stop = MonoTime.currTime;
-    printf("sink=%llu\n", cast(ulong) sink);
-    return cast(double)(stop - start).total!"nsecs" / iterations;
+    ulong result = cast(ulong)(value.sign + 1);
+    foreach (i; 0 .. value.magnitude.limb.length)
+        result = (result * 0x100000001b3UL) ^ value.magnitude.limb[i];
+    return result;
+}
+
+pragma(inline, false)
+private ulong observationBaseline(size_t i)
+{
+    ref const pair = pairs[i & 1];
+    return fingerprint(pair.lhs);
+}
+
+pragma(inline, false)
+private ulong reconstructedZeroRhs(size_t i)
+{
+    ref const pair = pairs[i & 1];
+
+    SignedDyadicProduct result;
+    if (pair.rhs.sign == 0)
+    {
+        result.sign = pair.lhs.sign;
+        result.magnitude = pair.lhs.magnitude;
+    }
+    else
+    {
+        result.sign = pair.rhs.sign;
+        result.magnitude = pair.rhs.magnitude;
+    }
+
+    return fingerprint(result);
+}
+
+pragma(inline, false)
+private ulong authoritativeSubtract(size_t i)
+{
+    ref const pair = pairs[i & 1];
+    const auto result = subtractDyadicProducts(pair.lhs, pair.rhs);
+    return fingerprint(result);
+}
+
+private void oracle()
+{
+    foreach (ref const pair; pairs)
+    {
+        // These are exactly the two determinant cases used by
+        // determinant_kernel_decomposition_bench.d. Both exercise the
+        // rhs-sign-zero fast path in subtractDyadicProducts.
+        assert(pair.lhs.sign != 0);
+        assert(pair.rhs.sign == 0);
+
+        SignedDyadicProduct reconstructed;
+        reconstructed.sign = pair.lhs.sign;
+        reconstructed.magnitude = pair.lhs.magnitude;
+
+        const auto authoritative =
+            subtractDyadicProducts(pair.lhs, pair.rhs);
+
+        assert(authoritative.sign == reconstructed.sign);
+        assert(authoritative.magnitude.limb ==
+            reconstructed.magnitude.limb);
+    }
+}
+
+private void bench(alias operation)(string name)
+{
+    ulong local;
+    foreach (i; 0 .. 1000)
+        local ^= operation(i);
+
+    StopWatch sw;
+    sw.start();
+    foreach (i; 0 .. iterations)
+        local ^= operation(i);
+    sw.stop();
+
+    sink ^= local;
+    writefln("%-28s %12.2f ns/op", name,
+        cast(double) sw.peek.total!"nsecs" /
+        cast(double) iterations);
 }
 
 void main()
 {
-    auto products = makeProducts();
-    auto lhs = products[0];
-    auto rhs = products[1];
+    prepare();
+    oracle();
 
-    // Force same-sign subtraction, the determinant path that exercises
-    // comparison followed by magnitude subtraction.
-    if (lhs.sign != rhs.sign)
-        rhs.sign = lhs.sign;
+    bench!observationBaseline("observation baseline");
+    bench!reconstructedZeroRhs("reconstructed rhs-zero");
+    bench!authoritativeSubtract("authoritative subtraction");
 
-    const auto authoritative = subtractDyadicProducts(lhs, rhs);
-    const int comparison = compareUnsigned(lhs.magnitude, rhs.magnitude);
-
-    SignedDyadicProduct reconstructed;
-    if (comparison == 0)
-    {
-        reconstructed.sign = 0;
-    }
-    else if (comparison > 0)
-    {
-        reconstructed.sign = lhs.sign;
-        reconstructed.magnitude = subtractUnsigned(lhs.magnitude, rhs.magnitude);
-    }
-    else
-    {
-        reconstructed.sign = -lhs.sign;
-        reconstructed.magnitude = subtractUnsigned(rhs.magnitude, lhs.magnitude);
-    }
-
-    assert(authoritative.sign == reconstructed.sign);
-    assert(authoritative.magnitude.limb == reconstructed.magnitude.limb);
-    printf("oracle: bit-identical\n");
-
-    double ns;
-
-    ns = measure(() @safe {
-        ulong sink;
-        foreach (_; 0 .. iterations)
-            sink += cast(ulong)(compareUnsigned(lhs.magnitude, rhs.magnitude) + 1);
-        return sink;
-    });
-    printf("compare unsigned: %.2f ns\n", ns);
-
-    ns = measure(() @safe {
-        ulong sink;
-        foreach (_; 0 .. iterations)
-        {
-            auto copy = lhs.magnitude;
-            sink ^= fingerprintMagnitude(copy);
-        }
-        return sink;
-    });
-    printf("carrier copy + fingerprint: %.2f ns\n", ns);
-
-    ns = measure(() @safe {
-        ulong sink;
-        foreach (_; 0 .. iterations)
-        {
-            auto magnitude = comparison > 0
-                ? subtractUnsigned(lhs.magnitude, rhs.magnitude)
-                : subtractUnsigned(rhs.magnitude, lhs.magnitude);
-            sink ^= fingerprintMagnitude(magnitude);
-        }
-        return sink;
-    });
-    printf("magnitude subtraction + fingerprint: %.2f ns\n", ns);
-
-    ns = measure(() @safe {
-        ulong sink;
-        foreach (_; 0 .. iterations)
-        {
-            auto result = subtractDyadicProducts(lhs, rhs);
-            sink ^= fingerprint(result);
-        }
-        return sink;
-    });
-    printf("complete product subtraction: %.2f ns\n", ns);
+    writefln("path: rhs-sign-zero");
+    writefln("oracle: bit-identical");
+    writefln("sink: %s", sink);
 }

@@ -6,9 +6,10 @@ import geo.internal.dyadic :
     SignedDyadicProduct,
     decodeDyadicCoordinate,
     multiplyDyadicDifferences,
-    orientationDeterminantDyadicDecoded,
-    subtractDyadicCoordinates,
-    subtractDyadicProducts;
+    subtractDyadicCoordinates;
+
+import geo.internal.orientation_dyadic :
+    orientationDeterminantDyadicDecoded;
 
 import std.datetime.stopwatch : StopWatch;
 import std.stdio : writefln;

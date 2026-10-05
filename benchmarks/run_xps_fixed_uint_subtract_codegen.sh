@@ -49,6 +49,9 @@ record_binary() {
 
     "$binary" 2>&1 | tee "$record/$name-run.log"
     nm -n -C "$binary" > "$record/$name-nm.txt"
+    nm -n "$binary" > "$record/$name-nm-raw.txt"
+    objdump -d -Mintel --no-show-raw-insn -C "$binary" \
+        > "$record/$name-full.asm"
 
     for symbol in         probe_compare_66         probe_subtract_66         probe_compare_then_subtract_66         probe_same_sign_coordinate
     do

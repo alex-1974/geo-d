@@ -31,6 +31,7 @@ private struct PreparedCase
     SignedDyadicDifference bax, bay, cax, cay;
     SignedDyadicProduct p, q;
     SignedDyadicProduct determinant;
+    ResearchRange axRange;
 }
 
 private PreparedCase[2] cases;
@@ -185,6 +186,7 @@ private void prepare()
         c.p = multiplyDyadicDifferences(c.bax, c.cay);
         c.q = multiplyDyadicDifferences(c.bay, c.cax);
         c.determinant = subtractDyadicProducts(c.p, c.q);
+        c.axRange = researchActiveRange(v.ax.magnitude);
     }
 }
 
@@ -428,11 +430,9 @@ private ulong carrierCopyOperation(size_t i)
 pragma(inline, false)
 private ulong rangeDiscoveryBaseline(size_t i)
 {
-    ref const v = cases[1].input;
-    const auto known = researchActiveRange(v.ax.magnitude);
-
-    return fingerprintCoordinateMagnitude(v.ax.magnitude, i)
-        ^ cast(ulong)(known.first * 131 + known.end);
+    ref const c = cases[1];
+    return fingerprintCoordinateMagnitude(c.input.ax.magnitude, i)
+        ^ cast(ulong)(c.axRange.first * 131 + c.axRange.end);
 }
 
 pragma(inline, false)
@@ -456,10 +456,11 @@ private ulong activeSubtractBaseline(size_t i)
 pragma(inline, false)
 private ulong activeSubtractOperation(size_t i)
 {
-    ref const v = cases[1].input;
-    const auto range = researchActiveRange(v.ax.magnitude);
+    ref const c = cases[1];
     auto result = researchSubtractKnownRange(
-        v.bx.magnitude, v.ax.magnitude, range);
+        c.input.bx.magnitude,
+        c.input.ax.magnitude,
+        c.axRange);
     return fingerprintCoordinateMagnitude(result, i);
 }
 

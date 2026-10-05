@@ -90,6 +90,13 @@ jobs:
             source/geo/internal/fixed_uint.d \
             -of=build/dyadic-product-subtraction-decomposition-probe
           build/dyadic-product-subtraction-decomposition-probe
+          "$DC" "${flags[@]}" \
+            -Isource \
+            benchmarks/fixed_uint_subtract_codegen.d \
+            source/geo/internal/dyadic.d \
+            source/geo/internal/fixed_uint.d \
+            -of=build/fixed-uint-subtract-codegen-probe
+          build/fixed-uint-subtract-codegen-probe
 
       - name: Check segment-polygon benchmark preflight and recording
         shell: bash

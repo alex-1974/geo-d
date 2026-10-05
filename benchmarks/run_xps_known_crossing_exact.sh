@@ -20,13 +20,13 @@ dub test --compiler=ldc2 2>&1 | tee "$task_dir/dub-test-ldc2.log"
 
 echo
 echo "=== PREBUILT ABBA ==="
-python3 benchmarks/run_segment_polygon_contact_reuse_abba.py \
+python3 benchmarks/run_known_crossing_exact_abba.py \
   --base="$base" \
   --candidate="$candidate" \
   --cpu="$cpu" \
-  --cycles=3 \
-  --rounds=7 \
-  --target-ms=50 \
+  --cycles=5 \
+  --rounds=9 \
+  --target-ms=75 \
   --output="$task_dir/record" \
   | tee "$task_dir/run.log"
 

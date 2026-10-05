@@ -392,6 +392,119 @@ struct SignedDyadicDifference
 }
 
 
+/*
+ * Same-sign coordinate subtraction research path.
+ *
+ * Preserve the high-to-low comparison's early exit and retain only the
+ * first differing limb as an exact upper bound for the subtraction result.
+ * Above that limb both magnitudes are equal, and a borrow cannot escape past
+ * the most-significant differing limb where the selected larger magnitude is
+ * strictly greater.
+ */
+private struct CoordinateComparisonBound
+{
+    int comparison;
+    size_t end;
+}
+
+
+private CoordinateComparisonBound compareCoordinateMagnitudeWithBound(
+    ref const DyadicCoordinateMagnitude lhs,
+    ref const DyadicCoordinateMagnitude rhs
+)
+    pure nothrow @safe @nogc
+{
+    size_t index = dyadicCoordinateLimbs;
+
+    while (index > 0)
+    {
+        --index;
+
+        if (lhs.limb[index] < rhs.limb[index])
+            return CoordinateComparisonBound(-1, index + 1);
+
+        if (lhs.limb[index] > rhs.limb[index])
+            return CoordinateComparisonBound(1, index + 1);
+    }
+
+    return CoordinateComparisonBound(0, 0);
+}
+
+
+private size_t firstCoordinateNonZeroBefore(
+    ref const DyadicCoordinateMagnitude value,
+    size_t end
+)
+    pure nothrow @safe @nogc
+{
+    foreach (index; 0 .. end)
+    {
+        if (value.limb[index] != 0)
+            return index;
+    }
+
+    return end;
+}
+
+
+private void subtractCoordinateMagnitudeBoundedInto(
+    ref DyadicCoordinateMagnitude output,
+    ref const DyadicCoordinateMagnitude larger,
+    ref const DyadicCoordinateMagnitude smaller,
+    size_t end
+)
+    pure nothrow @safe @nogc
+{
+    assert(end > 0);
+    assert(end <= dyadicCoordinateLimbs);
+
+    const size_t first =
+        firstCoordinateNonZeroBefore(
+            smaller,
+            end
+        );
+
+    foreach (index; 0 .. first)
+        output.limb[index] =
+            larger.limb[index];
+
+    ulong borrow = 0;
+
+    foreach (index; first .. end)
+    {
+        const ulong lhsValue =
+            cast(ulong) larger.limb[index];
+
+        const ulong rhsValue =
+            cast(ulong) smaller.limb[index] +
+            borrow;
+
+        if (lhsValue >= rhsValue)
+        {
+            output.limb[index] =
+                cast(uint)(
+                    lhsValue - rhsValue
+                );
+
+            borrow = 0;
+        }
+        else
+        {
+            output.limb[index] =
+                cast(uint)(
+                    0x1_0000_0000UL +
+                    lhsValue -
+                    rhsValue
+                );
+
+            borrow = 1;
+        }
+    }
+
+    assert(borrow == 0);
+}
+
+
 /**
  * Computes the exact mathematical difference:
  *
@@ -451,39 +564,41 @@ SignedDyadicDifference subtractDyadicCoordinates(
         return result;
     }
 
-    const int comparison =
-        compareUnsigned(
+    const comparison =
+        compareCoordinateMagnitudeWithBound(
             lhs.magnitude,
             rhs.magnitude
         );
 
-    if (comparison == 0)
+    if (comparison.comparison == 0)
     {
         result.sign = 0;
         return result;
     }
 
-    if (comparison > 0)
+    if (comparison.comparison > 0)
     {
         result.sign =
             lhs.sign;
 
-        result.magnitude =
-            subtractUnsigned(
-                lhs.magnitude,
-                rhs.magnitude
-            );
+        subtractCoordinateMagnitudeBoundedInto(
+            result.magnitude,
+            lhs.magnitude,
+            rhs.magnitude,
+            comparison.end
+        );
     }
     else
     {
         result.sign =
             -lhs.sign;
 
-        result.magnitude =
-            subtractUnsigned(
-                rhs.magnitude,
-                lhs.magnitude
-            );
+        subtractCoordinateMagnitudeBoundedInto(
+            result.magnitude,
+            rhs.magnitude,
+            lhs.magnitude,
+            comparison.end
+        );
     }
 
     return result;

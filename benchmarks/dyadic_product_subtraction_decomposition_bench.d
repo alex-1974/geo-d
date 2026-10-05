@@ -4,6 +4,7 @@ import std.datetime.stopwatch : StopWatch;
 import std.stdio : writefln;
 
 import geo.internal.dyadic :
+    DyadicCoordinateMagnitude,
     SignedDyadicCoordinate,
     SignedDyadicDifference,
     SignedDyadicProduct,
@@ -11,6 +12,10 @@ import geo.internal.dyadic :
     multiplyDyadicDifferences,
     subtractDyadicCoordinates,
     subtractDyadicProducts;
+
+import geo.internal.fixed_uint :
+    compareUnsigned,
+    subtractUnsigned;
 
 enum size_t iterations = 100_000;
 __gshared ulong sink;
@@ -46,6 +51,18 @@ private ulong fingerprintProduct(ref const SignedDyadicProduct value)
 {
     ulong result = cast(ulong)(value.sign + 1);
     foreach (limb; value.magnitude.limb)
+        result = (result * 0x100000001b3UL) ^ limb;
+    return result;
+}
+
+pragma(inline, false)
+private ulong fingerprintCoordinateMagnitude(
+    ref const DyadicCoordinateMagnitude value,
+    size_t salt
+)
+{
+    ulong result = 0xcbf29ce484222325UL ^ cast(ulong) salt;
+    foreach (limb; value.limb)
         result = (result * 0x100000001b3UL) ^ limb;
     return result;
 }
@@ -229,6 +246,80 @@ private ulong sameSignEqualOperation(size_t i)
     return fingerprintDifference(result, i);
 }
 
+
+pragma(inline, false)
+private ulong compareGreaterBaseline(size_t i)
+{
+    ref const v = cases[1].input;
+    return fingerprintCoordinateMagnitude(v.bx.magnitude, i * 2)
+        ^ fingerprintCoordinateMagnitude(v.ax.magnitude, i * 2 + 1)
+        ^ 2UL;
+}
+
+pragma(inline, false)
+private ulong compareGreaterOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const int comparison =
+        compareUnsigned(v.bx.magnitude, v.ax.magnitude);
+
+    return fingerprintCoordinateMagnitude(v.bx.magnitude, i * 2)
+        ^ fingerprintCoordinateMagnitude(v.ax.magnitude, i * 2 + 1)
+        ^ cast(ulong)(comparison + 1);
+}
+
+pragma(inline, false)
+private ulong compareLessBaseline(size_t i)
+{
+    ref const v = cases[1].input;
+    return fingerprintCoordinateMagnitude(v.by.magnitude, i * 2)
+        ^ fingerprintCoordinateMagnitude(v.ay.magnitude, i * 2 + 1);
+}
+
+pragma(inline, false)
+private ulong compareLessOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const int comparison =
+        compareUnsigned(v.by.magnitude, v.ay.magnitude);
+
+    return fingerprintCoordinateMagnitude(v.by.magnitude, i * 2)
+        ^ fingerprintCoordinateMagnitude(v.ay.magnitude, i * 2 + 1)
+        ^ cast(ulong)(comparison + 1);
+}
+
+pragma(inline, false)
+private ulong subtractGreaterBaseline(size_t i)
+{
+    return fingerprintCoordinateMagnitude(
+        cases[1].bax.magnitude, i);
+}
+
+pragma(inline, false)
+private ulong subtractGreaterOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const auto magnitude =
+        subtractUnsigned(v.bx.magnitude, v.ax.magnitude);
+    return fingerprintCoordinateMagnitude(magnitude, i);
+}
+
+pragma(inline, false)
+private ulong subtractLessBaseline(size_t i)
+{
+    return fingerprintCoordinateMagnitude(
+        cases[1].bay.magnitude, i);
+}
+
+pragma(inline, false)
+private ulong subtractLessOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const auto magnitude =
+        subtractUnsigned(v.ay.magnitude, v.by.magnitude);
+    return fingerprintCoordinateMagnitude(magnitude, i);
+}
+
 private void oracle()
 {
     foreach (ref const c; cases)
@@ -305,6 +396,15 @@ void main()
     bench!sameSignLessOperation("coord same-sign < operation");
     bench!sameSignEqualBaseline("coord same-sign = baseline");
     bench!sameSignEqualOperation("coord same-sign = operation");
+
+    bench!compareGreaterBaseline("compare > baseline");
+    bench!compareGreaterOperation("compare > operation");
+    bench!compareLessBaseline("compare < baseline");
+    bench!compareLessOperation("compare < operation");
+    bench!subtractGreaterBaseline("subtract > baseline");
+    bench!subtractGreaterOperation("subtract > operation");
+    bench!subtractLessBaseline("subtract < baseline");
+    bench!subtractLessOperation("subtract < operation");
 
     bench!productBaseline("product baseline");
     bench!productOperations("2 product operations");

@@ -4,9 +4,9 @@ set -euo pipefail
 root=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
 cd "$root"
 
-base=c3a27454e0ae6f68d7108d4f0eafb9c6188448ba
-candidate=6ca8786c8db0fdfb0b5287ae96d3114c3540614b
-cpu=${1:-0}
+base=${1:-7f9237f7c4be993b7ac987a46f40d05bde8355c8}
+candidate=${2:-c72a9b9511d3183eb7f29d5aa9179214647c9765}
+cpu=${3:-0}
 
 mkdir -p build
 task_dir=$(mktemp -d "$root/build/known-crossing-exact-xps.XXXXXXXX")

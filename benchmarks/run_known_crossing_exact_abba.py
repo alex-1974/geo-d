@@ -35,12 +35,13 @@ alias P = Point2!double;
 alias S = Segment2!double;
 
 __gshared ulong benchmarkSink;
+__gshared typeof(prepareExactSegment(first)) preparedFirstValue;
 
-private immutable S first =
+private S first =
     S(P(1_000_000.0, 1_000_000.0),
       P(1_000_100.0, 1_000_100.0));
 
-private immutable S[8] seconds = [
+private S[8] seconds = [
     S(P(1_000_000.0, 1_000_100.0),
       P(1_000_100.0, 1_000_000.0)),
     S(P(1_000_010.0, 1_000_100.0),
@@ -82,11 +83,6 @@ private ulong fingerprint(ref const ExactProperIntersection value)
     return result;
 }
 
-private auto preparedFirst()
-{
-    return prepareExactSegment(first);
-}
-
 pragma(inline, false)
 private ulong control(size_t i)
 {
@@ -103,10 +99,9 @@ private ulong control(size_t i)
 pragma(inline, false)
 private ulong exactConstruction(size_t i)
 {
-    static immutable prepared = preparedFirst();
     ExactProperIntersection result;
     properIntersectionExactKnownCrossingPreparedFirst(
-        prepared,
+        preparedFirstValue,
         seconds[i & 7],
         result
     );
@@ -115,7 +110,7 @@ private ulong exactConstruction(size_t i)
 
 private void preflight()
 {
-    const auto prepared = preparedFirst();
+    preparedFirstValue = prepareExactSegment(first);
 
     foreach (ref const second; seconds)
     {
@@ -129,7 +124,7 @@ private void preflight()
         );
 
         properIntersectionExactKnownCrossingPreparedFirst(
-            prepared,
+            preparedFirstValue,
             second,
             candidate
         );

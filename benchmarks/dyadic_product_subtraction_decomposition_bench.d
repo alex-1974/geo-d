@@ -67,6 +67,95 @@ private ulong fingerprintCoordinateMagnitude(
     return result;
 }
 
+
+private struct ResearchRange
+{
+    size_t first;
+    size_t end;
+}
+
+private ResearchRange researchActiveRange(
+    ref const DyadicCoordinateMagnitude value
+)
+    pure nothrow @safe @nogc
+{
+    ResearchRange result;
+    result.first = value.limb.length;
+
+    foreach (i; 0 .. value.limb.length)
+    {
+        if (value.limb[i] != 0)
+        {
+            result.first = i;
+            break;
+        }
+    }
+
+    if (result.first == value.limb.length)
+        return result;
+
+    for (size_t i = value.limb.length; i != 0; --i)
+    {
+        if (value.limb[i - 1] != 0)
+        {
+            result.end = i;
+            break;
+        }
+    }
+
+    return result;
+}
+
+private DyadicCoordinateMagnitude researchSubtractKnownRange(
+    ref const DyadicCoordinateMagnitude lhs,
+    ref const DyadicCoordinateMagnitude rhs,
+    ResearchRange range
+)
+    pure nothrow @safe @nogc
+{
+    DyadicCoordinateMagnitude result = lhs;
+
+    ulong borrow = 0;
+
+    foreach (index; range.first .. range.end)
+    {
+        const ulong lhsValue = cast(ulong) result.limb[index];
+        const ulong rhsValue = cast(ulong) rhs.limb[index] + borrow;
+
+        if (lhsValue >= rhsValue)
+        {
+            result.limb[index] = cast(uint)(lhsValue - rhsValue);
+            borrow = 0;
+        }
+        else
+        {
+            result.limb[index] = cast(uint)(
+                0x1_0000_0000UL + lhsValue - rhsValue);
+            borrow = 1;
+        }
+    }
+
+    size_t index = range.end;
+
+    while (borrow != 0)
+    {
+        assert(index < result.limb.length);
+
+        if (result.limb[index] != 0)
+        {
+            --result.limb[index];
+            borrow = 0;
+        }
+        else
+        {
+            result.limb[index] = uint.max;
+            ++index;
+        }
+    }
+
+    return result;
+}
+
 private void prepare()
 {
     cases[0].input = Inputs(
@@ -320,6 +409,60 @@ private ulong subtractLessOperation(size_t i)
     return fingerprintCoordinateMagnitude(magnitude, i);
 }
 
+
+pragma(inline, false)
+private ulong carrierCopyBaseline(size_t i)
+{
+    ref const v = cases[1].input;
+    return fingerprintCoordinateMagnitude(v.bx.magnitude, i);
+}
+
+pragma(inline, false)
+private ulong carrierCopyOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    auto copy = v.bx.magnitude;
+    return fingerprintCoordinateMagnitude(copy, i);
+}
+
+pragma(inline, false)
+private ulong rangeDiscoveryBaseline(size_t i)
+{
+    ref const v = cases[1].input;
+    const auto known = researchActiveRange(v.ax.magnitude);
+
+    return fingerprintCoordinateMagnitude(v.ax.magnitude, i)
+        ^ cast(ulong)(known.first * 131 + known.end);
+}
+
+pragma(inline, false)
+private ulong rangeDiscoveryOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const auto range = researchActiveRange(v.ax.magnitude);
+
+    return fingerprintCoordinateMagnitude(v.ax.magnitude, i)
+        ^ cast(ulong)(range.first * 131 + range.end);
+}
+
+pragma(inline, false)
+private ulong activeSubtractBaseline(size_t i)
+{
+    ref const v = cases[1].input;
+    auto copy = v.bx.magnitude;
+    return fingerprintCoordinateMagnitude(copy, i);
+}
+
+pragma(inline, false)
+private ulong activeSubtractOperation(size_t i)
+{
+    ref const v = cases[1].input;
+    const auto range = researchActiveRange(v.ax.magnitude);
+    auto result = researchSubtractKnownRange(
+        v.bx.magnitude, v.ax.magnitude, range);
+    return fingerprintCoordinateMagnitude(result, i);
+}
+
 private void oracle()
 {
     foreach (ref const c; cases)
@@ -356,6 +499,19 @@ private void oracle()
         assert(c.p.sign != 0);
         assert(c.q.sign == 0);
     }
+
+    // The same-sign > and < paths both reduce to the same magnitude
+    // subtraction: 11 - 1. Validate the research-only decomposition
+    // bit-for-bit against the production primitive before timing it.
+    ref const v = cases[1].input;
+    const auto range = researchActiveRange(v.ax.magnitude);
+    const auto researchResult = researchSubtractKnownRange(
+        v.bx.magnitude, v.ax.magnitude, range);
+    const auto authoritativeResult = subtractUnsigned(
+        v.bx.magnitude, v.ax.magnitude);
+
+    assert(researchResult.limb == authoritativeResult.limb);
+    assert(range.first < range.end);
 }
 
 private void bench(alias operation)(string name)
@@ -406,6 +562,13 @@ void main()
     bench!subtractLessBaseline("subtract < baseline");
     bench!subtractLessOperation("subtract < operation");
 
+    bench!carrierCopyBaseline("carrier copy baseline");
+    bench!carrierCopyOperation("carrier copy operation");
+    bench!rangeDiscoveryBaseline("range scan baseline");
+    bench!rangeDiscoveryOperation("range scan operation");
+    bench!activeSubtractBaseline("active subtract baseline");
+    bench!activeSubtractOperation("active subtract operation");
+
     bench!productBaseline("product baseline");
     bench!productOperations("2 product operations");
     bench!subtractionBaseline("subtraction baseline");
@@ -413,6 +576,7 @@ void main()
 
     writefln("coordinate paths: rhs-zero,lhs-zero,zero-zero,same-sign>,same-sign<,same-sign=");
     writefln("path: rhs-sign-zero");
+    writefln("subtract decomposition: copy,range-scan,known-range-loop");
     writefln("observation: matched-full-output");
     writefln("oracle: bit-identical");
     writefln("sink: %s", sink);

@@ -30,9 +30,13 @@ private struct PreparedCase
 
 private PreparedCase[2] cases;
 
-private ulong fingerprintDifference(ref const SignedDyadicDifference value)
+pragma(inline, false)
+private ulong fingerprintDifference(
+    ref const SignedDyadicDifference value,
+    size_t salt
+)
 {
-    ulong result = cast(ulong)(value.sign + 1);
+    ulong result = cast(ulong)(value.sign + 1) ^ cast(ulong) salt;
     foreach (limb; value.magnitude.limb)
         result = (result * 0x100000001b3UL) ^ limb;
     return result;
@@ -82,10 +86,10 @@ pragma(inline, false)
 private ulong coordinateBaseline(size_t i)
 {
     ref const c = cases[i & 1];
-    return fingerprintDifference(c.bax)
-        ^ fingerprintDifference(c.bay)
-        ^ fingerprintDifference(c.cax)
-        ^ fingerprintDifference(c.cay);
+    return fingerprintDifference(c.bax, i * 4)
+        ^ fingerprintDifference(c.bay, i * 4 + 1)
+        ^ fingerprintDifference(c.cax, i * 4 + 2)
+        ^ fingerprintDifference(c.cay, i * 4 + 3);
 }
 
 pragma(inline, false)
@@ -99,10 +103,10 @@ private ulong coordinateOperations(size_t i)
     const auto cax = subtractDyadicCoordinates(v.cx, v.ax);
     const auto cay = subtractDyadicCoordinates(v.cy, v.ay);
 
-    return fingerprintDifference(bax)
-        ^ fingerprintDifference(bay)
-        ^ fingerprintDifference(cax)
-        ^ fingerprintDifference(cay);
+    return fingerprintDifference(bax, i * 4)
+        ^ fingerprintDifference(bay, i * 4 + 1)
+        ^ fingerprintDifference(cax, i * 4 + 2)
+        ^ fingerprintDifference(cay, i * 4 + 3);
 }
 
 pragma(inline, false)
@@ -142,87 +146,87 @@ private ulong subtractionOperation(size_t i)
 
 
 pragma(inline, false)
-private ulong rhsZeroBaseline(size_t)
+private ulong rhsZeroBaseline(size_t i)
 {
-    return fingerprintDifference(cases[0].bax);
+    return fingerprintDifference(cases[0].bax, i);
 }
 
 pragma(inline, false)
-private ulong rhsZeroOperation(size_t)
+private ulong rhsZeroOperation(size_t i)
 {
     ref const v = cases[0].input;
     const auto result = subtractDyadicCoordinates(v.bx, v.ax);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 pragma(inline, false)
-private ulong lhsZeroBaseline(size_t)
+private ulong lhsZeroBaseline(size_t i)
 {
-    return fingerprintDifference(cases[0].bay);
+    return fingerprintDifference(cases[0].bay, i);
 }
 
 pragma(inline, false)
-private ulong lhsZeroOperation(size_t)
+private ulong lhsZeroOperation(size_t i)
 {
     ref const v = cases[0].input;
     const auto result = subtractDyadicCoordinates(v.by, v.ay);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 pragma(inline, false)
-private ulong zeroZeroBaseline(size_t)
+private ulong zeroZeroBaseline(size_t i)
 {
-    return fingerprintDifference(cases[0].cax);
+    return fingerprintDifference(cases[0].cax, i);
 }
 
 pragma(inline, false)
-private ulong zeroZeroOperation(size_t)
+private ulong zeroZeroOperation(size_t i)
 {
     ref const v = cases[0].input;
     const auto result = subtractDyadicCoordinates(v.cx, v.ax);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 pragma(inline, false)
-private ulong sameSignGreaterBaseline(size_t)
+private ulong sameSignGreaterBaseline(size_t i)
 {
-    return fingerprintDifference(cases[1].bax);
+    return fingerprintDifference(cases[1].bax, i);
 }
 
 pragma(inline, false)
-private ulong sameSignGreaterOperation(size_t)
+private ulong sameSignGreaterOperation(size_t i)
 {
     ref const v = cases[1].input;
     const auto result = subtractDyadicCoordinates(v.bx, v.ax);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 pragma(inline, false)
-private ulong sameSignLessBaseline(size_t)
+private ulong sameSignLessBaseline(size_t i)
 {
-    return fingerprintDifference(cases[1].bay);
+    return fingerprintDifference(cases[1].bay, i);
 }
 
 pragma(inline, false)
-private ulong sameSignLessOperation(size_t)
+private ulong sameSignLessOperation(size_t i)
 {
     ref const v = cases[1].input;
     const auto result = subtractDyadicCoordinates(v.by, v.ay);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 pragma(inline, false)
-private ulong sameSignEqualBaseline(size_t)
+private ulong sameSignEqualBaseline(size_t i)
 {
-    return fingerprintDifference(cases[1].cax);
+    return fingerprintDifference(cases[1].cax, i);
 }
 
 pragma(inline, false)
-private ulong sameSignEqualOperation(size_t)
+private ulong sameSignEqualOperation(size_t i)
 {
     ref const v = cases[1].input;
     const auto result = subtractDyadicCoordinates(v.cx, v.ax);
-    return fingerprintDifference(result);
+    return fingerprintDifference(result, i);
 }
 
 private void oracle()

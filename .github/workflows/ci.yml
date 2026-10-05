@@ -97,6 +97,14 @@ jobs:
             source/geo/internal/fixed_uint.d \
             -of=build/fixed-uint-subtract-codegen-probe
           build/fixed-uint-subtract-codegen-probe
+          "$DC" "${flags[@]}" \
+            -Isource \
+            benchmarks/fused_coordinate_subtraction_bench.d \
+            source/geo/internal/dyadic.d \
+            source/geo/internal/dyadic_fused_candidate.d \
+            source/geo/internal/fixed_uint.d \
+            -of=build/fused-coordinate-subtraction-probe
+          build/fused-coordinate-subtraction-probe
 
       - name: Check segment-polygon benchmark preflight and recording
         shell: bash

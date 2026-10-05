@@ -24,7 +24,7 @@ private ulong fingerprintMagnitude(ref const DyadicProductMagnitude value) @safe
     return hash;
 }
 
-private SignedDyadicProduct[2] makeProducts()
+private SignedDyadicProduct[2] makeProducts() @safe
 {
     const a = decodeDyadicCoordinate(123456789.125);
     const b = decodeDyadicCoordinate(-98765.5);
@@ -49,7 +49,7 @@ private double measure(scope ulong delegate() @safe action)
     return cast(double)(stop - start).total!"nsecs" / iterations;
 }
 
-void main() @safe
+void main()
 {
     auto products = makeProducts();
     auto lhs = products[0];

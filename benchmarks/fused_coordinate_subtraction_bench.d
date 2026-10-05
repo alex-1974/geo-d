@@ -10,7 +10,8 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates;
 
 import geo.internal.dyadic_fused_candidate :
-    subtractDyadicCoordinatesFusedCandidate;
+    subtractDyadicCoordinatesFusedCandidate,
+    subtractDyadicCoordinatesBoundedCandidate;
 
 enum size_t iterations = 100_000;
 __gshared ulong sink;
@@ -112,7 +113,14 @@ private void oracle()
                     rhs
                 );
 
+            const bounded =
+                subtractDyadicCoordinatesBoundedCandidate(
+                    lhs,
+                    rhs
+                );
+
             assertIdentical(classic, fused);
+            assertIdentical(classic, bounded);
         }
     }
 
@@ -125,7 +133,13 @@ private void oracle()
                 v.bx,
                 v.ax
             );
+        const boundedBax =
+            subtractDyadicCoordinatesBoundedCandidate(
+                v.bx,
+                v.ax
+            );
         assertIdentical(classicBax, fusedBax);
+        assertIdentical(classicBax, boundedBax);
 
         const classicBay =
             subtractDyadicCoordinates(v.by, v.ay);
@@ -134,7 +148,13 @@ private void oracle()
                 v.by,
                 v.ay
             );
+        const boundedBay =
+            subtractDyadicCoordinatesBoundedCandidate(
+                v.by,
+                v.ay
+            );
         assertIdentical(classicBay, fusedBay);
+        assertIdentical(classicBay, boundedBay);
 
         const classicCax =
             subtractDyadicCoordinates(v.cx, v.ax);
@@ -143,7 +163,13 @@ private void oracle()
                 v.cx,
                 v.ax
             );
+        const boundedCax =
+            subtractDyadicCoordinatesBoundedCandidate(
+                v.cx,
+                v.ax
+            );
         assertIdentical(classicCax, fusedCax);
+        assertIdentical(classicCax, boundedCax);
 
         const classicCay =
             subtractDyadicCoordinates(v.cy, v.ay);
@@ -152,7 +178,13 @@ private void oracle()
                 v.cy,
                 v.ay
             );
+        const boundedCay =
+            subtractDyadicCoordinatesBoundedCandidate(
+                v.cy,
+                v.ay
+            );
         assertIdentical(classicCay, fusedCay);
+        assertIdentical(classicCay, boundedCay);
     }
 }
 
@@ -209,6 +241,39 @@ private ulong fusedFour(size_t i)
 }
 
 pragma(inline, false)
+private ulong boundedFour(size_t i)
+{
+    ref const v = determinantCases[i & 1];
+
+    const auto bax =
+        subtractDyadicCoordinatesBoundedCandidate(
+            v.bx,
+            v.ax
+        );
+    const auto bay =
+        subtractDyadicCoordinatesBoundedCandidate(
+            v.by,
+            v.ay
+        );
+    const auto cax =
+        subtractDyadicCoordinatesBoundedCandidate(
+            v.cx,
+            v.ax
+        );
+    const auto cay =
+        subtractDyadicCoordinatesBoundedCandidate(
+            v.cy,
+            v.ay
+        );
+
+    return fingerprint(bax, i * 4)
+        ^ fingerprint(bay, i * 4 + 1)
+        ^ fingerprint(cax, i * 4 + 2)
+        ^ fingerprint(cay, i * 4 + 3);
+}
+
+
+pragma(inline, false)
 private ulong classicSameSign(size_t i)
 {
     ref const v = determinantCases[1];
@@ -239,6 +304,26 @@ private ulong fusedSameSign(size_t i)
 
     return fingerprint(first, i);
 }
+
+pragma(inline, false)
+private ulong boundedSameSign(size_t i)
+{
+    ref const v = determinantCases[1];
+
+    const auto first =
+        (i & 1) == 0
+            ? subtractDyadicCoordinatesBoundedCandidate(
+                v.bx,
+                v.ax
+            )
+            : subtractDyadicCoordinatesBoundedCandidate(
+                v.by,
+                v.ay
+            );
+
+    return fingerprint(first, i);
+}
+
 
 private void bench(alias operation)(string name)
 {
@@ -272,11 +357,13 @@ void main()
 
     bench!classicSameSign("classic same-sign");
     bench!fusedSameSign("fused same-sign");
+    bench!boundedSameSign("bounded same-sign");
 
     bench!classicFour("classic 4 subtracts");
     bench!fusedFour("fused 4 subtracts");
+    bench!boundedFour("bounded 4 subtracts");
 
     writefln("oracle: bit-identical");
-    writefln("candidate: fused-scan-direct-output");
+    writefln("candidate: fused-scan-direct-output + bounded-early-exit");
     writefln("sink: %s", sink);
 }

@@ -12,6 +12,12 @@ import geo.internal.exact_coordinate :
     exactCoordinateNumeratorLimbs,
     exactCoordinatesEqual;
 
+import geo.internal.dyadic_compact :
+    CompactDyadicProduct,
+    tryCompactWeightDenominator,
+    tryCompactWeightedCoordinate,
+    tryOrientationDeterminantCompactDecodedRaw;
+
 import geo.internal.fixed_uint :
     addUnsigned,
     compareUnsigned,
@@ -55,6 +61,12 @@ private enum bool isExactIntersectionScalar(T) =
     is(T == long) ||
     is(T == float) ||
     is(T == double);
+
+
+version (LDC)
+private enum bool useCompactPreparedConstruction = true;
+else
+private enum bool useCompactPreparedConstruction = false;
 
 
 /*
@@ -432,6 +444,109 @@ if (isExactIntersectionScalar!T)
  * fixed widths and exact rational result are identical to
  * properIntersectionExactKnownCrossing().
  */
+private bool tryProperIntersectionExactKnownCrossingPreparedFirstCompact(T)(
+    ref const PreparedExactSegment first,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    result =
+        ExactProperIntersection.init;
+
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    CompactDyadicProduct dA;
+    CompactDyadicProduct dB;
+
+    if (
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY,
+            dA
+        ) ||
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY,
+            dB
+        )
+    )
+    {
+        return false;
+    }
+
+    /*
+     * The caller has already established a strict proper crossing. Recheck the
+     * determinant signs here because the compact path is an independently
+     * fallible optimization and must never weaken the fixed-path precondition.
+     */
+    if (
+        dA.sign == 0 ||
+        dB.sign == 0 ||
+        dA.sign == dB.sign
+    )
+    {
+        return false;
+    }
+
+    /*
+     * The barycentric weights are the opposite determinant magnitudes:
+     *
+     *     weightA = |dB|
+     *     weightB = |dA|
+     */
+    if (
+        !tryCompactWeightDenominator(
+            dB,
+            dA,
+            result.denominator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aX,
+            dA,
+            first.bX,
+            result.xNumerator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aY,
+            dA,
+            first.bY,
+            result.yNumerator
+        )
+    )
+    {
+        result =
+            ExactProperIntersection.init;
+
+        return false;
+    }
+
+    return true;
+}
+
+
+/*
+ * Exact construction for a strict crossing when the first/source segment has
+ * already been decoded once by a caller that reuses it across many edges.
+ *
+ * LDC first attempts the compact dyadic construction qualified by #132/#144.
+ * Any unsupported compact intermediate falls back to the complete fixed-width
+ * implementation below. DMD deliberately uses only the fixed-width path.
+ */
 package(geo)
 void properIntersectionExactKnownCrossingPreparedFirst(T)(
     ref const PreparedExactSegment first,
@@ -441,6 +556,20 @@ void properIntersectionExactKnownCrossingPreparedFirst(T)(
     pure nothrow @safe @nogc
 if (isExactIntersectionScalar!T)
 {
+    static if (useCompactPreparedConstruction)
+    {
+        if (
+            tryProperIntersectionExactKnownCrossingPreparedFirstCompact(
+                first,
+                second,
+                result
+            )
+        )
+        {
+            return;
+        }
+    }
+
     const auto preparedSecond =
         prepareExactSegment(
             second

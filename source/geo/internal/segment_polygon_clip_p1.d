@@ -218,12 +218,15 @@ if (isSegmentPolygonClipScalar!T)
  */
 private size_t queryBoundaryEventCapacity(T)(
     Bounds2!T queryBounds,
-    scope Polygon2View!T polygon
+    scope Polygon2View!T polygon,
+    out Bounds2!T polygonBounds
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
     assert(!queryBounds.empty);
+
+    polygonBounds = Bounds2!T.init;
 
     size_t capacity = 2;
 
@@ -233,7 +236,24 @@ if (isSegmentPolygonClipScalar!T)
 
         foreach (edgeIndex; 0 .. ring.segmentCount)
         {
-            if (!edgeBoundsMayMeetQuery(queryBounds, ring.segment(edgeIndex)))
+            const auto edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            const bool extendedA =
+                polygonBounds.tryExtend(
+                    edge.a
+                );
+
+            const bool extendedB =
+                polygonBounds.tryExtend(
+                    edge.b
+                );
+
+            assert(extendedA && extendedB);
+
+            if (!edgeBoundsMayMeetQuery(queryBounds, edge))
                 continue;
 
             if (capacity > size_t.max - 2)
@@ -244,6 +264,24 @@ if (isSegmentPolygonClipScalar!T)
     }
 
     return capacity;
+}
+
+
+private size_t queryBoundaryEventCapacity(T)(
+    Bounds2!T queryBounds,
+    scope Polygon2View!T polygon
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    Bounds2!T ignoredPolygonBounds;
+
+    return
+        queryBoundaryEventCapacity(
+            queryBounds,
+            polygon,
+            ignoredPolygonBounds
+        );
 }
 
 
@@ -602,12 +640,16 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(bounded && !queryBounds.empty);
 
+    Bounds2!T polygonBounds;
+
     const size_t eventCapacity =
         queryBoundaryEventCapacity(
             queryBounds,
-            polygon
+            polygon,
+            polygonBounds
         );
 
+    assert(!polygonBounds.empty);
     assert(eventCapacity >= 2);
     assert((eventCapacity - 2) % 2 == 0);
 
@@ -629,14 +671,22 @@ if (isSegmentPolygonClipScalar!T)
     {
         PointPolygonLocation location;
 
-        const bool classified =
-            tryClassifyPointInPolygon(
-                polygon,
-                query.a,
-                location
-            );
+        if (!polygonBounds.contains(query.a))
+        {
+            location =
+                PointPolygonLocation.outside;
+        }
+        else
+        {
+            const bool classified =
+                tryClassifyPointInPolygon(
+                    polygon,
+                    query.a,
+                    location
+                );
 
-        assert(classified);
+            assert(classified);
+        }
 
         final switch (location)
         {
@@ -1487,14 +1537,22 @@ if (isSegmentPolygonClipScalar!T)
 
             PointPolygonLocation location;
 
-            const bool classified =
-                tryClassifyPointInPolygon(
-                    polygon,
-                    query.a,
-                    location
-                );
+            if (!polygonBounds.contains(query.a))
+            {
+                location =
+                    PointPolygonLocation.outside;
+            }
+            else
+            {
+                const bool classified =
+                    tryClassifyPointInPolygon(
+                        polygon,
+                        query.a,
+                        location
+                    );
 
-            assert(classified);
+                assert(classified);
+            }
 
             final switch (location)
             {

@@ -9,6 +9,8 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates,
     subtractDyadicProducts;
 
+import core.stdc.stdlib : abort;
+import std.conv : to;
 import std.datetime.stopwatch : StopWatch;
 import std.stdio : writefln;
 
@@ -17,6 +19,7 @@ enum size_t compactProductLimbs = 8;
 enum size_t iterations = 200_000;
 
 __gshared ulong sink;
+__gshared size_t runtimeOffset;
 
 private struct CompactDyadic(size_t Limbs)
 {
@@ -36,6 +39,8 @@ private struct Inputs
     CompactCoordinate cax, cay, cbx, cby, ccx, ccy;
     SignedDyadicDifference fixedDx, fixedDy;
     CompactDifference compactDx, compactDy;
+    SignedDyadicProduct fixedProduct, fixedDeterminantValue;
+    CompactProduct compactProduct, compactDeterminantValue;
 }
 
 private Inputs[8] ordinaryCases;
@@ -43,6 +48,21 @@ private Inputs[8] ordinaryCases;
 private ulong mix(ulong value, ulong part)
 {
     return (value * 0x100000001b3UL) ^ part;
+}
+
+private void require(bool condition, string message)
+{
+    if (!condition)
+    {
+        writefln("ERROR,%s", message);
+        abort();
+    }
+}
+
+pragma(inline, false)
+private size_t caseIndex(size_t i)
+{
+    return (i + runtimeOffset) & 7;
 }
 
 private ulong fingerprint(size_t Limbs)(
@@ -524,12 +544,12 @@ private void prepareCase(
     result.cx = decodeDyadicCoordinate(cx);
     result.cy = decodeDyadicCoordinate(cy);
 
-    assert(compactCoordinate(result.ax, result.cax));
-    assert(compactCoordinate(result.ay, result.cay));
-    assert(compactCoordinate(result.bx, result.cbx));
-    assert(compactCoordinate(result.by, result.cby));
-    assert(compactCoordinate(result.cx, result.ccx));
-    assert(compactCoordinate(result.cy, result.ccy));
+    require(compactCoordinate(result.ax, result.cax), "compact ax");
+    require(compactCoordinate(result.ay, result.cay), "compact ay");
+    require(compactCoordinate(result.bx, result.cbx), "compact bx");
+    require(compactCoordinate(result.by, result.cby), "compact by");
+    require(compactCoordinate(result.cx, result.ccx), "compact cx");
+    require(compactCoordinate(result.cy, result.ccy), "compact cy");
 
     result.fixedDx =
         subtractDyadicCoordinates(
@@ -543,27 +563,87 @@ private void prepareCase(
             result.ay
         );
 
-    assert(subtractCompact(
-        result.cbx,
-        result.cax,
-        result.compactDx
-    ));
+    require(
+        subtractCompact(
+            result.cbx,
+            result.cax,
+            result.compactDx
+        ),
+        "compact dx"
+    );
 
-    assert(subtractCompact(
-        result.ccy,
-        result.cay,
-        result.compactDy
-    ));
+    require(
+        subtractCompact(
+            result.ccy,
+            result.cay,
+            result.compactDy
+        ),
+        "compact dy"
+    );
 
-    assert(compactDifferenceMatches(
-        result.compactDx,
-        result.fixedDx
-    ));
+    require(
+        compactDifferenceMatches(
+            result.compactDx,
+            result.fixedDx
+        ),
+        "dx oracle"
+    );
 
-    assert(compactDifferenceMatches(
-        result.compactDy,
-        result.fixedDy
-    ));
+    require(
+        compactDifferenceMatches(
+            result.compactDy,
+            result.fixedDy
+        ),
+        "dy oracle"
+    );
+
+    result.fixedProduct =
+        multiplyDyadicDifferences(
+            result.fixedDx,
+            result.fixedDy
+        );
+
+    require(
+        multiplyCompact(
+            result.compactDx,
+            result.compactDy,
+            result.compactProduct
+        ),
+        "compact product"
+    );
+
+    require(
+        compactProductMatches(
+            result.compactProduct,
+            result.fixedProduct
+        ),
+        "product oracle"
+    );
+
+    result.fixedDeterminantValue =
+        fixedDeterminantDecoded(
+            result.ax, result.ay,
+            result.bx, result.by,
+            result.cx, result.cy
+        );
+
+    require(
+        compactDeterminant(
+            result.cax, result.cay,
+            result.cbx, result.cby,
+            result.ccx, result.ccy,
+            result.compactDeterminantValue
+        ),
+        "compact determinant"
+    );
+
+    require(
+        compactProductMatches(
+            result.compactDeterminantValue,
+            result.fixedDeterminantValue
+        ),
+        "determinant oracle"
+    );
 }
 
 private void prepare()
@@ -652,12 +732,15 @@ private void oracleOrdinary()
     {
         CompactProduct compact;
 
-        assert(compactDeterminant(
-            v.cax, v.cay,
-            v.cbx, v.cby,
-            v.ccx, v.ccy,
-            compact
-        ));
+        require(
+            compactDeterminant(
+                v.cax, v.cay,
+                v.cbx, v.cby,
+                v.ccx, v.ccy,
+                compact
+            ),
+            "ordinary compact determinant"
+        );
 
         const auto fixed =
             fixedDeterminantDecoded(
@@ -666,10 +749,13 @@ private void oracleOrdinary()
                 v.cx, v.cy
             );
 
-        assert(compactProductMatches(
-            compact,
-            fixed
-        ));
+        require(
+            compactProductMatches(
+                compact,
+                fixed
+            ),
+            "ordinary determinant oracle"
+        );
     }
 }
 
@@ -748,12 +834,12 @@ private void broadCensus()
 
         CompactCoordinate cax, cay, cbx, cby, ccx, ccy;
 
-        assert(compactCoordinate(ax, cax));
-        assert(compactCoordinate(ay, cay));
-        assert(compactCoordinate(bx, cbx));
-        assert(compactCoordinate(by, cby));
-        assert(compactCoordinate(cx, ccx));
-        assert(compactCoordinate(cy, ccy));
+        require(compactCoordinate(ax, cax), "census compact ax");
+        require(compactCoordinate(ay, cay), "census compact ay");
+        require(compactCoordinate(bx, cbx), "census compact bx");
+        require(compactCoordinate(by, cby), "census compact by");
+        require(compactCoordinate(cx, ccx), "census compact cx");
+        require(compactCoordinate(cy, ccy), "census compact cy");
 
         CompactProduct compact;
 
@@ -775,10 +861,13 @@ private void broadCensus()
                     cx, cy
                 );
 
-            assert(compactProductMatches(
-                compact,
-                fixed
-            ));
+            require(
+                compactProductMatches(
+                    compact,
+                    fixed
+                ),
+                "census determinant oracle"
+            );
 
             ++determinantOraclePass;
         }
@@ -806,7 +895,7 @@ pragma(inline, false)
 private ulong fixedCopy(size_t i)
 {
     const auto value =
-        ordinaryCases[i & 7].ax;
+        ordinaryCases[caseIndex(i)].ax;
 
     return
         cast(ulong)(value.sign + 1) ^
@@ -819,22 +908,15 @@ pragma(inline, false)
 private ulong compactCopy(size_t i)
 {
     const auto value =
-        ordinaryCases[i & 7].cax;
+        ordinaryCases[caseIndex(i)].cax;
 
     return fingerprint(value);
 }
 
-pragma(inline, false)
-private ulong fixedSubtract(size_t i)
+private ulong fixedDifferenceFingerprint(
+    ref const SignedDyadicDifference value
+)
 {
-    ref const v = ordinaryCases[i & 7];
-
-    const auto value =
-        subtractDyadicCoordinates(
-            v.bx,
-            v.ax
-        );
-
     return
         cast(ulong)(value.sign + 1) ^
         value.magnitude.limb[0] ^
@@ -843,25 +925,63 @@ private ulong fixedSubtract(size_t i)
 }
 
 pragma(inline, false)
+private ulong fixedSubtractControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fixedDifferenceFingerprint(v.fixedDx);
+}
+
+pragma(inline, false)
+private ulong fixedSubtract(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+
+    const auto value =
+        subtractDyadicCoordinates(
+            v.bx,
+            v.ax
+        );
+
+    return fixedDifferenceFingerprint(value);
+}
+
+pragma(inline, false)
+private ulong compactSubtractControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fingerprint(v.compactDx);
+}
+
+pragma(inline, false)
 private ulong compactSubtract(size_t i)
 {
-    ref const v = ordinaryCases[i & 7];
+    ref const v = ordinaryCases[caseIndex(i)];
 
     CompactDifference value;
 
-    assert(subtractCompact(
+    if (!subtractCompact(
         v.cbx,
         v.cax,
         value
-    ));
+    ))
+    {
+        abort();
+    }
 
     return fingerprint(value);
 }
 
 pragma(inline, false)
+private ulong fixedMultiplyControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fingerprint(v.fixedProduct);
+}
+
+pragma(inline, false)
 private ulong fixedMultiply(size_t i)
 {
-    ref const v = ordinaryCases[i & 7];
+    ref const v = ordinaryCases[caseIndex(i)];
 
     const auto value =
         multiplyDyadicDifferences(
@@ -873,25 +993,42 @@ private ulong fixedMultiply(size_t i)
 }
 
 pragma(inline, false)
+private ulong compactMultiplyControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fingerprint(v.compactProduct);
+}
+
+pragma(inline, false)
 private ulong compactMultiply(size_t i)
 {
-    ref const v = ordinaryCases[i & 7];
+    ref const v = ordinaryCases[caseIndex(i)];
 
     CompactProduct value;
 
-    assert(multiplyCompact(
+    if (!multiplyCompact(
         v.compactDx,
         v.compactDy,
         value
-    ));
+    ))
+    {
+        abort();
+    }
 
     return fingerprint(value);
 }
 
 pragma(inline, false)
+private ulong fixedDeterminantControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fingerprint(v.fixedDeterminantValue);
+}
+
+pragma(inline, false)
 private ulong fixedDeterminant(size_t i)
 {
-    ref const v = ordinaryCases[i & 7];
+    ref const v = ordinaryCases[caseIndex(i)];
 
     const auto value =
         fixedDeterminantDecoded(
@@ -904,18 +1041,28 @@ private ulong fixedDeterminant(size_t i)
 }
 
 pragma(inline, false)
+private ulong compactDeterminantControl(size_t i)
+{
+    ref const v = ordinaryCases[caseIndex(i)];
+    return fingerprint(v.compactDeterminantValue);
+}
+
+pragma(inline, false)
 private ulong compactDeterminantBench(size_t i)
 {
-    ref const v = ordinaryCases[i & 7];
+    ref const v = ordinaryCases[caseIndex(i)];
 
     CompactProduct value;
 
-    assert(compactDeterminant(
+    if (!compactDeterminant(
         v.cax, v.cay,
         v.cbx, v.cby,
         v.ccx, v.ccy,
         value
-    ));
+    ))
+    {
+        abort();
+    }
 
     return fingerprint(value);
 }
@@ -947,11 +1094,35 @@ private void bench(alias operation)(
     );
 }
 
-void main()
+private void benchPair(alias control, alias target)(
+    string controlName,
+    string targetName
+)
 {
+    if ((runtimeOffset & 1) == 0)
+    {
+        bench!control(controlName);
+        bench!target(targetName);
+    }
+    else
+    {
+        bench!target(targetName);
+        bench!control(controlName);
+    }
+}
+
+void main(string[] args)
+{
+    runtimeOffset =
+        args.length > 1
+            ? to!size_t(args[1])
+            : args.length;
+
     prepare();
     oracleOrdinary();
     broadCensus();
+
+    writefln("runtime,offset,%s", runtimeOffset);
 
     writefln(
         "sizeof,SignedDyadicCoordinate,%s",
@@ -973,17 +1144,46 @@ void main()
         CompactProduct.sizeof
     );
 
-    bench!fixedCopy("fixed-copy");
-    bench!compactCopy("compact-copy");
+    if ((runtimeOffset & 1) == 0)
+    {
+        bench!fixedCopy("fixed-copy");
+        bench!compactCopy("compact-copy");
+    }
+    else
+    {
+        bench!compactCopy("compact-copy");
+        bench!fixedCopy("fixed-copy");
+    }
 
-    bench!fixedSubtract("fixed-subtract");
-    bench!compactSubtract("compact-subtract");
+    benchPair!(fixedSubtractControl, fixedSubtract)(
+        "fixed-subtract-control",
+        "fixed-subtract"
+    );
 
-    bench!fixedMultiply("fixed-multiply");
-    bench!compactMultiply("compact-multiply");
+    benchPair!(compactSubtractControl, compactSubtract)(
+        "compact-subtract-control",
+        "compact-subtract"
+    );
 
-    bench!fixedDeterminant("fixed-determinant");
-    bench!compactDeterminantBench("compact-determinant");
+    benchPair!(fixedMultiplyControl, fixedMultiply)(
+        "fixed-multiply-control",
+        "fixed-multiply"
+    );
+
+    benchPair!(compactMultiplyControl, compactMultiply)(
+        "compact-multiply-control",
+        "compact-multiply"
+    );
+
+    benchPair!(fixedDeterminantControl, fixedDeterminant)(
+        "fixed-determinant-control",
+        "fixed-determinant"
+    );
+
+    benchPair!(compactDeterminantControl, compactDeterminantBench)(
+        "compact-determinant-control",
+        "compact-determinant"
+    );
 
     writefln("oracle,ordinary,PASS");
     writefln("sink,%s", sink);

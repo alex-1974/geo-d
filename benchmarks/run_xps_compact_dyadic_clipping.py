@@ -18,6 +18,8 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "benchmarks" / "segment_polygon_bench.d"
 HARNESS = Path(__file__).resolve()
+COMPACT_SOURCE = ROOT / "source" / "geo" / "internal" / "dyadic_compact_research.d"
+INTERSECTION_SOURCE = ROOT / "source" / "geo" / "internal" / "intersection_exact.d"
 
 WORKLOADS = [
     "exterior",
@@ -247,6 +249,8 @@ def main():
         "dub": capture([dub, "--version"]),
         "benchmark_sha256": sha256(SOURCE),
         "harness_sha256": sha256(HARNESS),
+        "compact_source_sha256": sha256(COMPACT_SOURCE),
+        "intersection_source_sha256": sha256(INTERSECTION_SOURCE),
         "candidate_version":
             "GeoResearchCompactDyadic",
         "boundscheck": "safeonly",
@@ -271,6 +275,17 @@ def main():
     shutil.copy2(
         HARNESS,
         out / HARNESS.name,
+    )
+    shutil.copy2(
+        COMPACT_SOURCE,
+        out / "dyadic_compact_research.d",
+    )
+    shutil.copy2(
+        INTERSECTION_SOURCE,
+        out / "intersection_exact.d",
+    )
+    (out / "git-status.txt").write_text(
+        capture(["git", "status", "--short", "--branch"])
     )
 
     print("=== PROVENANCE ===", flush=True)

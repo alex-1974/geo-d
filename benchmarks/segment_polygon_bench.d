@@ -786,10 +786,10 @@ void main(string[] args)
     if (compactCensusOnly)
     {
         writeln(
-            "compact_census_header,"
-            "scalar,case,proper_crossings,"
-            "determinant_attempts,compact_hits,"
-            "oracle_passes,fallbacks,"
+            "compact_census_header," ~
+            "scalar,case,proper_crossings," ~
+            "determinant_attempts,compact_hits," ~
+            "oracle_passes,fallbacks," ~
             "compact_hit_percent"
         );
 
@@ -837,21 +837,21 @@ void main(string[] args)
     }
 
     writeln(
-        "fixture_header,scalar,case,edges,"
-        "expected_fact_bits,expected_status,"
+        "fixture_header,scalar,case,edges," ~
+        "expected_fact_bits,expected_status," ~
         "expected_components"
     );
 
     writeln(
-        "sample_header,scalar,case,operation,"
-        "edges,expected_components,round,"
-        "iterations,warmup,elapsed_ns,"
+        "sample_header,scalar,case,operation," ~
+        "edges,expected_components,round," ~
+        "iterations,warmup,elapsed_ns," ~
         "gc_bytes,gc_collections"
     );
 
     writeln(
-        "summary_header,scalar,case,operation,"
-        "min_ns_per_op,median_ns_per_op,"
+        "summary_header,scalar,case,operation," ~
+        "min_ns_per_op,median_ns_per_op," ~
         "max_ns_per_op"
     );
 

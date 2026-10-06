@@ -100,7 +100,12 @@ def build(compiler_name, out):
 
     if p.returncode:
         raise RuntimeError(
-            "build failed for " + compiler_name
+            "build failed for "
+            + compiler_name
+            + "\nstdout:\n"
+            + p.stdout
+            + "\nstderr:\n"
+            + p.stderr
         )
 
     return {

@@ -6,10 +6,8 @@ import geo.internal.dyadic :
     SignedDyadicProduct,
     decodeDyadicCoordinate,
     multiplyDyadicDifferences,
-    subtractDyadicCoordinates;
-
-import geo.internal.orientation_dyadic :
-    orientationDeterminantDyadicDecoded;
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
 
 import std.datetime.stopwatch : StopWatch;
 import std.stdio : writefln;
@@ -627,6 +625,27 @@ private void prepare()
     );
 }
 
+
+private SignedDyadicProduct fixedDeterminantDecoded(
+    ref const SignedDyadicCoordinate ax,
+    ref const SignedDyadicCoordinate ay,
+    ref const SignedDyadicCoordinate bx,
+    ref const SignedDyadicCoordinate by,
+    ref const SignedDyadicCoordinate cx,
+    ref const SignedDyadicCoordinate cy
+)
+{
+    const auto bax = subtractDyadicCoordinates(bx, ax);
+    const auto bay = subtractDyadicCoordinates(by, ay);
+    const auto cax = subtractDyadicCoordinates(cx, ax);
+    const auto cay = subtractDyadicCoordinates(cy, ay);
+
+    const auto left = multiplyDyadicDifferences(bax, cay);
+    const auto right = multiplyDyadicDifferences(bay, cax);
+
+    return subtractDyadicProducts(left, right);
+}
+
 private void oracleOrdinary()
 {
     foreach (ref const v; ordinaryCases)
@@ -641,7 +660,7 @@ private void oracleOrdinary()
         ));
 
         const auto fixed =
-            orientationDeterminantDyadicDecoded(
+            fixedDeterminantDecoded(
                 v.ax, v.ay,
                 v.bx, v.by,
                 v.cx, v.cy
@@ -750,7 +769,7 @@ private void broadCensus()
             ++determinantCompact;
 
             const auto fixed =
-                orientationDeterminantDyadicDecoded(
+                fixedDeterminantDecoded(
                     ax, ay,
                     bx, by,
                     cx, cy
@@ -875,7 +894,7 @@ private ulong fixedDeterminant(size_t i)
     ref const v = ordinaryCases[i & 7];
 
     const auto value =
-        orientationDeterminantDyadicDecoded(
+        fixedDeterminantDecoded(
             v.ax, v.ay,
             v.bx, v.by,
             v.cx, v.cy

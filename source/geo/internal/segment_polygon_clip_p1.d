@@ -34,7 +34,8 @@ import geo.internal.polygon_union_exact :
     seedExactEdgeEvents,
     sortUniqueExactEdgeEvents,
     sortUniqueExactEdgeEventsEqualPreferred,
-    sortUniqueExactEdgeEventsEqualPreferredWithRawMapping;
+    sortUniqueExactEdgeEventsEqualPreferredWithRawMapping,
+    sortUniqueExactEdgeEventsWithRawMapping;
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
@@ -812,20 +813,63 @@ if (isSegmentPolygonClipScalar!T)
         candidateEdgeCount <= edgeCount / 4;
 
     /*
-     * Dense first-pass events already contain every exact proper crossing.
-     * Retain only compact slot provenance so pass 2 can reuse the final unique
-     * event index without reconstructing or searching the 2120-byte carrier.
+     * First-pass exact events already contain every proper crossing.
+     *
+     * Large dense cases retain the existing heap-backed compact provenance.
+     * Research variant: for 4-8 edge crossing/hole cases, use fixed stack
+     * storage instead. This avoids both the heap workspace and pass-2 exact
+     * crossing reconstruction/search while preserving the established small
+     * event comparator.
      */
-    const bool prepareEventProvenance =
+    enum size_t smallProvenanceMaxEdges = 8;
+    enum size_t smallProvenanceMaxEvents =
+        2 + 2 * smallProvenanceMaxEdges;
+
+    const bool prepareSmallEventProvenance =
+        !useEdgeBoundsPrefilter &&
+        edgeCount <= smallProvenanceMaxEdges &&
+        eventCapacity <= smallProvenanceMaxEvents;
+
+    const bool prepareDenseEventProvenance =
         !useEdgeBoundsPrefilter &&
         edgeCount >= 16;
+
+    const bool prepareEventProvenance =
+        prepareSmallEventProvenance ||
+        prepareDenseEventProvenance;
+
+    size_t[smallProvenanceMaxEdges]
+        smallEdgeFirstRawEventPlusOneStorage;
+
+    size_t[smallProvenanceMaxEvents]
+        smallRawEventIndicesStorage;
+
+    size_t[smallProvenanceMaxEvents]
+        smallRawToUniqueStorage;
 
     size_t[] eventProvenanceWorkspace;
     size_t[] edgeFirstRawEventPlusOne;
     size_t[] rawEventIndices;
     size_t[] rawToUnique;
 
-    if (prepareEventProvenance)
+    if (prepareSmallEventProvenance)
+    {
+        edgeFirstRawEventPlusOne =
+            smallEdgeFirstRawEventPlusOneStorage[
+                0 .. edgeCount
+            ];
+
+        rawEventIndices =
+            smallRawEventIndicesStorage[
+                0 .. eventCapacity
+            ];
+
+        rawToUnique =
+            smallRawToUniqueStorage[
+                0 .. eventCapacity
+            ];
+    }
+    else if (prepareDenseEventProvenance)
     {
         if (
             eventCapacity >
@@ -1072,8 +1116,7 @@ if (isSegmentPolygonClipScalar!T)
         assert(provenanceEdgeIndex == edgeCount);
 
     const bool reuseProperCrossingEventIndex =
-        prepareEventProvenance &&
-        eventCount >= equalPreferredEventThreshold;
+        prepareEventProvenance;
 
 
     if (eventCount >= equalPreferredEventThreshold)
@@ -1099,11 +1142,24 @@ if (isSegmentPolygonClipScalar!T)
     }
     else
     {
-        eventCount =
-            sortUniqueExactEdgeEvents(
-                query,
-                events[0 .. eventCount]
-            );
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEvents(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
     }
 
     assert(eventCount >= 2);

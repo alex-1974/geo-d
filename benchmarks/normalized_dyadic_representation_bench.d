@@ -708,7 +708,7 @@ private void broadCensus()
     foreach (i; 0 .. values.length)
     {
         const auto decoded =
-            decodeDyadicCoordinate(values[i]);
+            decodeDyadicCoordinate(cast(double) values[i]);
 
         CompactCoordinate compact;
 
@@ -723,27 +723,27 @@ private void broadCensus()
         const size_t n = values.length;
 
         const auto ax = decodeDyadicCoordinate(
-            values[(i * 3 + 1) % n]
+            cast(double) values[(i * 3 + 1) % n]
         );
 
         const auto ay = decodeDyadicCoordinate(
-            values[(i * 5 + 2) % n]
+            cast(double) values[(i * 5 + 2) % n]
         );
 
         const auto bx = decodeDyadicCoordinate(
-            values[(i * 7 + 3) % n]
+            cast(double) values[(i * 7 + 3) % n]
         );
 
         const auto by = decodeDyadicCoordinate(
-            values[(i * 11 + 4) % n]
+            cast(double) values[(i * 11 + 4) % n]
         );
 
         const auto cx = decodeDyadicCoordinate(
-            values[(i * 13 + 5) % n]
+            cast(double) values[(i * 13 + 5) % n]
         );
 
         const auto cy = decodeDyadicCoordinate(
-            values[(i * 17 + 6) % n]
+            cast(double) values[(i * 17 + 6) % n]
         );
 
         CompactCoordinate cax, cay, cbx, cby, ccx, ccy;

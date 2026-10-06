@@ -27,6 +27,7 @@ def build(name,out):
 
 def main():
     ap=argparse.ArgumentParser()
+    ap.add_argument("--compiler",action="append",choices=["dmd","ldc2"])
     ap.add_argument("--cpu",type=int,default=0)
     ap.add_argument("--rounds",type=int,default=7)
     ap.add_argument("--iterations",type=int,default=1000)
@@ -38,8 +39,9 @@ def main():
     out=(a.output or ROOT/"build"/("valid-ring-winding-"+stamp)).resolve()
     out.mkdir(parents=True,exist_ok=False)
     rec={"status":"incomplete","head":cap(["git","rev-parse","HEAD"]).strip(),"cpu":a.cpu,"rounds":a.rounds,"iterations":a.iterations,"builds":[],"runs":[]}
+    compilers=a.compiler or ["dmd","ldc2"]
     try:
-        for comp in ["dmd","ldc2"]:
+        for comp in compilers:
             b,ver=build(comp,out)
             rec["builds"].append({"compiler":comp,"version":ver,"sha256":hashlib.sha256(b.read_bytes()).hexdigest()})
             smoke=subprocess.run([str(b)],cwd=out,text=True,capture_output=True)

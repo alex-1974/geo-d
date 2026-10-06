@@ -148,7 +148,7 @@ private void writeSample(T)(
         ~ "%s,%s,%s,%s,%s,%s,%s,"
         ~ "%s,%s,%s,%s,"
         ~ "%s,%s,%s,%s,%s,"
-        ~ "%s,%s,%s,%s,%s,%s",
+        ~ "%s,%s,%s,%s,%s",
         scalar,
         c.name,
         c.edges,

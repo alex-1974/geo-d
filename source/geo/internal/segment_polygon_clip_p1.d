@@ -3,6 +3,10 @@ module geo.internal.segment_polygon_clip_p1;
 import core.exception :
     onOutOfMemoryError;
 
+version (GeoBoundaryAttribution)
+import core.time :
+    MonoTime;
+
 import geo.bounding_box : tryBounds;
 import geo.bounds : Bounds2;
 
@@ -120,6 +124,64 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+version (GeoBoundaryAttribution)
+{
+    package(geo)
+    struct BoundaryClipAttribution
+    {
+        ulong calls;
+        ulong totalNs;
+        ulong firstBoundaryPassNs;
+        ulong sortNs;
+        ulong secondBoundaryPassNs;
+        ulong vertexTopologyNs;
+        ulong retentionNs;
+        ulong materializationNs;
+        ulong eventLookupNs;
+
+        ulong edgeCount;
+        ulong rawEventCount;
+        ulong uniqueEventCount;
+
+        ulong secondPassContactCalls;
+        ulong noneContacts;
+        ulong touchContacts;
+        ulong properCrossingContacts;
+        ulong overlapContacts;
+
+        ulong eventLookupCalls;
+        ulong vertexCandidateCalls;
+        ulong vertexOnQueryCalls;
+        ulong retainedIntervalCount;
+        ulong componentCount;
+    }
+
+    private BoundaryClipAttribution boundaryClipAttribution;
+
+    package(geo)
+    void resetBoundaryClipAttribution()
+        @safe
+    {
+        boundaryClipAttribution =
+            BoundaryClipAttribution.init;
+    }
+
+    package(geo)
+    BoundaryClipAttribution readBoundaryClipAttribution()
+        @safe
+    {
+        return boundaryClipAttribution;
+    }
+
+    private ulong boundaryElapsedNs(MonoTime start)
+        @safe
+    {
+        return cast(ulong)
+            (MonoTime.currTime - start).total!"nsecs";
+    }
+}
 
 
 /*
@@ -650,6 +712,14 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(query.isFinite);
 
+    version (GeoBoundaryAttribution)
+    {
+        const boundaryTotalStart =
+            MonoTime.currTime;
+
+        ++boundaryClipAttribution.calls;
+    }
+
     /*
      * ADR-0024 regularizes away every zero-dimensional result.
      */
@@ -967,12 +1037,20 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
+    version (GeoBoundaryAttribution)
+    const boundaryFirstPassStart =
+        MonoTime.currTime;
+
     version (DigitalMars)
     {
         flatEdgeIndex = 0;
     }
 
     provenanceEdgeIndex = 0;
+
+    version (GeoBoundaryAttribution)
+    const boundarySecondPassStart =
+        MonoTime.currTime;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -1115,6 +1193,23 @@ if (isSegmentPolygonClipScalar!T)
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
 
+    version (GeoBoundaryAttribution)
+    {
+        boundaryClipAttribution.firstBoundaryPassNs +=
+            boundaryElapsedNs(
+                boundaryFirstPassStart
+            );
+
+        boundaryClipAttribution.edgeCount +=
+            edgeCount;
+
+        boundaryClipAttribution.rawEventCount +=
+            eventCount;
+
+        const boundarySortStart =
+            MonoTime.currTime;
+    }
+
     const bool reuseProperCrossingEventIndex =
         prepareEventProvenance;
 
@@ -1164,6 +1259,17 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
+
+    version (GeoBoundaryAttribution)
+    {
+        boundaryClipAttribution.sortNs +=
+            boundaryElapsedNs(
+                boundarySortStart
+            );
+
+        boundaryClipAttribution.uniqueEventCount +=
+            eventCount;
+    }
 
     events.length =
         eventCount;
@@ -1294,6 +1400,30 @@ if (isSegmentPolygonClipScalar!T)
                 ++flatEdgeIndex;
             }
 
+            version (GeoBoundaryAttribution)
+            {
+                ++boundaryClipAttribution.secondPassContactCalls;
+
+                final switch (contact)
+                {
+                    case SegmentContactKind.none:
+                        ++boundaryClipAttribution.noneContacts;
+                        break;
+
+                    case SegmentContactKind.touch:
+                        ++boundaryClipAttribution.touchContacts;
+                        break;
+
+                    case SegmentContactKind.properCrossing:
+                        ++boundaryClipAttribution.properCrossingContacts;
+                        break;
+
+                    case SegmentContactKind.overlap:
+                        ++boundaryClipAttribution.overlapContacts;
+                        break;
+                }
+            }
+
             final switch (contact)
             {
                 case SegmentContactKind.none:
@@ -1393,12 +1523,27 @@ if (isSegmentPolygonClipScalar!T)
                             point
                         );
 
+                    version (GeoBoundaryAttribution)
+                    {
+                        ++boundaryClipAttribution.eventLookupCalls;
+                        const boundaryLookupStart =
+                            MonoTime.currTime;
+                    }
+
                     const size_t index =
                         findExactEventIndex(
                             query,
                             events[],
                             event
                         );
+
+                    version (GeoBoundaryAttribution)
+                    {
+                        boundaryClipAttribution.eventLookupNs +=
+                            boundaryElapsedNs(
+                                boundaryLookupStart
+                            );
+                    }
 
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
@@ -1439,6 +1584,13 @@ if (isSegmentPolygonClipScalar!T)
                             overlap.b
                         );
 
+                    version (GeoBoundaryAttribution)
+                    {
+                        boundaryClipAttribution.eventLookupCalls += 2;
+                        const boundaryLookupStart =
+                            MonoTime.currTime;
+                    }
+
                     const size_t firstIndex =
                         findExactEventIndex(
                             query,
@@ -1452,6 +1604,14 @@ if (isSegmentPolygonClipScalar!T)
                             events[],
                             second
                         );
+
+                    version (GeoBoundaryAttribution)
+                    {
+                        boundaryClipAttribution.eventLookupNs +=
+                            boundaryElapsedNs(
+                                boundaryLookupStart
+                            );
+                    }
 
                     assert(firstIndex != size_t.max);
                     assert(secondIndex != size_t.max);
@@ -1486,6 +1646,17 @@ if (isSegmentPolygonClipScalar!T)
         }
 
 
+        version (GeoBoundaryAttribution)
+        {
+            boundaryClipAttribution.secondBoundaryPassNs +=
+                boundaryElapsedNs(
+                    boundarySecondPassStart
+                );
+
+            const boundaryVertexStart =
+                MonoTime.currTime;
+        }
+
         /*
          * Third local-topology pass for this ring:
          *
@@ -1509,6 +1680,11 @@ if (isSegmentPolygonClipScalar!T)
                     continue;
                 }
 
+                version (GeoBoundaryAttribution)
+                {
+                    ++boundaryClipAttribution.vertexCandidateCalls;
+                }
+
                 if (
                     segmentContactKind(
                         query,
@@ -1517,6 +1693,11 @@ if (isSegmentPolygonClipScalar!T)
                 )
                 {
                     continue;
+                }
+
+                version (GeoBoundaryAttribution)
+                {
+                    ++boundaryClipAttribution.vertexOnQueryCalls;
                 }
 
                 if (vertex == query.b)
@@ -1570,6 +1751,14 @@ if (isSegmentPolygonClipScalar!T)
                 );
             }
         }
+
+        version (GeoBoundaryAttribution)
+        {
+            boundaryClipAttribution.vertexTopologyNs +=
+                boundaryElapsedNs(
+                    boundaryVertexStart
+                );
+        }
     }
 
 
@@ -1580,6 +1769,10 @@ if (isSegmentPolygonClipScalar!T)
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
+
+    version (GeoBoundaryAttribution)
+    const boundaryRetentionStart =
+        MonoTime.currTime;
 
     auto retained =
         new bool[
@@ -1681,6 +1874,23 @@ if (isSegmentPolygonClipScalar!T)
     );
 
     assert(activeBoundaryOverlaps == 0);
+
+    version (GeoBoundaryAttribution)
+    {
+        foreach (keep; retained)
+        {
+            if (keep)
+                ++boundaryClipAttribution.retainedIntervalCount;
+        }
+
+        boundaryClipAttribution.retentionNs +=
+            boundaryElapsedNs(
+                boundaryRetentionStart
+            );
+
+        const boundaryMaterializationStart =
+            MonoTime.currTime;
+    }
 
 
     size_t componentCount = 0;
@@ -1807,6 +2017,22 @@ if (isSegmentPolygonClipScalar!T)
         takeSegmentPolygonClipOwnedResultInternal(
             components
         );
+
+    version (GeoBoundaryAttribution)
+    {
+        boundaryClipAttribution.componentCount +=
+            componentCount;
+
+        boundaryClipAttribution.materializationNs +=
+            boundaryElapsedNs(
+                boundaryMaterializationStart
+            );
+
+        boundaryClipAttribution.totalNs +=
+            boundaryElapsedNs(
+                boundaryTotalStart
+            );
+    }
 
     return
         SegmentPolygonClipInternalStatus.success;

@@ -262,7 +262,7 @@ private void runCompactCensus(T)(
             );
 
         writefln(
-            "compact_census,%s,%s,%s,%s,%s,%s,%s,%.2f",
+            "compact_census,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f",
             T.stringof,
             c.name,
             stats.properCrossings,
@@ -270,6 +270,9 @@ private void runCompactCensus(T)(
             stats.compactHits,
             stats.oraclePasses,
             stats.fallbacks,
+            stats.compactConstructionHits,
+            stats.compactConstructionOraclePasses,
+            stats.compactConstructionFallbacks,
             stats.hitPercent
         );
     }
@@ -560,6 +563,9 @@ void main(string[] args)
             "scalar,case,proper_crossings," ~
             "determinant_attempts,compact_hits," ~
             "oracle_passes,fallbacks," ~
+            "construction_hits," ~
+            "construction_oracle_passes," ~
+            "construction_fallbacks," ~
             "compact_hit_percent"
         );
 

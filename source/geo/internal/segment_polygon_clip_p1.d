@@ -3,6 +3,10 @@ module geo.internal.segment_polygon_clip_p1;
 import core.exception :
     onOutOfMemoryError;
 
+version (GeoComplexAttribution)
+import core.time :
+    MonoTime;
+
 import geo.bounding_box : tryBounds;
 import geo.bounds : Bounds2;
 
@@ -119,6 +123,81 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+version (GeoComplexAttribution)
+{
+    /*
+     * RESEARCH ONLY.
+     *
+     * Diagnostic stage timing and work counters for the current production
+     * P1 clipping pipeline. Normal builds contain neither clock reads nor this
+     * state.
+     */
+    package(geo)
+    struct ComplexClipAttribution
+    {
+        ulong calls;
+
+        ulong totalNs;
+        ulong setupNs;
+        ulong capacityNs;
+        ulong eventSetupNs;
+        ulong firstBoundaryPassNs;
+        ulong sortNs;
+        ulong metadataAllocationNs;
+        ulong ringOrientationNs;
+        ulong secondBoundaryPassNs;
+        ulong vertexTopologyNs;
+        ulong retentionNs;
+        ulong pointInPolygonNs;
+        ulong materializationNs;
+
+        ulong ringCount;
+        ulong edgeCount;
+        ulong candidateEdgeCount;
+        ulong firstPassCandidateEdges;
+        ulong rawEventCount;
+        ulong uniqueEventCount;
+
+        ulong secondPassContactCalls;
+        ulong noneContacts;
+        ulong touchContacts;
+        ulong properCrossingContacts;
+        ulong overlapContacts;
+
+        ulong vertexCandidateCalls;
+        ulong vertexOnQueryCalls;
+        ulong pointInPolygonCalls;
+        ulong preparedExactQueryCalls;
+        ulong retainedIntervalCount;
+        ulong componentCount;
+    }
+
+    private ComplexClipAttribution complexClipAttribution;
+
+    package(geo)
+    void resetComplexClipAttribution()
+        @safe
+    {
+        complexClipAttribution =
+            ComplexClipAttribution.init;
+    }
+
+    package(geo)
+    ComplexClipAttribution readComplexClipAttribution()
+        @safe
+    {
+        return complexClipAttribution;
+    }
+
+    private ulong complexElapsedNs(MonoTime start)
+        @safe
+    {
+        return cast(ulong)
+            (MonoTime.currTime - start).total!"nsecs";
+    }
+}
 
 
 /*
@@ -649,6 +728,17 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(query.isFinite);
 
+    version (GeoComplexAttribution)
+    {
+        const complexTotalStart =
+            MonoTime.currTime;
+
+        const complexSetupStart =
+            complexTotalStart;
+
+        ++complexClipAttribution.calls;
+    }
+
     /*
      * ADR-0024 regularizes away every zero-dimensional result.
      */
@@ -691,6 +781,23 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(bounded && !queryBounds.empty);
 
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.setupNs +=
+            complexElapsedNs(
+                complexSetupStart
+            );
+
+        complexClipAttribution.ringCount +=
+            polygon.length;
+
+        complexClipAttribution.edgeCount +=
+            edgeCount;
+
+        const complexCapacityStart =
+            MonoTime.currTime;
+    }
+
     const size_t eventCapacity =
         queryBoundaryEventCapacity(
             queryBounds,
@@ -702,6 +809,17 @@ if (isSegmentPolygonClipScalar!T)
 
     const size_t candidateEdgeCount =
         (eventCapacity - 2) / 2;
+
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.capacityNs +=
+            complexElapsedNs(
+                complexCapacityStart
+            );
+
+        complexClipAttribution.candidateEdgeCount +=
+            candidateEdgeCount;
+    }
 
     /*
      * No conservative edge candidate means no polygon boundary can meet the
@@ -808,6 +926,10 @@ if (isSegmentPolygonClipScalar!T)
      * Apply the repeated per-edge bounds rejection only when at most one
      * quarter of boundary edges survive that first cheap pass.
      */
+    version (GeoComplexAttribution)
+    const complexEventSetupStart =
+        MonoTime.currTime;
+
     const bool useEdgeBoundsPrefilter =
         candidateEdgeCount <= edgeCount / 4;
 
@@ -910,6 +1032,14 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(seeded);
 
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.eventSetupNs +=
+            complexElapsedNs(
+                complexEventSetupStart
+            );
+    }
+
 
     /*
      * Prepare the exact query lazily on the first strict proper crossing and
@@ -923,6 +1053,10 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
+    version (GeoComplexAttribution)
+    const complexFirstPassStart =
+        MonoTime.currTime;
+
     version (DigitalMars)
     {
         flatEdgeIndex = 0;
@@ -970,6 +1104,11 @@ if (isSegmentPolygonClipScalar!T)
                 {
                     continue;
                 }
+            }
+
+            version (GeoComplexAttribution)
+            {
+                ++complexClipAttribution.firstPassCandidateEdges;
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
@@ -1071,6 +1210,23 @@ if (isSegmentPolygonClipScalar!T)
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
 
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.firstBoundaryPassNs +=
+            complexElapsedNs(
+                complexFirstPassStart
+            );
+
+        complexClipAttribution.rawEventCount +=
+            eventCount;
+
+        if (preparedExactQueryReady)
+            ++complexClipAttribution.preparedExactQueryCalls;
+
+        const complexSortStart =
+            MonoTime.currTime;
+    }
+
     const bool reuseProperCrossingEventIndex =
         prepareEventProvenance &&
         eventCount >= equalPreferredEventThreshold;
@@ -1109,6 +1265,20 @@ if (isSegmentPolygonClipScalar!T)
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.sortNs +=
+            complexElapsedNs(
+                complexSortStart
+            );
+
+        complexClipAttribution.uniqueEventCount +=
+            eventCount;
+
+        const complexMetadataStart =
+            MonoTime.currTime;
+    }
+
     events.length =
         eventCount;
 
@@ -1131,6 +1301,14 @@ if (isSegmentPolygonClipScalar!T)
             eventCount
         ];
 
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.metadataAllocationNs +=
+            complexElapsedNs(
+                complexMetadataStart
+            );
+    }
+
 
     /*
      * Second boundary pass:
@@ -1151,10 +1329,25 @@ if (isSegmentPolygonClipScalar!T)
         const auto ring =
             polygon[ringIndex];
 
+        version (GeoComplexAttribution)
+        const complexOrientationStart =
+            MonoTime.currTime;
+
         const int orientationSign =
             validRingOrientationSign(
                 ring
             );
+
+        version (GeoComplexAttribution)
+        {
+            complexClipAttribution.ringOrientationNs +=
+                complexElapsedNs(
+                    complexOrientationStart
+                );
+
+            const complexSecondPassStart =
+                MonoTime.currTime;
+        }
 
         assert(
             ring.empty ||
@@ -1209,6 +1402,11 @@ if (isSegmentPolygonClipScalar!T)
                 }
             }
 
+            version (GeoComplexAttribution)
+            {
+                ++complexClipAttribution.secondPassContactCalls;
+            }
+
             version (DigitalMars)
             const SegmentContactKind contact =
                 reuseBoundaryContacts
@@ -1236,6 +1434,28 @@ if (isSegmentPolygonClipScalar!T)
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
+            }
+
+            version (GeoComplexAttribution)
+            {
+                final switch (contact)
+                {
+                    case SegmentContactKind.none:
+                        ++complexClipAttribution.noneContacts;
+                        break;
+
+                    case SegmentContactKind.touch:
+                        ++complexClipAttribution.touchContacts;
+                        break;
+
+                    case SegmentContactKind.properCrossing:
+                        ++complexClipAttribution.properCrossingContacts;
+                        break;
+
+                    case SegmentContactKind.overlap:
+                        ++complexClipAttribution.overlapContacts;
+                        break;
+                }
             }
 
             final switch (contact)
@@ -1430,6 +1650,17 @@ if (isSegmentPolygonClipScalar!T)
         }
 
 
+        version (GeoComplexAttribution)
+        {
+            complexClipAttribution.secondBoundaryPassNs +=
+                complexElapsedNs(
+                    complexSecondPassStart
+                );
+
+            const complexVertexStart =
+                MonoTime.currTime;
+        }
+
         /*
          * Third local-topology pass for this ring:
          *
@@ -1453,6 +1684,11 @@ if (isSegmentPolygonClipScalar!T)
                     continue;
                 }
 
+                version (GeoComplexAttribution)
+                {
+                    ++complexClipAttribution.vertexCandidateCalls;
+                }
+
                 if (
                     segmentContactKind(
                         query,
@@ -1461,6 +1697,11 @@ if (isSegmentPolygonClipScalar!T)
                 )
                 {
                     continue;
+                }
+
+                version (GeoComplexAttribution)
+                {
+                    ++complexClipAttribution.vertexOnQueryCalls;
                 }
 
                 if (vertex == query.b)
@@ -1514,6 +1755,14 @@ if (isSegmentPolygonClipScalar!T)
                 );
             }
         }
+
+        version (GeoComplexAttribution)
+        {
+            complexClipAttribution.vertexTopologyNs +=
+                complexElapsedNs(
+                    complexVertexStart
+                );
+        }
     }
 
 
@@ -1524,6 +1773,10 @@ if (isSegmentPolygonClipScalar!T)
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
+
+    version (GeoComplexAttribution)
+    const complexRetentionStart =
+        MonoTime.currTime;
 
     auto retained =
         new bool[
@@ -1576,12 +1829,28 @@ if (isSegmentPolygonClipScalar!T)
 
             PointPolygonLocation location;
 
+            version (GeoComplexAttribution)
+            {
+                ++complexClipAttribution.pointInPolygonCalls;
+
+                const complexPointInPolygonStart =
+                    MonoTime.currTime;
+            }
+
             const bool classified =
                 tryClassifyPointInPolygon(
                     polygon,
                     query.a,
                     location
                 );
+
+            version (GeoComplexAttribution)
+            {
+                complexClipAttribution.pointInPolygonNs +=
+                    complexElapsedNs(
+                        complexPointInPolygonStart
+                    );
+            }
 
             assert(classified);
 
@@ -1625,6 +1894,23 @@ if (isSegmentPolygonClipScalar!T)
     );
 
     assert(activeBoundaryOverlaps == 0);
+
+    version (GeoComplexAttribution)
+    {
+        foreach (keep; retained)
+        {
+            if (keep)
+                ++complexClipAttribution.retainedIntervalCount;
+        }
+
+        complexClipAttribution.retentionNs +=
+            complexElapsedNs(
+                complexRetentionStart
+            );
+
+        const complexMaterializationStart =
+            MonoTime.currTime;
+    }
 
 
     size_t componentCount = 0;
@@ -1751,6 +2037,22 @@ if (isSegmentPolygonClipScalar!T)
         takeSegmentPolygonClipOwnedResultInternal(
             components
         );
+
+    version (GeoComplexAttribution)
+    {
+        complexClipAttribution.componentCount +=
+            componentCount;
+
+        complexClipAttribution.materializationNs +=
+            complexElapsedNs(
+                complexMaterializationStart
+            );
+
+        complexClipAttribution.totalNs +=
+            complexElapsedNs(
+                complexTotalStart
+            );
+    }
 
     return
         SegmentPolygonClipInternalStatus.success;

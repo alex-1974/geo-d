@@ -22,6 +22,12 @@ import geo.internal.orientation_dyadic :
     orientationDeterminantDyadic,
     orientationDeterminantDyadicDecoded;
 
+import geo.internal.dyadic_compact_research :
+    CompactDyadicProductResearch,
+    tryCompactWeightDenominator,
+    tryCompactWeightedCoordinate,
+    tryOrientationDeterminantCompactDecodedRaw;
+
 import geo.segment :
     Segment2;
 
@@ -433,6 +439,108 @@ if (isExactIntersectionScalar!T)
  * properIntersectionExactKnownCrossing().
  */
 package(geo)
+bool tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(T)(
+    ref const PreparedExactSegment first,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    result =
+        ExactProperIntersection.init;
+
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    CompactDyadicProductResearch dA;
+    CompactDyadicProductResearch dB;
+
+    if (
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY,
+            dA
+        ) ||
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY,
+            dB
+        )
+    )
+    {
+        return false;
+    }
+
+    if (
+        dA.sign == 0 ||
+        dB.sign == 0 ||
+        dA.sign == dB.sign
+    )
+    {
+        return false;
+    }
+
+    /*
+     * The barycentric weights are the opposite determinant magnitudes:
+     *
+     *     weightA = |dB|
+     *     weightB = |dA|
+     *
+     * Compact helpers intentionally consume magnitudes only; determinant
+     * signs establish the proper-crossing relation above.
+     */
+    if (
+        !tryCompactWeightDenominator(
+            dB,
+            dA,
+            result.denominator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aX,
+            dA,
+            first.bX,
+            result.xNumerator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aY,
+            dA,
+            first.bY,
+            result.yNumerator
+        )
+    )
+    {
+        result =
+            ExactProperIntersection.init;
+
+        return false;
+    }
+
+    return true;
+}
+
+
+/*
+ * Exact construction for a strict crossing when the first/source segment has
+ * already been decoded once by a caller that reuses it across many edges.
+ *
+ * The second segment is still decoded exactly once per crossing. The research
+ * version may keep determinant weights compact through barycentric
+ * construction; failure falls back to the complete fixed-width path.
+ */
+package(geo)
 void properIntersectionExactKnownCrossingPreparedFirst(T)(
     ref const PreparedExactSegment first,
     Segment2!T second,
@@ -441,6 +549,23 @@ void properIntersectionExactKnownCrossingPreparedFirst(T)(
     pure nothrow @safe @nogc
 if (isExactIntersectionScalar!T)
 {
+    version (GeoResearchCompactDyadic)
+    {
+        version (LDC)
+        {
+            if (
+                tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(
+                    first,
+                    second,
+                    result
+                )
+            )
+            {
+                return;
+            }
+        }
+    }
+
     const auto preparedSecond =
         prepareExactSegment(
             second

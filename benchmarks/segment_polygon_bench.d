@@ -2,8 +2,11 @@
 module segment_polygon_bench;
 
 import geo;
+import geo.internal.compact_clipping_census_research :
+    compactClippingCensus;
 import core.memory : GC;
 import core.volatile : volatileLoad;
+import std.algorithm.searching : canFind;
 import std.algorithm.sorting : sort;
 import std.algorithm.mutation : reverse;
 import std.conv : to;
@@ -11,6 +14,7 @@ import std.datetime.stopwatch : StopWatch;
 import std.exception : enforce;
 import std.json : JSONValue;
 import std.stdio : writefln, writeln;
+import std.string : split;
 
 __gshared ulong benchmarkSink;
 
@@ -133,7 +137,7 @@ private Case!T[] corpus(T)()
         S(P(-1, 1), P(5, 1)), 7, [piece(0, 1, 8.0 / 3.0, 1)]);
 
     // Sparse event scaling: redundant collinear vertices, fixed result size.
-    foreach (subdivisions; [1, 4, 16, 64])
+    foreach (subdivisions; [1, 4, 16, 64, 256])
     {
         P[] ring;
         foreach (j; 0 .. subdivisions) ring ~= P(cast(T)(4 * j), 0);
@@ -146,7 +150,7 @@ private Case!T[] corpus(T)()
     }
 
     // Dense event and component scaling: a simple comb with n separated teeth.
-    foreach (teeth; [1, 4, 16, 64])
+    foreach (teeth; [1, 4, 16, 64, 256])
     {
         int right = 4 * teeth - 2;
         P[] ring = [P(0, 0), P(cast(T) right, 0), P(cast(T) right, 4)];
@@ -215,6 +219,66 @@ private void preflight(T)(ref Case!T c)
     }
 }
 
+private bool selectedCase(
+    string name,
+    string[] onlyCases
+)
+{
+    return
+        onlyCases.length == 0 ||
+        canFind(
+            onlyCases,
+            name
+        );
+}
+
+
+private void runCompactCensus(T)(
+    string[] onlyCases
+)
+{
+    auto cases =
+        corpus!T();
+
+    foreach (ref c; cases)
+    {
+        if (
+            !selectedCase(
+                c.name,
+                onlyCases
+            )
+        )
+        {
+            continue;
+        }
+
+        preflight(c);
+
+        const stats =
+            compactClippingCensus(
+                c.queries[0],
+                c.queries[1],
+                c.polygon
+            );
+
+        writefln(
+            "compact_census,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f",
+            T.stringof,
+            c.name,
+            stats.properCrossings,
+            stats.determinantAttempts,
+            stats.compactHits,
+            stats.oraclePasses,
+            stats.fallbacks,
+            stats.compactConstructionHits,
+            stats.compactConstructionOraclePasses,
+            stats.compactConstructionFallbacks,
+            stats.hitPercent
+        );
+    }
+}
+
+
 private void measure(alias operation, T)(ref Case!T c, string name,
     size_t rounds, size_t fixedIterations, long targetMilliseconds)
 {
@@ -263,21 +327,79 @@ private void measure(alias operation, T)(ref Case!T c, string name,
     benchmarkSink = benchmarkSink * 1_000_033UL + sink;
 }
 
-private void run(T)(bool checkOnly, size_t rounds, size_t iterations, long target)
+private void run(T)(
+    bool checkOnly,
+    size_t rounds,
+    size_t iterations,
+    long target,
+    string[] onlyCases
+)
 {
     auto cases = corpus!T();
+    size_t selectedCount;
+
     foreach (ref c; cases)
     {
+        if (
+            !selectedCase(
+                c.name,
+                onlyCases
+            )
+        )
+        {
+            continue;
+        }
+
+        ++selectedCount;
         preflight(c);
-        writefln("fixture,%s,%s,%s,%s,%s,%s", T.stringof, c.name,
-            c.edges, c.expectedFacts, c.expectedStatus, c.expected.length);
+
+        writefln(
+            "fixture,%s,%s,%s,%s,%s,%s",
+            T.stringof,
+            c.name,
+            c.edges,
+            c.expectedFacts,
+            c.expectedStatus,
+            c.expected.length
+        );
     }
-    writefln("preflight,%s,%s,PASS", T.stringof, cases.length);
-    if (checkOnly) return;
+
+    writefln(
+        "preflight,%s,%s,PASS",
+        T.stringof,
+        selectedCount
+    );
+
+    if (checkOnly)
+        return;
+
     foreach (ref c; cases)
     {
-        measure!(relationship!T)(c, "relationship", rounds, iterations, target);
-        measure!(clipping!T)(c, "clipping", rounds, iterations, target);
+        if (
+            !selectedCase(
+                c.name,
+                onlyCases
+            )
+        )
+        {
+            continue;
+        }
+
+        measure!(relationship!T)(
+            c,
+            "relationship",
+            rounds,
+            iterations,
+            target
+        );
+
+        measure!(clipping!T)(
+            c,
+            "clipping",
+            rounds,
+            iterations,
+            target
+        );
     }
 }
 
@@ -324,36 +446,249 @@ private void exportCases(T)(ref JSONValue[] output)
 
 void main(string[] args)
 {
-    bool checkOnly, exportCorpus;
-    size_t rounds = 7, iterations;
+    bool checkOnly;
+    bool exportCorpus;
+    bool compactCensusOnly;
+
+    size_t rounds = 7;
+    size_t iterations;
+
     long target = 20;
+
+    string scalar = "all";
+    string[] onlyCases;
+
     foreach (arg; args[1 .. $])
     {
-        if (arg == "--check") checkOnly = true;
-        else if (arg == "--export-corpus") exportCorpus = true;
-        else if (arg.length > 9 && arg[0 .. 9] == "--rounds=") rounds = arg[9 .. $].to!size_t;
-        else if (arg.length > 13 && arg[0 .. 13] == "--iterations=") iterations = arg[13 .. $].to!size_t;
-        else if (arg.length > 12 && arg[0 .. 12] == "--target-ms=") target = arg[12 .. $].to!long;
-        else enforce(false, "unknown option: " ~ arg);
+        if (arg == "--check")
+        {
+            checkOnly = true;
+        }
+        else if (arg == "--export-corpus")
+        {
+            exportCorpus = true;
+        }
+        else if (arg == "--compact-census")
+        {
+            compactCensusOnly = true;
+        }
+        else if (
+            arg.length > 9 &&
+            arg[0 .. 9] == "--rounds="
+        )
+        {
+            rounds =
+                arg[9 .. $].to!size_t;
+        }
+        else if (
+            arg.length > 13 &&
+            arg[0 .. 13] == "--iterations="
+        )
+        {
+            iterations =
+                arg[13 .. $].to!size_t;
+        }
+        else if (
+            arg.length > 12 &&
+            arg[0 .. 12] == "--target-ms="
+        )
+        {
+            target =
+                arg[12 .. $].to!long;
+        }
+        else if (
+            arg.length > 9 &&
+            arg[0 .. 9] == "--scalar="
+        )
+        {
+            scalar =
+                arg[9 .. $];
+        }
+        else if (
+            arg.length > 7 &&
+            arg[0 .. 7] == "--only="
+        )
+        {
+            onlyCases =
+                arg[7 .. $].split(",");
+        }
+        else
+        {
+            enforce(
+                false,
+                "unknown option: " ~ arg
+            );
+        }
     }
-    enforce(rounds > 0 && rounds <= 100 && target > 0 && target <= 60_000 &&
-        iterations <= 10_000_000, "invalid measurement limits");
+
+    enforce(
+        rounds > 0 &&
+        rounds <= 100 &&
+        target > 0 &&
+        target <= 60_000 &&
+        iterations <= 10_000_000,
+        "invalid measurement limits"
+    );
+
+    enforce(
+        scalar == "all" ||
+        scalar == "int" ||
+        scalar == "long" ||
+        scalar == "float" ||
+        scalar == "double",
+        "invalid scalar filter"
+    );
+
     if (exportCorpus)
     {
         JSONValue[] cases;
+
         exportCases!int(cases);
         exportCases!long(cases);
         exportCases!float(cases);
         exportCases!double(cases);
-        writeln(JSONValue(cases).toString());
+
+        writeln(
+            JSONValue(cases)
+                .toString()
+        );
+
         return;
     }
-    writeln("fixture_header,scalar,case,edges,expected_fact_bits,expected_status,expected_components");
-    writeln("sample_header,scalar,case,operation,edges,expected_components,round,iterations,warmup,elapsed_ns,gc_bytes,gc_collections");
-    writeln("summary_header,scalar,case,operation,min_ns_per_op,median_ns_per_op,max_ns_per_op");
-    run!int(checkOnly, rounds, iterations, target);
-    run!long(checkOnly, rounds, iterations, target);
-    run!float(checkOnly, rounds, iterations, target);
-    run!double(checkOnly, rounds, iterations, target);
-    writefln("sink,%s", benchmarkSink);
+
+    if (compactCensusOnly)
+    {
+        writeln(
+            "compact_census_header," ~
+            "scalar,case,proper_crossings," ~
+            "determinant_attempts,compact_hits," ~
+            "oracle_passes,fallbacks," ~
+            "construction_hits," ~
+            "construction_oracle_passes," ~
+            "construction_fallbacks," ~
+            "compact_hit_percent"
+        );
+
+        if (
+            scalar == "all" ||
+            scalar == "int"
+        )
+        {
+            runCompactCensus!int(
+                onlyCases
+            );
+        }
+
+        if (
+            scalar == "all" ||
+            scalar == "long"
+        )
+        {
+            runCompactCensus!long(
+                onlyCases
+            );
+        }
+
+        if (
+            scalar == "all" ||
+            scalar == "float"
+        )
+        {
+            runCompactCensus!float(
+                onlyCases
+            );
+        }
+
+        if (
+            scalar == "all" ||
+            scalar == "double"
+        )
+        {
+            runCompactCensus!double(
+                onlyCases
+            );
+        }
+
+        return;
+    }
+
+    writeln(
+        "fixture_header,scalar,case,edges," ~
+        "expected_fact_bits,expected_status," ~
+        "expected_components"
+    );
+
+    writeln(
+        "sample_header,scalar,case,operation," ~
+        "edges,expected_components,round," ~
+        "iterations,warmup,elapsed_ns," ~
+        "gc_bytes,gc_collections"
+    );
+
+    writeln(
+        "summary_header,scalar,case,operation," ~
+        "min_ns_per_op,median_ns_per_op," ~
+        "max_ns_per_op"
+    );
+
+    if (
+        scalar == "all" ||
+        scalar == "int"
+    )
+    {
+        run!int(
+            checkOnly,
+            rounds,
+            iterations,
+            target,
+            onlyCases
+        );
+    }
+
+    if (
+        scalar == "all" ||
+        scalar == "long"
+    )
+    {
+        run!long(
+            checkOnly,
+            rounds,
+            iterations,
+            target,
+            onlyCases
+        );
+    }
+
+    if (
+        scalar == "all" ||
+        scalar == "float"
+    )
+    {
+        run!float(
+            checkOnly,
+            rounds,
+            iterations,
+            target,
+            onlyCases
+        );
+    }
+
+    if (
+        scalar == "all" ||
+        scalar == "double"
+    )
+    {
+        run!double(
+            checkOnly,
+            rounds,
+            iterations,
+            target,
+            onlyCases
+        );
+    }
+
+    writefln(
+        "sink,%s",
+        benchmarkSink
+    );
 }

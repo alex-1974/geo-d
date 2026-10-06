@@ -1731,3 +1731,122 @@ if (isSegmentPolygonClipScalar!T)
         }
     }}
 }
+
+
+@safe unittest
+{
+    import geo.linear_ring_view : LinearRing2View;
+    import std.meta : AliasSeq;
+
+    /*
+     * Zero-candidate queries must preserve the ordinary clipping contract:
+     *
+     * - an exterior query returns no components;
+     * - an interior query returns the original segment after the same exact
+     *   endpoint materialization used by the general event path.
+     */
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {{
+        alias P = Point2!T;
+        alias S = Segment2!T;
+
+        P[4] points = [
+            P(0, 0),
+            P(10, 0),
+            P(10, 10),
+            P(0, 10),
+        ];
+
+        LinearRing2View!T[1] rings = [
+            LinearRing2View!T(points[])
+        ];
+
+        auto polygon =
+            Polygon2View!T(rings[]);
+
+        foreach (query; [
+            S(P(-2, 2), P(-1, 8)),
+            S(P(-1, 8), P(-2, 2)),
+        ])
+        {
+            Bounds2!T queryBounds;
+
+            assert(
+                tryBounds(
+                    query,
+                    queryBounds
+                )
+            );
+
+            assert(
+                queryBoundaryEventCapacity(
+                    queryBounds,
+                    polygon
+                ) == 2
+            );
+
+            SegmentPolygonClipOwnedResultInternal result;
+
+            assert(
+                trySegmentPolygonClipP1Internal(
+                    query,
+                    polygon,
+                    result
+                ) ==
+                SegmentPolygonClipInternalStatus.success
+            );
+
+            assert(result.empty);
+        }
+
+        foreach (query; [
+            S(P(1, 1), P(9, 1)),
+            S(P(9, 1), P(1, 1)),
+        ])
+        {
+            Bounds2!T queryBounds;
+
+            assert(
+                tryBounds(
+                    query,
+                    queryBounds
+                )
+            );
+
+            assert(
+                queryBoundaryEventCapacity(
+                    queryBounds,
+                    polygon
+                ) == 2
+            );
+
+            SegmentPolygonClipOwnedResultInternal result;
+
+            assert(
+                trySegmentPolygonClipP1Internal(
+                    query,
+                    polygon,
+                    result
+                ) ==
+                SegmentPolygonClipInternalStatus.success
+            );
+
+            assert(result.length == 1);
+
+            assert(
+                result[0] ==
+                Segment2!double(
+                    Point2!double(
+                        cast(double) query.a.x,
+                        cast(double) query.a.y
+                    ),
+                    Point2!double(
+                        cast(double) query.b.x,
+                        cast(double) query.b.y
+                    )
+                )
+            );
+        }
+    }}
+}
+

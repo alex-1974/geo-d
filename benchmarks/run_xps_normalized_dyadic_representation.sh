@@ -64,9 +64,25 @@ build_one() {
     done
 
     if [[ "$label" == dmd ]]; then
-        "$compiler" -i "${args[@]}"             benchmarks/normalized_dyadic_representation_bench.d             -O -inline -release -boundscheck=safeonly             -of="$binary"             >"$out/build.stdout" 2>"$out/build.stderr"
+        if ! "$compiler" -i "${args[@]}" \
+            benchmarks/normalized_dyadic_representation_bench.d \
+            -O -inline -release -boundscheck=safeonly \
+            -of="$binary" \
+            >"$out/build.stdout" 2>"$out/build.stderr"; then
+            cat "$out/build.stdout"
+            cat "$out/build.stderr" >&2
+            return 1
+        fi
     else
-        "$compiler" -i "${args[@]}"             benchmarks/normalized_dyadic_representation_bench.d             -O3 -release -boundscheck=safeonly             -of="$binary"             >"$out/build.stdout" 2>"$out/build.stderr"
+        if ! "$compiler" -i "${args[@]}" \
+            benchmarks/normalized_dyadic_representation_bench.d \
+            -O3 -release -boundscheck=safeonly \
+            -of="$binary" \
+            >"$out/build.stdout" 2>"$out/build.stderr"; then
+            cat "$out/build.stdout"
+            cat "$out/build.stderr" >&2
+            return 1
+        fi
     fi
 
     sha256sum "$binary" > "$out/binary.sha256"

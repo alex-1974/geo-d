@@ -2299,6 +2299,65 @@ if (isPolygonUnionExactScalar!T)
 
 
     /*
+     * Small provenance sort preserves baseline exact order and maps duplicate
+     * raw slots without switching to the dense equal-preferred comparator.
+     */
+    {
+        const S source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        ExactOverlayPoint[4] events = [
+            exactOverlayPoint(P(10, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(5, 0)),
+        ];
+
+        size_t[4] rawIndices;
+        size_t[4] rawToUnique;
+
+        const size_t count =
+            sortUniqueExactEdgeEventsWithRawMapping(
+                source,
+                events[],
+                rawIndices[],
+                rawToUnique[]
+            );
+
+        assert(count == 3);
+
+        assert(
+            exactOverlayPointsEqual(
+                events[0],
+                exactOverlayPoint(P(0, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[1],
+                exactOverlayPoint(P(5, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[2],
+                exactOverlayPoint(P(10, 0))
+            )
+        );
+
+        assert(rawToUnique[0] == 2);
+        assert(rawToUnique[1] == 1);
+        assert(rawToUnique[2] == 0);
+        assert(rawToUnique[3] == 1);
+    }
+
+
+    /*
      * Dense provenance sort preserves exact order and maps duplicate raw
      * slots to one final unique event index.
      */

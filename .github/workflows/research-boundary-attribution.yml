@@ -1,0 +1,47 @@
+name: Research Boundary Attribution
+
+on:
+  push:
+    branches:
+      - research/post157-boundary-attribution
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Boundary attribution / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Unit tests
+        shell: bash
+        run: dub test --compiler="$DC" --force
+
+      - name: Attribution smoke
+        shell: bash
+        run: |
+          case "$(basename "$DC")" in
+            dmd*) bench_compiler=dmd ;;
+            ldc*) bench_compiler=ldc2 ;;
+            *) exit 1 ;;
+          esac
+          python3 benchmarks/run_boundary_clipping_attribution.py \
+            --compiler="$bench_compiler" \
+            --cpu=0 \
+            --rounds=1 \
+            --iterations=8 \
+            --output="/var/tmp/boundary-attribution-smoke-$bench_compiler"

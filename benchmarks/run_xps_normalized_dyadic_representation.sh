@@ -88,7 +88,9 @@ build_one() {
     sha256sum "$binary" > "$out/binary.sha256"
 
     for sample in $(seq 1 "$samples"); do
-        taskset -c "$cpu" "$binary"             >"$out/sample-${sample}.stdout"             2>"$out/sample-${sample}.stderr"
+        taskset -c "$cpu" "$binary" "$sample" \
+            >"$out/sample-${sample}.stdout" \
+            2>"$out/sample-${sample}.stderr"
     done
 }
 

@@ -36,4 +36,9 @@ jobs:
             ldc*) bench_compiler=ldc2 ;;
             *) exit 1 ;;
           esac
-          python3 benchmarks/run_valid_ring_winding_probe.py             --cpu=0             --rounds=1             --iterations=8             --output="build/winding-smoke-$bench_compiler"
+          python3 benchmarks/run_valid_ring_winding_probe.py \
+            --compiler="$bench_compiler" \
+            --cpu=0 \
+            --rounds=1 \
+            --iterations=8 \
+            --output="build/winding-smoke-$bench_compiler"

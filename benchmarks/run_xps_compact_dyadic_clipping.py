@@ -20,6 +20,7 @@ SOURCE = ROOT / "benchmarks" / "segment_polygon_bench.d"
 HARNESS = Path(__file__).resolve()
 COMPACT_SOURCE = ROOT / "source" / "geo" / "internal" / "dyadic_compact_research.d"
 INTERSECTION_SOURCE = ROOT / "source" / "geo" / "internal" / "intersection_exact.d"
+CENSUS_SOURCE = ROOT / "source" / "geo" / "internal" / "compact_clipping_census_research.d"
 
 WORKLOADS = [
     "exterior",
@@ -251,6 +252,7 @@ def main():
         "harness_sha256": sha256(HARNESS),
         "compact_source_sha256": sha256(COMPACT_SOURCE),
         "intersection_source_sha256": sha256(INTERSECTION_SOURCE),
+        "census_source_sha256": sha256(CENSUS_SOURCE),
         "candidate_version":
             "GeoResearchCompactDyadic",
         "boundscheck": "safeonly",
@@ -283,6 +285,10 @@ def main():
     shutil.copy2(
         INTERSECTION_SOURCE,
         out / "intersection_exact.d",
+    )
+    shutil.copy2(
+        CENSUS_SOURCE,
+        out / "compact_clipping_census_research.d",
     )
     (out / "git-status.txt").write_text(
         capture(["git", "status", "--short", "--branch"])

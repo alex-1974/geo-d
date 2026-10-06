@@ -22,9 +22,11 @@ import geo.internal.orientation_dyadic :
     orientationDeterminantDyadic,
     orientationDeterminantDyadicDecoded;
 
-version (GeoResearchCompactDyadic)
 import geo.internal.dyadic_compact_research :
-    tryOrientationDeterminantCompactDecoded;
+    CompactDyadicProductResearch,
+    tryCompactWeightDenominator,
+    tryCompactWeightedCoordinate,
+    tryOrientationDeterminantCompactDecodedRaw;
 
 import geo.segment :
     Segment2;
@@ -68,47 +70,6 @@ private enum bool isExactIntersectionScalar(T) =
  * repeated source segment can hoist scalar-to-dyadic decoding out of an edge
  * loop without changing the exact arithmetic or result representation.
  */
-version (GeoResearchCompactDyadic)
-private SignedDyadicProduct
-orientationDeterminantDyadicDecodedConstructionResearch(
-    ref const SignedDyadicCoordinate aX,
-    ref const SignedDyadicCoordinate aY,
-    ref const SignedDyadicCoordinate bX,
-    ref const SignedDyadicCoordinate bY,
-    ref const SignedDyadicCoordinate cX,
-    ref const SignedDyadicCoordinate cY
-)
-    pure nothrow @safe @nogc
-{
-    SignedDyadicProduct compact;
-
-    if (
-        tryOrientationDeterminantCompactDecoded(
-            aX,
-            aY,
-            bX,
-            bY,
-            cX,
-            cY,
-            compact
-        )
-    )
-    {
-        return compact;
-    }
-
-    return
-        orientationDeterminantDyadicDecoded(
-            aX,
-            aY,
-            bX,
-            bY,
-            cX,
-            cY
-        );
-}
-
-
 package(geo)
 struct PreparedExactSegment
 {
@@ -478,6 +439,108 @@ if (isExactIntersectionScalar!T)
  * properIntersectionExactKnownCrossing().
  */
 package(geo)
+bool tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(T)(
+    ref const PreparedExactSegment first,
+    Segment2!T second,
+    out ExactProperIntersection result
+)
+    pure nothrow @safe @nogc
+if (isExactIntersectionScalar!T)
+{
+    result =
+        ExactProperIntersection.init;
+
+    const auto preparedSecond =
+        prepareExactSegment(
+            second
+        );
+
+    CompactDyadicProductResearch dA;
+    CompactDyadicProductResearch dB;
+
+    if (
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY,
+            dA
+        ) ||
+        !tryOrientationDeterminantCompactDecodedRaw(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY,
+            dB
+        )
+    )
+    {
+        return false;
+    }
+
+    if (
+        dA.sign == 0 ||
+        dB.sign == 0 ||
+        dA.sign == dB.sign
+    )
+    {
+        return false;
+    }
+
+    /*
+     * The barycentric weights are the opposite determinant magnitudes:
+     *
+     *     weightA = |dB|
+     *     weightB = |dA|
+     *
+     * Compact helpers intentionally consume magnitudes only; determinant
+     * signs establish the proper-crossing relation above.
+     */
+    if (
+        !tryCompactWeightDenominator(
+            dB,
+            dA,
+            result.denominator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aX,
+            dA,
+            first.bX,
+            result.xNumerator
+        ) ||
+        !tryCompactWeightedCoordinate(
+            dB,
+            first.aY,
+            dA,
+            first.bY,
+            result.yNumerator
+        )
+    )
+    {
+        result =
+            ExactProperIntersection.init;
+
+        return false;
+    }
+
+    return true;
+}
+
+
+/*
+ * Exact construction for a strict crossing when the first/source segment has
+ * already been decoded once by a caller that reuses it across many edges.
+ *
+ * The second segment is still decoded exactly once per crossing. The research
+ * version may keep determinant weights compact through barycentric
+ * construction; failure falls back to the complete fixed-width path.
+ */
+package(geo)
 void properIntersectionExactKnownCrossingPreparedFirst(T)(
     ref const PreparedExactSegment first,
     Segment2!T second,
@@ -486,58 +549,44 @@ void properIntersectionExactKnownCrossingPreparedFirst(T)(
     pure nothrow @safe @nogc
 if (isExactIntersectionScalar!T)
 {
+    version (GeoResearchCompactDyadic)
+    {
+        if (
+            tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(
+                first,
+                second,
+                result
+            )
+        )
+        {
+            return;
+        }
+    }
+
     const auto preparedSecond =
         prepareExactSegment(
             second
         );
 
-    SignedDyadicProduct dA;
-    SignedDyadicProduct dB;
+    const auto dA =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.aX,
+            first.aY
+        );
 
-    version (GeoResearchCompactDyadic)
-    {
-        dA =
-            orientationDeterminantDyadicDecodedConstructionResearch(
-                preparedSecond.aX,
-                preparedSecond.aY,
-                preparedSecond.bX,
-                preparedSecond.bY,
-                first.aX,
-                first.aY
-            );
-
-        dB =
-            orientationDeterminantDyadicDecodedConstructionResearch(
-                preparedSecond.aX,
-                preparedSecond.aY,
-                preparedSecond.bX,
-                preparedSecond.bY,
-                first.bX,
-                first.bY
-            );
-    }
-    else
-    {
-        dA =
-            orientationDeterminantDyadicDecoded(
-                preparedSecond.aX,
-                preparedSecond.aY,
-                preparedSecond.bX,
-                preparedSecond.bY,
-                first.aX,
-                first.aY
-            );
-
-        dB =
-            orientationDeterminantDyadicDecoded(
-                preparedSecond.aX,
-                preparedSecond.aY,
-                preparedSecond.bX,
-                preparedSecond.bY,
-                first.bX,
-                first.bY
-            );
-    }
+    const auto dB =
+        orientationDeterminantDyadicDecoded(
+            preparedSecond.aX,
+            preparedSecond.aY,
+            preparedSecond.bX,
+            preparedSecond.bY,
+            first.bX,
+            first.bY
+        );
 
     assert(dA.sign != 0);
     assert(dB.sign != 0);

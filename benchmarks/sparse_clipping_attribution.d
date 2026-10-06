@@ -153,7 +153,7 @@ private void run(T)(
 
     foreach (warmup; 0 .. 3)
     {
-        foreach (i; 0 .. 64)
+        foreach (size_t i; 0 .. 64)
         {
             auto result =
                 clipSegmentToPolygon(
@@ -169,7 +169,7 @@ private void run(T)(
     {
         resetSparseClipAttribution();
 
-        foreach (i; 0 .. iterations)
+        foreach (size_t i; 0 .. iterations)
         {
             auto result =
                 clipSegmentToPolygon(

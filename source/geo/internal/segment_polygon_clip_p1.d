@@ -908,32 +908,51 @@ if (isSegmentPolygonClipScalar!T)
 
     size_t provenanceEdgeIndex;
 
-    /*
-     * DMD benefits from retaining first-pass contact kinds for sufficiently
-     * large dense candidate sets. LDC deliberately does not compile this
-     * workspace state into the clipping hot path.
-     */
+    enum size_t smallBoundaryContactMaxEdges = 8;
+
+    const bool reuseSmallBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount <= smallBoundaryContactMaxEdges;
+
     version (DigitalMars)
-    const bool reuseBoundaryContacts =
+    const bool reuseDenseBoundaryContacts =
         !useEdgeBoundsPrefilter &&
         edgeCount >= 64;
+    else
+    enum bool reuseDenseBoundaryContacts = false;
 
-    version (DigitalMars)
+    const bool reuseBoundaryContacts =
+        reuseSmallBoundaryContacts ||
+        reuseDenseBoundaryContacts;
+
+    SegmentContactKind[
+        smallBoundaryContactMaxEdges
+    ] smallBoundaryContactsStorage;
+
     SegmentContactKind[] boundaryContacts;
 
-    version (DigitalMars)
-    size_t flatEdgeIndex;
-
-    version (DigitalMars)
+    if (reuseSmallBoundaryContacts)
     {
-        if (reuseBoundaryContacts)
+        boundaryContacts =
+            smallBoundaryContactsStorage[
+                0 .. edgeCount
+            ];
+    }
+    else
+    {
+        version (DigitalMars)
         {
-            boundaryContacts =
-                new SegmentContactKind[
-                    edgeCount
-                ];
+            if (reuseDenseBoundaryContacts)
+            {
+                boundaryContacts =
+                    new SegmentContactKind[
+                        edgeCount
+                    ];
+            }
         }
     }
+
+    size_t flatEdgeIndex;
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();

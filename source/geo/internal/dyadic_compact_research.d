@@ -28,7 +28,8 @@ enum size_t compactCoordinateLimbs = 4;
 enum size_t compactProductLimbs = 8;
 
 
-private struct CompactDyadic(size_t Limbs)
+package(geo)
+struct CompactDyadic(size_t Limbs)
 {
     int sign;
     ushort offset;

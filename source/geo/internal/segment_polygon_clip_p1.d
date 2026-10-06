@@ -26,6 +26,7 @@ import geo.internal.intersection_exact :
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
+    appendSegmentPairNodingEventsKnownContactPreparedFirst,
     appendSegmentPairNodingEventsPreparedFirst,
     compareExactOverlayPointsAlongSegment,
     compareExactOverlayPointsAlongSegmentEqualPreferred,
@@ -39,8 +40,7 @@ import geo.internal.polygon_union_exact :
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
-    appendSegmentPairNodingEventsKnownContact,
-    appendSegmentPairNodingEventsKnownContactPreparedFirst;
+    appendSegmentPairNodingEventsKnownContact;
 
 
 version (unittest)

@@ -2,18 +2,8 @@
 module segment_polygon_bench;
 
 import geo;
-import geo.intersection :
-    SegmentContactKind,
-    segmentContactKind;
-import geo.internal.dyadic :
-    SignedDyadicCoordinate,
-    SignedDyadicProduct,
-    decodeDyadicCoordinate,
-    multiplyDyadicDifferences,
-    subtractDyadicCoordinates,
-    subtractDyadicProducts;
-import geo.internal.dyadic_compact_research :
-    tryOrientationDeterminantCompactDecoded;
+import geo.internal.compact_clipping_census_research :
+    compactClippingCensus;
 import core.memory : GC;
 import core.volatile : volatileLoad;
 import std.algorithm.searching : canFind;
@@ -229,60 +219,6 @@ private void preflight(T)(ref Case!T c)
     }
 }
 
-private SignedDyadicProduct fixedDeterminantDecoded(
-    ref const SignedDyadicCoordinate ax,
-    ref const SignedDyadicCoordinate ay,
-    ref const SignedDyadicCoordinate bx,
-    ref const SignedDyadicCoordinate by,
-    ref const SignedDyadicCoordinate cx,
-    ref const SignedDyadicCoordinate cy
-)
-    pure nothrow @safe @nogc
-{
-    const auto bax =
-        subtractDyadicCoordinates(
-            bx,
-            ax
-        );
-
-    const auto bay =
-        subtractDyadicCoordinates(
-            by,
-            ay
-        );
-
-    const auto cax =
-        subtractDyadicCoordinates(
-            cx,
-            ax
-        );
-
-    const auto cay =
-        subtractDyadicCoordinates(
-            cy,
-            ay
-        );
-
-    const auto left =
-        multiplyDyadicDifferences(
-            bax,
-            cay
-        );
-
-    const auto right =
-        multiplyDyadicDifferences(
-            bay,
-            cax
-        );
-
-    return
-        subtractDyadicProducts(
-            left,
-            right
-        );
-}
-
-
 private bool selectedCase(
     string name,
     string[] onlyCases
@@ -294,190 +230,6 @@ private bool selectedCase(
             onlyCases,
             name
         );
-}
-
-
-private void compactCensus(T)(
-    ref Case!T c
-)
-{
-    size_t properCrossings;
-    size_t attempts;
-    size_t compactHits;
-    size_t oraclePasses;
-
-    foreach (direction; 0 .. 2)
-    {
-        const query =
-            c.queries[direction];
-
-        const auto qAx =
-            decodeDyadicCoordinate(
-                query.a.x
-            );
-
-        const auto qAy =
-            decodeDyadicCoordinate(
-                query.a.y
-            );
-
-        const auto qBx =
-            decodeDyadicCoordinate(
-                query.b.x
-            );
-
-        const auto qBy =
-            decodeDyadicCoordinate(
-                query.b.y
-            );
-
-        foreach (ringIndex; 0 .. c.polygon.length)
-        {
-            const auto ring =
-                c.polygon[ringIndex];
-
-            foreach (edgeIndex; 0 .. ring.segmentCount)
-            {
-                const auto edge =
-                    ring.segment(
-                        edgeIndex
-                    );
-
-                if (
-                    segmentContactKind(
-                        query,
-                        edge
-                    ) !=
-                    SegmentContactKind.properCrossing
-                )
-                {
-                    continue;
-                }
-
-                ++properCrossings;
-
-                const auto eAx =
-                    decodeDyadicCoordinate(
-                        edge.a.x
-                    );
-
-                const auto eAy =
-                    decodeDyadicCoordinate(
-                        edge.a.y
-                    );
-
-                const auto eBx =
-                    decodeDyadicCoordinate(
-                        edge.b.x
-                    );
-
-                const auto eBy =
-                    decodeDyadicCoordinate(
-                        edge.b.y
-                    );
-
-                SignedDyadicProduct result;
-
-                ++attempts;
-
-                if (
-                    tryOrientationDeterminantCompactDecoded(
-                        eAx,
-                        eAy,
-                        eBx,
-                        eBy,
-                        qAx,
-                        qAy,
-                        result
-                    )
-                )
-                {
-                    ++compactHits;
-
-                    const auto fixed =
-                        fixedDeterminantDecoded(
-                            eAx,
-                            eAy,
-                            eBx,
-                            eBy,
-                            qAx,
-                            qAy
-                        );
-
-                    enforce(
-                        result.sign ==
-                            fixed.sign &&
-                        result.magnitude.limb ==
-                            fixed.magnitude.limb,
-                        "compact determinant oracle: " ~
-                            c.name
-                    );
-
-                    ++oraclePasses;
-                }
-
-                ++attempts;
-
-                if (
-                    tryOrientationDeterminantCompactDecoded(
-                        eAx,
-                        eAy,
-                        eBx,
-                        eBy,
-                        qBx,
-                        qBy,
-                        result
-                    )
-                )
-                {
-                    ++compactHits;
-
-                    const auto fixed =
-                        fixedDeterminantDecoded(
-                            eAx,
-                            eAy,
-                            eBx,
-                            eBy,
-                            qBx,
-                            qBy
-                        );
-
-                    enforce(
-                        result.sign ==
-                            fixed.sign &&
-                        result.magnitude.limb ==
-                            fixed.magnitude.limb,
-                        "compact determinant oracle: " ~
-                            c.name
-                    );
-
-                    ++oraclePasses;
-                }
-            }
-        }
-    }
-
-    const size_t fallbacks =
-        attempts - compactHits;
-
-    const double hitPercent =
-        attempts == 0
-            ? 100.0
-            : 100.0 *
-                cast(double) compactHits /
-                cast(double) attempts;
-
-    writefln(
-        "compact_census,%s,%s,%s,%s,%s,%s,%s,%.2f",
-        T.stringof,
-        c.name,
-        properCrossings,
-        attempts,
-        compactHits,
-        oraclePasses,
-        fallbacks,
-        hitPercent
-    );
 }
 
 
@@ -501,7 +253,25 @@ private void runCompactCensus(T)(
         }
 
         preflight(c);
-        compactCensus(c);
+
+        const stats =
+            compactClippingCensus(
+                c.queries[0],
+                c.queries[1],
+                c.polygon
+            );
+
+        writefln(
+            "compact_census,%s,%s,%s,%s,%s,%s,%s,%.2f",
+            T.stringof,
+            c.name,
+            stats.properCrossings,
+            stats.determinantAttempts,
+            stats.compactHits,
+            stats.oraclePasses,
+            stats.fallbacks,
+            stats.hitPercent
+        );
     }
 }
 

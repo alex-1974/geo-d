@@ -1173,10 +1173,7 @@ if (isSegmentPolygonClipScalar!T)
      * - classify proper edge crossings and strict edge-interior endpoint
      *   contacts on their outgoing query ray.
      */
-    version (DigitalMars)
-    {
-        flatEdgeIndex = 0;
-    }
+    flatEdgeIndex = 0;
 
     provenanceEdgeIndex = 0;
 
@@ -1213,37 +1210,20 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            version (DigitalMars)
-            {
-                assert(flatEdgeIndex < edgeCount);
+            assert(flatEdgeIndex < edgeCount);
 
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
                 )
-                {
-                    ++flatEdgeIndex;
-                    continue;
-                }
-            }
-            else
+            )
             {
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    continue;
-                }
+                ++flatEdgeIndex;
+                continue;
             }
 
-            version (DigitalMars)
             const SegmentContactKind contact =
                 reuseBoundaryContacts
                     ? boundaryContacts[flatEdgeIndex]
@@ -1251,12 +1231,6 @@ if (isSegmentPolygonClipScalar!T)
                         query,
                         edge
                     );
-            else
-            const SegmentContactKind contact =
-                segmentContactKind(
-                    query,
-                    edge
-                );
 
             const size_t currentProvenanceEdgeIndex =
                 provenanceEdgeIndex;
@@ -1267,10 +1241,7 @@ if (isSegmentPolygonClipScalar!T)
                 ++provenanceEdgeIndex;
             }
 
-            version (DigitalMars)
-            {
-                ++flatEdgeIndex;
-            }
+            ++flatEdgeIndex;
 
             final switch (contact)
             {
@@ -1551,10 +1522,7 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
-    version (DigitalMars)
-    {
-        assert(flatEdgeIndex == edgeCount);
-    }
+    assert(flatEdgeIndex == edgeCount);
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);

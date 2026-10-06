@@ -2329,24 +2329,39 @@ if (isPolygonUnionExactScalar!T)
 
         assert(count == 3);
 
+        const auto expected0 =
+            exactOverlayPoint(
+                P(0, 0)
+            );
+
+        const auto expected1 =
+            exactOverlayPoint(
+                P(5, 0)
+            );
+
+        const auto expected2 =
+            exactOverlayPoint(
+                P(10, 0)
+            );
+
         assert(
             exactOverlayPointsEqual(
                 events[0],
-                exactOverlayPoint(P(0, 0))
+                expected0
             )
         );
 
         assert(
             exactOverlayPointsEqual(
                 events[1],
-                exactOverlayPoint(P(5, 0))
+                expected1
             )
         );
 
         assert(
             exactOverlayPointsEqual(
                 events[2],
-                exactOverlayPoint(P(10, 0))
+                expected2
             )
         );
 

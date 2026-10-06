@@ -31,19 +31,53 @@ def main():
     ap.add_argument("--cpu",type=int,default=0)
     ap.add_argument("--rounds",type=int,default=7)
     ap.add_argument("--iterations",type=int,default=1000)
+    ap.add_argument("--notes",default="")
+    ap.add_argument("--allow-dirty",action="store_true")
     ap.add_argument("--output",type=Path)
     a=ap.parse_args()
     if a.cpu not in os.sched_getaffinity(0): ap.error("CPU not allowed")
     os.sched_setaffinity(0,{a.cpu})
+    head=cap(["git","rev-parse","HEAD"]).strip()
+    branch=cap(["git","branch","--show-current"]).strip()
+    dirty_lines=cap([
+        "git","status","--porcelain","--untracked-files=normal","--",
+        "source","benchmarks",".github/workflows"
+    ]).splitlines()
+    if dirty_lines and not a.allow_dirty:
+        raise RuntimeError("research source is dirty:\n"+"\n".join(dirty_lines))
     stamp=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     out=(a.output or ROOT/"build"/("valid-ring-winding-"+stamp)).resolve()
     out.mkdir(parents=True,exist_ok=False)
-    rec={"status":"incomplete","head":cap(["git","rev-parse","HEAD"]).strip(),"cpu":a.cpu,"rounds":a.rounds,"iterations":a.iterations,"builds":[],"runs":[]}
+    rec={
+        "format":1,
+        "status":"incomplete",
+        "purpose":"valid-ring-winding-mechanism-comparison",
+        "head":head,
+        "branch":branch,
+        "dirty":bool(dirty_lines),
+        "dirty_lines":dirty_lines,
+        "cpu":a.cpu,
+        "allowed_affinity":sorted(os.sched_getaffinity(0)),
+        "rounds":a.rounds,
+        "iterations":a.iterations,
+        "notes":a.notes,
+        "started_utc":datetime.now(timezone.utc).isoformat(),
+        "builds":[],
+        "runs":[],
+        "limitations":[
+            "Mechanism microbenchmark only; production promotion requires independent end-to-end ABBA.",
+            "No CPU frequency/turbo control is imposed by this runner."
+        ]
+    }
     compilers=a.compiler or ["dmd","ldc2"]
     try:
         for comp in compilers:
             b,ver=build(comp,out)
-            rec["builds"].append({"compiler":comp,"version":ver,"sha256":hashlib.sha256(b.read_bytes()).hexdigest()})
+            rec["builds"].append({
+                "compiler":comp,
+                "version":ver,
+                "sha256":hashlib.sha256(b.read_bytes()).hexdigest()
+            })
             smoke=subprocess.run([str(b)],cwd=out,text=True,capture_output=True)
             (out/(comp+".equivalence.stdout")).write_text(smoke.stdout)
             (out/(comp+".equivalence.stderr")).write_text(smoke.stderr)

@@ -986,10 +986,7 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
-    version (DigitalMars)
-    {
-        flatEdgeIndex = 0;
-    }
+    flatEdgeIndex = 0;
 
     provenanceEdgeIndex = 0;
 
@@ -1005,34 +1002,18 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            version (DigitalMars)
-            {
-                assert(flatEdgeIndex < edgeCount);
+            assert(flatEdgeIndex < edgeCount);
 
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
                 )
-                {
-                    ++flatEdgeIndex;
-                    continue;
-                }
-            }
-            else
+            )
             {
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    continue;
-                }
+                ++flatEdgeIndex;
+                continue;
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
@@ -1041,61 +1022,45 @@ if (isSegmentPolygonClipScalar!T)
             const size_t rawEventStart =
                 eventCount;
 
-            version (DigitalMars)
             bool appended;
-            else
-            const bool appended =
-                appendSegmentPairNodingEventsPreparedFirst(
-                    query,
-                    edge,
-                    preparedExactQuery,
-                    preparedExactQueryReady,
-                    events[],
-                    eventCount,
-                    ignoredEdgeEvents[],
-                    ignoredCount
-                );
 
-            version (DigitalMars)
+            if (reuseBoundaryContacts)
             {
-                if (reuseBoundaryContacts)
-                {
-                    const SegmentContactKind contact =
-                        segmentContactKind(
-                            query,
-                            edge
-                        );
+                const SegmentContactKind contact =
+                    segmentContactKind(
+                        query,
+                        edge
+                    );
 
-                    boundaryContacts[flatEdgeIndex] =
-                        contact;
+                boundaryContacts[flatEdgeIndex] =
+                    contact;
 
-                    appended =
-                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
-                            query,
-                            edge,
-                            contact,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
-                else
-                {
-                    appended =
-                        appendSegmentPairNodingEventsPreparedFirst(
-                            query,
-                            edge,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
+                appended =
+                    appendSegmentPairNodingEventsKnownContactPreparedFirst(
+                        query,
+                        edge,
+                        contact,
+                        preparedExactQuery,
+                        preparedExactQueryReady,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
+            }
+            else
+            {
+                appended =
+                    appendSegmentPairNodingEventsPreparedFirst(
+                        query,
+                        edge,
+                        preparedExactQuery,
+                        preparedExactQueryReady,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
             }
 
             /*
@@ -1119,17 +1084,11 @@ if (isSegmentPolygonClipScalar!T)
                 ++provenanceEdgeIndex;
             }
 
-            version (DigitalMars)
-            {
-                ++flatEdgeIndex;
-            }
+            ++flatEdgeIndex;
         }
     }
 
-    version (DigitalMars)
-    {
-        assert(flatEdgeIndex == edgeCount);
-    }
+    assert(flatEdgeIndex == edgeCount);
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);

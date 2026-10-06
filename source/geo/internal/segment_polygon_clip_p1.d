@@ -50,6 +50,9 @@ import geo.internal.segment_polygon_clip_result :
     SegmentPolygonClipOwnedResultInternal,
     takeSegmentPolygonClipOwnedResultInternal;
 
+import geo.linear_ring_view :
+    LinearRing2View;
+
 import geo.orientation :
     Orientation2,
     orientation;

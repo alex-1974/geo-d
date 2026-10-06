@@ -255,6 +255,9 @@ def main():
         "census_source_sha256": sha256(CENSUS_SOURCE),
         "candidate_version":
             "GeoResearchCompactDyadic",
+        "candidate_activation":
+            "compact barycentric construction active only under LDC; "
+            "DMD remains on the fixed construction path as a compiler control",
         "boundscheck": "safeonly",
         "order":
             "ABBA on even cycles, BAAB on odd cycles",

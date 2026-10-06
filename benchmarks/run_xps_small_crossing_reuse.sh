@@ -13,7 +13,8 @@ target_ms=${6:-50}
 notes=${7:-"XPS small crossing provenance reuse ABBA"}
 
 mkdir -p build
-task_dir=$(mktemp -d "$root/build/small-crossing-reuse-xps.XXXXXXXX")
+task_dir=$(mktemp -d "/var/tmp/geo-d-small-crossing-reuse-xps.XXXXXXXX")
+archive="$root/build/geo-small-crossing-reuse-xps.tar.gz"
 
 echo "=== PROVENANCE ==="
 git status --short --branch

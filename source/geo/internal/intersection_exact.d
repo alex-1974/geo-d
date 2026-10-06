@@ -491,9 +491,12 @@ if (isExactIntersectionScalar!T)
             second
         );
 
+    SignedDyadicProduct dA;
+    SignedDyadicProduct dB;
+
     version (GeoResearchCompactDyadic)
     {
-        const auto dA =
+        dA =
             orientationDeterminantDyadicDecodedConstructionResearch(
                 preparedSecond.aX,
                 preparedSecond.aY,
@@ -503,7 +506,7 @@ if (isExactIntersectionScalar!T)
                 first.aY
             );
 
-        const auto dB =
+        dB =
             orientationDeterminantDyadicDecodedConstructionResearch(
                 preparedSecond.aX,
                 preparedSecond.aY,
@@ -515,7 +518,7 @@ if (isExactIntersectionScalar!T)
     }
     else
     {
-        const auto dA =
+        dA =
             orientationDeterminantDyadicDecoded(
                 preparedSecond.aX,
                 preparedSecond.aY,
@@ -525,7 +528,7 @@ if (isExactIntersectionScalar!T)
                 first.aY
             );
 
-        const auto dB =
+        dB =
             orientationDeterminantDyadicDecoded(
                 preparedSecond.aX,
                 preparedSecond.aY,

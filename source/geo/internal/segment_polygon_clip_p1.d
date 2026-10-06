@@ -42,6 +42,7 @@ import geo.internal.polygon_union_exact :
     appendSegmentPairNodingEventsKnownContactPreparedFirst;
 
 
+version (unittest)
 import geo.internal.polygon_union_input :
     exactRingOrientationSign;
 
@@ -115,6 +116,91 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+/*
+ * Exact winding sign for an already validated simple ring.
+ *
+ * Validation guarantees at least three finite vertices, non-degenerate edges
+ * and simple-ring topology. At a highest-y vertex the local turn determines
+ * winding. A flat highest support is resolved by represented x traversal
+ * order. The only robust geometric predicate required is one orientation()
+ * call instead of an exact signed-area determinant for every ring edge.
+ *
+ * Returns:
+ *     -1 clockwise
+ *      1 counter-clockwise
+ */
+private int validRingOrientationSign(T)(
+    scope const LinearRing2View!T ring
+)
+    pure nothrow @safe @nogc
+if (isSegmentPolygonClipScalar!T)
+{
+    assert(ring.length >= 3);
+
+    size_t highest = 0;
+
+    foreach (i; 1 .. ring.length)
+    {
+        if (ring[i].y > ring[highest].y)
+            highest = i;
+    }
+
+    const size_t previousIndex =
+        highest == 0
+            ? ring.length - 1
+            : highest - 1;
+
+    const size_t nextIndex =
+        highest + 1 == ring.length
+            ? 0
+            : highest + 1;
+
+    const auto previous =
+        ring[previousIndex];
+
+    const auto high =
+        ring[highest];
+
+    const auto next =
+        ring[nextIndex];
+
+    assert(previous != high);
+    assert(next != high);
+
+    final switch (
+        orientation(
+            previous,
+            high,
+            next
+        )
+    )
+    {
+        case Orientation2.left:
+            return 1;
+
+        case Orientation2.right:
+            return -1;
+
+        case Orientation2.collinear:
+            break;
+    }
+
+    /*
+     * On a valid simple ring, a collinear highest-y local triple lies on a
+     * horizontal extremal support. Traversal direction along that support is
+     * therefore sufficient to recover winding.
+     */
+    assert(previous.y == high.y);
+    assert(next.y == high.y);
+    assert(previous.x != next.x);
+
+    return
+        previous.x > next.x
+            ? 1
+            : -1;
+}
 
 
 /*
@@ -1063,7 +1149,7 @@ if (isSegmentPolygonClipScalar!T)
             polygon[ringIndex];
 
         const int orientationSign =
-            exactRingOrientationSign(
+            validRingOrientationSign(
                 ring
             );
 
@@ -1665,6 +1751,93 @@ if (isSegmentPolygonClipScalar!T)
 
     return
         SegmentPolygonClipInternalStatus.success;
+}
+
+
+@safe unittest
+{
+    import geo.linear_ring_view : LinearRing2View;
+    import std.algorithm.mutation : reverse;
+    import std.meta : AliasSeq;
+
+    /*
+     * The valid-ring extremum winding rule must remain sign-for-sign
+     * equivalent to the retained exact signed-area oracle.
+     */
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {{
+        alias P = Point2!T;
+        alias R = LinearRing2View!T;
+
+        foreach (subdivisions; [1, 4, 16, 64])
+        {
+            P[] points;
+
+            foreach (j; 0 .. subdivisions)
+                points ~= P(cast(T)(4 * j), 0);
+
+            foreach (j; 0 .. subdivisions)
+                points ~= P(
+                    cast(T)(4 * subdivisions),
+                    cast(T)(4 * j)
+                );
+
+            foreach (j; 0 .. subdivisions)
+                points ~= P(
+                    cast(T)(4 * (subdivisions - j)),
+                    cast(T)(4 * subdivisions)
+                );
+
+            foreach (j; 0 .. subdivisions)
+                points ~= P(
+                    0,
+                    cast(T)(4 * (subdivisions - j))
+                );
+
+            auto ring = R(points[]);
+
+            assert(
+                validRingOrientationSign(ring) ==
+                exactRingOrientationSign(ring)
+            );
+
+            reverse(points);
+
+            ring = R(points[]);
+
+            assert(
+                validRingOrientationSign(ring) ==
+                exactRingOrientationSign(ring)
+            );
+        }
+
+        P[] concave = [
+            P(0, 0),
+            P(12, 0),
+            P(12, 12),
+            P(9, 12),
+            P(9, 4),
+            P(3, 4),
+            P(3, 12),
+            P(0, 12),
+        ];
+
+        auto concaveRing = R(concave[]);
+
+        assert(
+            validRingOrientationSign(concaveRing) ==
+            exactRingOrientationSign(concaveRing)
+        );
+
+        reverse(concave);
+
+        concaveRing = R(concave[]);
+
+        assert(
+            validRingOrientationSign(concaveRing) ==
+            exactRingOrientationSign(concaveRing)
+        );
+    }}
 }
 
 

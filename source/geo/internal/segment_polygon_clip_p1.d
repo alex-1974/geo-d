@@ -3,6 +3,10 @@ module geo.internal.segment_polygon_clip_p1;
 import core.exception :
     onOutOfMemoryError;
 
+version (GeoSparseAttribution)
+import core.time :
+    MonoTime;
+
 import geo.bounding_box : tryBounds;
 import geo.bounds : Bounds2;
 
@@ -115,6 +119,70 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+version (GeoSparseAttribution)
+{
+    /*
+     * RESEARCH ONLY.
+     *
+     * Per-thread accumulated timing/counter evidence for the current P1
+     * clipping implementation. Normal production builds do not contain this
+     * state or any clock reads.
+     */
+    package(geo)
+    struct SparseClipAttribution
+    {
+        ulong calls;
+
+        ulong totalNs;
+        ulong setupNs;
+        ulong capacityNs;
+        ulong eventSetupNs;
+        ulong firstBoundaryPassNs;
+        ulong sortNs;
+        ulong metadataAllocationNs;
+        ulong ringOrientationNs;
+        ulong secondBoundaryPassNs;
+        ulong vertexTopologyNs;
+        ulong retentionNs;
+        ulong pointInPolygonNs;
+        ulong materializationNs;
+
+        ulong edgeCount;
+        ulong candidateEdgeCount;
+        ulong firstPassCandidateEdges;
+        ulong rawEventCount;
+        ulong uniqueEventCount;
+        ulong secondPassContactCalls;
+        ulong nonNoneContacts;
+        ulong vertexContactCalls;
+    }
+
+    private SparseClipAttribution sparseClipAttribution;
+
+    package(geo)
+    void resetSparseClipAttribution()
+        @safe
+    {
+        sparseClipAttribution =
+            SparseClipAttribution.init;
+    }
+
+    package(geo)
+    SparseClipAttribution readSparseClipAttribution()
+        @safe
+    {
+        return sparseClipAttribution;
+    }
+
+    private ulong sparseElapsedNs(MonoTime start)
+        @safe
+    {
+        return cast(ulong)
+            (MonoTime.currTime - start).total!"nsecs";
+    }
+}
 
 
 /*
@@ -560,6 +628,17 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(query.isFinite);
 
+    version (GeoSparseAttribution)
+    {
+        const sparseTotalStart =
+            MonoTime.currTime;
+
+        const sparseSetupStart =
+            sparseTotalStart;
+
+        ++sparseClipAttribution.calls;
+    }
+
     /*
      * ADR-0024 regularizes away every zero-dimensional result.
      */
@@ -602,6 +681,20 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(bounded && !queryBounds.empty);
 
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.setupNs +=
+            sparseElapsedNs(
+                sparseSetupStart
+            );
+
+        sparseClipAttribution.edgeCount +=
+            edgeCount;
+
+        const sparseCapacityStart =
+            MonoTime.currTime;
+    }
+
     const size_t eventCapacity =
         queryBoundaryEventCapacity(
             queryBounds,
@@ -613,6 +706,17 @@ if (isSegmentPolygonClipScalar!T)
 
     const size_t candidateEdgeCount =
         (eventCapacity - 2) / 2;
+
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.capacityNs +=
+            sparseElapsedNs(
+                sparseCapacityStart
+            );
+
+        sparseClipAttribution.candidateEdgeCount +=
+            candidateEdgeCount;
+    }
 
     /*
      * No conservative edge candidate means no polygon boundary can meet the
@@ -719,6 +823,10 @@ if (isSegmentPolygonClipScalar!T)
      * Apply the repeated per-edge bounds rejection only when at most one
      * quarter of boundary edges survive that first cheap pass.
      */
+    version (GeoSparseAttribution)
+    const sparseEventSetupStart =
+        MonoTime.currTime;
+
     const bool useEdgeBoundsPrefilter =
         candidateEdgeCount <= edgeCount / 4;
 
@@ -821,6 +929,14 @@ if (isSegmentPolygonClipScalar!T)
 
     assert(seeded);
 
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.eventSetupNs +=
+            sparseElapsedNs(
+                sparseEventSetupStart
+            );
+    }
+
 
     /*
      * Prepare the exact query lazily on the first strict proper crossing and
@@ -834,6 +950,10 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
+    version (GeoSparseAttribution)
+    const sparseFirstPassStart =
+        MonoTime.currTime;
+
     version (DigitalMars)
     {
         flatEdgeIndex = 0;
@@ -881,6 +1001,11 @@ if (isSegmentPolygonClipScalar!T)
                 {
                     continue;
                 }
+            }
+
+            version (GeoSparseAttribution)
+            {
+                ++sparseClipAttribution.firstPassCandidateEdges;
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
@@ -982,6 +1107,20 @@ if (isSegmentPolygonClipScalar!T)
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
 
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.firstBoundaryPassNs +=
+            sparseElapsedNs(
+                sparseFirstPassStart
+            );
+
+        sparseClipAttribution.rawEventCount +=
+            eventCount;
+
+        const sparseSortStart =
+            MonoTime.currTime;
+    }
+
     const bool reuseProperCrossingEventIndex =
         prepareEventProvenance &&
         eventCount >= equalPreferredEventThreshold;
@@ -1020,6 +1159,20 @@ if (isSegmentPolygonClipScalar!T)
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.sortNs +=
+            sparseElapsedNs(
+                sparseSortStart
+            );
+
+        sparseClipAttribution.uniqueEventCount +=
+            eventCount;
+
+        const sparseMetadataStart =
+            MonoTime.currTime;
+    }
+
     events.length =
         eventCount;
 
@@ -1042,6 +1195,14 @@ if (isSegmentPolygonClipScalar!T)
             eventCount
         ];
 
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.metadataAllocationNs +=
+            sparseElapsedNs(
+                sparseMetadataStart
+            );
+    }
+
 
     /*
      * Second boundary pass:
@@ -1062,10 +1223,25 @@ if (isSegmentPolygonClipScalar!T)
         const auto ring =
             polygon[ringIndex];
 
+        version (GeoSparseAttribution)
+        const sparseOrientationStart =
+            MonoTime.currTime;
+
         const int orientationSign =
             exactRingOrientationSign(
                 ring
             );
+
+        version (GeoSparseAttribution)
+        {
+            sparseClipAttribution.ringOrientationNs +=
+                sparseElapsedNs(
+                    sparseOrientationStart
+                );
+
+            const sparseSecondPassStart =
+                MonoTime.currTime;
+        }
 
         assert(
             ring.empty ||
@@ -1120,6 +1296,11 @@ if (isSegmentPolygonClipScalar!T)
                 }
             }
 
+            version (GeoSparseAttribution)
+            {
+                ++sparseClipAttribution.secondPassContactCalls;
+            }
+
             version (DigitalMars)
             const SegmentContactKind contact =
                 reuseBoundaryContacts
@@ -1147,6 +1328,14 @@ if (isSegmentPolygonClipScalar!T)
             version (DigitalMars)
             {
                 ++flatEdgeIndex;
+            }
+
+            version (GeoSparseAttribution)
+            {
+                if (contact != SegmentContactKind.none)
+                {
+                    ++sparseClipAttribution.nonNoneContacts;
+                }
             }
 
             final switch (contact)
@@ -1341,6 +1530,17 @@ if (isSegmentPolygonClipScalar!T)
         }
 
 
+        version (GeoSparseAttribution)
+        {
+            sparseClipAttribution.secondBoundaryPassNs +=
+                sparseElapsedNs(
+                    sparseSecondPassStart
+                );
+
+            const sparseVertexStart =
+                MonoTime.currTime;
+        }
+
         /*
          * Third local-topology pass for this ring:
          *
@@ -1362,6 +1562,11 @@ if (isSegmentPolygonClipScalar!T)
                 )
                 {
                     continue;
+                }
+
+                version (GeoSparseAttribution)
+                {
+                    ++sparseClipAttribution.vertexContactCalls;
                 }
 
                 if (
@@ -1425,6 +1630,14 @@ if (isSegmentPolygonClipScalar!T)
                 );
             }
         }
+
+        version (GeoSparseAttribution)
+        {
+            sparseClipAttribution.vertexTopologyNs +=
+                sparseElapsedNs(
+                    sparseVertexStart
+                );
+        }
     }
 
 
@@ -1435,6 +1648,10 @@ if (isSegmentPolygonClipScalar!T)
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
+
+    version (GeoSparseAttribution)
+    const sparseRetentionStart =
+        MonoTime.currTime;
 
     auto retained =
         new bool[
@@ -1487,12 +1704,24 @@ if (isSegmentPolygonClipScalar!T)
 
             PointPolygonLocation location;
 
+            version (GeoSparseAttribution)
+            const sparsePointInPolygonStart =
+                MonoTime.currTime;
+
             const bool classified =
                 tryClassifyPointInPolygon(
                     polygon,
                     query.a,
                     location
                 );
+
+            version (GeoSparseAttribution)
+            {
+                sparseClipAttribution.pointInPolygonNs +=
+                    sparseElapsedNs(
+                        sparsePointInPolygonStart
+                    );
+            }
 
             assert(classified);
 
@@ -1536,6 +1765,17 @@ if (isSegmentPolygonClipScalar!T)
     );
 
     assert(activeBoundaryOverlaps == 0);
+
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.retentionNs +=
+            sparseElapsedNs(
+                sparseRetentionStart
+            );
+
+        const sparseMaterializationStart =
+            MonoTime.currTime;
+    }
 
 
     size_t componentCount = 0;
@@ -1662,6 +1902,19 @@ if (isSegmentPolygonClipScalar!T)
         takeSegmentPolygonClipOwnedResultInternal(
             components
         );
+
+    version (GeoSparseAttribution)
+    {
+        sparseClipAttribution.materializationNs +=
+            sparseElapsedNs(
+                sparseMaterializationStart
+            );
+
+        sparseClipAttribution.totalNs +=
+            sparseElapsedNs(
+                sparseTotalStart
+            );
+    }
 
     return
         SegmentPolygonClipInternalStatus.success;

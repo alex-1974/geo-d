@@ -551,15 +551,18 @@ if (isExactIntersectionScalar!T)
 {
     version (GeoResearchCompactDyadic)
     {
-        if (
-            tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(
-                first,
-                second,
-                result
-            )
-        )
+        version (LDC)
         {
-            return;
+            if (
+                tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(
+                    first,
+                    second,
+                    result
+                )
+            )
+            {
+                return;
+            }
         }
     }
 

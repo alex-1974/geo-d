@@ -615,6 +615,104 @@ if (isSegmentPolygonClipScalar!T)
         (eventCapacity - 2) / 2;
 
     /*
+     * No conservative edge candidate means no polygon boundary can meet the
+     * query. The connected query segment therefore has one constant
+     * non-boundary location. Classify one endpoint and avoid constructing the
+     * exact event pipeline entirely.
+     *
+     * A boundary classification is not expected under candidateEdgeCount == 0
+     * because any incident boundary edge would have overlapping closed bounds.
+     * Fall through to the authoritative general path instead of relying on that
+     * proof as a release-mode assertion.
+     */
+    if (candidateEdgeCount == 0)
+    {
+        PointPolygonLocation location;
+
+        const bool classified =
+            tryClassifyPointInPolygon(
+                polygon,
+                query.a,
+                location
+            );
+
+        assert(classified);
+
+        final switch (location)
+        {
+            case PointPolygonLocation.outside:
+            {
+                Segment2!double[] emptyComponents;
+
+                owned =
+                    takeSegmentPolygonClipOwnedResultInternal(
+                        emptyComponents
+                    );
+
+                return
+                    SegmentPolygonClipInternalStatus.success;
+            }
+
+            case PointPolygonLocation.inside:
+            {
+                const auto exactStart =
+                    exactOverlayPoint(
+                        query.a
+                    );
+
+                const auto exactEnd =
+                    exactOverlayPoint(
+                        query.b
+                    );
+
+                Point2!double start;
+                Point2!double end;
+
+                if (
+                    !tryMaterializeExactPoint(
+                        exactStart,
+                        start
+                    ) ||
+                    !tryMaterializeExactPoint(
+                        exactEnd,
+                        end
+                    ) ||
+                    !roundedPointStrictlyAfter(
+                        query,
+                        start,
+                        end
+                    )
+                )
+                {
+                    return
+                        SegmentPolygonClipInternalStatus
+                            .unrepresentableConstruction;
+                }
+
+                auto components =
+                    new Segment2!double[1];
+
+                components[0] =
+                    Segment2!double(
+                        start,
+                        end
+                    );
+
+                owned =
+                    takeSegmentPolygonClipOwnedResultInternal(
+                        components
+                    );
+
+                return
+                    SegmentPolygonClipInternalStatus.success;
+            }
+
+            case PointPolygonLocation.boundary:
+                break;
+        }
+    }
+
+    /*
      * The capacity pass already establishes the number of edges whose closed
      * bounds can meet the query. Retained corpus evidence separates the sparse
      * regime (<= 12.5% candidates) from crossing/dense (50% candidates).

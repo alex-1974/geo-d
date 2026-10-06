@@ -1,0 +1,55 @@
+name: Research Sparse Attribution
+
+on:
+  push:
+    branches:
+      - research/post147-sparse-cost-attribution
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attribution-smoke:
+    name: Attribution smoke / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install D compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Compiler versions
+        shell: bash
+        run: |
+          echo "DC=$DC"
+          "$DC" --version
+          dub --version
+
+      - name: Run normal unit tests
+        shell: bash
+        run: dub test --compiler="$DC" --force
+
+      - name: Build and smoke sparse attribution
+        shell: bash
+        run: |
+          compiler_name=$(basename "$DC")
+          case "$compiler_name" in
+            dmd*) bench_compiler=dmd ;;
+            ldc*) bench_compiler=ldc2 ;;
+            *) echo "unsupported compiler: $DC" >&2; exit 1 ;;
+          esac
+
+          python3 benchmarks/run_sparse_clipping_attribution.py             --compiler="$bench_compiler"             --cpu=0             --rounds=1             --iterations=8             --output="build/sparse-attribution-smoke-$bench_compiler"

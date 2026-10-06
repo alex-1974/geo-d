@@ -1,8 +1,17 @@
 module geo.internal.dyadic_compact_research;
 
 import geo.internal.dyadic :
+    DyadicProductMagnitude,
     SignedDyadicCoordinate,
     SignedDyadicProduct;
+
+import geo.internal.exact_coordinate :
+    SignedExactCoordinateNumerator;
+
+import geo.internal.fixed_uint :
+    addUnsigned,
+    compareUnsigned,
+    subtractUnsigned;
 
 
 /*
@@ -34,8 +43,12 @@ private alias CompactCoordinate =
 private alias CompactDifference =
     CompactDyadic!compactCoordinateLimbs;
 
-private alias CompactProduct =
+package(geo)
+alias CompactDyadicProductResearch =
     CompactDyadic!compactProductLimbs;
+
+private alias CompactProduct =
+    CompactDyadicProductResearch;
 
 
 private void canonicalize(size_t Limbs)(
@@ -669,6 +682,368 @@ private bool compactDeterminant(
 }
 
 
+package(geo)
+bool tryOrientationDeterminantCompactDecodedRaw(
+    ref const SignedDyadicCoordinate ax,
+    ref const SignedDyadicCoordinate ay,
+    ref const SignedDyadicCoordinate bx,
+    ref const SignedDyadicCoordinate by,
+    ref const SignedDyadicCoordinate cx,
+    ref const SignedDyadicCoordinate cy,
+    out CompactDyadicProductResearch result
+)
+    pure nothrow @safe @nogc
+{
+    CompactCoordinate cax;
+    CompactCoordinate cay;
+    CompactCoordinate cbx;
+    CompactCoordinate cby;
+    CompactCoordinate ccx;
+    CompactCoordinate ccy;
+
+    if (
+        !compactCoordinate(ax, cax) ||
+        !compactCoordinate(ay, cay) ||
+        !compactCoordinate(bx, cbx) ||
+        !compactCoordinate(by, cby) ||
+        !compactCoordinate(cx, ccx) ||
+        !compactCoordinate(cy, ccy)
+    )
+    {
+        result =
+            CompactDyadicProductResearch.init;
+
+        return false;
+    }
+
+    return
+        compactDeterminant(
+            cax,
+            cay,
+            cbx,
+            cby,
+            ccx,
+            ccy,
+            result
+        );
+}
+
+
+private bool addCompactMagnitudeToProduct(
+    ref DyadicProductMagnitude target,
+    ref const CompactDyadicProductResearch source
+)
+    pure nothrow @safe @nogc
+{
+    foreach (
+        i;
+        0 .. cast(size_t) source.used
+    )
+    {
+        size_t k =
+            cast(size_t) source.offset +
+            i;
+
+        if (
+            k >=
+            target.limb.length
+        )
+        {
+            return false;
+        }
+
+        ulong carry =
+            source.limb[i];
+
+        while (carry != 0)
+        {
+            if (
+                k >=
+                target.limb.length
+            )
+            {
+                return false;
+            }
+
+            const ulong sum =
+                cast(ulong) target.limb[k] +
+                carry;
+
+            target.limb[k] =
+                cast(uint) sum;
+
+            carry =
+                sum >> 32;
+
+            ++k;
+        }
+    }
+
+    return true;
+}
+
+
+package(geo)
+bool tryCompactWeightDenominator(
+    ref const CompactDyadicProductResearch weightA,
+    ref const CompactDyadicProductResearch weightB,
+    out DyadicProductMagnitude denominator
+)
+    pure nothrow @safe @nogc
+{
+    denominator =
+        DyadicProductMagnitude.init;
+
+    if (
+        !addCompactMagnitudeToProduct(
+            denominator,
+            weightA
+        ) ||
+        !addCompactMagnitudeToProduct(
+            denominator,
+            weightB
+        )
+    )
+    {
+        denominator =
+            DyadicProductMagnitude.init;
+
+        return false;
+    }
+
+    return !denominator.isZero;
+}
+
+
+private bool multiplyCompactWeightCoordinate(
+    ref const CompactDyadicProductResearch weight,
+    ref const CompactCoordinate coordinate,
+    out SignedExactCoordinateNumerator result
+)
+    pure nothrow @safe @nogc
+{
+    result =
+        SignedExactCoordinateNumerator.init;
+
+    if (
+        weight.sign == 0 ||
+        coordinate.sign == 0
+    )
+    {
+        return true;
+    }
+
+    result.sign =
+        coordinate.sign;
+
+    const size_t base =
+        cast(size_t) weight.offset +
+        cast(size_t) coordinate.offset;
+
+    foreach (
+        i;
+        0 .. cast(size_t) weight.used
+    )
+    {
+        ulong carry;
+
+        foreach (
+            j;
+            0 .. cast(size_t) coordinate.used
+        )
+        {
+            const size_t k =
+                base + i + j;
+
+            if (
+                k >=
+                result.magnitude.limb.length
+            )
+            {
+                result =
+                    SignedExactCoordinateNumerator.init;
+
+                return false;
+            }
+
+            const ulong sum =
+                cast(ulong)
+                    result.magnitude.limb[k] +
+                cast(ulong)
+                    weight.limb[i] *
+                    cast(ulong)
+                        coordinate.limb[j] +
+                carry;
+
+            result.magnitude.limb[k] =
+                cast(uint) sum;
+
+            carry =
+                sum >> 32;
+        }
+
+        size_t k =
+            base +
+            i +
+            cast(size_t) coordinate.used;
+
+        while (carry != 0)
+        {
+            if (
+                k >=
+                result.magnitude.limb.length
+            )
+            {
+                result =
+                    SignedExactCoordinateNumerator.init;
+
+                return false;
+            }
+
+            const ulong sum =
+                cast(ulong)
+                    result.magnitude.limb[k] +
+                carry;
+
+            result.magnitude.limb[k] =
+                cast(uint) sum;
+
+            carry =
+                sum >> 32;
+
+            ++k;
+        }
+    }
+
+    if (result.magnitude.isZero)
+        result.sign = 0;
+
+    return true;
+}
+
+
+package(geo)
+bool tryCompactWeightedCoordinate(
+    ref const CompactDyadicProductResearch weightA,
+    ref const SignedDyadicCoordinate a,
+    ref const CompactDyadicProductResearch weightB,
+    ref const SignedDyadicCoordinate b,
+    out SignedExactCoordinateNumerator result
+)
+    pure nothrow @safe @nogc
+{
+    CompactCoordinate compactA;
+    CompactCoordinate compactB;
+
+    if (
+        !compactCoordinate(
+            a,
+            compactA
+        ) ||
+        !compactCoordinate(
+            b,
+            compactB
+        )
+    )
+    {
+        result =
+            SignedExactCoordinateNumerator.init;
+
+        return false;
+    }
+
+    SignedExactCoordinateNumerator productA;
+    SignedExactCoordinateNumerator productB;
+
+    if (
+        !multiplyCompactWeightCoordinate(
+            weightA,
+            compactA,
+            productA
+        ) ||
+        !multiplyCompactWeightCoordinate(
+            weightB,
+            compactB,
+            productB
+        )
+    )
+    {
+        result =
+            SignedExactCoordinateNumerator.init;
+
+        return false;
+    }
+
+    if (productA.sign == 0)
+    {
+        result = productB;
+        return true;
+    }
+
+    if (productB.sign == 0)
+    {
+        result = productA;
+        return true;
+    }
+
+    if (
+        productA.sign ==
+        productB.sign
+    )
+    {
+        result.sign =
+            productA.sign;
+
+        result.magnitude =
+            addUnsigned(
+                productA.magnitude,
+                productB.magnitude
+            );
+
+        return true;
+    }
+
+    const int comparison =
+        compareUnsigned(
+            productA.magnitude,
+            productB.magnitude
+        );
+
+    if (comparison == 0)
+    {
+        result =
+            SignedExactCoordinateNumerator.init;
+
+        return true;
+    }
+
+    if (comparison > 0)
+    {
+        result.sign =
+            productA.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                productA.magnitude,
+                productB.magnitude
+            );
+    }
+    else
+    {
+        result.sign =
+            productB.sign;
+
+        result.magnitude =
+            subtractUnsigned(
+                productB.magnitude,
+                productA.magnitude
+            );
+    }
+
+    return true;
+}
+
+
 private bool materialize(
     ref const CompactProduct compact,
     out SignedDyadicProduct result
@@ -732,38 +1107,16 @@ bool tryOrientationDeterminantCompactDecoded(
 )
     pure nothrow @safe @nogc
 {
-    CompactCoordinate cax;
-    CompactCoordinate cay;
-    CompactCoordinate cbx;
-    CompactCoordinate cby;
-    CompactCoordinate ccx;
-    CompactCoordinate ccy;
+    CompactDyadicProductResearch compact;
 
     if (
-        !compactCoordinate(ax, cax) ||
-        !compactCoordinate(ay, cay) ||
-        !compactCoordinate(bx, cbx) ||
-        !compactCoordinate(by, cby) ||
-        !compactCoordinate(cx, ccx) ||
-        !compactCoordinate(cy, ccy)
-    )
-    {
-        result =
-            SignedDyadicProduct.init;
-
-        return false;
-    }
-
-    CompactProduct compact;
-
-    if (
-        !compactDeterminant(
-            cax,
-            cay,
-            cbx,
-            cby,
-            ccx,
-            ccy,
+        !tryOrientationDeterminantCompactDecodedRaw(
+            ax,
+            ay,
+            bx,
+            by,
+            cx,
+            cy,
             compact
         )
     )

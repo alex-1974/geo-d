@@ -6,8 +6,12 @@ import geo.intersection :
     SegmentContactKind,
     segmentContactKind;
 import geo.internal.dyadic :
+    SignedDyadicCoordinate,
     SignedDyadicProduct,
-    decodeDyadicCoordinate;
+    decodeDyadicCoordinate,
+    multiplyDyadicDifferences,
+    subtractDyadicCoordinates,
+    subtractDyadicProducts;
 import geo.internal.dyadic_compact_research :
     tryOrientationDeterminantCompactDecoded;
 import core.memory : GC;
@@ -225,6 +229,60 @@ private void preflight(T)(ref Case!T c)
     }
 }
 
+private SignedDyadicProduct fixedDeterminantDecoded(
+    ref const SignedDyadicCoordinate ax,
+    ref const SignedDyadicCoordinate ay,
+    ref const SignedDyadicCoordinate bx,
+    ref const SignedDyadicCoordinate by,
+    ref const SignedDyadicCoordinate cx,
+    ref const SignedDyadicCoordinate cy
+)
+    pure nothrow @safe @nogc
+{
+    const auto bax =
+        subtractDyadicCoordinates(
+            bx,
+            ax
+        );
+
+    const auto bay =
+        subtractDyadicCoordinates(
+            by,
+            ay
+        );
+
+    const auto cax =
+        subtractDyadicCoordinates(
+            cx,
+            ax
+        );
+
+    const auto cay =
+        subtractDyadicCoordinates(
+            cy,
+            ay
+        );
+
+    const auto left =
+        multiplyDyadicDifferences(
+            bax,
+            cay
+        );
+
+    const auto right =
+        multiplyDyadicDifferences(
+            bay,
+            cax
+        );
+
+    return
+        subtractDyadicProducts(
+            left,
+            right
+        );
+}
+
+
 private bool selectedCase(
     string name,
     string[] onlyCases
@@ -246,6 +304,7 @@ private void compactCensus(T)(
     size_t properCrossings;
     size_t attempts;
     size_t compactHits;
+    size_t oraclePasses;
 
     foreach (direction; 0 .. 2)
     {
@@ -334,6 +393,27 @@ private void compactCensus(T)(
                 )
                 {
                     ++compactHits;
+
+                    const auto fixed =
+                        fixedDeterminantDecoded(
+                            eAx,
+                            eAy,
+                            eBx,
+                            eBy,
+                            qAx,
+                            qAy
+                        );
+
+                    enforce(
+                        result.sign ==
+                            fixed.sign &&
+                        result.magnitude.limb ==
+                            fixed.magnitude.limb,
+                        "compact determinant oracle: " ~
+                            c.name
+                    );
+
+                    ++oraclePasses;
                 }
 
                 ++attempts;
@@ -351,6 +431,27 @@ private void compactCensus(T)(
                 )
                 {
                     ++compactHits;
+
+                    const auto fixed =
+                        fixedDeterminantDecoded(
+                            eAx,
+                            eAy,
+                            eBx,
+                            eBy,
+                            qBx,
+                            qBy
+                        );
+
+                    enforce(
+                        result.sign ==
+                            fixed.sign &&
+                        result.magnitude.limb ==
+                            fixed.magnitude.limb,
+                        "compact determinant oracle: " ~
+                            c.name
+                    );
+
+                    ++oraclePasses;
                 }
             }
         }
@@ -367,12 +468,13 @@ private void compactCensus(T)(
                 cast(double) attempts;
 
     writefln(
-        "compact_census,%s,%s,%s,%s,%s,%s,%.2f",
+        "compact_census,%s,%s,%s,%s,%s,%s,%s,%.2f",
         T.stringof,
         c.name,
         properCrossings,
         attempts,
         compactHits,
+        oraclePasses,
         fallbacks,
         hitPercent
     );
@@ -687,7 +789,8 @@ void main(string[] args)
             "compact_census_header,"
             "scalar,case,proper_crossings,"
             "determinant_attempts,compact_hits,"
-            "fallbacks,compact_hit_percent"
+            "oracle_passes,fallbacks,"
+            "compact_hit_percent"
         );
 
         if (

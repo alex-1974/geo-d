@@ -1045,6 +1045,162 @@ if (isExactIntersectionScalar!T)
 }
 
 
+version (LDC)
+{
+    @safe unittest
+    {
+        import geo.point : Point2;
+
+        alias P = Point2!double;
+        alias S = Segment2!double;
+
+        /*
+         * Ordinary proper crossing must take the compact construction path and
+         * produce the same exact rational carriers as the authoritative fixed
+         * implementation.
+         */
+        {
+            const first =
+                S(
+                    P(0.0, 0.0),
+                    P(10.0, 10.0)
+                );
+
+            const second =
+                S(
+                    P(0.0, 10.0),
+                    P(10.0, 0.0)
+                );
+
+            const auto prepared =
+                prepareExactSegment(
+                    first
+                );
+
+            ExactProperIntersection compact;
+            ExactProperIntersection fixed;
+
+            assert(
+                tryProperIntersectionExactKnownCrossingPreparedFirstCompact(
+                    prepared,
+                    second,
+                    compact
+                )
+            );
+
+            properIntersectionExactKnownCrossing(
+                first,
+                second,
+                fixed
+            );
+
+            assert(
+                compact.denominator.limb ==
+                fixed.denominator.limb
+            );
+
+            assert(
+                compact.xNumerator.sign ==
+                fixed.xNumerator.sign
+            );
+
+            assert(
+                compact.xNumerator.magnitude.limb ==
+                fixed.xNumerator.magnitude.limb
+            );
+
+            assert(
+                compact.yNumerator.sign ==
+                fixed.yNumerator.sign
+            );
+
+            assert(
+                compact.yNumerator.magnitude.limb ==
+                fixed.yNumerator.magnitude.limb
+            );
+        }
+
+
+        /*
+         * A huge exponent spread makes the compact difference window
+         * inapplicable. The public prepared construction must then fall back
+         * to the fixed implementation without changing exact rational data.
+         */
+        {
+            const double tiny =
+                double.min_normal *
+                double.epsilon;
+
+            const first =
+                S(
+                    P(-double.max, 0.0),
+                    P(double.max, 0.0)
+                );
+
+            const second =
+                S(
+                    P(tiny, -1.0),
+                    P(double.max / 16.0, 1.0)
+                );
+
+            const auto prepared =
+                prepareExactSegment(
+                    first
+                );
+
+            ExactProperIntersection compact;
+            ExactProperIntersection fixed;
+            ExactProperIntersection fallback;
+
+            assert(
+                !tryProperIntersectionExactKnownCrossingPreparedFirstCompact(
+                    prepared,
+                    second,
+                    compact
+                )
+            );
+
+            properIntersectionExactKnownCrossing(
+                first,
+                second,
+                fixed
+            );
+
+            properIntersectionExactKnownCrossingPreparedFirst(
+                prepared,
+                second,
+                fallback
+            );
+
+            assert(
+                fallback.denominator.limb ==
+                fixed.denominator.limb
+            );
+
+            assert(
+                fallback.xNumerator.sign ==
+                fixed.xNumerator.sign
+            );
+
+            assert(
+                fallback.xNumerator.magnitude.limb ==
+                fixed.xNumerator.magnitude.limb
+            );
+
+            assert(
+                fallback.yNumerator.sign ==
+                fixed.yNumerator.sign
+            );
+
+            assert(
+                fallback.yNumerator.magnitude.limb ==
+                fixed.yNumerator.magnitude.limb
+            );
+        }
+    }
+}
+
+
 @safe unittest
 {
     import geo.point : Point2;

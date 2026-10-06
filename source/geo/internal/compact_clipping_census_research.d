@@ -15,6 +15,12 @@ import geo.internal.dyadic :
 import geo.internal.dyadic_compact_research :
     tryOrientationDeterminantCompactDecoded;
 
+import geo.internal.intersection_exact :
+    ExactProperIntersection,
+    prepareExactSegment,
+    properIntersectionExactKnownCrossing,
+    tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch;
+
 import geo.polygon_view :
     Polygon2View;
 
@@ -38,6 +44,9 @@ struct CompactClippingCensus
     size_t compactHits;
     size_t oraclePasses;
     size_t fallbacks;
+    size_t compactConstructionHits;
+    size_t compactConstructionOraclePasses;
+    size_t compactConstructionFallbacks;
 
     @property double hitPercent() const
         pure nothrow @safe @nogc
@@ -276,6 +285,52 @@ if (
                     qBx,
                     qBy
                 );
+
+                const auto preparedQuery =
+                    prepareExactSegment(
+                        query
+                    );
+
+                ExactProperIntersection compactExact;
+
+                if (
+                    tryProperIntersectionExactKnownCrossingPreparedFirstCompactResearch(
+                        preparedQuery,
+                        edge,
+                        compactExact
+                    )
+                )
+                {
+                    ++stats.compactConstructionHits;
+
+                    ExactProperIntersection fixedExact;
+
+                    properIntersectionExactKnownCrossing(
+                        query,
+                        edge,
+                        fixedExact
+                    );
+
+                    if (
+                        compactExact.denominator.limb ==
+                            fixedExact.denominator.limb &&
+                        compactExact.xNumerator.sign ==
+                            fixedExact.xNumerator.sign &&
+                        compactExact.xNumerator.magnitude.limb ==
+                            fixedExact.xNumerator.magnitude.limb &&
+                        compactExact.yNumerator.sign ==
+                            fixedExact.yNumerator.sign &&
+                        compactExact.yNumerator.magnitude.limb ==
+                            fixedExact.yNumerator.magnitude.limb
+                    )
+                    {
+                        ++stats.compactConstructionOraclePasses;
+                    }
+                }
+                else
+                {
+                    ++stats.compactConstructionFallbacks;
+                }
             }
         }
     }

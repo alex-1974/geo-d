@@ -22,6 +22,10 @@ import geo.internal.orientation_dyadic :
     orientationDeterminantDyadic,
     orientationDeterminantDyadicDecoded;
 
+version (GeoResearchCompactDyadic)
+import geo.internal.dyadic_compact_research :
+    tryOrientationDeterminantCompactDecoded;
+
 import geo.segment :
     Segment2;
 
@@ -64,6 +68,47 @@ private enum bool isExactIntersectionScalar(T) =
  * repeated source segment can hoist scalar-to-dyadic decoding out of an edge
  * loop without changing the exact arithmetic or result representation.
  */
+version (GeoResearchCompactDyadic)
+private SignedDyadicProduct
+orientationDeterminantDyadicDecodedConstructionResearch(
+    ref const SignedDyadicCoordinate aX,
+    ref const SignedDyadicCoordinate aY,
+    ref const SignedDyadicCoordinate bX,
+    ref const SignedDyadicCoordinate bY,
+    ref const SignedDyadicCoordinate cX,
+    ref const SignedDyadicCoordinate cY
+)
+    pure nothrow @safe @nogc
+{
+    SignedDyadicProduct compact;
+
+    if (
+        tryOrientationDeterminantCompactDecoded(
+            aX,
+            aY,
+            bX,
+            bY,
+            cX,
+            cY,
+            compact
+        )
+    )
+    {
+        return compact;
+    }
+
+    return
+        orientationDeterminantDyadicDecoded(
+            aX,
+            aY,
+            bX,
+            bY,
+            cX,
+            cY
+        );
+}
+
+
 package(geo)
 struct PreparedExactSegment
 {
@@ -446,25 +491,50 @@ if (isExactIntersectionScalar!T)
             second
         );
 
-    const auto dA =
-        orientationDeterminantDyadicDecoded(
-            preparedSecond.aX,
-            preparedSecond.aY,
-            preparedSecond.bX,
-            preparedSecond.bY,
-            first.aX,
-            first.aY
-        );
+    version (GeoResearchCompactDyadic)
+    {
+        const auto dA =
+            orientationDeterminantDyadicDecodedConstructionResearch(
+                preparedSecond.aX,
+                preparedSecond.aY,
+                preparedSecond.bX,
+                preparedSecond.bY,
+                first.aX,
+                first.aY
+            );
 
-    const auto dB =
-        orientationDeterminantDyadicDecoded(
-            preparedSecond.aX,
-            preparedSecond.aY,
-            preparedSecond.bX,
-            preparedSecond.bY,
-            first.bX,
-            first.bY
-        );
+        const auto dB =
+            orientationDeterminantDyadicDecodedConstructionResearch(
+                preparedSecond.aX,
+                preparedSecond.aY,
+                preparedSecond.bX,
+                preparedSecond.bY,
+                first.bX,
+                first.bY
+            );
+    }
+    else
+    {
+        const auto dA =
+            orientationDeterminantDyadicDecoded(
+                preparedSecond.aX,
+                preparedSecond.aY,
+                preparedSecond.bX,
+                preparedSecond.bY,
+                first.aX,
+                first.aY
+            );
+
+        const auto dB =
+            orientationDeterminantDyadicDecoded(
+                preparedSecond.aX,
+                preparedSecond.aY,
+                preparedSecond.bX,
+                preparedSecond.bY,
+                first.bX,
+                first.bY
+            );
+    }
 
     assert(dA.sign != 0);
     assert(dB.sign != 0);

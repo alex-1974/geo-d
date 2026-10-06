@@ -82,12 +82,31 @@ def build_binary(source_root,compiler_name,outdir):
 def run_one(binary,outdir,scalar,case,rounds,target_ms):
     outdir.mkdir(parents=True,exist_ok=False)
     cmd=[str(binary),scalar,case,str(rounds),"0",str(target_ms)]
-    p=subprocess.run(cmd,cwd=outdir,text=True,capture_output=True)
-    (outdir/"samples.stdout").write_text(p.stdout)
-    (outdir/"samples.stderr").write_text(p.stderr)
     (outdir/"command.json").write_text(json.dumps(cmd,indent=2)+"\n")
+
+    stdout_path=outdir/"samples.stdout"
+    stderr_path=outdir/"samples.stderr"
+
+    with stdout_path.open("w") as stdout_file, stderr_path.open("w") as stderr_file:
+        p=subprocess.run(
+            cmd,
+            cwd=outdir,
+            text=True,
+            stdout=stdout_file,
+            stderr=stderr_file,
+        )
+
     if p.returncode:
-        raise RuntimeError("measurement failed: "+str(outdir)+"\n"+p.stdout+p.stderr)
+        stdout=stdout_path.read_text() if stdout_path.exists() else ""
+        stderr=stderr_path.read_text() if stderr_path.exists() else ""
+        raise RuntimeError(
+            "measurement failed: "
+            + str(outdir)
+            + "\n"
+            + stdout
+            + stderr
+        )
+
     return cmd
 
 def main():

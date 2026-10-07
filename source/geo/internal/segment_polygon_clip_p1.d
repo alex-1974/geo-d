@@ -1506,10 +1506,15 @@ if (isSegmentPolygonClipScalar!T)
 
     /*
      * Keep the normal/dense second-pass body identical to the qualified
-     * develop baseline. Only the already-selected small-provenance family is
-     * routed through the isolated research helper.
+     * develop baseline. The isolated helper is used only for small-provenance
+     * calls that observed no proper crossing in pass 1. A proper crossing
+     * prepares the exact query, so crossing-heavy small cases retain the
+     * baseline second-pass body as well.
      */
-    if (prepareSmallEventProvenance)
+    if (
+        prepareSmallEventProvenance &&
+        !preparedExactQueryReady
+    )
     {
         applySmallBoundaryProvenanceSecondPass(
             query,

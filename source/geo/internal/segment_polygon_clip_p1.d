@@ -26,6 +26,7 @@ import geo.internal.intersection_exact :
 import geo.internal.polygon_union_exact :
     ExactOverlayPoint,
     appendSegmentPairNodingEvents,
+    appendSegmentPairNodingEventsKnownContactPreparedFirst,
     appendSegmentPairNodingEventsPreparedFirst,
     compareExactOverlayPointsAlongSegment,
     compareExactOverlayPointsAlongSegmentEqualPreferred,
@@ -39,8 +40,7 @@ import geo.internal.polygon_union_exact :
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
-    appendSegmentPairNodingEventsKnownContact,
-    appendSegmentPairNodingEventsKnownContactPreparedFirst;
+    appendSegmentPairNodingEventsKnownContact;
 
 
 version (unittest)
@@ -816,10 +816,11 @@ if (isSegmentPolygonClipScalar!T)
      * First-pass exact events already contain every proper crossing.
      *
      * Large dense cases retain the existing heap-backed compact provenance.
-     * Research variant: for 4-8 edge crossing/hole cases, use fixed stack
-     * storage instead. This avoids both the heap workspace and pass-2 exact
-     * crossing reconstruction/search while preserving the established small
-     * event comparator.
+     * For 4-8-edge crossing/boundary cases, fixed stack provenance avoids
+     * heap workspace and carries first-pass raw event slots through
+     * sort/dedup. Research variant #165 additionally reuses those mapped slots
+     * for touch/overlap handling in pass 2, avoiding redundant exact event
+     * lookup and, for overlap, redundant overlap construction.
      */
     enum size_t smallProvenanceMaxEdges = 8;
     enum size_t smallProvenanceMaxEvents =
@@ -908,32 +909,51 @@ if (isSegmentPolygonClipScalar!T)
 
     size_t provenanceEdgeIndex;
 
-    /*
-     * DMD benefits from retaining first-pass contact kinds for sufficiently
-     * large dense candidate sets. LDC deliberately does not compile this
-     * workspace state into the clipping hot path.
-     */
+    enum size_t smallBoundaryContactMaxEdges = 8;
+
+    const bool reuseSmallBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount <= smallBoundaryContactMaxEdges;
+
     version (DigitalMars)
-    const bool reuseBoundaryContacts =
+    const bool reuseDenseBoundaryContacts =
         !useEdgeBoundsPrefilter &&
         edgeCount >= 64;
+    else
+    enum bool reuseDenseBoundaryContacts = false;
 
-    version (DigitalMars)
+    const bool reuseBoundaryContacts =
+        reuseSmallBoundaryContacts ||
+        reuseDenseBoundaryContacts;
+
+    SegmentContactKind[
+        smallBoundaryContactMaxEdges
+    ] smallBoundaryContactsStorage;
+
     SegmentContactKind[] boundaryContacts;
 
-    version (DigitalMars)
-    size_t flatEdgeIndex;
-
-    version (DigitalMars)
+    if (reuseSmallBoundaryContacts)
     {
-        if (reuseBoundaryContacts)
+        boundaryContacts =
+            smallBoundaryContactsStorage[
+                0 .. edgeCount
+            ];
+    }
+    else
+    {
+        version (DigitalMars)
         {
-            boundaryContacts =
-                new SegmentContactKind[
-                    edgeCount
-                ];
+            if (reuseDenseBoundaryContacts)
+            {
+                boundaryContacts =
+                    new SegmentContactKind[
+                        edgeCount
+                    ];
+            }
         }
     }
+
+    size_t flatEdgeIndex;
 
     if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
         onOutOfMemoryError();
@@ -967,10 +987,7 @@ if (isSegmentPolygonClipScalar!T)
     /*
      * First boundary pass: collect every exact query/boundary breakpoint.
      */
-    version (DigitalMars)
-    {
-        flatEdgeIndex = 0;
-    }
+    flatEdgeIndex = 0;
 
     provenanceEdgeIndex = 0;
 
@@ -986,34 +1003,18 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            version (DigitalMars)
-            {
-                assert(flatEdgeIndex < edgeCount);
+            assert(flatEdgeIndex < edgeCount);
 
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
                 )
-                {
-                    ++flatEdgeIndex;
-                    continue;
-                }
-            }
-            else
+            )
             {
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    continue;
-                }
+                ++flatEdgeIndex;
+                continue;
             }
 
             ExactOverlayPoint[2] ignoredEdgeEvents;
@@ -1022,61 +1023,45 @@ if (isSegmentPolygonClipScalar!T)
             const size_t rawEventStart =
                 eventCount;
 
-            version (DigitalMars)
             bool appended;
-            else
-            const bool appended =
-                appendSegmentPairNodingEventsPreparedFirst(
-                    query,
-                    edge,
-                    preparedExactQuery,
-                    preparedExactQueryReady,
-                    events[],
-                    eventCount,
-                    ignoredEdgeEvents[],
-                    ignoredCount
-                );
 
-            version (DigitalMars)
+            if (reuseBoundaryContacts)
             {
-                if (reuseBoundaryContacts)
-                {
-                    const SegmentContactKind contact =
-                        segmentContactKind(
-                            query,
-                            edge
-                        );
+                const SegmentContactKind contact =
+                    segmentContactKind(
+                        query,
+                        edge
+                    );
 
-                    boundaryContacts[flatEdgeIndex] =
-                        contact;
+                boundaryContacts[flatEdgeIndex] =
+                    contact;
 
-                    appended =
-                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
-                            query,
-                            edge,
-                            contact,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
-                else
-                {
-                    appended =
-                        appendSegmentPairNodingEventsPreparedFirst(
-                            query,
-                            edge,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
+                appended =
+                    appendSegmentPairNodingEventsKnownContactPreparedFirst(
+                        query,
+                        edge,
+                        contact,
+                        preparedExactQuery,
+                        preparedExactQueryReady,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
+            }
+            else
+            {
+                appended =
+                    appendSegmentPairNodingEventsPreparedFirst(
+                        query,
+                        edge,
+                        preparedExactQuery,
+                        preparedExactQueryReady,
+                        events[],
+                        eventCount,
+                        ignoredEdgeEvents[],
+                        ignoredCount
+                    );
             }
 
             /*
@@ -1100,17 +1085,11 @@ if (isSegmentPolygonClipScalar!T)
                 ++provenanceEdgeIndex;
             }
 
-            version (DigitalMars)
-            {
-                ++flatEdgeIndex;
-            }
+            ++flatEdgeIndex;
         }
     }
 
-    version (DigitalMars)
-    {
-        assert(flatEdgeIndex == edgeCount);
-    }
+    assert(flatEdgeIndex == edgeCount);
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
@@ -1195,10 +1174,7 @@ if (isSegmentPolygonClipScalar!T)
      * - classify proper edge crossings and strict edge-interior endpoint
      *   contacts on their outgoing query ray.
      */
-    version (DigitalMars)
-    {
-        flatEdgeIndex = 0;
-    }
+    flatEdgeIndex = 0;
 
     provenanceEdgeIndex = 0;
 
@@ -1235,37 +1211,20 @@ if (isSegmentPolygonClipScalar!T)
                     edgeIndex
                 );
 
-            version (DigitalMars)
-            {
-                assert(flatEdgeIndex < edgeCount);
+            assert(flatEdgeIndex < edgeCount);
 
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
+            if (
+                useEdgeBoundsPrefilter &&
+                !edgeBoundsMayMeetQuery(
+                    queryBounds,
+                    edge
                 )
-                {
-                    ++flatEdgeIndex;
-                    continue;
-                }
-            }
-            else
+            )
             {
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    continue;
-                }
+                ++flatEdgeIndex;
+                continue;
             }
 
-            version (DigitalMars)
             const SegmentContactKind contact =
                 reuseBoundaryContacts
                     ? boundaryContacts[flatEdgeIndex]
@@ -1273,12 +1232,6 @@ if (isSegmentPolygonClipScalar!T)
                         query,
                         edge
                     );
-            else
-            const SegmentContactKind contact =
-                segmentContactKind(
-                    query,
-                    edge
-                );
 
             const size_t currentProvenanceEdgeIndex =
                 provenanceEdgeIndex;
@@ -1289,10 +1242,7 @@ if (isSegmentPolygonClipScalar!T)
                 ++provenanceEdgeIndex;
             }
 
-            version (DigitalMars)
-            {
-                ++flatEdgeIndex;
-            }
+            ++flatEdgeIndex;
 
             final switch (contact)
             {
@@ -1388,17 +1338,41 @@ if (isSegmentPolygonClipScalar!T)
                         break;
                     }
 
-                    const auto event =
-                        exactOverlayPoint(
-                            point
-                        );
+                    size_t index;
 
-                    const size_t index =
-                        findExactEventIndex(
-                            query,
-                            events[],
-                            event
-                        );
+                    if (prepareSmallEventProvenance)
+                    {
+                        const size_t rawEventPlusOne =
+                            edgeFirstRawEventPlusOne[
+                                currentProvenanceEdgeIndex
+                            ];
+
+                        assert(rawEventPlusOne != 0);
+
+                        const size_t rawEventIndex =
+                            rawEventPlusOne - 1;
+
+                        assert(rawEventIndex < rawToUnique.length);
+
+                        index =
+                            rawToUnique[
+                                rawEventIndex
+                            ];
+                    }
+                    else
+                    {
+                        const auto event =
+                            exactOverlayPoint(
+                                point
+                            );
+
+                        index =
+                            findExactEventIndex(
+                                query,
+                                events[],
+                                event
+                            );
+                    }
 
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
@@ -1417,41 +1391,74 @@ if (isSegmentPolygonClipScalar!T)
 
                 case SegmentContactKind.overlap:
                 {
-                    S overlap;
+                    size_t firstIndex;
+                    size_t secondIndex;
 
-                    const bool found =
-                        trySegmentIntersectionOverlap(
-                            query,
-                            edge,
-                            overlap
-                        );
+                    if (prepareSmallEventProvenance)
+                    {
+                        const size_t rawEventPlusOne =
+                            edgeFirstRawEventPlusOne[
+                                currentProvenanceEdgeIndex
+                            ];
 
-                    assert(found);
-                    assert(overlap.a != overlap.b);
+                        assert(rawEventPlusOne != 0);
 
-                    const auto first =
-                        exactOverlayPoint(
-                            overlap.a
-                        );
+                        const size_t firstRawEventIndex =
+                            rawEventPlusOne - 1;
 
-                    const auto second =
-                        exactOverlayPoint(
-                            overlap.b
-                        );
+                        const size_t secondRawEventIndex =
+                            firstRawEventIndex + 1;
 
-                    const size_t firstIndex =
-                        findExactEventIndex(
-                            query,
-                            events[],
-                            first
-                        );
+                        assert(secondRawEventIndex < rawToUnique.length);
 
-                    const size_t secondIndex =
-                        findExactEventIndex(
-                            query,
-                            events[],
-                            second
-                        );
+                        firstIndex =
+                            rawToUnique[
+                                firstRawEventIndex
+                            ];
+
+                        secondIndex =
+                            rawToUnique[
+                                secondRawEventIndex
+                            ];
+                    }
+                    else
+                    {
+                        S overlap;
+
+                        const bool found =
+                            trySegmentIntersectionOverlap(
+                                query,
+                                edge,
+                                overlap
+                            );
+
+                        assert(found);
+                        assert(overlap.a != overlap.b);
+
+                        const auto first =
+                            exactOverlayPoint(
+                                overlap.a
+                            );
+
+                        const auto second =
+                            exactOverlayPoint(
+                                overlap.b
+                            );
+
+                        firstIndex =
+                            findExactEventIndex(
+                                query,
+                                events[],
+                                first
+                            );
+
+                        secondIndex =
+                            findExactEventIndex(
+                                query,
+                                events[],
+                                second
+                            );
+                    }
 
                     assert(firstIndex != size_t.max);
                     assert(secondIndex != size_t.max);
@@ -1573,10 +1580,7 @@ if (isSegmentPolygonClipScalar!T)
     }
 
 
-    version (DigitalMars)
-    {
-        assert(flatEdgeIndex == edgeCount);
-    }
+    assert(flatEdgeIndex == edgeCount);
 
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);

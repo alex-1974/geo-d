@@ -1,0 +1,33 @@
+name: Research Second Boundary Provenance
+
+on:
+  push:
+    branches:
+      - research/second-boundary-provenance
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Second boundary provenance / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+      - name: Unit tests
+        shell: bash
+        run: dub test --compiler="$DC" --force
+      - name: Segment-polygon smoke
+        shell: bash
+        run: python3 benchmarks/run_segment_polygon.py --compiler="$DC" --smoke

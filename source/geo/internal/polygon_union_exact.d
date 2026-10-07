@@ -2183,139 +2183,6 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
-/*
- * Research specialization for exactly six raw events in the segment/polygon
- * clipping provenance path.
- *
- * The generic mapped sorter above intentionally remains identical to the
- * qualified develop baseline. This separate no-inline entry point lets the
- * clipping consumer opt into the measured six-event insertion sort without
- * changing code shape for other mapped-sort callers.
- */
-pragma(inline, false)
-package(geo)
-size_t sortUniqueSixExactEdgeEventsWithRawMapping(T)(
-    Segment2!T source,
-    scope ExactOverlayPoint[] events,
-    scope size_t[] rawIndices,
-    scope size_t[] rawToUnique
-)
-    pure nothrow @safe @nogc
-if (isPolygonUnionExactScalar!T)
-{
-    assert(source.a != source.b);
-    assert(events.length == 6);
-    assert(rawIndices.length >= events.length);
-    assert(rawToUnique.length >= events.length);
-
-    foreach (i; 0 .. events.length)
-        rawIndices[i] = i;
-
-    foreach (read; 1 .. events.length)
-    {
-        const ExactOverlayPoint event =
-            events[read];
-
-        const size_t rawIndex =
-            rawIndices[read];
-
-        size_t write =
-            read;
-
-        while (
-            write != 0 &&
-            compareExactOverlayPointsAlongSegment(
-                source,
-                events[write - 1],
-                event
-            ) > 0
-        )
-        {
-            events[write] =
-                events[write - 1];
-
-            rawIndices[write] =
-                rawIndices[write - 1];
-
-            --write;
-        }
-
-        events[write] =
-            event;
-
-        rawIndices[write] =
-            rawIndex;
-    }
-
-    size_t write = 1;
-
-    rawToUnique[rawIndices[0]] = 0;
-
-    foreach (read; 1 .. events.length)
-    {
-        if (
-            !exactOverlayPointsEqual(
-                events[write - 1],
-                events[read]
-            )
-        )
-        {
-            if (write != read)
-                events[write] = events[read];
-
-            rawToUnique[rawIndices[read]] =
-                write;
-
-            ++write;
-        }
-        else
-        {
-            rawToUnique[rawIndices[read]] =
-                write - 1;
-        }
-    }
-
-    return write;
-}
-
-
-/*
- * Segment/polygon clipping dispatcher for the exactly-six research path.
- *
- * Keep the event-count branch out of the large clipping kernel so unrelated
- * early-return and non-six-event paths retain the caller code shape of the
- * qualified develop baseline as closely as possible.
- */
-pragma(inline, false)
-package(geo)
-size_t sortUniqueExactEdgeEventsWithRawMappingForSegmentPolygonClip(T)(
-    Segment2!T source,
-    scope ExactOverlayPoint[] events,
-    scope size_t[] rawIndices,
-    scope size_t[] rawToUnique
-)
-    pure nothrow @safe @nogc
-if (isPolygonUnionExactScalar!T)
-{
-    if (events.length == 6)
-    {
-        return
-            sortUniqueSixExactEdgeEventsWithRawMapping(
-                source,
-                events,
-                rawIndices,
-                rawToUnique
-            );
-    }
-
-    return
-        sortUniqueExactEdgeEventsWithRawMapping(
-            source,
-            events,
-            rawIndices,
-            rawToUnique
-        );
-}
 
 
 size_t sortUniqueExactEdgeEvents(T)(
@@ -3347,4 +3214,100 @@ if (isPolygonUnionExactScalar!T)
             secondPoint
         ) == 0
     );
+}
+
+
+/*
+ * Research specialization for exactly six raw events in the segment/polygon
+ * clipping provenance path.
+ *
+ * The generic mapped sorter above intentionally remains identical to the
+ * qualified develop baseline. This separate no-inline entry point lets the
+ * clipping consumer opt into the measured six-event insertion sort without
+ * changing code shape for other mapped-sort callers.
+ */
+pragma(inline, false)
+package(geo)
+size_t sortUniqueSixExactEdgeEventsWithRawMapping(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices,
+    scope size_t[] rawToUnique
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
+    assert(events.length == 6);
+    assert(rawIndices.length >= events.length);
+    assert(rawToUnique.length >= events.length);
+
+    foreach (i; 0 .. events.length)
+        rawIndices[i] = i;
+
+    foreach (read; 1 .. events.length)
+    {
+        const ExactOverlayPoint event =
+            events[read];
+
+        const size_t rawIndex =
+            rawIndices[read];
+
+        size_t write =
+            read;
+
+        while (
+            write != 0 &&
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[write - 1],
+                event
+            ) > 0
+        )
+        {
+            events[write] =
+                events[write - 1];
+
+            rawIndices[write] =
+                rawIndices[write - 1];
+
+            --write;
+        }
+
+        events[write] =
+            event;
+
+        rawIndices[write] =
+            rawIndex;
+    }
+
+    size_t write = 1;
+
+    rawToUnique[rawIndices[0]] = 0;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactOverlayPointsEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            if (write != read)
+                events[write] = events[read];
+
+            rawToUnique[rawIndices[read]] =
+                write;
+
+            ++write;
+        }
+        else
+        {
+            rawToUnique[rawIndices[read]] =
+                write - 1;
+        }
+    }
+
+    return write;
 }

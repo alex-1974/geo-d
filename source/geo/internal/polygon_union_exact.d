@@ -2375,9 +2375,9 @@ if (isPolygonUnionExactScalar!T)
 
 
     /*
-     * Exactly-six clipping specialization preserves exact order, duplicate
+     * Capacity-eight clipping specialization preserves exact order, duplicate
      * collapse and raw-to-unique provenance independently of the generic
-     * mapped sorter.
+     * mapped sorter. The six-event case matches the measured boundary path.
      */
     {
         const S source =
@@ -2399,7 +2399,7 @@ if (isPolygonUnionExactScalar!T)
         size_t[6] rawToUnique;
 
         const size_t count =
-            sortUniqueSixExactEdgeEventsWithRawMapping(
+            sortUniqueCapacityEightExactEdgeEventsWithRawMapping(
                 source,
                 events[],
                 rawIndices[],
@@ -2464,6 +2464,66 @@ if (isPolygonUnionExactScalar!T)
         assert(rawToUnique[3] == 2);
         assert(rawToUnique[4] == 1);
         assert(rawToUnique[5] == 3);
+    }
+
+
+    /*
+     * The same bounded insertion sorter must remain semantically correct when
+     * all eight capacity slots are actually populated.
+     */
+    {
+        const S source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        ExactOverlayPoint[8] events = [
+            exactOverlayPoint(P(10, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(2, 0)),
+            exactOverlayPoint(P(8, 0)),
+            exactOverlayPoint(P(2, 0)),
+            exactOverlayPoint(P(7, 0)),
+        ];
+
+        size_t[8] rawIndices;
+        size_t[8] rawToUnique;
+
+        const size_t count =
+            sortUniqueCapacityEightExactEdgeEventsWithRawMapping(
+                source,
+                events[],
+                rawIndices[],
+                rawToUnique[]
+            );
+
+        assert(count == 6);
+
+        const expected0 = exactOverlayPoint(P(0, 0));
+        const expected1 = exactOverlayPoint(P(2, 0));
+        const expected2 = exactOverlayPoint(P(5, 0));
+        const expected3 = exactOverlayPoint(P(7, 0));
+        const expected4 = exactOverlayPoint(P(8, 0));
+        const expected5 = exactOverlayPoint(P(10, 0));
+
+        assert(exactOverlayPointsEqual(events[0], expected0));
+        assert(exactOverlayPointsEqual(events[1], expected1));
+        assert(exactOverlayPointsEqual(events[2], expected2));
+        assert(exactOverlayPointsEqual(events[3], expected3));
+        assert(exactOverlayPointsEqual(events[4], expected4));
+        assert(exactOverlayPointsEqual(events[5], expected5));
+
+        assert(rawToUnique[0] == 5);
+        assert(rawToUnique[1] == 2);
+        assert(rawToUnique[2] == 0);
+        assert(rawToUnique[3] == 2);
+        assert(rawToUnique[4] == 1);
+        assert(rawToUnique[5] == 4);
+        assert(rawToUnique[6] == 1);
+        assert(rawToUnique[7] == 3);
     }
 
 
@@ -3218,17 +3278,18 @@ if (isPolygonUnionExactScalar!T)
 
 
 /*
- * Research specialization for exactly six raw events in the segment/polygon
- * clipping provenance path.
+ * Research specialization for the segment/polygon clipping provenance path
+ * when its conservative event capacity is exactly eight.
  *
- * The generic mapped sorter above intentionally remains identical to the
- * qualified develop baseline. This separate no-inline entry point lets the
- * clipping consumer opt into the measured six-event insertion sort without
- * changing code shape for other mapped-sort callers.
+ * The generic mapped sorter intentionally remains identical to the qualified
+ * develop baseline. The clipping consumer can select this entry point from
+ * eventCapacity before raw event collection is complete. Actual raw event
+ * count may be any value from 1 through 8; insertion sort is correct for the
+ * whole bounded family, so no post-pass events.length == 6 dispatch is needed.
  */
 pragma(inline, false)
 package(geo)
-size_t sortUniqueSixExactEdgeEventsWithRawMapping(T)(
+size_t sortUniqueCapacityEightExactEdgeEventsWithRawMapping(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events,
     scope size_t[] rawIndices,
@@ -3238,9 +3299,12 @@ size_t sortUniqueSixExactEdgeEventsWithRawMapping(T)(
 if (isPolygonUnionExactScalar!T)
 {
     assert(source.a != source.b);
-    assert(events.length == 6);
+    assert(events.length <= 8);
     assert(rawIndices.length >= events.length);
     assert(rawToUnique.length >= events.length);
+
+    if (events.length == 0)
+        return 0;
 
     foreach (i; 0 .. events.length)
         rawIndices[i] = i;

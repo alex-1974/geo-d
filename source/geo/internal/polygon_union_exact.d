@@ -2279,6 +2279,45 @@ if (isPolygonUnionExactScalar!T)
 }
 
 
+/*
+ * Segment/polygon clipping dispatcher for the exactly-six research path.
+ *
+ * Keep the event-count branch out of the large clipping kernel so unrelated
+ * early-return and non-six-event paths retain the caller code shape of the
+ * qualified develop baseline as closely as possible.
+ */
+pragma(inline, false)
+package(geo)
+size_t sortUniqueExactEdgeEventsWithRawMappingForSegmentPolygonClip(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices,
+    scope size_t[] rawToUnique
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    if (events.length == 6)
+    {
+        return
+            sortUniqueSixExactEdgeEventsWithRawMapping(
+                source,
+                events,
+                rawIndices,
+                rawToUnique
+            );
+    }
+
+    return
+        sortUniqueExactEdgeEventsWithRawMapping(
+            source,
+            events,
+            rawIndices,
+            rawToUnique
+        );
+}
+
+
 size_t sortUniqueExactEdgeEvents(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events

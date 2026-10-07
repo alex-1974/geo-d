@@ -1973,6 +1973,64 @@ if (isPolygonUnionExactScalar!T)
  * dense equal-denominator comparator, so enabling provenance does not change
  * the established 2-8-event sort regime.
  */
+/*
+ * Research isolation for the exactly-six mapped-event specialization.
+ *
+ * Keep the insertion-sort body out of the generic mapped sorter so callers
+ * that do not execute the six-event path retain a code shape closer to the
+ * qualified heap-sort baseline. The no-inline boundary is deliberate
+ * research instrumentation; wall-clock evidence decides whether it survives.
+ */
+pragma(inline, false)
+private void sortSixExactEdgeEventsWithRawMapping(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(events.length == 6);
+    assert(rawIndices.length >= events.length);
+
+    foreach (read; 1 .. events.length)
+    {
+        const ExactOverlayPoint event =
+            events[read];
+
+        const size_t rawIndex =
+            rawIndices[read];
+
+        size_t write =
+            read;
+
+        while (
+            write != 0 &&
+            compareExactOverlayPointsAlongSegment(
+                source,
+                events[write - 1],
+                event
+            ) > 0
+        )
+        {
+            events[write] =
+                events[write - 1];
+
+            rawIndices[write] =
+                rawIndices[write - 1];
+
+            --write;
+        }
+
+        events[write] =
+            event;
+
+        rawIndices[write] =
+            rawIndex;
+    }
+}
+
+
 package(geo)
 size_t sortUniqueExactEdgeEventsWithRawMapping(T)(
     Segment2!T source,
@@ -1995,41 +2053,11 @@ if (isPolygonUnionExactScalar!T)
 
     if (events.length == 6)
     {
-        foreach (read; 1 .. events.length)
-        {
-            const ExactOverlayPoint event =
-                events[read];
-
-            const size_t rawIndex =
-                rawIndices[read];
-
-            size_t write =
-                read;
-
-            while (
-                write != 0 &&
-                compareExactOverlayPointsAlongSegment(
-                    source,
-                    events[write - 1],
-                    event
-                ) > 0
-            )
-            {
-                events[write] =
-                    events[write - 1];
-
-                rawIndices[write] =
-                    rawIndices[write - 1];
-
-                --write;
-            }
-
-            events[write] =
-                event;
-
-            rawIndices[write] =
-                rawIndex;
-        }
+        sortSixExactEdgeEventsWithRawMapping(
+            source,
+            events,
+            rawIndices
+        );
     }
     else
     {

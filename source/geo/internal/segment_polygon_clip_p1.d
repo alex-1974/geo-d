@@ -35,7 +35,8 @@ import geo.internal.polygon_union_exact :
     sortUniqueExactEdgeEvents,
     sortUniqueExactEdgeEventsEqualPreferred,
     sortUniqueExactEdgeEventsEqualPreferredWithRawMapping,
-    sortUniqueExactEdgeEventsWithRawMapping;
+    sortUniqueExactEdgeEventsWithRawMapping,
+    sortUniqueSixExactEdgeEventsWithRawMapping;
 
 version (DigitalMars)
 import geo.internal.polygon_union_exact :
@@ -1144,13 +1145,26 @@ if (isSegmentPolygonClipScalar!T)
     {
         if (reuseProperCrossingEventIndex)
         {
-            eventCount =
-                sortUniqueExactEdgeEventsWithRawMapping(
-                    query,
-                    events[0 .. eventCount],
-                    rawEventIndices[0 .. eventCount],
-                    rawToUnique[0 .. eventCount]
-                );
+            if (eventCount == 6)
+            {
+                eventCount =
+                    sortUniqueSixExactEdgeEventsWithRawMapping(
+                        query,
+                        events[0 .. eventCount],
+                        rawEventIndices[0 .. eventCount],
+                        rawToUnique[0 .. eventCount]
+                    );
+            }
+            else
+            {
+                eventCount =
+                    sortUniqueExactEdgeEventsWithRawMapping(
+                        query,
+                        events[0 .. eventCount],
+                        rawEventIndices[0 .. eventCount],
+                        rawToUnique[0 .. eventCount]
+                    );
+            }
         }
         else
         {

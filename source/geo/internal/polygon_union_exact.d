@@ -1973,25 +1973,243 @@ if (isPolygonUnionExactScalar!T)
  * dense equal-denominator comparator, so enabling provenance does not change
  * the established 2-8-event sort regime.
  */
-/*
- * Research isolation for the exactly-six mapped-event specialization.
- *
- * Keep the insertion-sort body out of the generic mapped sorter so callers
- * that do not execute the six-event path retain a code shape closer to the
- * qualified heap-sort baseline. The no-inline boundary is deliberate
- * research instrumentation; wall-clock evidence decides whether it survives.
- */
-pragma(inline, false)
-private void sortSixExactEdgeEventsWithRawMapping(T)(
+package(geo)
+size_t sortUniqueExactEdgeEventsWithRawMapping(T)(
     Segment2!T source,
     scope ExactOverlayPoint[] events,
-    scope size_t[] rawIndices
+    scope size_t[] rawIndices,
+    scope size_t[] rawToUnique
 )
     pure nothrow @safe @nogc
 if (isPolygonUnionExactScalar!T)
 {
+    assert(source.a != source.b);
+    assert(rawIndices.length >= events.length);
+    assert(rawToUnique.length >= events.length);
+
+    if (events.length == 0)
+        return 0;
+
+    foreach (i; 0 .. events.length)
+        rawIndices[i] = i;
+
+    size_t start =
+        events.length / 2;
+
+    while (start > 0)
+    {
+        --start;
+
+        size_t root = start;
+
+        while (true)
+        {
+            const size_t left =
+                root * 2 + 1;
+
+            if (left >= events.length)
+                break;
+
+            size_t largest = root;
+
+            if (
+                compareExactOverlayPointsAlongSegment(
+                    source,
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
+
+            const size_t right =
+                left + 1;
+
+            if (
+                right < events.length &&
+                compareExactOverlayPointsAlongSegment(
+                    source,
+                    events[largest],
+                    events[right]
+                ) < 0
+            )
+            {
+                largest = right;
+            }
+
+            if (largest == root)
+                break;
+
+            const ExactOverlayPoint temporaryEvent =
+                events[root];
+
+            events[root] =
+                events[largest];
+
+            events[largest] =
+                temporaryEvent;
+
+            const size_t temporaryRawIndex =
+                rawIndices[root];
+
+            rawIndices[root] =
+                rawIndices[largest];
+
+            rawIndices[largest] =
+                temporaryRawIndex;
+
+            root = largest;
+        }
+    }
+
+    size_t end =
+        events.length;
+
+    while (end > 1)
+    {
+        --end;
+
+        const ExactOverlayPoint temporaryEvent =
+            events[0];
+
+        events[0] =
+            events[end];
+
+        events[end] =
+            temporaryEvent;
+
+        const size_t temporaryRawIndex =
+            rawIndices[0];
+
+        rawIndices[0] =
+            rawIndices[end];
+
+        rawIndices[end] =
+            temporaryRawIndex;
+
+        size_t root = 0;
+
+        while (true)
+        {
+            const size_t left =
+                root * 2 + 1;
+
+            if (left >= end)
+                break;
+
+            size_t largest = root;
+
+            if (
+                compareExactOverlayPointsAlongSegment(
+                    source,
+                    events[largest],
+                    events[left]
+                ) < 0
+            )
+            {
+                largest = left;
+            }
+
+            const size_t right =
+                left + 1;
+
+            if (
+                right < end &&
+                compareExactOverlayPointsAlongSegment(
+                    source,
+                    events[largest],
+                    events[right]
+                ) < 0
+            )
+            {
+                largest = right;
+            }
+
+            if (largest == root)
+                break;
+
+            const ExactOverlayPoint siftEvent =
+                events[root];
+
+            events[root] =
+                events[largest];
+
+            events[largest] =
+                siftEvent;
+
+            const size_t siftRawIndex =
+                rawIndices[root];
+
+            rawIndices[root] =
+                rawIndices[largest];
+
+            rawIndices[largest] =
+                siftRawIndex;
+
+            root = largest;
+        }
+    }
+
+    size_t write = 1;
+
+    rawToUnique[rawIndices[0]] = 0;
+
+    foreach (read; 1 .. events.length)
+    {
+        if (
+            !exactOverlayPointsEqual(
+                events[write - 1],
+                events[read]
+            )
+        )
+        {
+            if (write != read)
+                events[write] = events[read];
+
+            rawToUnique[rawIndices[read]] =
+                write;
+
+            ++write;
+        }
+        else
+        {
+            rawToUnique[rawIndices[read]] =
+                write - 1;
+        }
+    }
+
+    return write;
+}
+
+
+/*
+ * Research specialization for exactly six raw events in the segment/polygon
+ * clipping provenance path.
+ *
+ * The generic mapped sorter above intentionally remains identical to the
+ * qualified develop baseline. This separate no-inline entry point lets the
+ * clipping consumer opt into the measured six-event insertion sort without
+ * changing code shape for other mapped-sort callers.
+ */
+pragma(inline, false)
+package(geo)
+size_t sortUniqueSixExactEdgeEventsWithRawMapping(T)(
+    Segment2!T source,
+    scope ExactOverlayPoint[] events,
+    scope size_t[] rawIndices,
+    scope size_t[] rawToUnique
+)
+    pure nothrow @safe @nogc
+if (isPolygonUnionExactScalar!T)
+{
+    assert(source.a != source.b);
     assert(events.length == 6);
     assert(rawIndices.length >= events.length);
+    assert(rawToUnique.length >= events.length);
+
+    foreach (i; 0 .. events.length)
+        rawIndices[i] = i;
 
     foreach (read; 1 .. events.length)
     {
@@ -2028,198 +2246,6 @@ if (isPolygonUnionExactScalar!T)
         rawIndices[write] =
             rawIndex;
     }
-}
-
-
-package(geo)
-size_t sortUniqueExactEdgeEventsWithRawMapping(T)(
-    Segment2!T source,
-    scope ExactOverlayPoint[] events,
-    scope size_t[] rawIndices,
-    scope size_t[] rawToUnique
-)
-    pure nothrow @safe @nogc
-if (isPolygonUnionExactScalar!T)
-{
-    assert(source.a != source.b);
-    assert(rawIndices.length >= events.length);
-    assert(rawToUnique.length >= events.length);
-
-    if (events.length == 0)
-        return 0;
-
-    foreach (i; 0 .. events.length)
-        rawIndices[i] = i;
-
-    if (events.length == 6)
-    {
-        sortSixExactEdgeEventsWithRawMapping(
-            source,
-            events,
-            rawIndices
-        );
-    }
-    else
-    {
-        size_t start =
-            events.length / 2;
-    
-        while (start > 0)
-        {
-            --start;
-    
-            size_t root = start;
-    
-            while (true)
-            {
-                const size_t left =
-                    root * 2 + 1;
-    
-                if (left >= events.length)
-                    break;
-    
-                size_t largest = root;
-    
-                if (
-                    compareExactOverlayPointsAlongSegment(
-                        source,
-                        events[largest],
-                        events[left]
-                    ) < 0
-                )
-                {
-                    largest = left;
-                }
-    
-                const size_t right =
-                    left + 1;
-    
-                if (
-                    right < events.length &&
-                    compareExactOverlayPointsAlongSegment(
-                        source,
-                        events[largest],
-                        events[right]
-                    ) < 0
-                )
-                {
-                    largest = right;
-                }
-    
-                if (largest == root)
-                    break;
-    
-                const ExactOverlayPoint temporaryEvent =
-                    events[root];
-    
-                events[root] =
-                    events[largest];
-    
-                events[largest] =
-                    temporaryEvent;
-    
-                const size_t temporaryRawIndex =
-                    rawIndices[root];
-    
-                rawIndices[root] =
-                    rawIndices[largest];
-    
-                rawIndices[largest] =
-                    temporaryRawIndex;
-    
-                root = largest;
-            }
-        }
-    
-        size_t end =
-            events.length;
-    
-        while (end > 1)
-        {
-            --end;
-    
-            const ExactOverlayPoint temporaryEvent =
-                events[0];
-    
-            events[0] =
-                events[end];
-    
-            events[end] =
-                temporaryEvent;
-    
-            const size_t temporaryRawIndex =
-                rawIndices[0];
-    
-            rawIndices[0] =
-                rawIndices[end];
-    
-            rawIndices[end] =
-                temporaryRawIndex;
-    
-            size_t root = 0;
-    
-            while (true)
-            {
-                const size_t left =
-                    root * 2 + 1;
-    
-                if (left >= end)
-                    break;
-    
-                size_t largest = root;
-    
-                if (
-                    compareExactOverlayPointsAlongSegment(
-                        source,
-                        events[largest],
-                        events[left]
-                    ) < 0
-                )
-                {
-                    largest = left;
-                }
-    
-                const size_t right =
-                    left + 1;
-    
-                if (
-                    right < end &&
-                    compareExactOverlayPointsAlongSegment(
-                        source,
-                        events[largest],
-                        events[right]
-                    ) < 0
-                )
-                {
-                    largest = right;
-                }
-    
-                if (largest == root)
-                    break;
-    
-                const ExactOverlayPoint siftEvent =
-                    events[root];
-    
-                events[root] =
-                    events[largest];
-    
-                events[largest] =
-                    siftEvent;
-    
-                const size_t siftRawIndex =
-                    rawIndices[root];
-    
-                rawIndices[root] =
-                    rawIndices[largest];
-    
-                rawIndices[largest] =
-                    siftRawIndex;
-    
-                root = largest;
-            }
-        }
-    
-        }
 
     size_t write = 1;
 
@@ -2439,6 +2465,84 @@ if (isPolygonUnionExactScalar!T)
         assert(rawToUnique[1] == 1);
         assert(rawToUnique[2] == 0);
         assert(rawToUnique[3] == 1);
+    }
+
+
+    /*
+     * Exactly-six clipping specialization preserves exact order, duplicate
+     * collapse and raw-to-unique provenance independently of the generic
+     * mapped sorter.
+     */
+    {
+        const S source =
+            S(
+                P(0, 0),
+                P(10, 0)
+            );
+
+        ExactOverlayPoint[6] events = [
+            exactOverlayPoint(P(10, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(0, 0)),
+            exactOverlayPoint(P(5, 0)),
+            exactOverlayPoint(P(2, 0)),
+            exactOverlayPoint(P(8, 0)),
+        ];
+
+        size_t[6] rawIndices;
+        size_t[6] rawToUnique;
+
+        const size_t count =
+            sortUniqueSixExactEdgeEventsWithRawMapping(
+                source,
+                events[],
+                rawIndices[],
+                rawToUnique[]
+            );
+
+        assert(count == 5);
+
+        assert(
+            exactOverlayPointsEqual(
+                events[0],
+                exactOverlayPoint(P(0, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[1],
+                exactOverlayPoint(P(2, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[2],
+                exactOverlayPoint(P(5, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[3],
+                exactOverlayPoint(P(8, 0))
+            )
+        );
+
+        assert(
+            exactOverlayPointsEqual(
+                events[4],
+                exactOverlayPoint(P(10, 0))
+            )
+        );
+
+        assert(rawToUnique[0] == 4);
+        assert(rawToUnique[1] == 2);
+        assert(rawToUnique[2] == 0);
+        assert(rawToUnique[3] == 2);
+        assert(rawToUnique[4] == 1);
+        assert(rawToUnique[5] == 3);
     }
 
 

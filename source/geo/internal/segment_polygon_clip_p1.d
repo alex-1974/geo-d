@@ -942,541 +942,40 @@ if (isSegmentPolygonClipScalar!T)
 
 
 /*
- * Production P1 clipping kernel.
+ * Post-sort continuation for the P1 clipping kernel.
  *
- * Preconditions:
- *
- * - query is finite;
- * - polygon satisfies validatePolygon(polygon).valid.
+ * The front end owns validation, early exits, capacity/provenance preparation,
+ * event collection and sorting. This continuation owns all labeling,
+ * retention and materialization work. Keeping specialization inside this
+ * continuation prevents boundary-specific dispatch from reshaping the early
+ * return portion of trySegmentPolygonClipP1Internal.
  */
-package(geo)
-SegmentPolygonClipInternalStatus
-trySegmentPolygonClipP1Internal(T)(
+pragma(inline, false)
+private SegmentPolygonClipInternalStatus
+finishSegmentPolygonClipP1Internal(T)(
     Segment2!T query,
+    Bounds2!T queryBounds,
     scope Polygon2View!T polygon,
-    out SegmentPolygonClipOwnedResultInternal owned
+    size_t edgeCount,
+    size_t eventCapacity,
+    bool useEdgeBoundsPrefilter,
+    bool prepareSmallEventProvenance,
+    bool prepareEventProvenance,
+    bool reuseProperCrossingEventIndex,
+    ref PreparedExactSegment preparedExactQuery,
+    bool preparedExactQueryReady,
+    scope const(size_t)[] edgeFirstRawEventPlusOne,
+    scope const(size_t)[] rawToUnique,
+    bool reuseBoundaryContacts,
+    scope const(SegmentContactKind)[] boundaryContacts,
+    scope ExactOverlayPoint[] events,
+    size_t eventCount,
+    ref SegmentPolygonClipOwnedResultInternal owned
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
     alias S = Segment2!T;
-
-    owned =
-        SegmentPolygonClipOwnedResultInternal.init;
-
-    assert(query.isFinite);
-
-    /*
-     * ADR-0024 regularizes away every zero-dimensional result.
-     */
-    if (query.a == query.b)
-    {
-        Segment2!double[] emptyComponents;
-
-        owned =
-            takeSegmentPolygonClipOwnedResultInternal(
-                emptyComponents
-            );
-
-        return
-            SegmentPolygonClipInternalStatus.success;
-    }
-
-
-    const size_t edgeCount =
-        polygonBoundaryEdgeCount(
-            polygon
-        );
-
-    if (edgeCount == 0)
-    {
-        Segment2!double[] emptyComponents;
-
-        owned =
-            takeSegmentPolygonClipOwnedResultInternal(
-                emptyComponents
-            );
-
-        return
-            SegmentPolygonClipInternalStatus.success;
-    }
-
-
-    Bounds2!T queryBounds;
-    const bool bounded =
-        tryBounds(query, queryBounds);
-
-    assert(bounded && !queryBounds.empty);
-
-    const size_t eventCapacity =
-        queryBoundaryEventCapacity(
-            queryBounds,
-            polygon
-        );
-
-    assert(eventCapacity >= 2);
-    assert((eventCapacity - 2) % 2 == 0);
-
-    const size_t candidateEdgeCount =
-        (eventCapacity - 2) / 2;
-
-    /*
-     * No conservative edge candidate means no polygon boundary can meet the
-     * query. The connected query segment therefore has one constant
-     * non-boundary location. Classify one endpoint and avoid constructing the
-     * exact event pipeline entirely.
-     *
-     * A boundary classification is not expected under candidateEdgeCount == 0
-     * because any incident boundary edge would have overlapping closed bounds.
-     * Fall through to the authoritative general path instead of relying on that
-     * proof as a release-mode assertion.
-     */
-    if (candidateEdgeCount == 0)
-    {
-        PointPolygonLocation location;
-
-        const bool classified =
-            tryClassifyPointInPolygon(
-                polygon,
-                query.a,
-                location
-            );
-
-        assert(classified);
-
-        final switch (location)
-        {
-            case PointPolygonLocation.outside:
-            {
-                Segment2!double[] emptyComponents;
-
-                owned =
-                    takeSegmentPolygonClipOwnedResultInternal(
-                        emptyComponents
-                    );
-
-                return
-                    SegmentPolygonClipInternalStatus.success;
-            }
-
-            case PointPolygonLocation.inside:
-            {
-                const auto exactStart =
-                    exactOverlayPoint(
-                        query.a
-                    );
-
-                const auto exactEnd =
-                    exactOverlayPoint(
-                        query.b
-                    );
-
-                Point2!double start;
-                Point2!double end;
-
-                if (
-                    !tryMaterializeExactPoint(
-                        exactStart,
-                        start
-                    ) ||
-                    !tryMaterializeExactPoint(
-                        exactEnd,
-                        end
-                    ) ||
-                    !roundedPointStrictlyAfter(
-                        query,
-                        start,
-                        end
-                    )
-                )
-                {
-                    return
-                        SegmentPolygonClipInternalStatus
-                            .unrepresentableConstruction;
-                }
-
-                auto components =
-                    new Segment2!double[1];
-
-                components[0] =
-                    Segment2!double(
-                        start,
-                        end
-                    );
-
-                owned =
-                    takeSegmentPolygonClipOwnedResultInternal(
-                        components
-                    );
-
-                return
-                    SegmentPolygonClipInternalStatus.success;
-            }
-
-            case PointPolygonLocation.boundary:
-                break;
-        }
-    }
-
-    /*
-     * The capacity pass already establishes the number of edges whose closed
-     * bounds can meet the query. Retained corpus evidence separates the sparse
-     * regime (<= 12.5% candidates) from crossing/dense (50% candidates).
-     * Apply the repeated per-edge bounds rejection only when at most one
-     * quarter of boundary edges survive that first cheap pass.
-     */
-    const bool useEdgeBoundsPrefilter =
-        candidateEdgeCount <= edgeCount / 4;
-
-    /*
-     * First-pass exact events already contain every proper crossing.
-     *
-     * Large dense cases retain the existing heap-backed compact provenance.
-     * For 4-8-edge crossing/boundary cases, fixed stack provenance avoids
-     * heap workspace and carries first-pass raw event slots through
-     * sort/dedup. Research variant #165 routes only this already-selected
-     * family through an isolated second-pass helper.
-     */
-    enum size_t smallProvenanceMaxEdges = 8;
-    enum size_t smallProvenanceMaxEvents =
-        2 + 2 * smallProvenanceMaxEdges;
-
-    const bool prepareSmallEventProvenance =
-        !useEdgeBoundsPrefilter &&
-        edgeCount <= smallProvenanceMaxEdges &&
-        eventCapacity <= smallProvenanceMaxEvents;
-
-    const bool prepareDenseEventProvenance =
-        !useEdgeBoundsPrefilter &&
-        edgeCount >= 16;
-
-    const bool prepareEventProvenance =
-        prepareSmallEventProvenance ||
-        prepareDenseEventProvenance;
-
-    size_t[smallProvenanceMaxEdges]
-        smallEdgeFirstRawEventPlusOneStorage;
-
-    size_t[smallProvenanceMaxEvents]
-        smallRawEventIndicesStorage;
-
-    size_t[smallProvenanceMaxEvents]
-        smallRawToUniqueStorage;
-
-    size_t[] eventProvenanceWorkspace;
-    size_t[] edgeFirstRawEventPlusOne;
-    size_t[] rawEventIndices;
-    size_t[] rawToUnique;
-
-    if (prepareSmallEventProvenance)
-    {
-        edgeFirstRawEventPlusOne =
-            smallEdgeFirstRawEventPlusOneStorage[
-                0 .. edgeCount
-            ];
-
-        rawEventIndices =
-            smallRawEventIndicesStorage[
-                0 .. eventCapacity
-            ];
-
-        rawToUnique =
-            smallRawToUniqueStorage[
-                0 .. eventCapacity
-            ];
-    }
-    else if (prepareDenseEventProvenance)
-    {
-        if (
-            eventCapacity >
-            (size_t.max - edgeCount) / 2
-        )
-        {
-            onOutOfMemoryError();
-        }
-
-        const size_t workspaceLength =
-            edgeCount +
-            2 * eventCapacity;
-
-        eventProvenanceWorkspace =
-            new size_t[
-                workspaceLength
-            ];
-
-        edgeFirstRawEventPlusOne =
-            eventProvenanceWorkspace[
-                0 .. edgeCount
-            ];
-
-        rawEventIndices =
-            eventProvenanceWorkspace[
-                edgeCount ..
-                edgeCount + eventCapacity
-            ];
-
-        rawToUnique =
-            eventProvenanceWorkspace[
-                edgeCount + eventCapacity ..
-                workspaceLength
-            ];
-    }
-
-    size_t provenanceEdgeIndex;
-
-    /*
-     * DMD benefits from retaining first-pass contact kinds for sufficiently
-     * large dense candidate sets. LDC deliberately does not compile this
-     * workspace state into the clipping hot path.
-     */
-    version (DigitalMars)
-    const bool reuseBoundaryContacts =
-        !useEdgeBoundsPrefilter &&
-        edgeCount >= 64;
-
-    version (DigitalMars)
-    SegmentContactKind[] boundaryContacts;
-
-    version (DigitalMars)
-    size_t flatEdgeIndex;
-
-    version (DigitalMars)
-    {
-        if (reuseBoundaryContacts)
-        {
-            boundaryContacts =
-                new SegmentContactKind[
-                    edgeCount
-                ];
-        }
-    }
-
-    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
-        onOutOfMemoryError();
-
-    auto events =
-        new ExactOverlayPoint[
-            eventCapacity
-        ];
-
-    size_t eventCount;
-
-    const bool seeded =
-        seedExactEdgeEvents(
-            query,
-            events[],
-            eventCount
-        );
-
-    assert(seeded);
-
-
-    /*
-     * Prepare the exact query lazily on the first strict proper crossing and
-     * keep it for both boundary passes. Sparse/non-crossing calls therefore do
-     * not pay scalar-to-dyadic decode cost merely for enabling this path.
-     */
-    PreparedExactSegment preparedExactQuery;
-    bool preparedExactQueryReady;
-
-
-    /*
-     * First boundary pass: collect every exact query/boundary breakpoint.
-     */
-    version (DigitalMars)
-    {
-        flatEdgeIndex = 0;
-    }
-
-    provenanceEdgeIndex = 0;
-
-    foreach (ringIndex; 0 .. polygon.length)
-    {
-        const auto ring =
-            polygon[ringIndex];
-
-        foreach (edgeIndex; 0 .. ring.segmentCount)
-        {
-            const S edge =
-                ring.segment(
-                    edgeIndex
-                );
-
-            version (DigitalMars)
-            {
-                assert(flatEdgeIndex < edgeCount);
-
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    ++flatEdgeIndex;
-                    continue;
-                }
-            }
-            else
-            {
-                if (
-                    useEdgeBoundsPrefilter &&
-                    !edgeBoundsMayMeetQuery(
-                        queryBounds,
-                        edge
-                    )
-                )
-                {
-                    continue;
-                }
-            }
-
-            ExactOverlayPoint[2] ignoredEdgeEvents;
-            size_t ignoredCount;
-
-            const size_t rawEventStart =
-                eventCount;
-
-            version (DigitalMars)
-            bool appended;
-            else
-            const bool appended =
-                appendSegmentPairNodingEventsPreparedFirst(
-                    query,
-                    edge,
-                    preparedExactQuery,
-                    preparedExactQueryReady,
-                    events[],
-                    eventCount,
-                    ignoredEdgeEvents[],
-                    ignoredCount
-                );
-
-            version (DigitalMars)
-            {
-                if (reuseBoundaryContacts)
-                {
-                    const SegmentContactKind contact =
-                        segmentContactKind(
-                            query,
-                            edge
-                        );
-
-                    boundaryContacts[flatEdgeIndex] =
-                        contact;
-
-                    appended =
-                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
-                            query,
-                            edge,
-                            contact,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
-                else
-                {
-                    appended =
-                        appendSegmentPairNodingEventsPreparedFirst(
-                            query,
-                            edge,
-                            preparedExactQuery,
-                            preparedExactQueryReady,
-                            events[],
-                            eventCount,
-                            ignoredEdgeEvents[],
-                            ignoredCount
-                        );
-                }
-            }
-
-            /*
-             * The conservative bounds pass covers every raw insertion,
-             * including duplicates. The global 2n + 2 bound remains valid.
-             */
-            assert(appended);
-
-            if (prepareEventProvenance)
-            {
-                assert(provenanceEdgeIndex < edgeCount);
-
-                if (eventCount != rawEventStart)
-                {
-                    edgeFirstRawEventPlusOne[
-                        provenanceEdgeIndex
-                    ] =
-                        rawEventStart + 1;
-                }
-
-                ++provenanceEdgeIndex;
-            }
-
-            version (DigitalMars)
-            {
-                ++flatEdgeIndex;
-            }
-        }
-    }
-
-    version (DigitalMars)
-    {
-        assert(flatEdgeIndex == edgeCount);
-    }
-
-    if (prepareEventProvenance)
-        assert(provenanceEdgeIndex == edgeCount);
-
-    const bool reuseProperCrossingEventIndex =
-        prepareEventProvenance;
-
-
-    if (eventCount >= equalPreferredEventThreshold)
-    {
-        if (reuseProperCrossingEventIndex)
-        {
-            eventCount =
-                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
-                    query,
-                    events[0 .. eventCount],
-                    rawEventIndices[0 .. eventCount],
-                    rawToUnique[0 .. eventCount]
-                );
-        }
-        else
-        {
-            eventCount =
-                sortUniqueExactEdgeEventsEqualPreferred(
-                    query,
-                    events[0 .. eventCount]
-                );
-        }
-    }
-    else
-    {
-        if (reuseProperCrossingEventIndex)
-        {
-            eventCount =
-                sortUniqueExactEdgeEventsWithRawMapping(
-                    query,
-                    events[0 .. eventCount],
-                    rawEventIndices[0 .. eventCount],
-                    rawToUnique[0 .. eventCount]
-                );
-        }
-        else
-        {
-            eventCount =
-                sortUniqueExactEdgeEvents(
-                    query,
-                    events[0 .. eventCount]
-                );
-        }
-    }
 
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
@@ -2156,6 +1655,600 @@ if (isSegmentPolygonClipScalar!T)
 
     return
         SegmentPolygonClipInternalStatus.success;
+}
+
+
+/*
+ * Production P1 clipping kernel.
+ *
+ * Preconditions:
+ *
+ * - query is finite;
+ * - polygon satisfies validatePolygon(polygon).valid.
+ */
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1Internal(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    alias S = Segment2!T;
+
+    owned =
+        SegmentPolygonClipOwnedResultInternal.init;
+
+    assert(query.isFinite);
+
+    /*
+     * ADR-0024 regularizes away every zero-dimensional result.
+     */
+    if (query.a == query.b)
+    {
+        Segment2!double[] emptyComponents;
+
+        owned =
+            takeSegmentPolygonClipOwnedResultInternal(
+                emptyComponents
+            );
+
+        return
+            SegmentPolygonClipInternalStatus.success;
+    }
+
+
+    const size_t edgeCount =
+        polygonBoundaryEdgeCount(
+            polygon
+        );
+
+    if (edgeCount == 0)
+    {
+        Segment2!double[] emptyComponents;
+
+        owned =
+            takeSegmentPolygonClipOwnedResultInternal(
+                emptyComponents
+            );
+
+        return
+            SegmentPolygonClipInternalStatus.success;
+    }
+
+
+    Bounds2!T queryBounds;
+    const bool bounded =
+        tryBounds(query, queryBounds);
+
+    assert(bounded && !queryBounds.empty);
+
+    const size_t eventCapacity =
+        queryBoundaryEventCapacity(
+            queryBounds,
+            polygon
+        );
+
+    assert(eventCapacity >= 2);
+    assert((eventCapacity - 2) % 2 == 0);
+
+    const size_t candidateEdgeCount =
+        (eventCapacity - 2) / 2;
+
+    /*
+     * No conservative edge candidate means no polygon boundary can meet the
+     * query. The connected query segment therefore has one constant
+     * non-boundary location. Classify one endpoint and avoid constructing the
+     * exact event pipeline entirely.
+     *
+     * A boundary classification is not expected under candidateEdgeCount == 0
+     * because any incident boundary edge would have overlapping closed bounds.
+     * Fall through to the authoritative general path instead of relying on that
+     * proof as a release-mode assertion.
+     */
+    if (candidateEdgeCount == 0)
+    {
+        PointPolygonLocation location;
+
+        const bool classified =
+            tryClassifyPointInPolygon(
+                polygon,
+                query.a,
+                location
+            );
+
+        assert(classified);
+
+        final switch (location)
+        {
+            case PointPolygonLocation.outside:
+            {
+                Segment2!double[] emptyComponents;
+
+                owned =
+                    takeSegmentPolygonClipOwnedResultInternal(
+                        emptyComponents
+                    );
+
+                return
+                    SegmentPolygonClipInternalStatus.success;
+            }
+
+            case PointPolygonLocation.inside:
+            {
+                const auto exactStart =
+                    exactOverlayPoint(
+                        query.a
+                    );
+
+                const auto exactEnd =
+                    exactOverlayPoint(
+                        query.b
+                    );
+
+                Point2!double start;
+                Point2!double end;
+
+                if (
+                    !tryMaterializeExactPoint(
+                        exactStart,
+                        start
+                    ) ||
+                    !tryMaterializeExactPoint(
+                        exactEnd,
+                        end
+                    ) ||
+                    !roundedPointStrictlyAfter(
+                        query,
+                        start,
+                        end
+                    )
+                )
+                {
+                    return
+                        SegmentPolygonClipInternalStatus
+                            .unrepresentableConstruction;
+                }
+
+                auto components =
+                    new Segment2!double[1];
+
+                components[0] =
+                    Segment2!double(
+                        start,
+                        end
+                    );
+
+                owned =
+                    takeSegmentPolygonClipOwnedResultInternal(
+                        components
+                    );
+
+                return
+                    SegmentPolygonClipInternalStatus.success;
+            }
+
+            case PointPolygonLocation.boundary:
+                break;
+        }
+    }
+
+    /*
+     * The capacity pass already establishes the number of edges whose closed
+     * bounds can meet the query. Retained corpus evidence separates the sparse
+     * regime (<= 12.5% candidates) from crossing/dense (50% candidates).
+     * Apply the repeated per-edge bounds rejection only when at most one
+     * quarter of boundary edges survive that first cheap pass.
+     */
+    const bool useEdgeBoundsPrefilter =
+        candidateEdgeCount <= edgeCount / 4;
+
+    /*
+     * First-pass exact events already contain every proper crossing.
+     *
+     * Large dense cases retain the existing heap-backed compact provenance.
+     * For 4-8-edge crossing/boundary cases, fixed stack provenance avoids
+     * heap workspace and carries first-pass raw event slots through
+     * sort/dedup. Research variant #165 routes only this already-selected
+     * family through an isolated second-pass helper.
+     */
+    enum size_t smallProvenanceMaxEdges = 8;
+    enum size_t smallProvenanceMaxEvents =
+        2 + 2 * smallProvenanceMaxEdges;
+
+    const bool prepareSmallEventProvenance =
+        !useEdgeBoundsPrefilter &&
+        edgeCount <= smallProvenanceMaxEdges &&
+        eventCapacity <= smallProvenanceMaxEvents;
+
+    const bool prepareDenseEventProvenance =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 16;
+
+    const bool prepareEventProvenance =
+        prepareSmallEventProvenance ||
+        prepareDenseEventProvenance;
+
+    size_t[smallProvenanceMaxEdges]
+        smallEdgeFirstRawEventPlusOneStorage;
+
+    size_t[smallProvenanceMaxEvents]
+        smallRawEventIndicesStorage;
+
+    size_t[smallProvenanceMaxEvents]
+        smallRawToUniqueStorage;
+
+    size_t[] eventProvenanceWorkspace;
+    size_t[] edgeFirstRawEventPlusOne;
+    size_t[] rawEventIndices;
+    size_t[] rawToUnique;
+
+    if (prepareSmallEventProvenance)
+    {
+        edgeFirstRawEventPlusOne =
+            smallEdgeFirstRawEventPlusOneStorage[
+                0 .. edgeCount
+            ];
+
+        rawEventIndices =
+            smallRawEventIndicesStorage[
+                0 .. eventCapacity
+            ];
+
+        rawToUnique =
+            smallRawToUniqueStorage[
+                0 .. eventCapacity
+            ];
+    }
+    else if (prepareDenseEventProvenance)
+    {
+        if (
+            eventCapacity >
+            (size_t.max - edgeCount) / 2
+        )
+        {
+            onOutOfMemoryError();
+        }
+
+        const size_t workspaceLength =
+            edgeCount +
+            2 * eventCapacity;
+
+        eventProvenanceWorkspace =
+            new size_t[
+                workspaceLength
+            ];
+
+        edgeFirstRawEventPlusOne =
+            eventProvenanceWorkspace[
+                0 .. edgeCount
+            ];
+
+        rawEventIndices =
+            eventProvenanceWorkspace[
+                edgeCount ..
+                edgeCount + eventCapacity
+            ];
+
+        rawToUnique =
+            eventProvenanceWorkspace[
+                edgeCount + eventCapacity ..
+                workspaceLength
+            ];
+    }
+
+    size_t provenanceEdgeIndex;
+
+    /*
+     * DMD benefits from retaining first-pass contact kinds for sufficiently
+     * large dense candidate sets. LDC deliberately does not compile this
+     * workspace state into the clipping hot path.
+     */
+    version (DigitalMars)
+    const bool reuseBoundaryContacts =
+        !useEdgeBoundsPrefilter &&
+        edgeCount >= 64;
+
+    version (DigitalMars)
+    SegmentContactKind[] boundaryContacts;
+
+    version (DigitalMars)
+    size_t flatEdgeIndex;
+
+    version (DigitalMars)
+    {
+        if (reuseBoundaryContacts)
+        {
+            boundaryContacts =
+                new SegmentContactKind[
+                    edgeCount
+                ];
+        }
+    }
+
+    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
+        onOutOfMemoryError();
+
+    auto events =
+        new ExactOverlayPoint[
+            eventCapacity
+        ];
+
+    size_t eventCount;
+
+    const bool seeded =
+        seedExactEdgeEvents(
+            query,
+            events[],
+            eventCount
+        );
+
+    assert(seeded);
+
+
+    /*
+     * Prepare the exact query lazily on the first strict proper crossing and
+     * keep it for both boundary passes. Sparse/non-crossing calls therefore do
+     * not pay scalar-to-dyadic decode cost merely for enabling this path.
+     */
+    PreparedExactSegment preparedExactQuery;
+    bool preparedExactQueryReady;
+
+
+    /*
+     * First boundary pass: collect every exact query/boundary breakpoint.
+     */
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
+
+    provenanceEdgeIndex = 0;
+
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const auto ring =
+            polygon[ringIndex];
+
+        foreach (edgeIndex; 0 .. ring.segmentCount)
+        {
+            const S edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            version (DigitalMars)
+            {
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    ++flatEdgeIndex;
+                    continue;
+                }
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
+            }
+
+            ExactOverlayPoint[2] ignoredEdgeEvents;
+            size_t ignoredCount;
+
+            const size_t rawEventStart =
+                eventCount;
+
+            version (DigitalMars)
+            bool appended;
+            else
+            const bool appended =
+                appendSegmentPairNodingEventsPreparedFirst(
+                    query,
+                    edge,
+                    preparedExactQuery,
+                    preparedExactQueryReady,
+                    events[],
+                    eventCount,
+                    ignoredEdgeEvents[],
+                    ignoredCount
+                );
+
+            version (DigitalMars)
+            {
+                if (reuseBoundaryContacts)
+                {
+                    const SegmentContactKind contact =
+                        segmentContactKind(
+                            query,
+                            edge
+                        );
+
+                    boundaryContacts[flatEdgeIndex] =
+                        contact;
+
+                    appended =
+                        appendSegmentPairNodingEventsKnownContactPreparedFirst(
+                            query,
+                            edge,
+                            contact,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+                else
+                {
+                    appended =
+                        appendSegmentPairNodingEventsPreparedFirst(
+                            query,
+                            edge,
+                            preparedExactQuery,
+                            preparedExactQueryReady,
+                            events[],
+                            eventCount,
+                            ignoredEdgeEvents[],
+                            ignoredCount
+                        );
+                }
+            }
+
+            /*
+             * The conservative bounds pass covers every raw insertion,
+             * including duplicates. The global 2n + 2 bound remains valid.
+             */
+            assert(appended);
+
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+
+                if (eventCount != rawEventStart)
+                {
+                    edgeFirstRawEventPlusOne[
+                        provenanceEdgeIndex
+                    ] =
+                        rawEventStart + 1;
+                }
+
+                ++provenanceEdgeIndex;
+            }
+
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
+        }
+    }
+
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
+
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
+
+    const bool reuseProperCrossingEventIndex =
+        prepareEventProvenance;
+
+
+    if (eventCount >= equalPreferredEventThreshold)
+    {
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferredWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsEqualPreferred(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
+    }
+    else
+    {
+        if (reuseProperCrossingEventIndex)
+        {
+            eventCount =
+                sortUniqueExactEdgeEventsWithRawMapping(
+                    query,
+                    events[0 .. eventCount],
+                    rawEventIndices[0 .. eventCount],
+                    rawToUnique[0 .. eventCount]
+                );
+        }
+        else
+        {
+            eventCount =
+                sortUniqueExactEdgeEvents(
+                    query,
+                    events[0 .. eventCount]
+                );
+        }
+    }
+
+    /*
+     * All post-sort labeling/materialization is intentionally outside this
+     * front-end kernel. Boundary-specific dispatch therefore cannot reshape
+     * the early-return/event-generation body.
+     */
+    version (DigitalMars)
+    {
+        return
+            finishSegmentPolygonClipP1Internal(
+                query,
+                queryBounds,
+                polygon,
+                edgeCount,
+                eventCapacity,
+                useEdgeBoundsPrefilter,
+                prepareSmallEventProvenance,
+                prepareEventProvenance,
+                reuseProperCrossingEventIndex,
+                preparedExactQuery,
+                preparedExactQueryReady,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                reuseBoundaryContacts,
+                boundaryContacts,
+                events[],
+                eventCount,
+                owned
+            );
+    }
+    else
+    {
+        return
+            finishSegmentPolygonClipP1Internal(
+                query,
+                queryBounds,
+                polygon,
+                edgeCount,
+                eventCapacity,
+                useEdgeBoundsPrefilter,
+                prepareSmallEventProvenance,
+                prepareEventProvenance,
+                reuseProperCrossingEventIndex,
+                preparedExactQuery,
+                preparedExactQueryReady,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                false,
+                null,
+                events[],
+                eventCount,
+                owned
+            );
+    }
+
 }
 
 

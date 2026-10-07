@@ -1854,10 +1854,10 @@ if (isSegmentPolygonClipScalar!T)
      * First-pass exact events already contain every proper crossing.
      *
      * Large dense cases retain the existing heap-backed compact provenance.
-     * For 4-8-edge crossing/boundary cases, fixed stack provenance avoids
-     * heap workspace and carries first-pass raw event slots through
-     * sort/dedup. Research variant #165 routes only this already-selected
-     * family through an isolated second-pass helper.
+     * Research variant: for 4-8 edge crossing/hole cases, use fixed stack
+     * storage instead. This avoids both the heap workspace and pass-2 exact
+     * crossing reconstruction/search while preserving the established small
+     * event comparator.
      */
     enum size_t smallProvenanceMaxEdges = 8;
     enum size_t smallProvenanceMaxEvents =

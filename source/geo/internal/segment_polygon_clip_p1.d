@@ -977,6 +977,11 @@ if (isSegmentPolygonClipScalar!T)
 {
     alias S = Segment2!T;
 
+    size_t provenanceEdgeIndex;
+
+    version (DigitalMars)
+    size_t flatEdgeIndex;
+
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 

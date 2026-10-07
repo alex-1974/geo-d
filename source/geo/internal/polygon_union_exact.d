@@ -1993,163 +1993,205 @@ if (isPolygonUnionExactScalar!T)
     foreach (i; 0 .. events.length)
         rawIndices[i] = i;
 
-    size_t start =
-        events.length / 2;
-
-    while (start > 0)
+    if (events.length == 6)
     {
-        --start;
-
-        size_t root = start;
-
-        while (true)
+        foreach (read; 1 .. events.length)
         {
-            const size_t left =
-                root * 2 + 1;
+            const ExactOverlayPoint event =
+                events[read];
 
-            if (left >= events.length)
-                break;
+            const size_t rawIndex =
+                rawIndices[read];
 
-            size_t largest = root;
+            size_t write =
+                read;
 
-            if (
+            while (
+                write != 0 &&
                 compareExactOverlayPointsAlongSegment(
                     source,
-                    events[largest],
-                    events[left]
-                ) < 0
+                    events[write - 1],
+                    event
+                ) > 0
             )
             {
-                largest = left;
+                events[write] =
+                    events[write - 1];
+
+                rawIndices[write] =
+                    rawIndices[write - 1];
+
+                --write;
             }
 
-            const size_t right =
-                left + 1;
+            events[write] =
+                event;
 
-            if (
-                right < events.length &&
-                compareExactOverlayPointsAlongSegment(
-                    source,
-                    events[largest],
-                    events[right]
-                ) < 0
-            )
+            rawIndices[write] =
+                rawIndex;
+        }
+    }
+    else
+    {
+        size_t start =
+            events.length / 2;
+    
+        while (start > 0)
+        {
+            --start;
+    
+            size_t root = start;
+    
+            while (true)
             {
-                largest = right;
+                const size_t left =
+                    root * 2 + 1;
+    
+                if (left >= events.length)
+                    break;
+    
+                size_t largest = root;
+    
+                if (
+                    compareExactOverlayPointsAlongSegment(
+                        source,
+                        events[largest],
+                        events[left]
+                    ) < 0
+                )
+                {
+                    largest = left;
+                }
+    
+                const size_t right =
+                    left + 1;
+    
+                if (
+                    right < events.length &&
+                    compareExactOverlayPointsAlongSegment(
+                        source,
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+    
+                if (largest == root)
+                    break;
+    
+                const ExactOverlayPoint temporaryEvent =
+                    events[root];
+    
+                events[root] =
+                    events[largest];
+    
+                events[largest] =
+                    temporaryEvent;
+    
+                const size_t temporaryRawIndex =
+                    rawIndices[root];
+    
+                rawIndices[root] =
+                    rawIndices[largest];
+    
+                rawIndices[largest] =
+                    temporaryRawIndex;
+    
+                root = largest;
             }
-
-            if (largest == root)
-                break;
-
+        }
+    
+        size_t end =
+            events.length;
+    
+        while (end > 1)
+        {
+            --end;
+    
             const ExactOverlayPoint temporaryEvent =
-                events[root];
-
-            events[root] =
-                events[largest];
-
-            events[largest] =
+                events[0];
+    
+            events[0] =
+                events[end];
+    
+            events[end] =
                 temporaryEvent;
-
+    
             const size_t temporaryRawIndex =
-                rawIndices[root];
-
-            rawIndices[root] =
-                rawIndices[largest];
-
-            rawIndices[largest] =
+                rawIndices[0];
+    
+            rawIndices[0] =
+                rawIndices[end];
+    
+            rawIndices[end] =
                 temporaryRawIndex;
-
-            root = largest;
-        }
-    }
-
-    size_t end =
-        events.length;
-
-    while (end > 1)
-    {
-        --end;
-
-        const ExactOverlayPoint temporaryEvent =
-            events[0];
-
-        events[0] =
-            events[end];
-
-        events[end] =
-            temporaryEvent;
-
-        const size_t temporaryRawIndex =
-            rawIndices[0];
-
-        rawIndices[0] =
-            rawIndices[end];
-
-        rawIndices[end] =
-            temporaryRawIndex;
-
-        size_t root = 0;
-
-        while (true)
-        {
-            const size_t left =
-                root * 2 + 1;
-
-            if (left >= end)
-                break;
-
-            size_t largest = root;
-
-            if (
-                compareExactOverlayPointsAlongSegment(
-                    source,
-                    events[largest],
-                    events[left]
-                ) < 0
-            )
+    
+            size_t root = 0;
+    
+            while (true)
             {
-                largest = left;
+                const size_t left =
+                    root * 2 + 1;
+    
+                if (left >= end)
+                    break;
+    
+                size_t largest = root;
+    
+                if (
+                    compareExactOverlayPointsAlongSegment(
+                        source,
+                        events[largest],
+                        events[left]
+                    ) < 0
+                )
+                {
+                    largest = left;
+                }
+    
+                const size_t right =
+                    left + 1;
+    
+                if (
+                    right < end &&
+                    compareExactOverlayPointsAlongSegment(
+                        source,
+                        events[largest],
+                        events[right]
+                    ) < 0
+                )
+                {
+                    largest = right;
+                }
+    
+                if (largest == root)
+                    break;
+    
+                const ExactOverlayPoint siftEvent =
+                    events[root];
+    
+                events[root] =
+                    events[largest];
+    
+                events[largest] =
+                    siftEvent;
+    
+                const size_t siftRawIndex =
+                    rawIndices[root];
+    
+                rawIndices[root] =
+                    rawIndices[largest];
+    
+                rawIndices[largest] =
+                    siftRawIndex;
+    
+                root = largest;
             }
-
-            const size_t right =
-                left + 1;
-
-            if (
-                right < end &&
-                compareExactOverlayPointsAlongSegment(
-                    source,
-                    events[largest],
-                    events[right]
-                ) < 0
-            )
-            {
-                largest = right;
-            }
-
-            if (largest == root)
-                break;
-
-            const ExactOverlayPoint siftEvent =
-                events[root];
-
-            events[root] =
-                events[largest];
-
-            events[largest] =
-                siftEvent;
-
-            const size_t siftRawIndex =
-                rawIndices[root];
-
-            rawIndices[root] =
-                rawIndices[largest];
-
-            rawIndices[largest] =
-                siftRawIndex;
-
-            root = largest;
         }
-    }
+    
+        }
 
     size_t write = 1;
 

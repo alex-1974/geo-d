@@ -13,6 +13,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SPECIAL_MODULE = "geo.internal.segment_polygon_clip_p1_boundary_specialized"
 SPECIAL_PATH = Path("source/geo/internal/segment_polygon_clip_p1_boundary_specialized.d")
+BRIDGE_MODULE = "geo.internal.segment_polygon_clip_p1_boundary_shared_bridge"
+BRIDGE_PATH = Path("source/geo/internal/segment_polygon_clip_p1_boundary_shared_bridge.d")
+BRIDGE_DI_PATH = Path("source/geo/internal/segment_polygon_clip_p1_boundary_shared_bridge.di")
 
 
 def run(cmd, cwd=None, check=True):
@@ -134,9 +137,155 @@ def build_shared_isolated(source_root, compiler, outdir):
     imps = imports(source_root, compiler)
     flags = release_flags(compiler)
 
-    special_obj = outdir / "boundary-specialized.pic.o"
+    bridge_source = r'''module geo.internal.segment_polygon_clip_p1_boundary_shared_bridge;
+
+import geo.internal.segment_polygon_clip_p1 :
+    SegmentPolygonClipInternalStatus;
+
+import geo.internal.segment_polygon_clip_p1_boundary_specialized :
+    trySegmentPolygonClipP1BoundarySpecializedInternal;
+
+import geo.internal.segment_polygon_clip_result :
+    SegmentPolygonClipOwnedResultInternal;
+
+import geo.polygon_view : Polygon2View;
+import geo.segment : Segment2;
+
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!int query,
+    scope Polygon2View!int polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+{
+    return trySegmentPolygonClipP1BoundarySpecializedInternal(
+        query, polygon, owned
+    );
+}
+
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!long query,
+    scope Polygon2View!long polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+{
+    return trySegmentPolygonClipP1BoundarySpecializedInternal(
+        query, polygon, owned
+    );
+}
+
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!float query,
+    scope Polygon2View!float polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+{
+    return trySegmentPolygonClipP1BoundarySpecializedInternal(
+        query, polygon, owned
+    );
+}
+
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!double query,
+    scope Polygon2View!double polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+{
+    return trySegmentPolygonClipP1BoundarySpecializedInternal(
+        query, polygon, owned
+    );
+}
+'''
+
+    bridge_interface = r'''module geo.internal.segment_polygon_clip_p1_boundary_shared_bridge;
+
+import geo.internal.segment_polygon_clip_p1 :
+    SegmentPolygonClipInternalStatus;
+
+import geo.internal.segment_polygon_clip_result :
+    SegmentPolygonClipOwnedResultInternal;
+
+import geo.polygon_view : Polygon2View;
+import geo.segment : Segment2;
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!int,
+    scope Polygon2View!int,
+    out SegmentPolygonClipOwnedResultInternal
+) @safe;
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!long,
+    scope Polygon2View!long,
+    out SegmentPolygonClipOwnedResultInternal
+) @safe;
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!float,
+    scope Polygon2View!float,
+    out SegmentPolygonClipOwnedResultInternal
+) @safe;
+
+package(geo)
+SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1BoundarySharedInternal(
+    Segment2!double,
+    scope Polygon2View!double,
+    out SegmentPolygonClipOwnedResultInternal
+) @safe;
+'''
+
+    bridge_path = source_root / BRIDGE_PATH
+    bridge_di_path = source_root / BRIDGE_DI_PATH
+    bridge_path.write_text(bridge_source)
+    bridge_di_path.write_text(bridge_interface)
+
+    # Patch only the temporary candidate worktree: dispatcher calls a
+    # non-template bridge symbol. The qualified baseline P1 file is untouched.
+    dispatcher_path = (
+        source_root / "source/geo/internal/segment_polygon_clip_p1_dispatch.d"
+    )
+    dispatcher = dispatcher_path.read_text()
+    old_import = '''import geo.internal.segment_polygon_clip_p1_boundary_specialized :
+    trySegmentPolygonClipP1BoundarySpecializedInternal;
+'''
+    new_import = '''import geo.internal.segment_polygon_clip_p1_boundary_shared_bridge :
+    trySegmentPolygonClipP1BoundarySharedInternal;
+'''
+    if old_import not in dispatcher:
+        raise RuntimeError("dispatcher specialized import anchor missing")
+    dispatcher = dispatcher.replace(old_import, new_import)
+    dispatcher = dispatcher.replace(
+        "trySegmentPolygonClipP1BoundarySpecializedInternal(",
+        "trySegmentPolygonClipP1BoundarySharedInternal(",
+    )
+    dispatcher_path.write_text(dispatcher)
+
     pic_flag = "-relocation-model=pic" if compiler_kind(compiler) == "ldc" else "-fPIC"
-    compile_cmd = [
+
+    special_obj = outdir / "boundary-specialized.pic.o"
+    special_cmd = [
         compiler,
         "-c",
         pic_flag,
@@ -145,11 +294,27 @@ def build_shared_isolated(source_root, compiler, outdir):
         *flags,
         "-of=" + str(special_obj),
     ]
-    p = run(compile_cmd, cwd=outdir, check=False)
+    p = run(special_cmd, cwd=outdir, check=False)
     (outdir / "special-compile.stdout").write_text(p.stdout)
     (outdir / "special-compile.stderr").write_text(p.stderr)
     if p.returncode:
-        raise RuntimeError("PIC special compile failed")
+        raise RuntimeError("PIC specialized module compile failed")
+
+    bridge_obj = outdir / "boundary-shared-bridge.pic.o"
+    bridge_cmd = [
+        compiler,
+        "-c",
+        pic_flag,
+        *["-I" + p for p in imps],
+        str(bridge_path),
+        *flags,
+        "-of=" + str(bridge_obj),
+    ]
+    p = run(bridge_cmd, cwd=outdir, check=False)
+    (outdir / "bridge-compile.stdout").write_text(p.stdout)
+    (outdir / "bridge-compile.stderr").write_text(p.stderr)
+    if p.returncode:
+        raise RuntimeError("PIC shared bridge compile failed")
 
     shared = outdir / "libgeo_p1_boundary_specialized.so"
     shared_cmd = [
@@ -157,6 +322,7 @@ def build_shared_isolated(source_root, compiler, outdir):
         "-shared",
         "-Wl,--allow-shlib-undefined",
         "-o", str(shared),
+        str(bridge_obj),
         str(special_obj),
     ]
     p = run(shared_cmd, cwd=outdir, check=False)
@@ -169,11 +335,13 @@ def build_shared_isolated(source_root, compiler, outdir):
     link_cmd = [
         compiler,
         "-i=geo",
+        "-i=-" + BRIDGE_MODULE,
         "-i=-" + SPECIAL_MODULE,
         *["-I" + p for p in imps],
         str(source_root / "benchmarks" / "segment_polygon_bench.d"),
         *flags,
         "-L--export-dynamic",
+        "-L--allow-shlib-undefined",
         "-L-L" + str(outdir),
         "-L-l:libgeo_p1_boundary_specialized.so",
         "-L-rpath=$ORIGIN",
@@ -183,30 +351,47 @@ def build_shared_isolated(source_root, compiler, outdir):
     (outdir / "main-link.stdout").write_text(p.stdout)
     (outdir / "main-link.stderr").write_text(p.stderr)
     if p.returncode:
-        raise RuntimeError("shared-isolated executable link failed")
+        raise RuntimeError(
+            "shared-isolated executable link failed\n" +
+            p.stdout + p.stderr
+        )
 
-    # Semantic smoke of the actual shared-boundary executable.
-    # Hard verification: the specialized kernel must not be defined in the
-    # executable. It may appear only as an undefined dynamic reference.
+    # Hard verification: neither bridge implementation nor specialized P1 may
+    # be defined in the executable. They may appear only as UND references.
     exe_symbols = capture([tool("readelf"), "-Ws", "--wide", str(binary)])
+    forbidden = (
+        "trySegmentPolygonClipP1BoundarySpecializedInternal",
+        "trySegmentPolygonClipP1BoundarySharedInternal",
+    )
     for line in exe_symbols.splitlines():
-        if (
-            "trySegmentPolygonClipP1BoundarySpecializedInternal" in demangle(line.split()[-1])
-            if line.split() else False
-        ):
-            fields = line.split()
-            if len(fields) >= 8 and fields[6] != "UND":
-                raise RuntimeError(
-                    "specialized P1 still defined in executable: " + line
-                )
+        fields = line.split()
+        if len(fields) < 8:
+            continue
+        decoded = demangle(fields[-1])
+        if any(name in decoded for name in forbidden) and fields[6] != "UND":
+            raise RuntimeError(
+                "shared boundary code still defined in executable: " + line
+            )
 
     smoke = run([str(binary), "--check"], cwd=outdir, check=False)
     (outdir / "smoke.stdout").write_text(smoke.stdout)
     (outdir / "smoke.stderr").write_text(smoke.stderr)
     if smoke.returncode:
-        raise RuntimeError("shared-isolated semantic smoke failed")
+        raise RuntimeError(
+            "shared-isolated semantic smoke failed\n" +
+            smoke.stdout + smoke.stderr
+        )
 
-    return binary, shared, compile_cmd, shared_cmd, link_cmd
+    return (
+        binary,
+        shared,
+        special_obj,
+        bridge_obj,
+        special_cmd,
+        bridge_cmd,
+        shared_cmd,
+        link_cmd,
+    )
 
 
 def main():
@@ -259,13 +444,25 @@ def main():
 
             bd = out / "candidate-shared"
             bd.mkdir()
-            binary, shared, compile_cmd, shared_cmd, link_cmd = build_shared_isolated(
+            (
+                binary,
+                shared,
+                special_obj,
+                bridge_obj,
+                special_cmd,
+                bridge_cmd,
+                shared_cmd,
+                link_cmd,
+            ) = build_shared_isolated(
                 wts["candidate"], compiler, bd
             )
             record["builds"]["candidate-shared"] = {
-                "special_compile_command": compile_cmd,
+                "special_compile_command": special_cmd,
+                "bridge_compile_command": bridge_cmd,
                 "shared_link_command": shared_cmd,
                 "main_link_command": link_cmd,
+                "special_object_size": special_obj.stat().st_size,
+                "bridge_object_size": bridge_obj.stat().st_size,
                 "binary_size": binary.stat().st_size,
                 "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                 "shared_size": shared.stat().st_size,

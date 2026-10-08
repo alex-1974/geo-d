@@ -335,6 +335,7 @@ trySegmentPolygonClipP1BoundarySharedInternal(
     link_cmd = [
         compiler,
         "-i=geo",
+        "-i=euclid_core",
         "-i=-" + BRIDGE_MODULE,
         "-i=-" + SPECIAL_MODULE,
         *["-I" + p for p in imps],

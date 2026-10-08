@@ -1,0 +1,52 @@
+name: Research Segment Polygon Codegen
+
+on:
+  push:
+    branches:
+      - research/second-boundary-provenance
+    paths:
+      - benchmarks/run_segment_polygon_codegen_compare.py
+      - .github/workflows/research-segment-polygon-codegen.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  codegen:
+    name: Codegen / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Capture base/candidate codegen
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/codegen-${{ matrix.compiler }}"
+          python3 benchmarks/run_segment_polygon_codegen_compare.py \
+            --base=92659a9b330f3fdf248994cc9b598b6fe73f8429 \
+            --candidate=48600617ef0852d04f49e8cf993fdb0f0ee54741 \
+            --compiler="$DC" \
+            --output="$OUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: segment-polygon-codegen-${{ matrix.compiler }}
+          path: build/codegen-${{ matrix.compiler }}
+          if-no-files-found: error
+          retention-days: 14

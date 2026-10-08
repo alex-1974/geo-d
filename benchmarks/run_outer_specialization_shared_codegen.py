@@ -168,7 +168,7 @@ def build_shared_isolated(source_root, compiler, outdir):
     binary = outdir / "benchmark"
     link_cmd = [
         compiler,
-        "-i",
+        "-i=geo",
         "-i=-" + SPECIAL_MODULE,
         *["-I" + p for p in imps],
         str(source_root / "benchmarks" / "segment_polygon_bench.d"),
@@ -186,6 +186,20 @@ def build_shared_isolated(source_root, compiler, outdir):
         raise RuntimeError("shared-isolated executable link failed")
 
     # Semantic smoke of the actual shared-boundary executable.
+    # Hard verification: the specialized kernel must not be defined in the
+    # executable. It may appear only as an undefined dynamic reference.
+    exe_symbols = capture([tool("readelf"), "-Ws", "--wide", str(binary)])
+    for line in exe_symbols.splitlines():
+        if (
+            "trySegmentPolygonClipP1BoundarySpecializedInternal" in demangle(line.split()[-1])
+            if line.split() else False
+        ):
+            fields = line.split()
+            if len(fields) >= 8 and fields[6] != "UND":
+                raise RuntimeError(
+                    "specialized P1 still defined in executable: " + line
+                )
+
     smoke = run([str(binary), "--check"], cwd=outdir, check=False)
     (outdir / "smoke.stdout").write_text(smoke.stdout)
     (outdir / "smoke.stderr").write_text(smoke.stderr)

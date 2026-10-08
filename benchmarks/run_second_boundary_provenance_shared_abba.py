@@ -179,13 +179,17 @@ def patch_candidate_for_bridge(source_root):
     new='''import geo.internal.segment_polygon_clip_p1_boundary_shared_bridge :
     trySegmentPolygonClipP1BoundarySharedInternal;
 '''
-    if old not in dispatcher:
-        raise RuntimeError("dispatcher specialized import anchor missing")
-    dispatcher=dispatcher.replace(old,new)
-    dispatcher=dispatcher.replace(
-        "trySegmentPolygonClipP1BoundarySpecializedInternal(",
-        "trySegmentPolygonClipP1BoundarySharedInternal(")
-    dispatcher_path.write_text(dispatcher)
+    if old in dispatcher:
+        dispatcher=dispatcher.replace(old,new)
+        dispatcher=dispatcher.replace(
+            "trySegmentPolygonClipP1BoundarySpecializedInternal(",
+            "trySegmentPolygonClipP1BoundarySharedInternal(")
+        dispatcher_path.write_text(dispatcher)
+    elif new in dispatcher:
+        if "trySegmentPolygonClipP1BoundarySharedInternal(" not in dispatcher:
+            raise RuntimeError("dispatcher bridge import present but call anchor missing")
+    else:
+        raise RuntimeError("dispatcher specialized/bridge import anchor missing")
 
 def build_candidate_shared(source_root,compiler_name,outdir):
     compiler=shutil.which(compiler_name)

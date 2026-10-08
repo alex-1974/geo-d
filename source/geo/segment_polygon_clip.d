@@ -19,8 +19,10 @@ import geo.intersection :
     IntersectionScalar;
 
 import geo.internal.segment_polygon_clip_p1 :
-    SegmentPolygonClipInternalStatus,
-    trySegmentPolygonClipP1Internal;
+    SegmentPolygonClipInternalStatus;
+
+import geo.internal.segment_polygon_clip_p1_dispatch :
+    trySegmentPolygonClipP1DispatchedInternal;
 
 import geo.internal.segment_polygon_clip_result :
     SegmentPolygonClipOwnedResultInternal;
@@ -223,7 +225,7 @@ if (isSegmentPolygonClipScalar!T)
     SegmentPolygonClipOwnedResultInternal owned;
 
     const internalStatus =
-        trySegmentPolygonClipP1Internal(
+        trySegmentPolygonClipP1DispatchedInternal(
             segment,
             polygon,
             owned

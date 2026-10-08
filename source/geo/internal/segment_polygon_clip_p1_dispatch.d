@@ -63,6 +63,7 @@ if (isSegmentPolygonClipScalar!T)
  * predicates. False positives remain semantically safe because the separate
  * implementation is a complete clipping kernel.
  */
+pragma(inline, false)
 private bool useBoundarySpecializedP1(T)(
     Segment2!T query,
     scope Polygon2View!T polygon
@@ -131,6 +132,11 @@ trySegmentPolygonClipP1DispatchedInternal(T)(
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
+    /*
+     * Selector-only control: execute the exact outer selection work but route
+     * both outcomes to the untouched baseline kernel. This isolates selector
+     * cost from specialized-kernel cost and code layout.
+     */
     if (
         useBoundarySpecializedP1(
             query,
@@ -139,7 +145,7 @@ if (isSegmentPolygonClipScalar!T)
     )
     {
         return
-            trySegmentPolygonClipP1BoundarySpecializedInternal(
+            trySegmentPolygonClipP1Internal(
                 query,
                 polygon,
                 owned

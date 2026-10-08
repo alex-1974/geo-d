@@ -340,7 +340,6 @@ trySegmentPolygonClipP1BoundarySharedInternal(
         *["-I" + p for p in imps],
         str(source_root / "benchmarks" / "segment_polygon_bench.d"),
         *flags,
-        "-L--export-dynamic",
         "-L--allow-shlib-undefined",
         "-L-L" + str(outdir),
         "-L-l:libgeo_p1_boundary_specialized.so",

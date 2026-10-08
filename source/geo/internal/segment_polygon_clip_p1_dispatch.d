@@ -122,6 +122,44 @@ if (isSegmentPolygonClipScalar!T)
 }
 
 
+pragma(inline, false)
+private SegmentPolygonClipInternalStatus
+baselineDispatchFalse(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    return
+        trySegmentPolygonClipP1Internal(
+            query,
+            polygon,
+            owned
+        );
+}
+
+
+pragma(inline, false)
+private SegmentPolygonClipInternalStatus
+baselineDispatchTrue(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    out SegmentPolygonClipOwnedResultInternal owned
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    return
+        trySegmentPolygonClipP1Internal(
+            query,
+            polygon,
+            owned
+        );
+}
+
+
 package(geo)
 SegmentPolygonClipInternalStatus
 trySegmentPolygonClipP1DispatchedInternal(T)(
@@ -133,9 +171,10 @@ trySegmentPolygonClipP1DispatchedInternal(T)(
 if (isSegmentPolygonClipScalar!T)
 {
     /*
-     * Selector-only control: execute the exact outer selection work but route
-     * both outcomes to the untouched baseline kernel. This isolates selector
-     * cost from specialized-kernel cost and code layout.
+     * Forced selector-only control: selector result chooses between two
+     * distinct no-inline baseline trampolines. Both remain semantically
+     * baseline, but the selection work and branch must survive ordinary
+     * non-LTO optimization.
      */
     if (
         useBoundarySpecializedP1(
@@ -145,7 +184,7 @@ if (isSegmentPolygonClipScalar!T)
     )
     {
         return
-            trySegmentPolygonClipP1Internal(
+            baselineDispatchTrue(
                 query,
                 polygon,
                 owned
@@ -153,7 +192,7 @@ if (isSegmentPolygonClipScalar!T)
     }
 
     return
-        trySegmentPolygonClipP1Internal(
+        baselineDispatchFalse(
             query,
             polygon,
             owned

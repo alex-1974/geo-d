@@ -1,0 +1,52 @@
+name: Research Static ABI Bridge Codegen
+
+on:
+  push:
+    branches:
+      - research/second-boundary-provenance
+    paths:
+      - benchmarks/run_outer_specialization_static_bridge_codegen.py
+      - .github/workflows/research-static-abi-bridge-codegen.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  codegen:
+    name: Static ABI bridge / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Compare static ABI bridge placement
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/static-abi-bridge-${{ matrix.compiler }}"
+          python3 benchmarks/run_outer_specialization_static_bridge_codegen.py \
+            --control=610d766e32d7607debc5e8356877e5203fab592f \
+            --candidate=7aede3959ae2fc54a2cba8911e579578fde8e054 \
+            --compiler="$DC" \
+            --output="$OUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: static-abi-bridge-${{ matrix.compiler }}
+          path: build/static-abi-bridge-${{ matrix.compiler }}
+          if-no-files-found: error
+          retention-days: 14

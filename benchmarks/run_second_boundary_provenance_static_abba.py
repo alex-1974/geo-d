@@ -270,12 +270,27 @@ def main():
     ap.add_argument("--target-ms",type=int,default=50)
     ap.add_argument("--notes",default="")
     ap.add_argument("--output",type=Path)
+    ap.add_argument("--compilers",default="dmd,ldc2")
+    ap.add_argument("--scalars",default="int,long,float,double")
+    ap.add_argument("--cases",default=",".join(CASES))
     a=ap.parse_args()
 
     allowed=os.sched_getaffinity(0)
     if a.cpu not in allowed:
         ap.error("CPU not allowed")
     os.sched_setaffinity(0,{a.cpu})
+
+    compilers=[x for x in a.compilers.split(",") if x]
+    scalars=[x for x in a.scalars.split(",") if x]
+    cases=[x for x in a.cases.split(",") if x]
+    allowed_compilers={"dmd","ldc2"}
+    allowed_scalars={"int","long","float","double"}
+    if not compilers or any(x not in allowed_compilers for x in compilers):
+        ap.error("invalid --compilers")
+    if not scalars or any(x not in allowed_scalars for x in scalars):
+        ap.error("invalid --scalars")
+    if not cases or any(x not in CASES for x in cases):
+        ap.error("invalid --cases")
 
     rev={"base":git("rev-parse","--verify",a.base+"^{commit}"),
          "candidate":git("rev-parse","--verify",a.candidate+"^{commit}")}
@@ -287,7 +302,8 @@ def main():
     record={"format":1,"status":"incomplete","purpose":"second-boundary-static-abi-abba",
             "revisions":rev,"cpu":a.cpu,"allowed_affinity":sorted(allowed),
             "cycles":a.cycles,"rounds":a.rounds,"target_ms":a.target_ms,
-            "notes":a.notes,"cases":CASES,"runs":[],"builds":[],
+            "notes":a.notes,"cases":cases,"compilers":compilers,
+            "scalars":scalars,"runs":[],"builds":[],
             "started_utc":datetime.now(timezone.utc).isoformat(),
             "limitations":["No frequency/turbo control imposed.",
                            "Binaries built once before timing.",
@@ -302,7 +318,7 @@ def main():
                 git("worktree","add","--detach",str(p),sha)
                 wt[label]=p
 
-            for compiler in ["dmd","ldc2"]:
+            for compiler in compilers:
                 for label in ["base","candidate"]:
                     bd=out/"build"/compiler/label
                     bd.mkdir(parents=True,exist_ok=False)
@@ -317,13 +333,13 @@ def main():
                         "binary_sha256":hashlib.sha256(binary.read_bytes()).hexdigest()
                     })
 
-            for compiler in ["dmd","ldc2"]:
+            for compiler in compilers:
                 for label in ["base","candidate"]:
                     run_one(binaries[(compiler,label)],
                             out/"warmup"/compiler/label,
                             "double","boundary-only",3,20)
-                for scalar in ["int","long","float","double"]:
-                    for case in CASES:
+                for scalar in scalars:
+                    for case in cases:
                         for cycle in range(a.cycles):
                             order=(["base","candidate","candidate","base"]
                                    if cycle%2==0 else

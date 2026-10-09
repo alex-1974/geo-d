@@ -29,7 +29,7 @@ __gshared size_t smallBoundaryCodegenProbeSink;
 
 pragma(inline, false)
 private void smallBoundaryCodegenProbe()
-    nothrow @safe @nogc
+    nothrow @trusted @nogc
 {
     ++smallBoundaryCodegenProbeSink;
 }

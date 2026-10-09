@@ -24,6 +24,47 @@ NOARG_BLOCK='''        smallBoundaryCodegenProbe();
 
         goto afterSmallBoundaryProvenanceSecondPass;
 '''
+REFARGS_BLOCK='''        applySmallBoundaryProvenanceSecondPass(
+            query,
+            queryBounds,
+            polygon,
+            edgeFirstRawEventPlusOne,
+            rawToUnique,
+            events,
+            boundaryStarts,
+            boundaryEnds,
+            afterLocation
+        );
+
+        goto afterSmallBoundaryProvenanceSecondPass;
+'''
+
+HELPER_SIGNATURE='''private void applySmallBoundaryProvenanceSecondPass(T)(
+    Segment2!T query,
+    Bounds2!T queryBounds,
+    scope Polygon2View!T polygon,
+    scope const(size_t)[] edgeFirstRawEventPlusOne,
+    scope const(size_t)[] rawToUnique,
+    scope const(ExactOverlayPoint)[] events,
+    scope size_t[] boundaryStarts,
+    scope size_t[] boundaryEnds,
+    scope IntervalLocation[] afterLocation
+)
+'''
+
+HELPER_REF_SIGNATURE='''private void applySmallBoundaryProvenanceSecondPass(T)(
+    scope ref Segment2!T query,
+    scope ref Bounds2!T queryBounds,
+    scope ref Polygon2View!T polygon,
+    scope ref size_t[] edgeFirstRawEventPlusOne,
+    scope ref size_t[] rawToUnique,
+    scope ref ExactOverlayPoint[] events,
+    scope ref size_t[] boundaryStarts,
+    scope ref size_t[] boundaryEnds,
+    scope ref IntervalLocation[] afterLocation
+)
+'''
+
 PROBE_DEF='''
 __gshared size_t smallBoundaryCodegenProbeSink;
 
@@ -224,6 +265,11 @@ def make_variant(original,kind):
         s=s.replace(CALL_BLOCK,NOARG_BLOCK,1)
         pos=s.index(marker)
         s=s[:pos]+PROBE_DEF+s[pos:]
+    elif kind.startswith("refargs"):
+        s=s.replace(CALL_BLOCK,REFARGS_BLOCK,1)
+        if HELPER_SIGNATURE not in s:
+            raise RuntimeError("helper signature anchor missing")
+        s=s.replace(HELPER_SIGNATURE,HELPER_REF_SIGNATURE,1)
     elif kind.startswith("context"):
         s=s.replace(CALL_BLOCK,CONTEXT_BLOCK,1)
         pos=s.index(marker)
@@ -264,10 +310,12 @@ def main():
             for kind in [
                 "fullargs-goto",
                 "noarg-goto",
+                "refargs-goto",
                 "context-goto",
                 "nested-goto",
                 "fullargs-fallthrough",
                 "noarg-fallthrough",
+                "refargs-fallthrough",
                 "context-fallthrough",
                 "nested-fallthrough",
             ]:

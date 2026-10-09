@@ -2152,7 +2152,7 @@ afterSmallBoundaryProvenanceSecondPass:
         SegmentPolygonClipInternalStatus.success;
 }
 
-}}
+}
 else
 {
 package(geo)

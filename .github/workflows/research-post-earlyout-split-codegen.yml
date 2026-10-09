@@ -48,7 +48,7 @@ jobs:
           OUT="build/post-earlyout-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}"
           python3 benchmarks/run_segment_polygon_scalar_codegen_compare.py \
             --base=92659a9b330f3fdf248994cc9b598b6fe73f8429 \
-            --candidate=9432e3f572697ef91d0e6fdb8ac7f08686bf87cd \
+            --candidate=4dd07536453d33a722168134e65c75e97b96e8df \
             --compiler="$DC" \
             --scalar="${{ matrix.scalar }}" \
             --output="$OUT"

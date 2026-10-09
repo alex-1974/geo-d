@@ -58,3 +58,5 @@ jobs:
           path: build/ldc-carrier-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}
           if-no-files-found: error
           retention-days: 14
+
+# diagnostics refresh

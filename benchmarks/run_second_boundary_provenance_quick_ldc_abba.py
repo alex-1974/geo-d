@@ -42,6 +42,8 @@ void main(string[] args)
 }
 '''
 
+SCALARS=["long","float"]
+
 CASES=[
     "boundary-only",
     "boundary-overlap",
@@ -128,7 +130,7 @@ def main():
     record={"format":1,"status":"incomplete","purpose":"second-boundary-provenance-quick-ldc-abba",
             "revisions":rev,"cpu":a.cpu,"allowed_affinity":sorted(allowed),
             "cycles":a.cycles,"rounds":a.rounds,"target_ms":a.target_ms,
-            "notes":a.notes,"cases":CASES,"runs":[],"builds":[],
+            "notes":a.notes,"scalars":SCALARS,"cases":CASES,"runs":[],"builds":[],
             "started_utc":datetime.now(timezone.utc).isoformat(),
             "limitations":["No frequency/turbo control imposed.",
                            "Binaries built once before timing.",
@@ -156,8 +158,8 @@ def main():
                 for label in ["base","candidate"]:
                     run_one(binaries[(compiler,label)],
                             out/"warmup"/compiler/label,
-                            "double","boundary-only",3,20)
-                for scalar in ["int","long","float","double"]:
+                            "long","boundary-only",3,20)
+                for scalar in SCALARS:
                     for case in CASES:
                         for cycle in range(a.cycles):
                             order=(["base","candidate","candidate","base"]

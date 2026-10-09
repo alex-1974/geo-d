@@ -256,6 +256,27 @@ def capture_build(source_root,compiler,scalar,outdir):
         "p1_demangled":dem,
     }
 
+def move_helper_after_p1(source):
+    marker="pragma(inline, false)\nprivate void applySmallBoundaryProvenanceSecondPass"
+    start=source.index(marker)
+    brace=source.index("{",start)
+    depth=0
+    end=-1
+    for i in range(brace,len(source)):
+        if source[i]=="{":
+            depth+=1
+        elif source[i]=="}":
+            depth-=1
+            if depth==0:
+                end=i+1
+                break
+    if end<0:
+        raise RuntimeError("helper body end not found")
+    helper=source[start:end].strip()+"\n"
+    source=source[:start]+source[end:]
+    return source.rstrip()+"\n\n"+helper+"\n"
+
+
 def make_variant(original,kind):
     s=original
     if CALL_BLOCK not in s:
@@ -265,7 +286,7 @@ def make_variant(original,kind):
         s=s.replace(CALL_BLOCK,NOARG_BLOCK,1)
         pos=s.index(marker)
         s=s[:pos]+PROBE_DEF+s[pos:]
-    elif kind.startswith("refargs"):
+    elif kind.startswith("refargs") or kind.startswith("post-refargs"):
         s=s.replace(CALL_BLOCK,REFARGS_BLOCK,1)
         if HELPER_SIGNATURE not in s:
             raise RuntimeError("helper signature anchor missing")
@@ -276,6 +297,10 @@ def make_variant(original,kind):
         s=s[:pos]+CONTEXT_DEF+s[pos:]
     elif kind.startswith("nested"):
         s=s.replace(CALL_BLOCK,NESTED_BLOCK,1)
+    if kind.startswith("post-fullargs"):
+        s=move_helper_after_p1(s)
+    elif kind.startswith("post-refargs"):
+        s=move_helper_after_p1(s)
     if kind.endswith("fallthrough"):
         s=s.replace("\n        goto afterSmallBoundaryProvenanceSecondPass;\n","\n",1)
         s=s.replace("afterSmallBoundaryProvenanceSecondPass:\n","",1)
@@ -313,6 +338,8 @@ def main():
                 "refargs-goto",
                 "context-goto",
                 "nested-goto",
+                "post-fullargs-goto",
+                "post-refargs-goto",
                 "fullargs-fallthrough",
                 "noarg-fallthrough",
                 "refargs-fallthrough",

@@ -633,22 +633,39 @@ if (isSegmentPolygonClipScalar!T)
  * - query is finite;
  * - polygon satisfies validatePolygon(polygon).valid.
  */
+private struct SmallBoundaryProvenanceSecondPassState(T)
+if (isSegmentPolygonClipScalar!T)
+{
+    Segment2!T query;
+    Bounds2!T queryBounds;
+    Polygon2View!T polygon;
+    size_t[] edgeFirstRawEventPlusOne;
+    size_t[] rawToUnique;
+    ExactOverlayPoint[] events;
+    size_t[] boundaryStarts;
+    size_t[] boundaryEnds;
+    IntervalLocation[] afterLocation;
+}
+
+
 pragma(inline, false)
 private void applySmallBoundaryProvenanceSecondPass(T)(
-    scope ref Segment2!T query,
-    scope ref Bounds2!T queryBounds,
-    scope ref Polygon2View!T polygon,
-    scope ref size_t[] edgeFirstRawEventPlusOne,
-    scope ref size_t[] rawToUnique,
-    scope ref ExactOverlayPoint[] events,
-    scope ref size_t[] boundaryStarts,
-    scope ref size_t[] boundaryEnds,
-    scope ref IntervalLocation[] afterLocation
+    scope ref SmallBoundaryProvenanceSecondPassState!T state
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
     alias S = Segment2!T;
+
+    alias query = state.query;
+    alias queryBounds = state.queryBounds;
+    alias polygon = state.polygon;
+    alias edgeFirstRawEventPlusOne = state.edgeFirstRawEventPlusOne;
+    alias rawToUnique = state.rawToUnique;
+    alias events = state.events;
+    alias boundaryStarts = state.boundaryStarts;
+    alias boundaryEnds = state.boundaryEnds;
+    alias afterLocation = state.afterLocation;
 
     size_t provenanceEdgeIndex;
 
@@ -1506,16 +1523,21 @@ if (isSegmentPolygonClipScalar!T)
             !preparedExactQueryReady
         )
         {
+            SmallBoundaryProvenanceSecondPassState!T state;
+
+            state.query = query;
+            state.queryBounds = queryBounds;
+            state.polygon = polygon;
+            state.edgeFirstRawEventPlusOne =
+                edgeFirstRawEventPlusOne;
+            state.rawToUnique = rawToUnique;
+            state.events = events;
+            state.boundaryStarts = boundaryStarts;
+            state.boundaryEnds = boundaryEnds;
+            state.afterLocation = afterLocation;
+
             applySmallBoundaryProvenanceSecondPass(
-                query,
-                queryBounds,
-                polygon,
-                edgeFirstRawEventPlusOne,
-                rawToUnique,
-                events,
-                boundaryStarts,
-                boundaryEnds,
-                afterLocation
+                state
             );
 
             goto afterSmallBoundaryProvenanceSecondPass;

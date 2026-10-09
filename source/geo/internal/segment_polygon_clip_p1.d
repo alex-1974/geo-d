@@ -657,17 +657,9 @@ if (isSegmentPolygonClipScalar!T)
 {
     alias S = Segment2!T;
 
-    alias query = state.query;
-    alias queryBounds = state.queryBounds;
-    alias polygon = state.polygon;
-    alias edgeFirstRawEventPlusOne = state.edgeFirstRawEventPlusOne;
-    alias rawToUnique = state.rawToUnique;
-    alias events = state.events;
-    alias boundaryStarts = state.boundaryStarts;
-    alias boundaryEnds = state.boundaryEnds;
-    alias afterLocation = state.afterLocation;
-
-    size_t provenanceEdgeIndex;
+    with (state)
+    {
+        size_t provenanceEdgeIndex;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -945,10 +937,11 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-    assert(
-        provenanceEdgeIndex ==
-        edgeFirstRawEventPlusOne.length
-    );
+        assert(
+            provenanceEdgeIndex ==
+            edgeFirstRawEventPlusOne.length
+        );
+    }
 }
 
 

@@ -5,6 +5,7 @@ on:
     branches:
       - research/second-boundary-provenance
     paths:
+      - source/geo/internal/segment_polygon_clip_p1.d
       - .github/workflows/research-ldc-carrier-candidate-codegen.yml
   workflow_dispatch:
 
@@ -47,7 +48,7 @@ jobs:
           OUT="build/ldc-carrier-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}"
           python3 benchmarks/run_segment_polygon_scalar_codegen_compare.py \
             --base=92659a9b330f3fdf248994cc9b598b6fe73f8429 \
-            --candidate=e83fe6a57d326cdc5101bab7d0360a865b5c4241 \
+            --candidate=e7a7c939152ad46a2d5faa52950c6a5ed636ba0c \
             --compiler="$DC" \
             --scalar="${{ matrix.scalar }}" \
             --output="$OUT"

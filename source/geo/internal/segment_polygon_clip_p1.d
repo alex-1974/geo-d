@@ -2165,7 +2165,7 @@ trySegmentPolygonClipP1Internal(T)(
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
-    static if (is(T == int) || is(T == double))
+    static if (is(T == int) || is(T == long) || is(T == double))
     {
             alias S = Segment2!T;
         

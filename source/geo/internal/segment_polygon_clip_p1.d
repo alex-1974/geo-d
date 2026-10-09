@@ -633,33 +633,24 @@ if (isSegmentPolygonClipScalar!T)
  * - query is finite;
  * - polygon satisfies validatePolygon(polygon).valid.
  */
-private struct SmallBoundaryProvenanceSecondPassState(T)
-if (isSegmentPolygonClipScalar!T)
-{
-    Segment2!T query;
-    Bounds2!T queryBounds;
-    Polygon2View!T polygon;
-    size_t[] edgeFirstRawEventPlusOne;
-    size_t[] rawToUnique;
-    ExactOverlayPoint[] events;
-    size_t[] boundaryStarts;
-    size_t[] boundaryEnds;
-    IntervalLocation[] afterLocation;
-}
-
-
 pragma(inline, false)
 private void applySmallBoundaryProvenanceSecondPass(T)(
-    scope ref SmallBoundaryProvenanceSecondPassState!T state
+    scope ref Segment2!T query,
+    scope ref Bounds2!T queryBounds,
+    scope ref Polygon2View!T polygon,
+    scope ref size_t[] edgeFirstRawEventPlusOne,
+    scope ref size_t[] rawToUnique,
+    scope ref ExactOverlayPoint[] events,
+    scope ref size_t[] boundaryStarts,
+    scope ref size_t[] boundaryEnds,
+    scope ref IntervalLocation[] afterLocation
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
 {
     alias S = Segment2!T;
 
-    with (state)
-    {
-        size_t provenanceEdgeIndex;
+    size_t provenanceEdgeIndex;
 
     foreach (ringIndex; 0 .. polygon.length)
     {
@@ -937,11 +928,10 @@ if (isSegmentPolygonClipScalar!T)
         }
     }
 
-        assert(
-            provenanceEdgeIndex ==
-            edgeFirstRawEventPlusOne.length
-        );
-    }
+    assert(
+        provenanceEdgeIndex ==
+        edgeFirstRawEventPlusOne.length
+    );
 }
 
 
@@ -1113,6 +1103,34 @@ if (isSegmentPolygonClipScalar!T)
                 break;
         }
     }
+
+    return
+        trySegmentPolygonClipP1PostEarlyOut(
+            query,
+            polygon,
+            owned,
+            edgeCount,
+            queryBounds,
+            eventCapacity,
+            candidateEdgeCount
+        );
+}
+
+
+private SegmentPolygonClipInternalStatus
+trySegmentPolygonClipP1PostEarlyOut(T)(
+    Segment2!T query,
+    scope Polygon2View!T polygon,
+    ref SegmentPolygonClipOwnedResultInternal owned,
+    size_t edgeCount,
+    Bounds2!T queryBounds,
+    size_t eventCapacity,
+    size_t candidateEdgeCount
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    alias S = Segment2!T;
 
     /*
      * The capacity pass already establishes the number of edges whose closed
@@ -1516,21 +1534,16 @@ if (isSegmentPolygonClipScalar!T)
             !preparedExactQueryReady
         )
         {
-            SmallBoundaryProvenanceSecondPassState!T state;
-
-            state.query = query;
-            state.queryBounds = queryBounds;
-            state.polygon = polygon;
-            state.edgeFirstRawEventPlusOne =
-                edgeFirstRawEventPlusOne;
-            state.rawToUnique = rawToUnique;
-            state.events = events;
-            state.boundaryStarts = boundaryStarts;
-            state.boundaryEnds = boundaryEnds;
-            state.afterLocation = afterLocation;
-
             applySmallBoundaryProvenanceSecondPass(
-                state
+                query,
+                queryBounds,
+                polygon,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                events,
+                boundaryStarts,
+                boundaryEnds,
+                afterLocation
             );
 
             goto afterSmallBoundaryProvenanceSecondPass;

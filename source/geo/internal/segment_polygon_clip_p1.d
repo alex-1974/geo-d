@@ -626,30 +626,24 @@ if (isSegmentPolygonClipScalar!T)
 
 
 /*
- * Handles the already-selected small-provenance second boundary pass.
+ * Production P1 clipping kernel.
  *
  * Preconditions:
  *
- * - the caller selected prepareSmallEventProvenance;
- * - edge bounds prefiltering is disabled for this family;
- * - edgeFirstRawEventPlusOne has one entry per polygon edge;
- * - rawToUnique maps every first-pass raw event slot to the sorted unique
- *   event index.
- *
- * Keeping this family out of the production kernel's normal/dense second-pass
- * body isolates the research optimization from unrelated clipping paths.
+ * - query is finite;
+ * - polygon satisfies validatePolygon(polygon).valid.
  */
 pragma(inline, false)
 private void applySmallBoundaryProvenanceSecondPass(T)(
-    Segment2!T query,
-    Bounds2!T queryBounds,
-    scope Polygon2View!T polygon,
-    scope const(size_t)[] edgeFirstRawEventPlusOne,
-    scope const(size_t)[] rawToUnique,
-    scope const(ExactOverlayPoint)[] events,
-    scope size_t[] boundaryStarts,
-    scope size_t[] boundaryEnds,
-    scope IntervalLocation[] afterLocation
+    scope ref Segment2!T query,
+    scope ref Bounds2!T queryBounds,
+    scope ref Polygon2View!T polygon,
+    scope ref size_t[] edgeFirstRawEventPlusOne,
+    scope ref size_t[] rawToUnique,
+    scope ref ExactOverlayPoint[] events,
+    scope ref size_t[] boundaryStarts,
+    scope ref size_t[] boundaryEnds,
+    scope ref IntervalLocation[] afterLocation
 )
     @safe
 if (isSegmentPolygonClipScalar!T)
@@ -941,14 +935,6 @@ if (isSegmentPolygonClipScalar!T)
 }
 
 
-/*
- * Production P1 clipping kernel.
- *
- * Preconditions:
- *
- * - query is finite;
- * - polygon satisfies validatePolygon(polygon).valid.
- */
 package(geo)
 SegmentPolygonClipInternalStatus
 trySegmentPolygonClipP1Internal(T)(
@@ -1132,10 +1118,10 @@ if (isSegmentPolygonClipScalar!T)
      * First-pass exact events already contain every proper crossing.
      *
      * Large dense cases retain the existing heap-backed compact provenance.
-     * For 4-8-edge crossing/boundary cases, fixed stack provenance avoids
-     * heap workspace and carries first-pass raw event slots through
-     * sort/dedup. Research variant #165 routes only this already-selected
-     * family through an isolated second-pass helper.
+     * Research variant: for 4-8 edge crossing/hole cases, use fixed stack
+     * storage instead. This avoids both the heap workspace and pass-2 exact
+     * crossing reconstruction/search while preserving the established small
+     * event comparator.
      */
     enum size_t smallProvenanceMaxEdges = 8;
     enum size_t smallProvenanceMaxEvents =
@@ -1505,428 +1491,432 @@ if (isSegmentPolygonClipScalar!T)
 
 
     /*
-     * Keep the normal/dense second-pass body identical to the qualified
-     * develop baseline. The isolated helper is used only for small-provenance
-     * calls that observed no proper crossing in pass 1. A proper crossing
-     * prepares the exact query, so crossing-heavy small cases retain the
-     * baseline second-pass body as well.
+     * #165: LDC-only small non-crossing boundary provenance reuse.
+     *
+     * DMD deliberately retains the qualified baseline path while the
+     * compiler-specific integration is researched separately.
      */
-    if (
-        prepareSmallEventProvenance &&
-        !preparedExactQueryReady
-    )
+    version (DigitalMars)
     {
-        applySmallBoundaryProvenanceSecondPass(
-            query,
-            queryBounds,
-            polygon,
-            edgeFirstRawEventPlusOne,
-            rawToUnique,
-            events[],
-            boundaryStarts[],
-            boundaryEnds[],
-            afterLocation[]
-        );
+    }
+    else
+    {
+        if (
+            prepareSmallEventProvenance &&
+            !preparedExactQueryReady
+        )
+        {
+            applySmallBoundaryProvenanceSecondPass(
+                query,
+                queryBounds,
+                polygon,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                events,
+                boundaryStarts,
+                boundaryEnds,
+                afterLocation
+            );
 
-        goto afterSmallBoundaryProvenanceSecondPass;
+            goto afterSmallBoundaryProvenanceSecondPass;
+        }
     }
 
-        /*
-         * Second boundary pass:
-         *
-         * - record overlap ranges;
-         * - classify proper edge crossings and strict edge-interior endpoint
-         *   contacts on their outgoing query ray.
-         */
-        version (DigitalMars)
-        {
-            flatEdgeIndex = 0;
-        }
-    
-        provenanceEdgeIndex = 0;
-    
-        foreach (ringIndex; 0 .. polygon.length)
-        {
-            const auto ring =
-                polygon[ringIndex];
-    
-            const int orientationSign =
-                validRingOrientationSign(
-                    ring
-                );
-    
-            assert(
-                ring.empty ||
-                orientationSign != 0
+
+    /*
+     * Second boundary pass:
+     *
+     * - record overlap ranges;
+     * - classify proper edge crossings and strict edge-interior endpoint
+     *   contacts on their outgoing query ray.
+     */
+    version (DigitalMars)
+    {
+        flatEdgeIndex = 0;
+    }
+
+    provenanceEdgeIndex = 0;
+
+    foreach (ringIndex; 0 .. polygon.length)
+    {
+        const auto ring =
+            polygon[ringIndex];
+
+        const int orientationSign =
+            validRingOrientationSign(
+                ring
             );
-    
-            const bool counterClockwise =
-                orientationSign > 0;
-    
-            const bool isHole =
-                ringIndex != 0;
-    
-            const bool interiorOnSourceLeft =
-                counterClockwise !=
-                isHole;
-    
-    
-            foreach (edgeIndex; 0 .. ring.segmentCount)
+
+        assert(
+            ring.empty ||
+            orientationSign != 0
+        );
+
+        const bool counterClockwise =
+            orientationSign > 0;
+
+        const bool isHole =
+            ringIndex != 0;
+
+        const bool interiorOnSourceLeft =
+            counterClockwise !=
+            isHole;
+
+
+        foreach (edgeIndex; 0 .. ring.segmentCount)
+        {
+            const S edge =
+                ring.segment(
+                    edgeIndex
+                );
+
+            version (DigitalMars)
             {
-                const S edge =
-                    ring.segment(
-                        edgeIndex
-                    );
-    
-                version (DigitalMars)
-                {
-                    assert(flatEdgeIndex < edgeCount);
-    
-                    if (
-                        useEdgeBoundsPrefilter &&
-                        !edgeBoundsMayMeetQuery(
-                            queryBounds,
-                            edge
-                        )
+                assert(flatEdgeIndex < edgeCount);
+
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
                     )
-                    {
-                        ++flatEdgeIndex;
-                        continue;
-                    }
-                }
-                else
+                )
                 {
-                    if (
-                        useEdgeBoundsPrefilter &&
-                        !edgeBoundsMayMeetQuery(
-                            queryBounds,
-                            edge
-                        )
-                    )
-                    {
-                        continue;
-                    }
+                    ++flatEdgeIndex;
+                    continue;
                 }
-    
-                version (DigitalMars)
-                const SegmentContactKind contact =
-                    reuseBoundaryContacts
-                        ? boundaryContacts[flatEdgeIndex]
-                        : segmentContactKind(
-                            query,
-                            edge
-                        );
-                else
-                const SegmentContactKind contact =
-                    segmentContactKind(
+            }
+            else
+            {
+                if (
+                    useEdgeBoundsPrefilter &&
+                    !edgeBoundsMayMeetQuery(
+                        queryBounds,
+                        edge
+                    )
+                )
+                {
+                    continue;
+                }
+            }
+
+            version (DigitalMars)
+            const SegmentContactKind contact =
+                reuseBoundaryContacts
+                    ? boundaryContacts[flatEdgeIndex]
+                    : segmentContactKind(
                         query,
                         edge
                     );
-    
-                const size_t currentProvenanceEdgeIndex =
-                    provenanceEdgeIndex;
-    
-                if (prepareEventProvenance)
+            else
+            const SegmentContactKind contact =
+                segmentContactKind(
+                    query,
+                    edge
+                );
+
+            const size_t currentProvenanceEdgeIndex =
+                provenanceEdgeIndex;
+
+            if (prepareEventProvenance)
+            {
+                assert(provenanceEdgeIndex < edgeCount);
+                ++provenanceEdgeIndex;
+            }
+
+            version (DigitalMars)
+            {
+                ++flatEdgeIndex;
+            }
+
+            final switch (contact)
+            {
+                case SegmentContactKind.none:
+                    break;
+
+                case SegmentContactKind.properCrossing:
                 {
-                    assert(provenanceEdgeIndex < edgeCount);
-                    ++provenanceEdgeIndex;
-                }
-    
-                version (DigitalMars)
-                {
-                    ++flatEdgeIndex;
-                }
-    
-                final switch (contact)
-                {
-                    case SegmentContactKind.none:
-                        break;
-    
-                    case SegmentContactKind.properCrossing:
+                    size_t index;
+
+                    if (reuseProperCrossingEventIndex)
                     {
-                        size_t index;
-    
-                        if (reuseProperCrossingEventIndex)
-                        {
-                            const size_t rawEventPlusOne =
-                                edgeFirstRawEventPlusOne[
-                                    currentProvenanceEdgeIndex
-                                ];
-    
-                            assert(rawEventPlusOne != 0);
-    
-                            const size_t rawEventIndex =
-                                rawEventPlusOne - 1;
-    
-                            assert(rawEventIndex < rawToUnique.length);
-    
-                            index =
-                                rawToUnique[
-                                    rawEventIndex
-                                ];
-                        }
-                        else
-                        {
-                            ExactProperIntersection crossing;
-    
-                            assert(preparedExactQueryReady);
-    
-                            properIntersectionExactKnownCrossingPreparedFirst(
-                                preparedExactQuery,
-                                edge,
-                                crossing
-                            );
-    
-                            const auto event =
-                                exactOverlayPoint(
-                                    crossing
-                                );
-    
-                            index =
-                                findExactEventIndex(
-                                    query,
-                                    events[],
-                                    event
-                                );
-                        }
-    
-                        assert(index != size_t.max);
-                        assert(index + 1 < eventCount);
-    
-                        setAfterLocation(
-                            afterLocation[index],
-                            edgeInteriorRayLocation(
-                                edge,
-                                query.b,
-                                interiorOnSourceLeft
-                            )
-                        );
-    
-                        break;
+                        const size_t rawEventPlusOne =
+                            edgeFirstRawEventPlusOne[
+                                currentProvenanceEdgeIndex
+                            ];
+
+                        assert(rawEventPlusOne != 0);
+
+                        const size_t rawEventIndex =
+                            rawEventPlusOne - 1;
+
+                        assert(rawEventIndex < rawToUnique.length);
+
+                        index =
+                            rawToUnique[
+                                rawEventIndex
+                            ];
                     }
-    
-                    case SegmentContactKind.touch:
+                    else
                     {
-                        Point2!T point;
-    
-                        const bool found =
-                            trySegmentTouchPoint(
-                                query,
-                                edge,
-                                point
-                            );
-    
-                        assert(found);
-    
-                        /*
-                         * Polygon-vertex events need both incident edges and are
-                         * classified in the vertex pass below.
-                         */
-                        if (
-                            point == edge.a ||
-                            point == edge.b ||
-                            point == query.b
-                        )
-                        {
-                            break;
-                        }
-    
+                        ExactProperIntersection crossing;
+
+                        assert(preparedExactQueryReady);
+
+                        properIntersectionExactKnownCrossingPreparedFirst(
+                            preparedExactQuery,
+                            edge,
+                            crossing
+                        );
+
                         const auto event =
                             exactOverlayPoint(
-                                point
+                                crossing
                             );
-    
-                        const size_t index =
+
+                        index =
                             findExactEventIndex(
                                 query,
                                 events[],
                                 event
                             );
-    
-                        assert(index != size_t.max);
-                        assert(index + 1 < eventCount);
-    
-                        setAfterLocation(
-                            afterLocation[index],
-                            edgeInteriorRayLocation(
-                                edge,
-                                query.b,
-                                interiorOnSourceLeft
-                            )
-                        );
-    
-                        break;
                     }
-    
-                    case SegmentContactKind.overlap:
-                    {
-                        S overlap;
-    
-                        const bool found =
-                            trySegmentIntersectionOverlap(
-                                query,
-                                edge,
-                                overlap
-                            );
-    
-                        assert(found);
-                        assert(overlap.a != overlap.b);
-    
-                        const auto first =
-                            exactOverlayPoint(
-                                overlap.a
-                            );
-    
-                        const auto second =
-                            exactOverlayPoint(
-                                overlap.b
-                            );
-    
-                        const size_t firstIndex =
-                            findExactEventIndex(
-                                query,
-                                events[],
-                                first
-                            );
-    
-                        const size_t secondIndex =
-                            findExactEventIndex(
-                                query,
-                                events[],
-                                second
-                            );
-    
-                        assert(firstIndex != size_t.max);
-                        assert(secondIndex != size_t.max);
-                        assert(firstIndex != secondIndex);
-    
-                        const size_t lower =
-                            firstIndex < secondIndex
-                                ? firstIndex
-                                : secondIndex;
-    
-                        const size_t upper =
-                            firstIndex < secondIndex
-                                ? secondIndex
-                                : firstIndex;
-    
-                        if (
-                            boundaryStarts[lower] ==
-                            size_t.max ||
-                            boundaryEnds[upper] ==
-                            size_t.max
-                        )
-                        {
-                            onOutOfMemoryError();
-                        }
-    
-                        ++boundaryStarts[lower];
-                        ++boundaryEnds[upper];
-    
-                        break;
-                    }
-                }
-            }
-    
-    
-            /*
-             * Third local-topology pass for this ring:
-             *
-             * every represented polygon vertex lying on the query determines the
-             * outgoing non-boundary ray location unless that ray follows boundary.
-             */
-            if (ring.length != 0)
-            {
-                foreach (vertexIndex; 0 .. ring.length)
-                {
-                    const Point2!T vertex =
-                        ring[vertexIndex];
-    
-                    if (
-                        !pointBoundsMayMeetQuery(
-                            queryBounds,
-                            vertex
-                        )
-                    )
-                    {
-                        continue;
-                    }
-    
-                    if (
-                        segmentContactKind(
-                            query,
-                            S(vertex, vertex)
-                        ) == SegmentContactKind.none
-                    )
-                    {
-                        continue;
-                    }
-    
-                    if (vertex == query.b)
-                        continue;
-    
-                    const size_t previousIndex =
-                        vertexIndex == 0
-                            ? ring.length - 1
-                            : vertexIndex - 1;
-    
-                    const size_t nextIndex =
-                        vertexIndex + 1 == ring.length
-                            ? 0
-                            : vertexIndex + 1;
-    
-                    const IntervalLocation location =
-                        vertexRayLocation(
-                            ring[previousIndex],
-                            vertex,
-                            ring[nextIndex],
+
+                    assert(index != size_t.max);
+                    assert(index + 1 < eventCount);
+
+                    setAfterLocation(
+                        afterLocation[index],
+                        edgeInteriorRayLocation(
+                            edge,
                             query.b,
                             interiorOnSourceLeft
+                        )
+                    );
+
+                    break;
+                }
+
+                case SegmentContactKind.touch:
+                {
+                    Point2!T point;
+
+                    const bool found =
+                        trySegmentTouchPoint(
+                            query,
+                            edge,
+                            point
                         );
-    
+
+                    assert(found);
+
+                    /*
+                     * Polygon-vertex events need both incident edges and are
+                     * classified in the vertex pass below.
+                     */
                     if (
-                        location ==
-                        IntervalLocation.unknown
+                        point == edge.a ||
+                        point == edge.b ||
+                        point == query.b
                     )
                     {
-                        continue;
+                        break;
                     }
-    
+
                     const auto event =
                         exactOverlayPoint(
-                            vertex
+                            point
                         );
-    
+
                     const size_t index =
                         findExactEventIndex(
                             query,
                             events[],
                             event
                         );
-    
+
                     assert(index != size_t.max);
                     assert(index + 1 < eventCount);
-    
+
                     setAfterLocation(
                         afterLocation[index],
-                        location
+                        edgeInteriorRayLocation(
+                            edge,
+                            query.b,
+                            interiorOnSourceLeft
+                        )
                     );
+
+                    break;
+                }
+
+                case SegmentContactKind.overlap:
+                {
+                    S overlap;
+
+                    const bool found =
+                        trySegmentIntersectionOverlap(
+                            query,
+                            edge,
+                            overlap
+                        );
+
+                    assert(found);
+                    assert(overlap.a != overlap.b);
+
+                    const auto first =
+                        exactOverlayPoint(
+                            overlap.a
+                        );
+
+                    const auto second =
+                        exactOverlayPoint(
+                            overlap.b
+                        );
+
+                    const size_t firstIndex =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            first
+                        );
+
+                    const size_t secondIndex =
+                        findExactEventIndex(
+                            query,
+                            events[],
+                            second
+                        );
+
+                    assert(firstIndex != size_t.max);
+                    assert(secondIndex != size_t.max);
+                    assert(firstIndex != secondIndex);
+
+                    const size_t lower =
+                        firstIndex < secondIndex
+                            ? firstIndex
+                            : secondIndex;
+
+                    const size_t upper =
+                        firstIndex < secondIndex
+                            ? secondIndex
+                            : firstIndex;
+
+                    if (
+                        boundaryStarts[lower] ==
+                        size_t.max ||
+                        boundaryEnds[upper] ==
+                        size_t.max
+                    )
+                    {
+                        onOutOfMemoryError();
+                    }
+
+                    ++boundaryStarts[lower];
+                    ++boundaryEnds[upper];
+
+                    break;
                 }
             }
         }
-    
-    
-        version (DigitalMars)
-        {
-            assert(flatEdgeIndex == edgeCount);
-        }
-    
-        if (prepareEventProvenance)
-            assert(provenanceEdgeIndex == edgeCount);
-    
-    
-    afterSmallBoundaryProvenanceSecondPass:
 
+
+        /*
+         * Third local-topology pass for this ring:
+         *
+         * every represented polygon vertex lying on the query determines the
+         * outgoing non-boundary ray location unless that ray follows boundary.
+         */
+        if (ring.length != 0)
+        {
+            foreach (vertexIndex; 0 .. ring.length)
+            {
+                const Point2!T vertex =
+                    ring[vertexIndex];
+
+                if (
+                    !pointBoundsMayMeetQuery(
+                        queryBounds,
+                        vertex
+                    )
+                )
+                {
+                    continue;
+                }
+
+                if (
+                    segmentContactKind(
+                        query,
+                        S(vertex, vertex)
+                    ) == SegmentContactKind.none
+                )
+                {
+                    continue;
+                }
+
+                if (vertex == query.b)
+                    continue;
+
+                const size_t previousIndex =
+                    vertexIndex == 0
+                        ? ring.length - 1
+                        : vertexIndex - 1;
+
+                const size_t nextIndex =
+                    vertexIndex + 1 == ring.length
+                        ? 0
+                        : vertexIndex + 1;
+
+                const IntervalLocation location =
+                    vertexRayLocation(
+                        ring[previousIndex],
+                        vertex,
+                        ring[nextIndex],
+                        query.b,
+                        interiorOnSourceLeft
+                    );
+
+                if (
+                    location ==
+                    IntervalLocation.unknown
+                )
+                {
+                    continue;
+                }
+
+                const auto event =
+                    exactOverlayPoint(
+                        vertex
+                    );
+
+                const size_t index =
+                    findExactEventIndex(
+                        query,
+                        events[],
+                        event
+                    );
+
+                assert(index != size_t.max);
+                assert(index + 1 < eventCount);
+
+                setAfterLocation(
+                    afterLocation[index],
+                    location
+                );
+            }
+        }
+    }
+
+
+    version (DigitalMars)
+    {
+        assert(flatEdgeIndex == edgeCount);
+    }
+
+    if (prepareEventProvenance)
+        assert(provenanceEdgeIndex == edgeCount);
+
+afterSmallBoundaryProvenanceSecondPass:
 
 
     auto retained =

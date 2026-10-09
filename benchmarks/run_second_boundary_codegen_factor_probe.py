@@ -56,6 +56,28 @@ CONTEXT_BLOCK='''        SmallBoundaryCodegenContext!T context =
         goto afterSmallBoundaryProvenanceSecondPass;
 '''
 
+NESTED_BLOCK='''        pragma(inline, false)
+        void applySmallBoundaryProvenanceSecondPassNested()
+            @safe
+        {
+            applySmallBoundaryProvenanceSecondPass(
+                query,
+                queryBounds,
+                polygon,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                events[],
+                boundaryStarts[],
+                boundaryEnds[],
+                afterLocation[]
+            );
+        }
+
+        applySmallBoundaryProvenanceSecondPassNested();
+
+        goto afterSmallBoundaryProvenanceSecondPass;
+'''
+
 CONTEXT_DEF='''
 private struct SmallBoundaryCodegenContext(T)
 if (isSegmentPolygonClipScalar!T)
@@ -206,6 +228,8 @@ def make_variant(original,kind):
         s=s.replace(CALL_BLOCK,CONTEXT_BLOCK,1)
         pos=s.index(marker)
         s=s[:pos]+CONTEXT_DEF+s[pos:]
+    elif kind.startswith("nested"):
+        s=s.replace(CALL_BLOCK,NESTED_BLOCK,1)
     if kind.endswith("fallthrough"):
         s=s.replace("\n        goto afterSmallBoundaryProvenanceSecondPass;\n","\n",1)
         s=s.replace("afterSmallBoundaryProvenanceSecondPass:\n","",1)
@@ -241,9 +265,11 @@ def main():
                 "fullargs-goto",
                 "noarg-goto",
                 "context-goto",
+                "nested-goto",
                 "fullargs-fallthrough",
                 "noarg-fallthrough",
                 "context-fallthrough",
+                "nested-fallthrough",
             ]:
                 path.write_text(original if kind=="fullargs-goto" else make_variant(original,kind))
                 bd=out/kind; bd.mkdir()

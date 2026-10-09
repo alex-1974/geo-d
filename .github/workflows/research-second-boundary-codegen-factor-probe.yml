@@ -1,0 +1,59 @@
+name: Research Second Boundary Codegen Factor Probe
+
+on:
+  push:
+    branches:
+      - research/second-boundary-provenance
+    paths:
+      - benchmarks/run_second_boundary_codegen_factor_probe.py
+      - .github/workflows/research-second-boundary-codegen-factor-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: ${{ matrix.compiler }} / ${{ matrix.scalar }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: dmd-2.111.0
+            scalar: double
+          - compiler: ldc-1.41.0
+            scalar: long
+          - compiler: ldc-1.41.0
+            scalar: double
+          - compiler: ldc-1.41.0
+            scalar: int
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Run factor probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/factor-${{ matrix.compiler }}-${{ matrix.scalar }}"
+          python3 benchmarks/run_second_boundary_codegen_factor_probe.py \
+            --base=92659a9b330f3fdf248994cc9b598b6fe73f8429 \
+            --candidate=d8d12abf7d50278716860984ffaca51f3f950266 \
+            --compiler="$DC" \
+            --scalar="${{ matrix.scalar }}" \
+            --output="$OUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: second-boundary-factor-${{ matrix.compiler }}-${{ matrix.scalar }}
+          path: build/factor-${{ matrix.compiler }}-${{ matrix.scalar }}
+          if-no-files-found: error
+          retention-days: 14

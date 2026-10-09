@@ -36,6 +36,65 @@ private void smallBoundaryCodegenProbe()
 
 
 '''
+CONTEXT_BLOCK='''        SmallBoundaryCodegenContext!T context =
+            SmallBoundaryCodegenContext!T(
+                query,
+                queryBounds,
+                polygon,
+                edgeFirstRawEventPlusOne,
+                rawToUnique,
+                events[],
+                boundaryStarts[],
+                boundaryEnds[],
+                afterLocation[]
+            );
+
+        applySmallBoundaryProvenanceSecondPassViaContext(
+            context
+        );
+
+        goto afterSmallBoundaryProvenanceSecondPass;
+'''
+
+CONTEXT_DEF='''
+private struct SmallBoundaryCodegenContext(T)
+if (isSegmentPolygonClipScalar!T)
+{
+    Segment2!T query;
+    Bounds2!T queryBounds;
+    Polygon2View!T polygon;
+    const(size_t)[] edgeFirstRawEventPlusOne;
+    const(size_t)[] rawToUnique;
+    const(ExactOverlayPoint)[] events;
+    size_t[] boundaryStarts;
+    size_t[] boundaryEnds;
+    IntervalLocation[] afterLocation;
+}
+
+
+pragma(inline, false)
+private void applySmallBoundaryProvenanceSecondPassViaContext(T)(
+    scope ref SmallBoundaryCodegenContext!T context
+)
+    @safe
+if (isSegmentPolygonClipScalar!T)
+{
+    applySmallBoundaryProvenanceSecondPass(
+        context.query,
+        context.queryBounds,
+        context.polygon,
+        context.edgeFirstRawEventPlusOne,
+        context.rawToUnique,
+        context.events,
+        context.boundaryStarts,
+        context.boundaryEnds,
+        context.afterLocation
+    );
+}
+
+
+'''
+
 
 DRIVER=r'''
 void main(string[] args)
@@ -138,11 +197,15 @@ def make_variant(original,kind):
     s=original
     if CALL_BLOCK not in s:
         raise RuntimeError("candidate call block anchor missing")
+    marker="package(geo)\nSegmentPolygonClipInternalStatus\ntrySegmentPolygonClipP1Internal"
     if kind.startswith("noarg"):
         s=s.replace(CALL_BLOCK,NOARG_BLOCK,1)
-        marker="package(geo)\nSegmentPolygonClipInternalStatus\ntrySegmentPolygonClipP1Internal"
         pos=s.index(marker)
         s=s[:pos]+PROBE_DEF+s[pos:]
+    elif kind.startswith("context"):
+        s=s.replace(CALL_BLOCK,CONTEXT_BLOCK,1)
+        pos=s.index(marker)
+        s=s[:pos]+CONTEXT_DEF+s[pos:]
     if kind.endswith("fallthrough"):
         s=s.replace("\n        goto afterSmallBoundaryProvenanceSecondPass;\n","\n",1)
         s=s.replace("afterSmallBoundaryProvenanceSecondPass:\n","",1)
@@ -174,7 +237,14 @@ def main():
 
             path=c/"source/geo/internal/segment_polygon_clip_p1.d"
             original=path.read_text()
-            for kind in ["fullargs-goto","noarg-goto","fullargs-fallthrough","noarg-fallthrough"]:
+            for kind in [
+                "fullargs-goto",
+                "noarg-goto",
+                "context-goto",
+                "fullargs-fallthrough",
+                "noarg-fallthrough",
+                "context-fallthrough",
+            ]:
                 path.write_text(original if kind=="fullargs-goto" else make_variant(original,kind))
                 bd=out/kind; bd.mkdir()
                 rec["variants"][kind]=capture_build(c,a.compiler,a.scalar,bd)

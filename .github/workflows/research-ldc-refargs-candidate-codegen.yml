@@ -1,0 +1,60 @@
+name: Research LDC Refargs Candidate Codegen
+
+on:
+  push:
+    branches:
+      - research/second-boundary-provenance
+    paths:
+      - .github/workflows/research-ldc-refargs-candidate-codegen.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  codegen:
+    name: ${{ matrix.compiler }} / ${{ matrix.scalar }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: dmd-2.111.0
+            scalar: double
+          - compiler: dmd-2.111.0
+            scalar: long
+          - compiler: ldc-1.41.0
+            scalar: int
+          - compiler: ldc-1.41.0
+            scalar: long
+          - compiler: ldc-1.41.0
+            scalar: double
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Capture scalar codegen
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/ldc-refargs-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}"
+          python3 benchmarks/run_segment_polygon_scalar_codegen_compare.py \
+            --base=92659a9b330f3fdf248994cc9b598b6fe73f8429 \
+            --candidate=40f33f044ad2273e5484d2dfc8e6110fa3c700c2 \
+            --compiler="$DC" \
+            --scalar="${{ matrix.scalar }}" \
+            --output="$OUT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ldc-refargs-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}
+          path: build/ldc-refargs-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}
+          if-no-files-found: error
+          retention-days: 14

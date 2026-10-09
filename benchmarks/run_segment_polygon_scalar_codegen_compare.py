@@ -112,7 +112,9 @@ def build(source_root, compiler_name, scalar, outdir):
     (outdir / "build.stdout").write_text(p.stdout)
     (outdir / "build.stderr").write_text(p.stderr)
     if p.returncode:
-        raise RuntimeError("build failed: " + str(outdir))
+        raise RuntimeError(
+            "build failed: " + str(outdir) + "\n" + p.stdout + p.stderr
+        )
 
     return binary, compiler, flags, cmd
 

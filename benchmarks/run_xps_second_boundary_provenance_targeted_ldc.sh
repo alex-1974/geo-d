@@ -16,6 +16,31 @@ mkdir -p build
 task_dir=$(mktemp -d "/var/tmp/geo-d-second-boundary-targeted-ldc.XXXXXXXX")
 archive="$root/build/geo-second-boundary-targeted-ldc-xps.tar.gz"
 
+preserve_result()
+{
+  status=$?
+  if [[ -d "$task_dir" ]]; then
+    tar \
+      --exclude='benchmark' \
+      --exclude='*.o' \
+      -czf "$task_dir/geo-second-boundary-targeted-ldc-xps.tar.gz" \
+      -C "$task_dir" \
+      $( [[ -e "$task_dir/record" ]] && printf '%s ' record ) \
+      $( [[ -e "$task_dir/run.log" ]] && printf '%s ' run.log ) \
+      2>/dev/null || true
+
+    if [[ -f "$task_dir/geo-second-boundary-targeted-ldc-xps.tar.gz" ]]; then
+      cp "$task_dir/geo-second-boundary-targeted-ldc-xps.tar.gz" "$archive" || true
+      sha256sum "$archive" 2>/dev/null || true
+      printf 'Archive: %s\n' "$archive"
+    else
+      printf 'No archive could be created. Temporary data: %s\n' "$task_dir" >&2
+    fi
+  fi
+  return "$status"
+}
+trap preserve_result EXIT
+
 python3 benchmarks/run_second_boundary_provenance_targeted_ldc_abba.py \
   --base="$base" \
   --candidate="$candidate" \
@@ -27,14 +52,3 @@ python3 benchmarks/run_second_boundary_provenance_targeted_ldc_abba.py \
   --output="$task_dir/record" \
   | tee "$task_dir/run.log"
 
-tar \
-  --exclude='benchmark' \
-  --exclude='*.o' \
-  -czf "$task_dir/geo-second-boundary-targeted-ldc-xps.tar.gz" \
-  -C "$task_dir" \
-  record \
-  run.log
-
-cp "$task_dir/geo-second-boundary-targeted-ldc-xps.tar.gz" "$archive"
-sha256sum "$archive"
-printf 'Archive: %s\n' "$archive"

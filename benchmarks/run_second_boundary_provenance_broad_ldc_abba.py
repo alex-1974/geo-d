@@ -163,7 +163,7 @@ def main():
                         "compiler_version":version,
                         "binary_sha256":hashlib.sha256(binary.read_bytes()).hexdigest()
                     })
-            for compiler in ["dmd","ldc2"]:
+            for compiler in ["ldc2"]:
                 for label in ["base","candidate"]:
                     run_one(binaries[(compiler,label)],
                             out/"warmup"/compiler/label,

@@ -1,0 +1,56 @@
+name: Research Double Boundary Precompact
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/post166-double-boundary-precompact
+
+jobs:
+  ldc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc-1.41.0
+
+      - name: Unit tests
+        run: dub test --compiler=ldc2 --force
+
+      - name: Candidate segment-polygon smoke
+        run: |
+          python3 benchmarks/run_segment_polygon.py \
+            --compiler=ldc2 \
+            --boundscheck=safeonly \
+            --check \
+            --output=build/candidate-check
+
+      - name: Compare P1 codegen footprint
+        run: |
+          set -euo pipefail
+          BASE=937bf049219cc26975e4fa2f10d38c12ed9d07e5
+          git worktree add --detach /tmp/geo-d-base "$BASE"
+          trap 'git worktree remove --force /tmp/geo-d-base' EXIT
+
+          python3 /tmp/geo-d-base/benchmarks/run_segment_polygon.py \
+            --compiler=ldc2 \
+            --boundscheck=safeonly \
+            --check \
+            --output=/tmp/geo-d-base-check
+
+          echo "=== BASE P1 SYMBOLS ==="
+          nm -S --size-sort /tmp/geo-d-base-check/benchmark \
+            | grep -i 'trySegmentPolygonClipP1' || true
+
+          echo "=== CANDIDATE P1 SYMBOLS ==="
+          nm -S --size-sort build/candidate-check/benchmark \
+            | grep -i 'trySegmentPolygonClipP1' || true
+
+          echo "=== FILE SIZES ==="
+          stat -c '%n %s' \
+            /tmp/geo-d-base-check/benchmark \
+            build/candidate-check/benchmark

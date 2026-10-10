@@ -1,0 +1,26 @@
+name: Research Double Boundary Attribution
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc-1.41.0
+
+      - name: Unit tests
+        run: dub test --compiler=ldc2 --force
+
+      - name: Attribution smoke
+        run: |
+          python3 benchmarks/run_double_boundary_attribution.py \
+            --cpu=0 \
+            --rounds=1 \
+            --iterations=10 \
+            --notes="GitHub research smoke" \
+            --output=build/double-boundary-attribution-smoke

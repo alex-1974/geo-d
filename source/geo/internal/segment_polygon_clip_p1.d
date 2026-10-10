@@ -2639,8 +2639,22 @@ if (isSegmentPolygonClipScalar!T)
             if (prepareEventProvenance)
                 assert(provenanceEdgeIndex == edgeCount);
         
-            const bool reuseProperCrossingEventIndex =
-                prepareEventProvenance;
+            /*
+             * For the baseline LDC int/double path, raw-to-unique provenance is
+             * consumed only by proper crossings in pass 2. Boundary-only/touch/
+             * overlap calls never read it, so do not pay mapping-sort work when
+             * no proper crossing prepared the exact query.
+             *
+             * #167 research candidate: double only; int remains byte-for-byte
+             * source-equivalent to the integrated baseline.
+             */
+            static if (is(T == double))
+                const bool reuseProperCrossingEventIndex =
+                    prepareEventProvenance &&
+                    preparedExactQueryReady;
+            else
+                const bool reuseProperCrossingEventIndex =
+                    prepareEventProvenance;
         
         
             if (eventCount >= equalPreferredEventThreshold)

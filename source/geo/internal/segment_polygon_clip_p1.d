@@ -558,6 +558,46 @@ if (isSegmentPolygonClipScalar!T)
 /*
  * Correctly materializes one exact event into binary64.
  */
+/*
+ * Removes only byte-for-byte/value-identical exact-event representations.
+ *
+ * This is deliberately weaker than exactOverlayPointsEqual(): structural
+ * identity is sufficient to prove exact equality, while non-identical
+ * representations remain for the authoritative exact comparator/dedup pass.
+ */
+private size_t precompactStructurallyIdenticalExactEvents(
+    scope ExactOverlayPoint[] events
+)
+    pure nothrow @safe @nogc
+{
+    size_t write;
+
+    foreach (read; 0 .. events.length)
+    {
+        bool duplicate;
+
+        foreach (candidate; 0 .. write)
+        {
+            if (events[candidate] == events[read])
+            {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (duplicate)
+            continue;
+
+        if (write != read)
+            events[write] = events[read];
+
+        ++write;
+    }
+
+    return write;
+}
+
+
 private bool tryMaterializeExactPoint(
     ref const ExactOverlayPoint exact,
     out Point2!double point
@@ -1419,8 +1459,43 @@ if (isSegmentPolygonClipScalar!T)
     if (prepareEventProvenance)
         assert(provenanceEdgeIndex == edgeCount);
 
+    /*
+     * #167 research: boundary-only/overlap produce duplicate represented
+     * endpoint events without any proper crossing. For LDC double only,
+     * compact structurally identical raw representations before the existing
+     * exact ordering pass. Non-identical representations still flow through
+     * the authoritative exact comparator/dedup path.
+     */
+    version (DigitalMars)
+    {
+        const bool precompactIdenticalSmallEvents = false;
+    }
+    else static if (is(T == double))
+    {
+        const bool precompactIdenticalSmallEvents =
+            !preparedExactQueryReady &&
+            eventCount < equalPreferredEventThreshold;
+    }
+    else
+    {
+        const bool precompactIdenticalSmallEvents = false;
+    }
+
+    if (precompactIdenticalSmallEvents)
+    {
+        eventCount =
+            precompactStructurallyIdenticalExactEvents(
+                events[0 .. eventCount]
+            );
+    }
+
+    /*
+     * A precompacted non-crossing call cannot require raw-slot provenance for
+     * proper crossings. Other paths retain the qualified mapping behavior.
+     */
     const bool reuseProperCrossingEventIndex =
-        prepareEventProvenance;
+        prepareEventProvenance &&
+        !precompactIdenticalSmallEvents;
 
 
     if (eventCount >= equalPreferredEventThreshold)

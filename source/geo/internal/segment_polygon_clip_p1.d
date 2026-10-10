@@ -3,6 +3,10 @@ module geo.internal.segment_polygon_clip_p1;
 import core.exception :
     onOutOfMemoryError;
 
+version (GeoDoubleBoundaryAttribution)
+import core.time :
+    MonoTime;
+
 import geo.bounding_box : tryBounds;
 import geo.bounds : Bounds2;
 
@@ -120,6 +124,62 @@ private enum bool isSegmentPolygonClipScalar(T) =
  * equal-denominator-preferred dense sort path.
  */
 private enum size_t equalPreferredEventThreshold = 9;
+
+
+version (GeoDoubleBoundaryAttribution)
+{
+    package(geo)
+    struct DoubleBoundaryClipAttribution
+    {
+        ulong calls;
+        ulong totalNs;
+        ulong firstBoundaryPassNs;
+        ulong sortNs;
+        ulong secondBoundaryPassNs;
+        ulong vertexTopologyNs;
+        ulong retentionNs;
+        ulong materializationNs;
+        ulong edgeCount;
+        ulong rawEventCount;
+        ulong uniqueEventCount;
+        ulong secondPassContactCalls;
+        ulong noneContacts;
+        ulong touchContacts;
+        ulong properCrossingContacts;
+        ulong overlapContacts;
+        ulong eventLookupCalls;
+        ulong vertexCandidateCalls;
+        ulong vertexOnQueryCalls;
+        ulong retainedIntervalCount;
+        ulong componentCount;
+    }
+
+    private DoubleBoundaryClipAttribution
+        doubleBoundaryClipAttribution;
+
+    package(geo)
+    void resetDoubleBoundaryClipAttribution()
+        @safe
+    {
+        doubleBoundaryClipAttribution =
+            DoubleBoundaryClipAttribution.init;
+    }
+
+    package(geo)
+    DoubleBoundaryClipAttribution
+    readDoubleBoundaryClipAttribution()
+        @safe
+    {
+        return doubleBoundaryClipAttribution;
+    }
+
+    private ulong doubleBoundaryElapsedNs(MonoTime start)
+        @safe
+    {
+        return cast(ulong)
+            (MonoTime.currTime - start).total!"nsecs";
+    }
+}
 
 
 /*
@@ -2173,6 +2233,14 @@ if (isSegmentPolygonClipScalar!T)
                 SegmentPolygonClipOwnedResultInternal.init;
         
             assert(query.isFinite);
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+            {
+                const doubleBoundaryTotalStart =
+                    MonoTime.currTime;
+                ++doubleBoundaryClipAttribution.calls;
+            }
         
             /*
              * ADR-0024 regularizes away every zero-dimensional result.
@@ -2491,6 +2559,11 @@ if (isSegmentPolygonClipScalar!T)
             /*
              * First boundary pass: collect every exact query/boundary breakpoint.
              */
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+                const doubleBoundaryFirstPassStart =
+                    MonoTime.currTime;
+
             version (DigitalMars)
             {
                 flatEdgeIndex = 0;
@@ -2638,6 +2711,22 @@ if (isSegmentPolygonClipScalar!T)
         
             if (prepareEventProvenance)
                 assert(provenanceEdgeIndex == edgeCount);
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+            {
+                doubleBoundaryClipAttribution.firstBoundaryPassNs +=
+                    doubleBoundaryElapsedNs(
+                        doubleBoundaryFirstPassStart
+                    );
+                doubleBoundaryClipAttribution.edgeCount +=
+                    edgeCount;
+                doubleBoundaryClipAttribution.rawEventCount +=
+                    eventCount;
+
+                const doubleBoundarySortStart =
+                    MonoTime.currTime;
+            }
         
             const bool reuseProperCrossingEventIndex =
                 prepareEventProvenance;
@@ -2688,6 +2777,17 @@ if (isSegmentPolygonClipScalar!T)
         
             assert(eventCount >= 2);
             assert(eventCount <= eventCapacity);
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+            {
+                doubleBoundaryClipAttribution.sortNs +=
+                    doubleBoundaryElapsedNs(
+                        doubleBoundarySortStart
+                    );
+                doubleBoundaryClipAttribution.uniqueEventCount +=
+                    eventCount;
+            }
         
             events.length =
                 eventCount;
@@ -2730,6 +2830,11 @@ if (isSegmentPolygonClipScalar!T)
             {
                 const auto ring =
                     polygon[ringIndex];
+
+                version (GeoDoubleBoundaryAttribution)
+                static if (is(T == double))
+                    const doubleBoundarySecondPassStart =
+                        MonoTime.currTime;
         
                 const int orientationSign =
                     validRingOrientationSign(
@@ -2803,6 +2908,27 @@ if (isSegmentPolygonClipScalar!T)
                             query,
                             edge
                         );
+
+                    version (GeoDoubleBoundaryAttribution)
+                    static if (is(T == double))
+                    {
+                        ++doubleBoundaryClipAttribution.secondPassContactCalls;
+                        final switch (contact)
+                        {
+                            case SegmentContactKind.none:
+                                ++doubleBoundaryClipAttribution.noneContacts;
+                                break;
+                            case SegmentContactKind.touch:
+                                ++doubleBoundaryClipAttribution.touchContacts;
+                                break;
+                            case SegmentContactKind.properCrossing:
+                                ++doubleBoundaryClipAttribution.properCrossingContacts;
+                                break;
+                            case SegmentContactKind.overlap:
+                                ++doubleBoundaryClipAttribution.overlapContacts;
+                                break;
+                        }
+                    }
         
                     const size_t currentProvenanceEdgeIndex =
                         provenanceEdgeIndex;
@@ -2863,6 +2989,18 @@ if (isSegmentPolygonClipScalar!T)
                                         crossing
                                     );
         
+                                version (GeoDoubleBoundaryAttribution)
+
+        
+                                static if (is(T == double))
+
+        
+                                    ++doubleBoundaryClipAttribution.eventLookupCalls;
+
+        
+                                
+
+        
                                 index =
                                     findExactEventIndex(
                                         query,
@@ -2917,6 +3055,18 @@ if (isSegmentPolygonClipScalar!T)
                                     point
                                 );
         
+                            version (GeoDoubleBoundaryAttribution)
+
+        
+                            static if (is(T == double))
+
+        
+                                ++doubleBoundaryClipAttribution.eventLookupCalls;
+
+        
+                            
+
+        
                             const size_t index =
                                 findExactEventIndex(
                                     query,
@@ -2963,12 +3113,36 @@ if (isSegmentPolygonClipScalar!T)
                                     overlap.b
                                 );
         
+                            version (GeoDoubleBoundaryAttribution)
+
+        
+                            static if (is(T == double))
+
+        
+                                ++doubleBoundaryClipAttribution.eventLookupCalls;
+
+        
+                            
+
+        
                             const size_t firstIndex =
                                 findExactEventIndex(
                                     query,
                                     events[],
                                     first
                                 );
+        
+                            version (GeoDoubleBoundaryAttribution)
+
+        
+                            static if (is(T == double))
+
+        
+                                ++doubleBoundaryClipAttribution.eventLookupCalls;
+
+        
+                            
+
         
                             const size_t secondIndex =
                                 findExactEventIndex(
@@ -3008,6 +3182,17 @@ if (isSegmentPolygonClipScalar!T)
                         }
                     }
                 }
+
+                version (GeoDoubleBoundaryAttribution)
+                static if (is(T == double))
+                {
+                    doubleBoundaryClipAttribution.secondBoundaryPassNs +=
+                        doubleBoundaryElapsedNs(
+                            doubleBoundarySecondPassStart
+                        );
+                    const doubleBoundaryVertexStart =
+                        MonoTime.currTime;
+                }
         
         
                 /*
@@ -3033,6 +3218,10 @@ if (isSegmentPolygonClipScalar!T)
                             continue;
                         }
         
+                        version (GeoDoubleBoundaryAttribution)
+                        static if (is(T == double))
+                            ++doubleBoundaryClipAttribution.vertexCandidateCalls;
+
                         if (
                             segmentContactKind(
                                 query,
@@ -3042,6 +3231,10 @@ if (isSegmentPolygonClipScalar!T)
                         {
                             continue;
                         }
+
+                        version (GeoDoubleBoundaryAttribution)
+                        static if (is(T == double))
+                            ++doubleBoundaryClipAttribution.vertexOnQueryCalls;
         
                         if (vertex == query.b)
                             continue;
@@ -3078,6 +3271,18 @@ if (isSegmentPolygonClipScalar!T)
                                 vertex
                             );
         
+                        version (GeoDoubleBoundaryAttribution)
+
+        
+                        static if (is(T == double))
+
+        
+                            ++doubleBoundaryClipAttribution.eventLookupCalls;
+
+        
+                        
+
+        
                         const size_t index =
                             findExactEventIndex(
                                 query,
@@ -3094,6 +3299,13 @@ if (isSegmentPolygonClipScalar!T)
                         );
                     }
                 }
+
+                version (GeoDoubleBoundaryAttribution)
+                static if (is(T == double))
+                    doubleBoundaryClipAttribution.vertexTopologyNs +=
+                        doubleBoundaryElapsedNs(
+                            doubleBoundaryVertexStart
+                        );
             }
         
         
@@ -3104,6 +3316,11 @@ if (isSegmentPolygonClipScalar!T)
         
             if (prepareEventProvenance)
                 assert(provenanceEdgeIndex == edgeCount);
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+                const doubleBoundaryRetentionStart =
+                    MonoTime.currTime;
         
             auto retained =
                 new bool[
@@ -3205,6 +3422,22 @@ if (isSegmentPolygonClipScalar!T)
             );
         
             assert(activeBoundaryOverlaps == 0);
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+            {
+                foreach (keep; retained)
+                {
+                    if (keep)
+                        ++doubleBoundaryClipAttribution.retainedIntervalCount;
+                }
+                doubleBoundaryClipAttribution.retentionNs +=
+                    doubleBoundaryElapsedNs(
+                        doubleBoundaryRetentionStart
+                    );
+                const doubleBoundaryMaterializationStart =
+                    MonoTime.currTime;
+            }
         
         
             size_t componentCount = 0;
@@ -3331,6 +3564,21 @@ if (isSegmentPolygonClipScalar!T)
                 takeSegmentPolygonClipOwnedResultInternal(
                     components
                 );
+
+            version (GeoDoubleBoundaryAttribution)
+            static if (is(T == double))
+            {
+                doubleBoundaryClipAttribution.componentCount +=
+                    componentCount;
+                doubleBoundaryClipAttribution.materializationNs +=
+                    doubleBoundaryElapsedNs(
+                        doubleBoundaryMaterializationStart
+                    );
+                doubleBoundaryClipAttribution.totalNs +=
+                    doubleBoundaryElapsedNs(
+                        doubleBoundaryTotalStart
+                    );
+            }
         
             return
                 SegmentPolygonClipInternalStatus.success;

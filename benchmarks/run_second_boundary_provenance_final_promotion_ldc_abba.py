@@ -159,22 +159,22 @@ def main():
                             "long","boundary-only",3,20)
                 for scalar,case in PAIRS:
                     for cycle in range(a.cycles):
-                            order=(["base","candidate","candidate","base"]
-                                   if cycle%2==0 else
-                                   ["candidate","base","base","candidate"])
-                            for pos,label in enumerate(order):
-                                name=f"{compiler}-{scalar}-{case}-c{cycle}-p{pos}-{label}"
-                                print("[measure]",name,flush=True)
-                                cmd=run_one(binaries[(compiler,label)],
-                                            out/"runs"/name,scalar,case,
-                                            a.rounds,a.target_ms)
-                                record["runs"].append({
-                                    "name":name,"compiler":compiler,"scalar":scalar,
-                                    "case":case,"cycle":cycle,"position":pos,
-                                    "label":label,"revision":rev[label],"command":cmd
-                                })
-                                (out/"comparison.json").write_text(
-                                    json.dumps(record,indent=2)+"\n")
+                        order=(["base","candidate","candidate","base"]
+                               if cycle%2==0 else
+                               ["candidate","base","base","candidate"])
+                        for pos,label in enumerate(order):
+                            name=f"{compiler}-{scalar}-{case}-c{cycle}-p{pos}-{label}"
+                            print("[measure]",name,flush=True)
+                            cmd=run_one(binaries[(compiler,label)],
+                                        out/"runs"/name,scalar,case,
+                                        a.rounds,a.target_ms)
+                            record["runs"].append({
+                                "name":name,"compiler":compiler,"scalar":scalar,
+                                "case":case,"cycle":cycle,"position":pos,
+                                "label":label,"revision":rev[label],"command":cmd
+                            })
+                            (out/"comparison.json").write_text(
+                                json.dumps(record,indent=2)+"\n")
             record["status"]="passed"
         finally:
             for p in wt.values():

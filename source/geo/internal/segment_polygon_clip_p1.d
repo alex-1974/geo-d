@@ -935,6 +935,37 @@ if (isSegmentPolygonClipScalar!T)
 }
 
 
+/* Structural small-event precompaction, retaining raw provenance. */
+private size_t precompactSmallExactEventsWithRawRepresentatives(
+    scope ExactOverlayPoint[] events,
+    scope size_t[] originalToCompact
+)
+    pure nothrow @safe @nogc
+{
+    assert(originalToCompact.length >= events.length);
+    size_t compactCount;
+    foreach (rawIndex; 0 .. events.length)
+    {
+        size_t representative = compactCount;
+        foreach (candidate; 0 .. compactCount)
+        {
+            if (events[candidate] == events[rawIndex])
+            {
+                representative = candidate;
+                break;
+            }
+        }
+        if (representative == compactCount)
+        {
+            if (compactCount != rawIndex)
+                events[compactCount] = events[rawIndex];
+            ++compactCount;
+        }
+        originalToCompact[rawIndex] = representative;
+    }
+    return compactCount;
+}
+
 version (DigitalMars)
 {
 package(geo)
@@ -2639,10 +2670,30 @@ if (isSegmentPolygonClipScalar!T)
             if (prepareEventProvenance)
                 assert(provenanceEdgeIndex == edgeCount);
         
+            /* Only the LDC double small-event path changes; other types retain baseline. */
+            size_t originalEventCount = eventCount;
+            size_t[8] originalToCompact;
+            bool precompactedSmallEvents;
+            static if (is(T == double))
+            {
+                if (eventCount <= originalToCompact.length &&
+                    eventCount < equalPreferredEventThreshold &&
+                    prepareEventProvenance &&
+                    !preparedExactQueryReady)
+                {
+                    const size_t compactCount =
+                        precompactSmallExactEventsWithRawRepresentatives(
+                            events[0 .. eventCount],
+                            originalToCompact[]
+                        );
+                    precompactedSmallEvents = compactCount != eventCount;
+                    eventCount = compactCount;
+                }
+            }
+
             const bool reuseProperCrossingEventIndex =
                 prepareEventProvenance;
-        
-        
+
             if (eventCount >= equalPreferredEventThreshold)
             {
                 if (reuseProperCrossingEventIndex)
@@ -2686,6 +2737,19 @@ if (isSegmentPolygonClipScalar!T)
                 }
             }
         
+            if (precompactedSmallEvents)
+            {
+                /* Reverse expansion preserves compact mapping entries until read. */
+                size_t rawIndex = originalEventCount;
+                while (rawIndex != 0)
+                {
+                    --rawIndex;
+                    const size_t compactIndex = originalToCompact[rawIndex];
+                    assert(compactIndex <= rawIndex);
+                    rawToUnique[rawIndex] = rawToUnique[compactIndex];
+                }
+            }
+
             assert(eventCount >= 2);
             assert(eventCount <= eventCapacity);
         
@@ -4841,3 +4905,154 @@ afterSmallBoundaryProvenanceSecondPass:
     }}
 }
 
+
+
+@safe unittest
+{
+    /*
+     * Small-event precompaction must preserve exact raw provenance.
+     * Compare the optimized path with the original exact raw-mapping sort.
+     * Exhaustive research corpora remain separate from ordinary CI.
+     */
+    alias P = Point2!double;
+    alias S = Segment2!double;
+    immutable ubyte[8][6] patterns = [
+        [0, 1, 0, 1, 0, 1, 0, 1],
+        [3, 2, 1, 0, 2, 3, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 2, 3, 1, 2, 3, 1, 2],
+        [3, 3, 2, 2, 1, 1, 0, 0],
+        [0, 2, 1, 3, 0, 3, 1, 2],
+    ];
+    foreach (direction; 0 .. 2)
+    {
+        const S query = direction == 0
+            ? S(P(0, 0), P(3, 0))
+            : S(P(3, 0), P(0, 0));
+        foreach (labels; patterns)
+        foreach (rawCount; 2 .. 9)
+        {
+            ExactOverlayPoint[8] original;
+            foreach (i; 0 .. rawCount)
+                original[i] = exactOverlayPoint(P(cast(double) labels[i], 0));
+            auto reference = original;
+            auto candidate = original;
+            size_t[8] referenceIndices;
+            size_t[8] referenceMapping;
+            size_t[8] compactIndices;
+            size_t[8] compactMapping;
+            size_t[8] originalToCompact;
+            const size_t expectedCount = sortUniqueExactEdgeEventsWithRawMapping(
+                query, reference[0 .. rawCount], referenceIndices[0 .. rawCount],
+                referenceMapping[0 .. rawCount]);
+            const size_t compactCount = precompactSmallExactEventsWithRawRepresentatives(
+                candidate[0 .. rawCount], originalToCompact[]);
+            const size_t actualCount = sortUniqueExactEdgeEventsWithRawMapping(
+                query, candidate[0 .. compactCount], compactIndices[0 .. compactCount],
+                compactMapping[0 .. compactCount]);
+            size_t rawIndex = rawCount;
+            while (rawIndex != 0)
+            {
+                --rawIndex;
+                const size_t compactIndex = originalToCompact[rawIndex];
+                assert(compactIndex <= rawIndex);
+                compactMapping[rawIndex] = compactMapping[compactIndex];
+            }
+            assert(actualCount == expectedCount);
+            foreach (i; 0 .. expectedCount)
+                assert(exactOverlayPointsEqual(candidate[i], reference[i]));
+            foreach (i; 0 .. rawCount)
+                assert(compactMapping[i] == referenceMapping[i]);
+        }
+    }
+}
+
+
+@safe unittest
+{
+    /*
+     * Adversarial rational-equivalence and binary64-rounding-collision provenance.
+     * Two structurally distinct exact events encode x=1 and x=2/2.
+     * A third is x=1+2^-1074: exactly distinct but rounds to 1 in binary64.
+     * Compare all raw-slot mappings to the existing un-compacted exact sorter.
+     */
+    alias P = Point2!double;
+    alias S = Segment2!double;
+    alias E = ExactOverlayPoint;
+
+    E[4] templates;
+    templates[0] = exactOverlayPoint(P(1.0, 0.0));
+    templates[1] = templates[0];
+    ulong carry;
+    foreach (ref limb; templates[1].xNumerator.magnitude.limb)
+    {
+        const ulong shifted = cast(ulong) limb * 2 + carry;
+        limb = cast(typeof(limb)) shifted;
+        carry = shifted >> 32;
+    }
+    assert(carry == 0);
+    templates[1].denominator.limb[0] = 2;
+
+    templates[2] = templates[0];
+    assert(templates[2].xNumerator.magnitude.limb[0] == 0);
+    templates[2].xNumerator.magnitude.limb[0] = 1;
+    templates[3] = exactOverlayPoint(P(2.0, 0.0));
+
+    assert(templates[0] != templates[1]);
+    assert(exactOverlayPointsEqual(templates[0], templates[1]));
+    assert(!exactOverlayPointsEqual(templates[0], templates[2]));
+    assert(compareExactOverlayPointsAlongSegment(
+        S(P(0.0, 0.0), P(2.0, 0.0)), templates[0], templates[2]) < 0);
+
+    immutable ubyte[8][6] patterns = [
+        [0, 1, 2, 3, 0, 1, 2, 3],
+        [2, 1, 0, 2, 1, 0, 2, 1],
+        [1, 1, 0, 0, 2, 2, 3, 3],
+        [2, 0, 2, 0, 1, 1, 3, 3],
+        [3, 2, 1, 0, 3, 2, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    foreach (direction; 0 .. 2)
+    {
+        const S query = direction == 0
+            ? S(P(0.0, 0.0), P(2.0, 0.0))
+            : S(P(2.0, 0.0), P(0.0, 0.0));
+
+        foreach (labels; patterns)
+        foreach (rawCount; 2 .. 9)
+        {
+            E[8] reference;
+            foreach (i; 0 .. rawCount)
+                reference[i] = templates[labels[i]];
+            auto candidate = reference;
+            size_t[8] refIndices, refMapping;
+            size_t[8] compactIndices, compactMapping, originalToCompact;
+
+            const size_t expectedCount = sortUniqueExactEdgeEventsWithRawMapping(
+                query, reference[0 .. rawCount], refIndices[0 .. rawCount],
+                refMapping[0 .. rawCount]);
+            const size_t compactCount =
+                precompactSmallExactEventsWithRawRepresentatives(
+                    candidate[0 .. rawCount], originalToCompact[]);
+            const size_t actualCount = sortUniqueExactEdgeEventsWithRawMapping(
+                query, candidate[0 .. compactCount],
+                compactIndices[0 .. compactCount],
+                compactMapping[0 .. compactCount]);
+
+            size_t rawIndex = rawCount;
+            while (rawIndex != 0)
+            {
+                --rawIndex;
+                const size_t compactIndex = originalToCompact[rawIndex];
+                assert(compactIndex <= rawIndex);
+                compactMapping[rawIndex] = compactMapping[compactIndex];
+            }
+            assert(actualCount == expectedCount);
+            foreach (i; 0 .. expectedCount)
+                assert(exactOverlayPointsEqual(reference[i], candidate[i]));
+            foreach (i; 0 .. rawCount)
+                assert(refMapping[i] == compactMapping[i]);
+        }
+    }
+}

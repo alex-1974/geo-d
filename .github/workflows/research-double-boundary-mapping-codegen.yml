@@ -1,0 +1,66 @@
+name: Research Double Boundary Mapping Codegen
+
+on:
+  push:
+    branches:
+      - research/double-boundary-no-crossing-mapping
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  correctness:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+      - name: Unit tests
+        run: dub test --compiler="$DC" --force
+
+  codegen:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: ldc-1.41.0
+            scalar: double
+          - compiler: ldc-1.41.0
+            scalar: int
+          - compiler: dmd-2.111.0
+            scalar: double
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+      - name: Capture scalar codegen
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="build/double-boundary-mapping-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}"
+          python3 benchmarks/run_segment_polygon_scalar_codegen_compare.py \
+            --base=937bf049219cc26975e4fa2f10d38c12ed9d07e5 \
+            --candidate=869de702a60c2fc3c61fec3f6b044844109a4cab \
+            --compiler="$DC" \
+            --scalar="${{ matrix.scalar }}" \
+            --output="$OUT"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: double-boundary-mapping-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}
+          path: build/double-boundary-mapping-codegen-${{ matrix.compiler }}-${{ matrix.scalar }}
+          if-no-files-found: error
+          retention-days: 14

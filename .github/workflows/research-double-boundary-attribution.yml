@@ -2,6 +2,9 @@ name: Research Double Boundary Attribution
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - research/post166-double-boundary-attribution
 
 jobs:
   smoke:

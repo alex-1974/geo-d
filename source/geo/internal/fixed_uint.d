@@ -62,11 +62,10 @@ int compareUnsigned(size_t Limbs)(
     {
         --index;
 
-        if (lhs.limb[index] < rhs.limb[index])
-            return -1;
-
-        if (lhs.limb[index] > rhs.limb[index])
-            return 1;
+        const uint x = lhs.limb[index];
+        const uint y = rhs.limb[index];
+        if (x != y)
+            return x < y ? -1 : 1;
     }
 
     return 0;

@@ -279,37 +279,59 @@ int compareExactCoordinates(
     // Distinct representations retain the general exact cross-product path.
     if (lhsDenominator.limb == rhsDenominator.limb)
     {
-        const comparison = compareUnsigned(
-            lhsNumerator.magnitude, rhsNumerator.magnitude);
-        return lhsSign > 0 ? comparison : -comparison;
+        return compareEqualDenominatorNumerators(
+            lhsNumerator, rhsNumerator, lhsSign);
     }
 
+    return compareDistinctDenominatorNumerators(
+        lhsNumerator, lhsDenominator,
+        rhsNumerator, rhsDenominator, lhsSign);
+}
+
+
+/*
+ * RESEARCH INSTRUMENTATION.
+ *
+ * These no-inline helpers preserve the exact #89 branches while making equal
+ * hits and distinct misses independently visible in DMD's call-count profiler.
+ * They are intentionally confined to the research branch and are not a
+ * production implementation proposal.
+ */
+pragma(inline, false)
+private int compareEqualDenominatorNumerators(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    int sign
+)
+    pure nothrow @safe @nogc
+{
+    const comparison =
+        compareUnsigned(lhsNumerator.magnitude, rhsNumerator.magnitude);
+
+    return sign > 0 ? comparison : -comparison;
+}
+
+
+pragma(inline, false)
+private int compareDistinctDenominatorNumerators(
+    ref const SignedExactCoordinateNumerator lhsNumerator,
+    ref const DyadicProductMagnitude lhsDenominator,
+    ref const SignedExactCoordinateNumerator rhsNumerator,
+    ref const DyadicProductMagnitude rhsDenominator,
+    int sign
+)
+    pure nothrow @safe @nogc
+{
     const auto lhsScaled =
-        multiplyUnsigned(
-            lhsNumerator.magnitude,
-            rhsDenominator
-        );
+        multiplyUnsigned(lhsNumerator.magnitude, rhsDenominator);
 
     const auto rhsScaled =
-        multiplyUnsigned(
-            rhsNumerator.magnitude,
-            lhsDenominator
-        );
+        multiplyUnsigned(rhsNumerator.magnitude, lhsDenominator);
 
-    static assert(
-        is(typeof(lhsScaled) == typeof(rhsScaled))
-    );
+    static assert(is(typeof(lhsScaled) == typeof(rhsScaled)));
 
-    const int magnitudeComparison =
-        compareUnsigned(
-            lhsScaled,
-            rhsScaled
-        );
-
-    return
-        lhsSign > 0
-            ? magnitudeComparison
-            : -magnitudeComparison;
+    const comparison = compareUnsigned(lhsScaled, rhsScaled);
+    return sign > 0 ? comparison : -comparison;
 }
 
 

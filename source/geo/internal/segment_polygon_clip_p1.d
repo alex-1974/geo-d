@@ -340,6 +340,33 @@ if (isSegmentPolygonClipScalar!T)
 /*
  * Finds one exact event in an already sorted unique query event list.
  */
+/*
+ * K2.77 LEVEL-1 VALIDATED-STATE PRECONDITION (not a type-level seal):
+ *
+ * - query is finite and nondegenerate; the caller has already validated its
+ *   polygon as required by the clipping API.
+ * - events is ONLY the active prefix after exact sort/unique. Its length is
+ *   the number of valid exact events, not the allocation capacity. Its keys
+ *   are in strict source-segment order and the buffer does not change between
+ *   sort/unique and this lookup.
+ * - Every event and target comes from exactOverlayPoint(Point2!T) or
+ *   exactOverlayPoint(ExactProperIntersection), via the established seed/
+ *   noding factories. Both coordinates have sign in {-1, 0, +1}, and sign 0
+ *   if and only if the corresponding magnitude is zero. The shared unsigned
+ *   denominator is nonzero (1 for represented input points).
+ * - While this lookup runs, no other alias or thread writes event storage;
+ *   callers do not mutate its coordinate fields or replace elements after
+ *   validation/sorting. `scope const` alone does NOT prove this property.
+ * - The target is a canonical exact event created in this same clipping
+ *   invocation; arbitrary package-visible raw carriers do NOT qualify.
+ *
+ * Breaking these conditions is unsupported by this private fast lookup:
+ * the comparator's `assert` checks are not release-mode validation. Keep the
+ * general comparator for raw/noncanonical representation contracts.
+ *
+ * This is a source-scoped Level-1 contract, not a proof of `noalias`, not a
+ * Level-2 capability, and not an API-level promise for malformed inputs.
+ */
 private size_t findExactEventIndex(T)(
     Segment2!T query,
     scope const(ExactOverlayPoint)[] events,
@@ -356,18 +383,15 @@ if (isSegmentPolygonClipScalar!T)
         const size_t middle =
             lower + (upper - lower) / 2;
 
+        // Events and targets belong to this clipping invocation; both are
+        // constructed via the exact input/intersection event factories.
+        // The generic comparator remains unchanged for external raw carriers.
         const int comparison =
-            events.length >= equalPreferredEventThreshold
-                ? compareExactOverlayPointsAlongSegmentEqualPreferred(
-                    query,
-                    events[middle],
-                    target
-                )
-                : compareExactOverlayPointsAlongSegment(
-                    query,
-                    events[middle],
-                    target
-                );
+            compareExactOverlayPointsAlongSegmentEqualPreferred(
+                query,
+                events[middle],
+                target
+            );
 
         if (comparison < 0)
             lower = middle + 1;
@@ -632,6 +656,13 @@ if (isSegmentPolygonClipScalar!T)
  *
  * - query is finite;
  * - polygon satisfies validatePolygon(polygon).valid.
+ */
+/*
+ * K2.77 LEVEL-1 ALIAS OBLIGATION: the mutable `scope ref` events slice is
+ * borrowed here only for reading canonical, sorted exact event coordinates.
+ * This pass updates provenance/interval metadata, NOT event coordinates or
+ * event slots. `scope ref` does not mean unique/noalias. Any future event
+ * mutation or escaping mutable alias requires revisiting the lookup contract.
  */
 pragma(inline, false)
 private void applySmallBoundaryProvenanceSecondPass(T)(
@@ -1500,6 +1531,16 @@ if (isSegmentPolygonClipScalar!T)
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 
+    /*
+     * K2.77 LEVEL-1 VALIDATED-STATE HANDOFF:
+     * The active prefix has been filled by exact-event factories and then
+     * sorted/deduplicated using whole-value moves. Shrink the local slice
+     * to ONLY that prefix; unused allocation slots are not valid events.
+     * Subsequent lookup and provenance passes must not mutate its event
+     * coordinates or allow concurrent mutable aliases. The numerical
+     * canonical-sign/positive-denominator obligations are stated at
+     * findExactEventIndex; this handoff does not revalidate them.
+     */
     events.length =
         eventCount;
 
@@ -2753,6 +2794,16 @@ if (isSegmentPolygonClipScalar!T)
             assert(eventCount >= 2);
             assert(eventCount <= eventCapacity);
         
+            /*
+             * K2.77 LEVEL-1 VALIDATED-STATE HANDOFF:
+             * The active prefix has been filled by exact-event factories and then
+             * sorted/deduplicated using whole-value moves. Shrink the local slice
+             * to ONLY that prefix; unused allocation slots are not valid events.
+             * Subsequent lookup and provenance passes must not mutate its event
+             * coordinates or allow concurrent mutable aliases. The numerical
+             * canonical-sign/positive-denominator obligations are stated at
+             * findExactEventIndex; this handoff does not revalidate them.
+             */
             events.length =
                 eventCount;
         
@@ -3951,6 +4002,16 @@ if (isSegmentPolygonClipScalar!T)
     assert(eventCount >= 2);
     assert(eventCount <= eventCapacity);
 
+    /*
+     * K2.77 LEVEL-1 VALIDATED-STATE HANDOFF:
+     * The active prefix has been filled by exact-event factories and then
+     * sorted/deduplicated using whole-value moves. Shrink the local slice
+     * to ONLY that prefix; unused allocation slots are not valid events.
+     * Subsequent lookup and provenance passes must not mutate its event
+     * coordinates or allow concurrent mutable aliases. The numerical
+     * canonical-sign/positive-denominator obligations are stated at
+     * findExactEventIndex; this handoff does not revalidate them.
+     */
     events.length =
         eventCount;
 
@@ -5054,5 +5115,117 @@ afterSmallBoundaryProvenanceSecondPass:
             foreach (i; 0 .. rawCount)
                 assert(refMapping[i] == compactMapping[i]);
         }
+    }
+}
+
+// K2.77: private lookup must agree with the generic exact event order for
+// canonical factory-produced events, including duplicated raw input events.
+// This is an ordinary regression unittest, not performance instrumentation.
+@safe unittest
+{
+    import std.meta : AliasSeq;
+
+    // Isolate each scalar's aliases and values inside a distinct template
+    // instantiation.  A direct static-foreach body previously caused DMD to
+    // mix Point2!int with a const(double) loop value during construction.
+    void verifyCanonicalLookupForScalar(T)() @safe
+    {
+        alias P = Point2!T;
+        alias S = Segment2!T;
+
+        foreach (vertical; 0 .. 2)
+        foreach (reversed; 0 .. 2)
+        {
+            const S forward = vertical != 0
+                ? S(P(3, 0), P(3, 10))
+                : S(P(0, 3), P(10, 3));
+            const S query = reversed != 0
+                ? S(forward.b, forward.a)
+                : forward;
+
+            ExactOverlayPoint[7] events;
+            const int[7] rawPositions = [10, 0, 3, 5, 3, 0, 10];
+            foreach (index, raw; rawPositions)
+            {
+                const T v = cast(T) raw;
+                const P represented = vertical != 0
+                    ? P(3, v)
+                    : P(v, 3);
+                events[index] = exactOverlayPoint(represented);
+            }
+
+            const size_t count = sortUniqueExactEdgeEvents(
+                query, events[]);
+            assert(count == 4);
+            foreach (index; 1 .. count)
+                assert(compareExactOverlayPointsAlongSegment(
+                    query, events[index - 1], events[index]) < 0);
+
+            const int[5] probePositions = [0, 3, 5, 10, 7];
+            foreach (position; probePositions)
+            {
+                const T v = cast(T) position;
+                const P represented = vertical != 0
+                    ? P(3, v)
+                    : P(v, 3);
+                const auto target = exactOverlayPoint(represented);
+                size_t expected = size_t.max;
+                foreach (index; 0 .. count)
+                {
+                    if (exactOverlayPointsEqual(events[index], target))
+                    {
+                        expected = index;
+                        break;
+                    }
+                }
+                assert(findExactEventIndex(
+                    query, events[0 .. count], target) == expected);
+            }
+        }
+    }
+
+    static foreach (T; AliasSeq!(int, long, float, double))
+    {
+        verifyCanonicalLookupForScalar!T();
+    }
+}
+
+// Distinct factory paths can represent the same exact point with different
+// denominators. The private lookup must still resolve the unique event.
+@safe unittest
+{
+    import geo.internal.intersection_exact :
+        properIntersectionExactKnownCrossing;
+
+    alias P = Point2!double;
+    alias S = Segment2!double;
+
+    ExactProperIntersection intersection;
+    properIntersectionExactKnownCrossing(
+        S(P(0, 0), P(4, 4)),
+        S(P(0, 4), P(4, 0)),
+        intersection);
+    const auto constructed = exactOverlayPoint(intersection);
+    const auto represented = exactOverlayPoint(P(2, 2));
+    assert(exactOverlayPointsEqual(constructed, represented));
+    assert(constructed.denominator.limb != represented.denominator.limb);
+
+    foreach (reversed; 0 .. 2)
+    {
+        const S query = reversed == 0
+            ? S(P(0, 2), P(4, 2))
+            : S(P(4, 2), P(0, 2));
+        ExactOverlayPoint[5] events;
+        events[0] = exactOverlayPoint(P(0, 2));
+        events[1] = constructed;
+        events[2] = represented;
+        events[3] = exactOverlayPoint(P(4, 2));
+        events[4] = represented;
+        const size_t count = sortUniqueExactEdgeEvents(query, events[]);
+        assert(count == 3);
+        assert(findExactEventIndex(query, events[0 .. count], constructed) == 1);
+        assert(findExactEventIndex(query, events[0 .. count], represented) == 1);
+        const auto absent = exactOverlayPoint(P(1, 2));
+        assert(findExactEventIndex(query, events[0 .. count], absent) == size_t.max);
     }
 }

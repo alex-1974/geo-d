@@ -14,6 +14,7 @@ import named_arguments;
 module app;
 
 import geo;
+import ownership_contract : verifyOwnershipResultContracts;
 
 
 /*
@@ -398,6 +399,9 @@ static assert(
 
 @safe void main()
 {
+    // Existing owning-result behavior, exercised from outside the package.
+    verifyOwnershipResultContracts();
+
     alias P = Point2!double;
     alias S = Segment2!double;
     alias R = LinearRingView!double;

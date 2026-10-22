@@ -1,0 +1,248 @@
+{
+  "status": "passed",
+  "purpose": "comparison",
+  "started_utc": "2026-10-02T06:02:58.840635+00:00",
+  "source_commit": "7deb69f074208ddabe2b18316820965b16cf2966",
+  "dirty": false,
+  "untracked_relevant_files": [],
+  "platform": "Linux-6.17.0-22-generic-x86_64-with-glibc2.43",
+  "affinity": [
+    0
+  ],
+  "notes": "Power/turbo/background settings not attested.",
+  "commands": [
+    [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record",
+      "-I/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/headers",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/geos_native_bench.cpp",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+      "-Wl,--disable-new-dtags,-rpath,/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs",
+      "-g",
+      "-o",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native-debug"
+    ],
+    [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record",
+      "-I/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/headers",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/geos_native_bench.cpp",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+      "-Wl,--disable-new-dtags,-rpath,/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs",
+      "-O3",
+      "-o",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native-debug",
+      "--check"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native",
+      "--check"
+    ],
+    [
+      "ldd",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--check",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-0-check"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-0-check/preflight",
+      "--export-corpus"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-0-check/benchmark",
+      "--export-corpus"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=7",
+      "--target-ms=20",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-0-block-0-d"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native",
+      "--rounds=7",
+      "--target-ms=20"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native",
+      "--rounds=7",
+      "--target-ms=20"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/dmd",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=7",
+      "--target-ms=20",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-0-block-1-d"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--check",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-1-check"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-1-check/preflight",
+      "--export-corpus"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-1-check/benchmark",
+      "--export-corpus"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=7",
+      "--target-ms=20",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-1-block-0-d"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native",
+      "--rounds=7",
+      "--target-ms=20"
+    ],
+    [
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/native",
+      "--rounds=7",
+      "--target-ms=20"
+    ],
+    [
+      "/usr/bin/python3",
+      "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/benchmarks/run_segment_polygon.py",
+      "--compiler=/usr/bin/ldc2",
+      "--boundscheck=safeonly",
+      "--cpu=0",
+      "--rounds=7",
+      "--target-ms=20",
+      "--output=/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/record/compiler-1-block-1-d"
+    ]
+  ],
+  "runs": [
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "implementation": "d",
+      "record": "compiler-0-block-0-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 0,
+      "implementation": "native",
+      "record": "compiler-0-block-0-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "implementation": "native",
+      "record": "compiler-0-block-1-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/dmd",
+      "block": 1,
+      "implementation": "d",
+      "record": "compiler-0-block-1-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "implementation": "d",
+      "record": "compiler-1-block-0-d",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 0,
+      "implementation": "native",
+      "record": "compiler-1-block-0-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "implementation": "native",
+      "record": "compiler-1-block-1-native",
+      "status": "passed"
+    },
+    {
+      "compiler": "/usr/bin/ldc2",
+      "block": 1,
+      "implementation": "d",
+      "record": "compiler-1-block-1-d",
+      "status": "passed"
+    }
+  ],
+  "cxx_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "cxx_flags": [
+    "-std=c++17",
+    "-O3"
+  ],
+  "geos_header": "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/headers/geos_c.h",
+  "geos_header_sha256": "d10ba9dee4e16c39a18417c2ae2dd8e02febf1959bb26d5c20488121d57b8af6",
+  "geos_library": "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2",
+  "geos_library_sha256": "91589f52067072ab661524cf181caf856097fc901c1ecc4a98585d03f5452c02",
+  "runner_sha256": "b99fa54bb335f119a6f19b6ec2f12ab734950f6844f1fd610e176e9db2cb005b",
+  "cpp_sha256": "7541104352a858e2751ee1b3ab8666de951bb594c5b5619934a493038d6664b4",
+  "corpus_sha256": "9ef4d07386d10440bcbdf5b79ca4a5dd451ecdc3fec34392679de93d353feba3",
+  "assessment_sha256": "d4ce92a3abe6c6cfebddd566dc989cac1a6b385e942035269c91a7d778ca6184",
+  "limitations": [
+    "GEOS has weaker numerical/construction semantics; admitted subset only.",
+    "No frequency control imposed; shared-host measurements are diagnostic only.",
+    "C++ releases per call; D automatic GC remains enabled with collection outside rounds.",
+    "Native allocation counts/bytes are not instrumented; NA is not zero."
+  ],
+  "frequency_controls": {
+    "0": {
+      "scaling_governor": "powersave",
+      "scaling_min_freq": "800000",
+      "scaling_max_freq": "4500000"
+    }
+  },
+  "geos_export_header_sha256": "7a92f7925a89128de5e18def3d9bdb36f8c123bdfb0c3fba1c42fd78bd9a9f0d",
+  "native_corpus_sha256": "22e606131a52c5ea659bad154d8df73ffd924ac0cb4449650ebff4b86aca908e",
+  "native_linked_libraries": "\tlinux-vdso.so.1 (0x00007b3976078000)\n\tlibgeos_c-abcdd5fa.so.1.19.2 => /home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2 (0x00007b3975fdc000)\n\tlibstdc++.so.6 => /usr/lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007b3975c00000)\n\tlibgcc_s.so.1 => /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007b3975f86000)\n\tlibc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6 (0x00007b3975800000)\n\tlibgeos-3ef06f11.so.3.13.1 => /home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos-3ef06f11.so.3.13.1 (0x00007b3975200000)\n\tlibm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6 (0x00007b3975ada000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007b397607a000)\n",
+  "linked_library_sha256": {
+    "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos-3ef06f11.so.3.13.1": "59e0139d1ccea9a331b932c60b399974bafdff5c0e07b554c6a5df80edacf150",
+    "/home/alexander/Programmiersprachen/dlang/d-geospatial-workspace/libs/geo-d/build/native-xps.XjboKfKV/venv/lib/python3.14/site-packages/shapely.libs/libgeos_c-abcdd5fa.so.1.19.2": "91589f52067072ab661524cf181caf856097fc901c1ecc4a98585d03f5452c02",
+    "/lib64/ld-linux-x86-64.so.2": "bda779ea9e9ad234f60315477d7cfd0bdde861cd8ddd9df8cdaf62f18c4cec14",
+    "/usr/lib/x86_64-linux-gnu/libc.so.6": "85e64f97e348786a8fb4d9f3d52fec289e2fb86bba20f0731dfe61990525e0f7",
+    "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1": "9d339ecb409578d6a5d587e6c537a8f9589b8a13fefba30d167433a4b5758bee",
+    "/usr/lib/x86_64-linux-gnu/libm.so.6": "1c488db6f4fe8cecb72456bc018de000b7a9b539c2994864b0416b5e8371b3d8",
+    "/usr/lib/x86_64-linux-gnu/libstdc++.so.6": "5bb0d21308f123b6ad46c6f35b42cedfcb8d6d439a53aa3dae04d880aaffdde3"
+  },
+  "finished_utc": "2026-10-02T06:08:19.662745+00:00"
+}

@@ -51,6 +51,7 @@ for version in "${versions[@]}"; do
     mkdir -p "$source_dir/tools"
     cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
     cp "$root/tools/dub-import-paths.py" "$source_dir/tools/dub-import-paths.py"
+    cp "$root/tools/verify-public-api-examples.py" "$source_dir/tools/verify-public-api-examples.py"
 
     (
         cd "$source_dir"

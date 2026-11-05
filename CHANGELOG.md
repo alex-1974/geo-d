@@ -6,6 +6,8 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-05
+
 ### Added
 
 - Added `classifySegmentPolygonRelationship` and

@@ -8,13 +8,12 @@ functionality should have explicit semantics, strong numerical behaviour,
 tests, and documented ownership characteristics before the public API is
 expanded further.
 
-`v2.0.0` is the current stable API baseline.
+`v3.0.0` is the current stable API baseline. `v2.0.0` remains available as the
+previous stable API line.
 
-The `release/3.0` branch and `freeze/feature-3.0.0` tag define the current v3
-feature-frozen release candidate. The v3 implementation and Linux compiler
-qualification are complete on that pin; the `v3.0.0` API freeze, publication,
-and cross-platform release gates remain pending until the final evidence is
-accepted.
+The `release/3.0` branch and `freeze/feature-3.0.0` tag defined the v3
+feature-frozen release candidate. The `v3.0.0` API freeze, compiler/platform
+qualification, documentation, consumer, and packaging gates are complete.
 
 It aligns the established 2D API with the independent `geo3-d` sibling while
 `geo-d` itself remains exclusively responsible for coordinate-system-agnostic
@@ -31,8 +30,7 @@ This v2 migration is not a blanket feature-expansion milestone. New geometry
 capabilities remain driven by concrete consumers and research evidence.
 
 Polygon union, polygon-relationship queries, segment/polygon relationship
-queries, and segment/polygon clipping are integrated on the frozen v3 release
-line. They remain unreleased until the v3 release gate is complete. Other
+queries, and segment/polygon clipping are integrated in v3.0.0. Other
 candidate features are not commitments. The migration changes API
 organisation and compatibility policy; it does not by itself admit new
 geometry functionality.

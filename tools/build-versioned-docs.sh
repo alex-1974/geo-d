@@ -8,11 +8,12 @@ root="$(
 
 cd "$root"
 
-latest_version='v2.0.0'
+latest_version='v3.0.0'
 
 versions=(
     'v1.0.0'
     'v2.0.0'
+    'v3.0.0'
 )
 
 work_dir="$root/build/versioned-docs"
@@ -43,6 +44,19 @@ for version in "${versions[@]}"; do
 
     git archive "$version" |
         tar -x -C "$source_dir"
+
+    # Historical audits describe older DDox inventories and are not a
+    # versioned-site input; the release gate verifies the current API
+    # separately.
+    rm -f "$source_dir/docs/public-api-example-audit.md"
+
+    # Release archives intentionally omit the tools directory.  Restore the
+    # stable documentation helper from the checked-out release tooling so
+    # each historical source tree can still be rendered.
+    mkdir -p "$source_dir/tools"
+    cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
+    cp "$root/tools/dub-import-paths.py" "$source_dir/tools/dub-import-paths.py"
+    cp "$root/tools/verify-public-api-examples.py" "$source_dir/tools/verify-public-api-examples.py"
 
     (
         cd "$source_dir"
@@ -118,7 +132,12 @@ test -f "$site_dir/versions.html"
 
 cmp \
     "$site_dir/geo.html" \
-    "$site_dir/v2.0.0/geo.html"
+    "$site_dir/v3.0.0/geo.html"
+
+grep -Rq \
+    'PolygonUnion' \
+    "$site_dir/v3.0.0" \
+    --include='*.html'
 
 grep -Rq \
     'Polyline2View' \
@@ -139,7 +158,8 @@ then
     exit 1
 fi
 
-echo 'PASS: root documentation matches v2.0.0'
+echo 'PASS: root documentation matches v3.0.0'
+echo 'PASS: v3.0.0 contains canonical v3 API'
 echo 'PASS: v2.0.0 contains canonical v2 API'
 echo 'PASS: v1.0.0 remains historical v1 API'
 

@@ -16,15 +16,21 @@ The first public release of `geo-d` was `v0.1.0`.
 
 `v2.0.0` is the current stable API release.
 
+The `release/3.0` line is the v3 feature-frozen release candidate. Its
+additional geometry capabilities are integrated and undergoing final release
+qualification; `v3.0.0` has not yet been tagged or published.
+
 It aligns `geo-d` with the independent `geo3-d` sibling library while
 `geo-d` remains exclusively a coordinate-system-agnostic 2D Euclidean
 geometry library.
 
 The frozen `v2.0.0` release surface contains 45 package exports and 151
-audited public declarations. The `develop` branch additionally contains
-unreleased functionality, including polygon union, segment/polygon
-relationship queries, and segment/polygon clipping. Supported v1 source
-forms remain available in v2 as deprecated compatibility aliases or forwarding overloads where documented.
+audited public declarations. The v3 release baseline contains 67 package
+exports and 216 audited declarations, including polygon union,
+polygon-relationship queries, segment/polygon relationship queries, and
+segment/polygon clipping. Supported v1 source forms remain available in v2
+and the v3 candidate as deprecated compatibility aliases or forwarding
+overloads where documented.
 
 `v1.0.0` remains the historical stable v1 API baseline with 41 package-level
 names exported through `import geo;`.

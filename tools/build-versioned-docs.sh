@@ -132,7 +132,12 @@ test -f "$site_dir/versions.html"
 
 cmp \
     "$site_dir/geo.html" \
-    "$site_dir/v2.0.0/geo.html"
+    "$site_dir/v3.0.0/geo.html"
+
+grep -Rq \
+    'PolygonUnion' \
+    "$site_dir/v3.0.0" \
+    --include='*.html'
 
 grep -Rq \
     'Polyline2View' \
@@ -153,7 +158,8 @@ then
     exit 1
 fi
 
-echo 'PASS: root documentation matches v2.0.0'
+echo 'PASS: root documentation matches v3.0.0'
+echo 'PASS: v3.0.0 contains canonical v3 API'
 echo 'PASS: v2.0.0 contains canonical v2 API'
 echo 'PASS: v1.0.0 remains historical v1 API'
 

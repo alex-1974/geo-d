@@ -10,6 +10,12 @@ expanded further.
 
 `v2.0.0` is the current stable API baseline.
 
+The `release/3.0` branch and `freeze/feature-3.0.0` tag define the current v3
+feature-frozen release candidate. The v3 implementation and Linux compiler
+qualification are complete on that pin; the `v3.0.0` API freeze, publication,
+and cross-platform release gates remain pending until the final evidence is
+accepted.
+
 It aligns the established 2D API with the independent `geo3-d` sibling while
 `geo-d` itself remains exclusively responsible for coordinate-system-agnostic
 Euclidean 2D geometry.
@@ -24,9 +30,12 @@ the migration policy in ADR-0019.
 This v2 migration is not a blanket feature-expansion milestone. New geometry
 capabilities remain driven by concrete consumers and research evidence.
 
-Features beyond the established v2 migration remain candidates rather than
-commitments. The migration changes API organisation and compatibility policy;
-it does not by itself admit new geometry functionality.
+Polygon union, polygon-relationship queries, segment/polygon relationship
+queries, and segment/polygon clipping are integrated on the frozen v3 release
+line. They remain unreleased until the v3 release gate is complete. Other
+candidate features are not commitments. The migration changes API
+organisation and compatibility policy; it does not by itself admit new
+geometry functionality.
 
 ## v0.1.0 — Initial public foundation
 
@@ -1033,6 +1042,79 @@ Investigate a platform-aware exact or certified arithmetic backend for:
 No public assumption may be made about the representation, precision, or
 layout of D `real`.
 
+## Polygon union — integrated on develop (unreleased)
+
+The OSM-editor consumer audit established polygon union as a concrete
+consumer-backed missing geometry construction.
+
+ADR-0023 is Accepted and defines the implementation contract:
+
+- regularized union of valid 2D polygons;
+- exact noded-arrangement topology;
+- exact event identity/order for the supported robust scalar domain;
+- `IntersectionScalar!T` construction coordinates;
+- topology-preserving all-or-nothing binary64 materialization;
+- deterministic component/ring construction;
+- an explicit immutable owning result;
+- correctness-first P1 semantics before scalable candidate-discovery work.
+
+The integrated public API uses the reviewed spelling:
+
+~~~text
+polygonUnion
+PolygonUnionResult
+PolygonUnionStatus
+~~~
+
+The public result is owning and immutable, while component access returns
+ordinary read-only `Polygon2View!double` descriptors. Checked geometry failure
+distinguishes invalid operands from unrepresentable construction; allocation
+and runtime resource failure remain outside the geometry status domain.
+
+The public surface has passed the ordinary root-export, external-consumer,
+named-argument, `.init`, generated-documentation, cross-compiler, and 2D/3D
+coexistence gates. The initial reproducible P1 benchmark baseline is recorded
+under `benchmarks/README.md` before any P3 acceleration work.
+
+The broader Boolean-overlay family remains unpromoted publicly; intersection,
+difference, and symmetric difference still require separate evidence.
+
+## Segment/polygon relationships — integrated on develop (unreleased)
+
+Completed:
+
+- [x] Public `classifySegmentPolygonRelationship` query and
+  `SegmentPolygonRelationship` result exported through `import geo;`.
+- [x] Exact reduced existential facts for exterior, boundary, interior, and
+  positive-length boundary overlap on a closed segment.
+- [x] Allocation-free `pure nothrow @safe @nogc` query for finite segments and
+  prevalidated valid polygons over `int`, `long`, `float`, and `double`.
+
+The query provides facts, not event ordering or constructed geometry. It
+uses O(n) time and O(1) auxiliary space for n polygon boundary edges.
+
+## Segment/polygon clipping — integrated on develop (unreleased)
+
+ADR-0024 is Accepted. The integrated public API exports
+`clipSegmentToPolygon`, `SegmentPolygonClipResult`, and
+`SegmentPolygonClipStatus` through `import geo;`.
+
+Completed:
+
+- [x] Regularized one-dimensional closed-set intersection: positive-length
+  interior and boundary portions are retained; isolated contacts are omitted.
+- [x] Finite segment and prevalidated valid polygon inputs over `int`, `long`,
+  `float`, and `double`, with successful empty results for empty polygons and
+  degenerate segments.
+- [x] Exact topology and query traversal order before all-or-nothing binary64
+  materialization into an immutable owning result.
+- [x] Checked not-computed, success, and unrepresentable-construction status;
+  no partial geometry on construction failure.
+
+The implementation allocates private workspace and result storage. Bounds
+and convex specializations, reusable workspace, and broader clipping families
+remain separate candidates requiring consumer evidence.
+
 ## Candidate future geometry
 
 These are possible future areas, not a committed version plan.
@@ -1049,11 +1131,11 @@ such as:
 The API should preserve the established empty-bounds identities and NaN
 invariants.
 
-### Clipping
+### Additional clipping
 
 Potential future work includes:
 
-- segment clipping;
+- segment clipping against bounds or specialized convex regions;
 - polyline clipping;
 - polygon clipping.
 
@@ -1085,7 +1167,6 @@ Possible additions should be selected from concrete use cases and may
 include:
 
 - point-to-ring relationships;
-- segment-to-polygon relationships;
 - geometry equality or equivalence operations;
 - other low-level Euclidean predicates.
 

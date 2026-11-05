@@ -1,0 +1,39 @@
+# Consumer package / release archive boundary.
+#
+# The release package is a consumer product, not a copy of the Git repository.
+# Keep production source, package metadata, licence/changelog, README, and
+# concise user-facing documentation. Research, evidence, tests, CI, benchmarks,
+# audits, and maintainer-only material stay in the repository but are omitted
+# from the consumer archive.
+
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.github export-ignore
+/AGENTS.md export-ignore
+/CONTRIBUTING.md export-ignore
+/DESIGN_PRINCIPLES.md export-ignore
+/ROADMAP.md export-ignore
+/RESEARCH.md export-ignore
+
+/benchmarks export-ignore
+/tests export-ignore
+/tools export-ignore
+
+/docs/README.md export-ignore
+/docs/adr export-ignore
+/docs/v1-contract-audit.md export-ignore
+/docs/v2-public-api-audit.md export-ignore
+/docs/v3-public-api-audit.md export-ignore
+/docs/public-api-example-audit.md export-ignore
+/docs/api-freeze-v1.0.0.md export-ignore
+/docs/api-freeze-v2.0.0.md export-ignore
+/docs/ddoc-style.md export-ignore
+/docs/osm-editor-workflow-requirements.md export-ignore
+/docs/performance.md export-ignore
+
+# Retain literal context spaces in evidence patches and raw tool output.
+benchmarks/segment-polygon/results/20261001-capacity/**/*.patch whitespace=-blank-at-eol
+benchmarks/segment-polygon/results/20261001-capacity/*.log whitespace=-blank-at-eol
+
+benchmarks/segment-polygon/results/20261001-xps/raw/** whitespace=-blank-at-eol
+benchmarks/segment-polygon/results/20261001-xps-safeonly/raw/** whitespace=-blank-at-eol

@@ -1,0 +1,4530 @@
+{
+  "purpose": "comparison",
+  "warning": "subset with weaker GEOS semantics; smoke is not performance evidence",
+  "pairs": [
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 42267.188,
+      "native_median_ns": 5946.284,
+      "d_over_native": 7.1081683955895825
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 51610.156,
+      "native_median_ns": 7255.023,
+      "d_over_native": 7.113713629853414
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 195121.875,
+      "native_median_ns": 17305.312,
+      "d_over_native": 11.275259007176524
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 80243.75,
+      "native_median_ns": 8969.249,
+      "d_over_native": 8.946540563206574
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 12.151,
+      "native_median_ns": 4731.862,
+      "d_over_native": 0.0025679108985004213
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 11.079,
+      "native_median_ns": 1820.128,
+      "d_over_native": 0.006086934545262751
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 67916.406,
+      "native_median_ns": 13254.076,
+      "d_over_native": 5.1241901736492235
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 1714525.0,
+      "native_median_ns": 169967.0,
+      "d_over_native": 10.087399318691276
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 306825.0,
+      "native_median_ns": 31391.27,
+      "d_over_native": 9.774214295885448
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 10025900.0,
+      "native_median_ns": 1143561.625,
+      "d_over_native": 8.767258170280067
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 12.253,
+      "native_median_ns": 193.896,
+      "d_over_native": 0.06319367083384908
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 10625.586,
+      "native_median_ns": 182.306,
+      "d_over_native": 58.28434609941526
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 165862.5,
+      "native_median_ns": 18128.047,
+      "d_over_native": 9.149496357770918
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 166982.812,
+      "native_median_ns": 16215.629,
+      "d_over_native": 10.297646301601992
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 22937.5,
+      "native_median_ns": 6382.517,
+      "d_over_native": 3.5938016302972637
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 20576.562,
+      "native_median_ns": 6196.63,
+      "d_over_native": 3.3206052321987922
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 66330.469,
+      "native_median_ns": 11491.85,
+      "d_over_native": 5.771957430700888
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 82313.281,
+      "native_median_ns": 8994.183,
+      "d_over_native": 9.151835247292611
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 159226.562,
+      "native_median_ns": 15824.445,
+      "d_over_native": 10.062062966505303
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 78539.062,
+      "native_median_ns": 19232.369,
+      "d_over_native": 4.083691509870677
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 443081.25,
+      "native_median_ns": 34176.391,
+      "d_over_native": 12.96454180899323
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 38734.375,
+      "native_median_ns": 5275.603,
+      "d_over_native": 7.3421701746700805
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 37545.312,
+      "native_median_ns": 7734.435,
+      "d_over_native": 4.854305712052658
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 158371.875,
+      "native_median_ns": 18114.684,
+      "d_over_native": 8.742734623469003
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 59425.0,
+      "native_median_ns": 10993.174,
+      "d_over_native": 5.405627164638711
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 9.596,
+      "native_median_ns": 4408.065,
+      "d_over_native": 0.0021769188975207946
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 9.592,
+      "native_median_ns": 1710.121,
+      "d_over_native": 0.00560895983383632
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 66218.75,
+      "native_median_ns": 12192.65,
+      "d_over_native": 5.431038371477899
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 1464975.0,
+      "native_median_ns": 159631.375,
+      "d_over_native": 9.177237244244749
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 339356.25,
+      "native_median_ns": 34550.75,
+      "d_over_native": 9.821964790923497
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 8429900.0,
+      "native_median_ns": 833814.0,
+      "d_over_native": 10.11004852401135
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 13.554,
+      "native_median_ns": 175.287,
+      "d_over_native": 0.07732461620085916
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 10558.203,
+      "native_median_ns": 175.905,
+      "d_over_native": 60.022188112901844
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 157225.0,
+      "native_median_ns": 25070.34,
+      "d_over_native": 6.27135491580888
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 159215.625,
+      "native_median_ns": 16216.535,
+      "d_over_native": 9.818103867441472
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 24010.938,
+      "native_median_ns": 5516.694,
+      "d_over_native": 4.352414326406358
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 22310.742,
+      "native_median_ns": 8060.305,
+      "d_over_native": 2.7679773904337366
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 87088.281,
+      "native_median_ns": 10668.031,
+      "d_over_native": 8.163482183356985
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 59550.781,
+      "native_median_ns": 9713.455,
+      "d_over_native": 6.130751725312981
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 75171.094,
+      "native_median_ns": 9352.74,
+      "d_over_native": 8.037333872212848
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 214753.125,
+      "native_median_ns": 17140.191,
+      "d_over_native": 12.529214231043284
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 85570.312,
+      "native_median_ns": 11217.076,
+      "d_over_native": 7.628575575310358
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 529237.5,
+      "native_median_ns": 30262.992,
+      "d_over_native": 17.487943690432196
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 66805.469,
+      "native_median_ns": 8919.014,
+      "d_over_native": 7.4902303102114205
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 43263.672,
+      "native_median_ns": 6399.713,
+      "d_over_native": 6.760251905046367
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 48104.688,
+      "native_median_ns": 6910.628,
+      "d_over_native": 6.960971998492757
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 135153.125,
+      "native_median_ns": 15204.727,
+      "d_over_native": 8.888888633120477
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 72365.625,
+      "native_median_ns": 8868.646,
+      "d_over_native": 8.15971513577157
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 38.766,
+      "native_median_ns": 6561.685,
+      "d_over_native": 0.005907933709100635
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 25.949,
+      "native_median_ns": 2271.126,
+      "d_over_native": 0.011425610027801188
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 62203.125,
+      "native_median_ns": 11418.813,
+      "d_over_native": 5.44742478924911
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 2114350.0,
+      "native_median_ns": 176226.219,
+      "d_over_native": 11.99793090947494
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 403993.75,
+      "native_median_ns": 29616.473,
+      "d_over_native": 13.640846092645805
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 7749400.0,
+      "native_median_ns": 878331.0,
+      "d_over_native": 8.822869738173878
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 32.283,
+      "native_median_ns": 221.953,
+      "d_over_native": 0.14544971232648354
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 11488.086,
+      "native_median_ns": 250.269,
+      "d_over_native": 45.902952423192644
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 142889.062,
+      "native_median_ns": 17677.613,
+      "d_over_native": 8.08305182379544
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 146671.875,
+      "native_median_ns": 16391.65,
+      "d_over_native": 8.947962834735977
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 22996.875,
+      "native_median_ns": 6708.4,
+      "d_over_native": 3.4280715222705864
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 18439.453,
+      "native_median_ns": 8734.73,
+      "d_over_native": 2.1110501412178744
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 62417.188,
+      "native_median_ns": 8555.188,
+      "d_over_native": 7.295828916909833
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 70179.688,
+      "native_median_ns": 9370.277,
+      "d_over_native": 7.48960655058543
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 211078.125,
+      "native_median_ns": 15667.895,
+      "d_over_native": 13.47201554516417
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 89826.562,
+      "native_median_ns": 12038.5,
+      "d_over_native": 7.461607509241185
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 491625.0,
+      "native_median_ns": 34542.867,
+      "d_over_native": 14.232316037924704
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 58179.688,
+      "native_median_ns": 9448.121,
+      "d_over_native": 6.157805133952032
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 48694.141,
+      "native_median_ns": 5123.711,
+      "d_over_native": 9.503686097830265
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 44008.594,
+      "native_median_ns": 10830.203,
+      "d_over_native": 4.063505919510465
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 167153.125,
+      "native_median_ns": 15805.363,
+      "d_over_native": 10.575721987530436
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 90983.594,
+      "native_median_ns": 8838.043,
+      "d_over_native": 10.294540771073414
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 24.825,
+      "native_median_ns": 4079.272,
+      "d_over_native": 0.0060856446934649125
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 26.48,
+      "native_median_ns": 1726.706,
+      "d_over_native": 0.015335557993080468
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 61848.438,
+      "native_median_ns": 10207.85,
+      "d_over_native": 6.058909368770113
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 1474425.0,
+      "native_median_ns": 155951.594,
+      "d_over_native": 9.454375952066254
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 357187.5,
+      "native_median_ns": 31385.535,
+      "d_over_native": 11.380640795194347
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 7142000.0,
+      "native_median_ns": 938648.625,
+      "d_over_native": 7.608811018073989
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 27.13,
+      "native_median_ns": 173.78,
+      "d_over_native": 0.15611692945103003
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 10547.07,
+      "native_median_ns": 176.83,
+      "d_over_native": 59.64525250240343
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 150589.062,
+      "native_median_ns": 20209.715,
+      "d_over_native": 7.451320416938092
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 143971.875,
+      "native_median_ns": 18076.715,
+      "d_over_native": 7.964493272145963
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 24553.125,
+      "native_median_ns": 5437.581,
+      "d_over_native": 4.515449976745174
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 17615.234,
+      "native_median_ns": 6037.744,
+      "d_over_native": 2.91751919259909
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 67568.75,
+      "native_median_ns": 10032.457,
+      "d_over_native": 6.735015161290997
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 77204.688,
+      "native_median_ns": 8978.268,
+      "d_over_native": 8.599062536337742
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 184456.25,
+      "native_median_ns": 17078.678,
+      "d_over_native": 10.800382207568994
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 84057.812,
+      "native_median_ns": 11453.877,
+      "d_over_native": 7.338808684605222
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 546475.0,
+      "native_median_ns": 27182.211,
+      "d_over_native": 20.104140903033972
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 45910.156,
+      "native_median_ns": 5107.514,
+      "d_over_native": 8.988747950568516
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 38923.047,
+      "native_median_ns": 7279.121,
+      "d_over_native": 5.3472180226156425
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 151012.5,
+      "native_median_ns": 17293.969,
+      "d_over_native": 8.732090360518166
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 69771.875,
+      "native_median_ns": 11126.461,
+      "d_over_native": 6.270805694640911
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 10.292,
+      "native_median_ns": 4227.701,
+      "d_over_native": 0.0024344200311232985
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 8.778,
+      "native_median_ns": 1612.02,
+      "d_over_native": 0.0054453418692075786
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 65766.406,
+      "native_median_ns": 8906.022,
+      "d_over_native": 7.384487260417726
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 1601550.0,
+      "native_median_ns": 160146.969,
+      "d_over_native": 10.00050147686529
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 395953.125,
+      "native_median_ns": 30686.215,
+      "d_over_native": 12.903289799670635
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 6771600.0,
+      "native_median_ns": 874994.25,
+      "d_over_native": 7.739022285003587
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 17.825,
+      "native_median_ns": 172.886,
+      "d_over_native": 0.10310262253739458
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 11328.516,
+      "native_median_ns": 190.67,
+      "d_over_native": 59.41425499554204
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 150412.5,
+      "native_median_ns": 17834.496,
+      "d_over_native": 8.433795942425286
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 148793.75,
+      "native_median_ns": 40263.24,
+      "d_over_native": 3.695523509782124
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 24051.172,
+      "native_median_ns": 7031.057,
+      "d_over_native": 3.420705023440999
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 22378.711,
+      "native_median_ns": 9088.99,
+      "d_over_native": 2.462177975770685
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 68607.812,
+      "native_median_ns": 9587.241,
+      "d_over_native": 7.156158064661148
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 69539.844,
+      "native_median_ns": 9530.766,
+      "d_over_native": 7.296354144042567
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 155828.125,
+      "native_median_ns": 17644.775,
+      "d_over_native": 8.831403347449882
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 92093.75,
+      "native_median_ns": 14864.559,
+      "d_over_native": 6.195525208652339
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 475012.5,
+      "native_median_ns": 36669.664,
+      "d_over_native": 12.953827447123595
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 44098.438,
+      "native_median_ns": 14473.322,
+      "d_over_native": 3.046877420401481
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 42610.938,
+      "native_median_ns": 8147.902,
+      "d_over_native": 5.229682193035704
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 149943.75,
+      "native_median_ns": 16334.719,
+      "d_over_native": 9.179450837201424
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 76906.25,
+      "native_median_ns": 13787.183,
+      "d_over_native": 5.578097425703278
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 11.852,
+      "native_median_ns": 4197.739,
+      "d_over_native": 0.0028234247055379104
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 12.943,
+      "native_median_ns": 1660.344,
+      "d_over_native": 0.0077953725252116425
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 68722.656,
+      "native_median_ns": 9071.387,
+      "d_over_native": 7.575760575532716
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 1484100.0,
+      "native_median_ns": 183150.031,
+      "d_over_native": 8.103192731646331
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 323387.5,
+      "native_median_ns": 28665.898,
+      "d_over_native": 11.281261797554711
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 7744300.0,
+      "native_median_ns": 839959.0,
+      "d_over_native": 9.2198547786261
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 11.032,
+      "native_median_ns": 198.095,
+      "d_over_native": 0.0556904515510235
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 10885.938,
+      "native_median_ns": 197.232,
+      "d_over_native": 55.19356899488927
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 156034.375,
+      "native_median_ns": 19980.211,
+      "d_over_native": 7.809445806152898
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 155434.375,
+      "native_median_ns": 16843.877,
+      "d_over_native": 9.227945264620491
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 24790.234,
+      "native_median_ns": 7793.165,
+      "d_over_native": 3.181022601215296
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 19767.578,
+      "native_median_ns": 15919.875,
+      "d_over_native": 1.2416917846402689
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 72997.656,
+      "native_median_ns": 10530.137,
+      "d_over_native": 6.932260805343748
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 65575.0,
+      "native_median_ns": 9795.455,
+      "d_over_native": 6.694431243877901
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 66860.938,
+      "native_median_ns": 9513.874,
+      "d_over_native": 7.027730028797943
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 215765.625,
+      "native_median_ns": 20624.531,
+      "d_over_native": 10.461601526841992
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 86028.125,
+      "native_median_ns": 15647.795,
+      "d_over_native": 5.497779399589527
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 462931.25,
+      "native_median_ns": 29355.078,
+      "d_over_native": 15.770056887602205
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 70629.688,
+      "native_median_ns": 17644.298,
+      "d_over_native": 4.002975238799526
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 44468.75,
+      "native_median_ns": 5422.639,
+      "d_over_native": 8.200573558372593
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 66215.625,
+      "native_median_ns": 7197.529,
+      "d_over_native": 9.199771893937488
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 148568.75,
+      "native_median_ns": 20173.719,
+      "d_over_native": 7.3644700810990775
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 68982.031,
+      "native_median_ns": 9846.096,
+      "d_over_native": 7.006028683856019
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 29.7,
+      "native_median_ns": 4216.272,
+      "d_over_native": 0.007044137569872153
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 25.877,
+      "native_median_ns": 1846.293,
+      "d_over_native": 0.014015651903571102
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 75282.031,
+      "native_median_ns": 10178.632,
+      "d_over_native": 7.396085348207893
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 1622150.0,
+      "native_median_ns": 185480.656,
+      "d_over_native": 8.745655935139673
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 308075.0,
+      "native_median_ns": 32957.594,
+      "d_over_native": 9.34761803303967
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 7371200.0,
+      "native_median_ns": 810527.625,
+      "d_over_native": 9.0943229726439
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 28.326,
+      "native_median_ns": 252.573,
+      "d_over_native": 0.11214975472437672
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 13231.836,
+      "native_median_ns": 211.547,
+      "d_over_native": 62.54797279091644
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 163467.188,
+      "native_median_ns": 18310.215,
+      "d_over_native": 8.927649839174471
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 147790.625,
+      "native_median_ns": 18934.861,
+      "d_over_native": 7.805213093457617
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 22764.844,
+      "native_median_ns": 6236.155,
+      "d_over_native": 3.650461542408744
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 20880.469,
+      "native_median_ns": 7992.353,
+      "d_over_native": 2.6125559018727027
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 58397.656,
+      "native_median_ns": 10118.893,
+      "d_over_native": 5.77115065847618
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 69897.656,
+      "native_median_ns": 10673.309,
+      "d_over_native": 6.548827172529157
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 172293.75,
+      "native_median_ns": 16734.814,
+      "d_over_native": 10.29552823234247
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 79278.125,
+      "native_median_ns": 17797.623,
+      "d_over_native": 4.454422087713623
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 560643.75,
+      "native_median_ns": 28868.988,
+      "d_over_native": 19.420277219277654
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 64940.625,
+      "native_median_ns": 11856.648,
+      "d_over_native": 5.477148769196826
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 39879.688,
+      "native_median_ns": 8423.309,
+      "d_over_native": 4.734444385217259
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 38021.094,
+      "native_median_ns": 6790.84,
+      "d_over_native": 5.598879372802186
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 147876.562,
+      "native_median_ns": 17788.949,
+      "d_over_native": 8.312832984118398
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 72010.156,
+      "native_median_ns": 11169.676,
+      "d_over_native": 6.4469332861579876
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 28.448,
+      "native_median_ns": 3873.563,
+      "d_over_native": 0.007344142847295888
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 26.862,
+      "native_median_ns": 2457.762,
+      "d_over_native": 0.010929455333754853
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 66157.812,
+      "native_median_ns": 11307.309,
+      "d_over_native": 5.8508891903458204
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 1405725.0,
+      "native_median_ns": 165162.844,
+      "d_over_native": 8.511145521325608
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 328643.75,
+      "native_median_ns": 35572.977,
+      "d_over_native": 9.23857876724796
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 7079900.0,
+      "native_median_ns": 708231.25,
+      "d_over_native": 9.996593626728558
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 27.391,
+      "native_median_ns": 179.131,
+      "d_over_native": 0.15291043984569952
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 11945.898,
+      "native_median_ns": 194.615,
+      "d_over_native": 61.38220589368753
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 161679.688,
+      "native_median_ns": 22515.562,
+      "d_over_native": 7.180797352515562
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 183854.688,
+      "native_median_ns": 15218.816,
+      "d_over_native": 12.08074846295533
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 25944.141,
+      "native_median_ns": 6814.049,
+      "d_over_native": 3.80744855224845
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 19612.5,
+      "native_median_ns": 7770.555,
+      "d_over_native": 2.5239509919175656
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 60804.688,
+      "native_median_ns": 9175.426,
+      "d_over_native": 6.626906260265192
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 65832.812,
+      "native_median_ns": 9129.738,
+      "d_over_native": 7.210810649768921
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 178318.75,
+      "native_median_ns": 17588.877,
+      "d_over_native": 10.138154357438511
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 84562.5,
+      "native_median_ns": 11478.023,
+      "d_over_native": 7.367340176962531
+    },
+    {
+      "compiler": "/workspace/scratch/2e7d5a4f32c1/geo-d/build/reference-toolchains/dmd2/linux/bin64/dmd",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 487175.0,
+      "native_median_ns": 28421.383,
+      "d_over_native": 17.141143342672663
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 15745.703,
+      "native_median_ns": 6461.6,
+      "d_over_native": 2.436811780363996
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 21654.102,
+      "native_median_ns": 7292.797,
+      "d_over_native": 2.9692451332458587
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 46107.812,
+      "native_median_ns": 16835.615,
+      "d_over_native": 2.738706723811396
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 20370.312,
+      "native_median_ns": 9211.207,
+      "d_over_native": 2.211470440301689
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.045,
+      "native_median_ns": 3849.977,
+      "d_over_native": 0.0010506556272933578
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 3.938,
+      "native_median_ns": 1930.115,
+      "d_over_native": 0.002040292935913145
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 23862.109,
+      "native_median_ns": 10021.779,
+      "d_over_native": 2.3810252650751926
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 449718.75,
+      "native_median_ns": 159547.859,
+      "d_over_native": 2.818707520230654
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 106046.875,
+      "native_median_ns": 40565.152,
+      "d_over_native": 2.6142358593898525
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 2227925.0,
+      "native_median_ns": 806364.875,
+      "d_over_native": 2.762924166308707
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 3.735,
+      "native_median_ns": 217.342,
+      "d_over_native": 0.017184897534760882
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 4286.768,
+      "native_median_ns": 182.575,
+      "d_over_native": 23.47949062029303
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 52608.594,
+      "native_median_ns": 24906.508,
+      "d_over_native": 2.1122428724251505
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 46582.812,
+      "native_median_ns": 17535.82,
+      "d_over_native": 2.6564376231051643
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 9870.312,
+      "native_median_ns": 6148.435,
+      "d_over_native": 1.6053372931485816
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 11046.875,
+      "native_median_ns": 7086.795,
+      "d_over_native": 1.5587970302513336
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 20009.766,
+      "native_median_ns": 13700.176,
+      "d_over_native": 1.4605480980682293
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 19318.359,
+      "native_median_ns": 11072.82,
+      "d_over_native": 1.744664773743274
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 45751.562,
+      "native_median_ns": 19929.51,
+      "d_over_native": 2.29566918604622
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 25571.484,
+      "native_median_ns": 12064.637,
+      "d_over_native": 2.1195402729481208
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 185992.188,
+      "native_median_ns": 38421.617,
+      "d_over_native": 4.840821457358237
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 17553.711,
+      "native_median_ns": 5037.735,
+      "d_over_native": 3.4844450928840045
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 19012.5,
+      "native_median_ns": 8582.277,
+      "d_over_native": 2.215321178750115
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 45509.375,
+      "native_median_ns": 18183.492,
+      "d_over_native": 2.5027852185927766
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 22456.641,
+      "native_median_ns": 8763.874,
+      "d_over_native": 2.5624102993721727
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 28.566,
+      "native_median_ns": 4161.673,
+      "d_over_native": 0.006864066446354627
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.242,
+      "native_median_ns": 2239.594,
+      "d_over_native": 0.0018940933044114246
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 23462.891,
+      "native_median_ns": 11137.981,
+      "d_over_native": 2.1065659027430557
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 456762.5,
+      "native_median_ns": 203550.5,
+      "d_over_native": 2.2439763105470143
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 134004.688,
+      "native_median_ns": 33593.676,
+      "d_over_native": 3.988985545970021
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 2165950.0,
+      "native_median_ns": 806288.75,
+      "d_over_native": 2.6863205024254646
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 4.005,
+      "native_median_ns": 198.215,
+      "d_over_native": 0.020205332593396057
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 4126.855,
+      "native_median_ns": 288.953,
+      "d_over_native": 14.282097780607918
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 44307.812,
+      "native_median_ns": 18518.58,
+      "d_over_native": 2.392613904521837
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 48235.156,
+      "native_median_ns": 16142.883,
+      "d_over_native": 2.988013727163853
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 9194.043,
+      "native_median_ns": 7491.169,
+      "d_over_native": 1.2273175254756634
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 7844.238,
+      "native_median_ns": 6313.348,
+      "d_over_native": 1.242484653150753
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 22925.781,
+      "native_median_ns": 9843.438,
+      "d_over_native": 2.3290420481136773
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 21348.828,
+      "native_median_ns": 10185.457,
+      "d_over_native": 2.0960108122787227
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 25657.031,
+      "native_median_ns": 9486.786,
+      "d_over_native": 2.7045019250987634
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 45346.875,
+      "native_median_ns": 15986.316,
+      "d_over_native": 2.8366056945202383
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 25811.328,
+      "native_median_ns": 14008.266,
+      "d_over_native": 1.8425783747967095
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 165670.312,
+      "native_median_ns": 28196.711,
+      "d_over_native": 5.875519027733413
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 24100.391,
+      "native_median_ns": 9142.45,
+      "d_over_native": 2.63609765434867
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 14666.602,
+      "native_median_ns": 5033.352,
+      "d_over_native": 2.9138836306302442
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 17856.836,
+      "native_median_ns": 7294.008,
+      "d_over_native": 2.4481514141470644
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 42243.75,
+      "native_median_ns": 15775.68,
+      "d_over_native": 2.677776805817562
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 21146.875,
+      "native_median_ns": 9184.801,
+      "d_over_native": 2.3023770466012277
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 3.999,
+      "native_median_ns": 4259.902,
+      "d_over_native": 0.0009387539901152656
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.337,
+      "native_median_ns": 1526.036,
+      "d_over_native": 0.002842003727303943
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 23653.711,
+      "native_median_ns": 9021.047,
+      "d_over_native": 2.6220582821484024
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 418481.25,
+      "native_median_ns": 170545.062,
+      "d_over_native": 2.4537869645267123
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 90882.812,
+      "native_median_ns": 28823.523,
+      "d_over_native": 3.1530778524193592
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 2005500.0,
+      "native_median_ns": 751277.875,
+      "d_over_native": 2.669451699213157
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 4.456,
+      "native_median_ns": 170.147,
+      "d_over_native": 0.026189118820784386
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 3317.773,
+      "native_median_ns": 192.433,
+      "d_over_native": 17.24118524369521
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 53848.438,
+      "native_median_ns": 16193.016,
+      "d_over_native": 3.325411276071116
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 50774.219,
+      "native_median_ns": 16504.637,
+      "d_over_native": 3.076360843319365
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 7948.047,
+      "native_median_ns": 6368.75,
+      "d_over_native": 1.2479759764474976
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 8090.332,
+      "native_median_ns": 7813.702,
+      "d_over_native": 1.0354031930063368
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 22108.984,
+      "native_median_ns": 8556.435,
+      "d_over_native": 2.583901356113849
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 20949.219,
+      "native_median_ns": 10045.438,
+      "d_over_native": 2.0854460502369334
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 43312.5,
+      "native_median_ns": 17364.777,
+      "d_over_native": 2.494273321218004
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 25842.969,
+      "native_median_ns": 11807.867,
+      "d_over_native": 2.1886229748353365
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 129912.5,
+      "native_median_ns": 33866.367,
+      "d_over_native": 3.8360329585987185
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 32812.109,
+      "native_median_ns": 8867.412,
+      "d_over_native": 3.700302748986964
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 20786.523,
+      "native_median_ns": 5535.241,
+      "d_over_native": 3.7553058665376993
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 16170.703,
+      "native_median_ns": 9521.674,
+      "d_over_native": 1.6983046258462533
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 44428.125,
+      "native_median_ns": 15046.082,
+      "d_over_native": 2.952803593653152
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 49543.75,
+      "native_median_ns": 13893.917,
+      "d_over_native": 3.565859073434799
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.535,
+      "native_median_ns": 4689.073,
+      "d_over_native": 0.0009671421195617982
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.143,
+      "native_median_ns": 1658.938,
+      "d_over_native": 0.0024973808544984802
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 20920.703,
+      "native_median_ns": 9810.271,
+      "d_over_native": 2.1325305896238747
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 769112.5,
+      "native_median_ns": 262201.188,
+      "d_over_native": 2.9332914387863105
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 91360.938,
+      "native_median_ns": 32183.801,
+      "d_over_native": 2.8387243010855054
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 2121225.0,
+      "native_median_ns": 1030440.0,
+      "d_over_native": 2.0585623617095608
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 3.926,
+      "native_median_ns": 255.247,
+      "d_over_native": 0.015381179798391362
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 4753.711,
+      "native_median_ns": 196.468,
+      "d_over_native": 24.19585377771444
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 43637.5,
+      "native_median_ns": 17256.754,
+      "d_over_native": 2.5287200594039874
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 45896.094,
+      "native_median_ns": 16200.203,
+      "d_over_native": 2.8330567215731803
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 8964.551,
+      "native_median_ns": 5527.751,
+      "d_over_native": 1.6217356751416623
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 8057.617,
+      "native_median_ns": 6107.868,
+      "d_over_native": 1.3192192431139638
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 18314.844,
+      "native_median_ns": 10052.449,
+      "d_over_native": 1.8219285668596776
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 20073.828,
+      "native_median_ns": 8768.116,
+      "d_over_native": 2.2894117732931454
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 43185.156,
+      "native_median_ns": 14704.406,
+      "d_over_native": 2.936885447803876
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 24203.516,
+      "native_median_ns": 22392.023,
+      "d_over_native": 1.080899032659979
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 0,
+      "order": [
+        "d",
+        "native"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 120943.75,
+      "native_median_ns": 35107.473,
+      "d_over_native": 3.4449574311429365
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-only",
+      "d_median_ns": 18231.445,
+      "native_median_ns": 5333.384,
+      "d_over_native": 3.418363463047101
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "boundary-overlap",
+      "d_median_ns": 19292.188,
+      "native_median_ns": 6751.111,
+      "d_over_native": 2.857631580935345
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "concave-u",
+      "d_median_ns": 45660.156,
+      "native_median_ns": 15222.32,
+      "d_over_native": 2.9995530247688924
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "crossing",
+      "d_median_ns": 21329.688,
+      "native_median_ns": 13169.245,
+      "d_over_native": 1.6196591376346934
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-boundary",
+      "d_median_ns": 8.922,
+      "native_median_ns": 3896.382,
+      "d_over_native": 0.0022898165528944547
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "degenerate-interior",
+      "d_median_ns": 3.673,
+      "native_median_ns": 1837.295,
+      "d_over_native": 0.0019991345973292256
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-1",
+      "d_median_ns": 22003.906,
+      "native_median_ns": 11443.895,
+      "d_over_native": 1.9227637093839116
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-16",
+      "d_median_ns": 728150.0,
+      "native_median_ns": 150354.031,
+      "d_over_native": 4.842903081195076
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-4",
+      "d_median_ns": 127356.25,
+      "native_median_ns": 29684.133,
+      "d_over_native": 4.290381329311521
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "dense-64",
+      "d_median_ns": 2345750.0,
+      "native_median_ns": 1088660.625,
+      "d_over_native": 2.1547118965563765
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "empty",
+      "d_median_ns": 3.45,
+      "native_median_ns": 189.746,
+      "d_over_native": 0.018182201469332686
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "exterior",
+      "d_median_ns": 5551.66,
+      "native_median_ns": 221.989,
+      "d_over_native": 25.008716648122203
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole",
+      "d_median_ns": 44762.5,
+      "native_median_ns": 17684.992,
+      "d_over_native": 2.531100947062911
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "hole-reversed",
+      "d_median_ns": 50983.594,
+      "native_median_ns": 19000.998,
+      "d_over_native": 2.6832061136999226
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "interior",
+      "d_median_ns": 8529.98,
+      "native_median_ns": 5517.351,
+      "d_over_native": 1.5460281573530485
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "isolated-tangent",
+      "d_median_ns": 9152.539,
+      "native_median_ns": 6618.067,
+      "d_over_native": 1.3829625780458252
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "rational-crossing",
+      "d_median_ns": 22542.188,
+      "native_median_ns": 9184.192,
+      "d_over_native": 2.454455220448353
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-1",
+      "d_median_ns": 20861.719,
+      "native_median_ns": 9558.844,
+      "d_over_native": 2.1824520831180005
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-16",
+      "d_median_ns": 59849.219,
+      "native_median_ns": 14939.027,
+      "d_over_native": 4.00623273523771
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-4",
+      "d_median_ns": 26806.641,
+      "native_median_ns": 10872.09,
+      "d_over_native": 2.4656382535464663
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "double",
+      "case": "sparse-64",
+      "d_median_ns": 132053.125,
+      "native_median_ns": 35019.172,
+      "d_over_native": 3.7708808477824665
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-only",
+      "d_median_ns": 16537.305,
+      "native_median_ns": 5568.854,
+      "d_over_native": 2.969606493544273
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "boundary-overlap",
+      "d_median_ns": 17101.953,
+      "native_median_ns": 8261.253,
+      "d_over_native": 2.0701403285918007
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "concave-u",
+      "d_median_ns": 55474.219,
+      "native_median_ns": 19340.83,
+      "d_over_native": 2.868243968847252
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "crossing",
+      "d_median_ns": 22301.953,
+      "native_median_ns": 10345.967,
+      "d_over_native": 2.155618029711481
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.036,
+      "native_median_ns": 4668.728,
+      "d_over_native": 0.0008644752917711205
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.07,
+      "native_median_ns": 1873.806,
+      "d_over_native": 0.0021720498279971354
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-1",
+      "d_median_ns": 20364.453,
+      "native_median_ns": 8941.347,
+      "d_over_native": 2.277559857591927
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-16",
+      "d_median_ns": 527825.0,
+      "native_median_ns": 182905.656,
+      "d_over_native": 2.8857773539818803
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-4",
+      "d_median_ns": 101634.375,
+      "native_median_ns": 52357.758,
+      "d_over_native": 1.9411521593418877
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "dense-64",
+      "d_median_ns": 2339400.0,
+      "native_median_ns": 817362.75,
+      "d_over_native": 2.8621318992087663
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "empty",
+      "d_median_ns": 3.969,
+      "native_median_ns": 170.024,
+      "d_over_native": 0.02334376323342587
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "exterior",
+      "d_median_ns": 4879.541,
+      "native_median_ns": 192.069,
+      "d_over_native": 25.405146067298734
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole",
+      "d_median_ns": 44683.594,
+      "native_median_ns": 16336.715,
+      "d_over_native": 2.7351639543200696
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "hole-reversed",
+      "d_median_ns": 45373.438,
+      "native_median_ns": 16045.762,
+      "d_over_native": 2.827752150380892
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "interior",
+      "d_median_ns": 9172.266,
+      "native_median_ns": 5839.115,
+      "d_over_native": 1.5708315386835163
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "isolated-tangent",
+      "d_median_ns": 9670.703,
+      "native_median_ns": 6444.908,
+      "d_over_native": 1.5005183937458841
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "large-finite",
+      "d_median_ns": 21507.422,
+      "native_median_ns": 8380.653,
+      "d_over_native": 2.5663181616038746
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "rational-crossing",
+      "d_median_ns": 20832.422,
+      "native_median_ns": 13088.242,
+      "d_over_native": 1.591689854145423
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-1",
+      "d_median_ns": 26798.438,
+      "native_median_ns": 8302.016,
+      "d_over_native": 3.2279434296440765
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-16",
+      "d_median_ns": 49163.281,
+      "native_median_ns": 18173.875,
+      "d_over_native": 2.7051622727679154
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-4",
+      "d_median_ns": 27689.844,
+      "native_median_ns": 11153.541,
+      "d_over_native": 2.48260565859757
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "sparse-64",
+      "d_median_ns": 150545.312,
+      "native_median_ns": 28026.5,
+      "d_over_native": 5.371534511979734
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "float",
+      "case": "subnormal",
+      "d_median_ns": 19751.172,
+      "native_median_ns": 9725.974,
+      "d_over_native": 2.0307654534137143
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-only",
+      "d_median_ns": 15011.914,
+      "native_median_ns": 5571.902,
+      "d_over_native": 2.694217163187723
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "boundary-overlap",
+      "d_median_ns": 14380.664,
+      "native_median_ns": 9157.928,
+      "d_over_native": 1.5702966871982398
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "concave-u",
+      "d_median_ns": 42227.344,
+      "native_median_ns": 17682.01,
+      "d_over_native": 2.3881529305774625
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "crossing",
+      "d_median_ns": 24254.688,
+      "native_median_ns": 8907.03,
+      "d_over_native": 2.7230949036884344
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-boundary",
+      "d_median_ns": 4.466,
+      "native_median_ns": 5260.28,
+      "d_over_native": 0.0008490042355159802
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.005,
+      "native_median_ns": 1596.346,
+      "d_over_native": 0.0025088545966851796
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-1",
+      "d_median_ns": 22430.469,
+      "native_median_ns": 9904.82,
+      "d_over_native": 2.264601375895776
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-16",
+      "d_median_ns": 465225.0,
+      "native_median_ns": 181476.188,
+      "d_over_native": 2.56355946819866
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-4",
+      "d_median_ns": 97734.375,
+      "native_median_ns": 48030.012,
+      "d_over_native": 2.0348605159623943
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "dense-64",
+      "d_median_ns": 2146050.0,
+      "native_median_ns": 806936.25,
+      "d_over_native": 2.659503771208692
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "empty",
+      "d_median_ns": 4.005,
+      "native_median_ns": 236.826,
+      "d_over_native": 0.016911149958197157
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "exterior",
+      "d_median_ns": 3009.229,
+      "native_median_ns": 287.587,
+      "d_over_native": 10.463717066487707
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole",
+      "d_median_ns": 43314.844,
+      "native_median_ns": 16319.025,
+      "d_over_native": 2.6542544055174866
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "hole-reversed",
+      "d_median_ns": 53096.875,
+      "native_median_ns": 15210.051,
+      "d_over_native": 3.490907098207626
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "interior",
+      "d_median_ns": 7750.293,
+      "native_median_ns": 6758.358,
+      "d_over_native": 1.1467715974797428
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "isolated-tangent",
+      "d_median_ns": 7925.488,
+      "native_median_ns": 6460.805,
+      "d_over_native": 1.226702864426337
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "rational-crossing",
+      "d_median_ns": 21020.703,
+      "native_median_ns": 9159.096,
+      "d_over_native": 2.2950630717267297
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-1",
+      "d_median_ns": 24725.391,
+      "native_median_ns": 11686.609,
+      "d_over_native": 2.1157027671585484
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-16",
+      "d_median_ns": 44882.031,
+      "native_median_ns": 15062.916,
+      "d_over_native": 2.979637608016934
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-4",
+      "d_median_ns": 39478.906,
+      "native_median_ns": 15585.744,
+      "d_over_native": 2.5330138875628907
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "sparse-64",
+      "d_median_ns": 108278.125,
+      "native_median_ns": 36575.926,
+      "d_over_native": 2.9603659248435705
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "int",
+      "case": "wide-integral",
+      "d_median_ns": 25732.031,
+      "native_median_ns": 9002.646,
+      "d_over_native": 2.858274222934013
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-only",
+      "d_median_ns": 19682.812,
+      "native_median_ns": 7425.701,
+      "d_over_native": 2.650633522680216
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "boundary-overlap",
+      "d_median_ns": 15277.148,
+      "native_median_ns": 8406.923,
+      "d_over_native": 1.8172104109910365
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "concave-u",
+      "d_median_ns": 44204.688,
+      "native_median_ns": 14573.645,
+      "d_over_native": 3.033193686274093
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "crossing",
+      "d_median_ns": 18044.922,
+      "native_median_ns": 8767.496,
+      "d_over_native": 2.0581614180377157
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-boundary",
+      "d_median_ns": 6.061,
+      "native_median_ns": 4461.699,
+      "d_over_native": 0.0013584511191812806
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "degenerate-interior",
+      "d_median_ns": 4.396,
+      "native_median_ns": 1645.054,
+      "d_over_native": 0.00267225270416655
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-1",
+      "d_median_ns": 21111.328,
+      "native_median_ns": 8444.607,
+      "d_over_native": 2.4999775596425033
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-16",
+      "d_median_ns": 428462.5,
+      "native_median_ns": 213141.406,
+      "d_over_native": 2.0102264878556726
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-4",
+      "d_median_ns": 133398.438,
+      "native_median_ns": 30143.984,
+      "d_over_native": 4.425375159434798
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "dense-64",
+      "d_median_ns": 2048525.0,
+      "native_median_ns": 814742.25,
+      "d_over_native": 2.5143227812231412
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "empty",
+      "d_median_ns": 4.144,
+      "native_median_ns": 191.305,
+      "d_over_native": 0.021661744334962495
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "exterior",
+      "d_median_ns": 4215.576,
+      "native_median_ns": 174.216,
+      "d_over_native": 24.19741011158562
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole",
+      "d_median_ns": 42065.625,
+      "native_median_ns": 21064.361,
+      "d_over_native": 1.9970045614011267
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "hole-reversed",
+      "d_median_ns": 43409.375,
+      "native_median_ns": 18157.371,
+      "d_over_native": 2.390730188858288
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "interior",
+      "d_median_ns": 8552.246,
+      "native_median_ns": 5211.387,
+      "d_over_native": 1.6410690666419514
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "isolated-tangent",
+      "d_median_ns": 7777.148,
+      "native_median_ns": 7747.696,
+      "d_over_native": 1.0038013881804346
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "rational-crossing",
+      "d_median_ns": 20838.086,
+      "native_median_ns": 9744.27,
+      "d_over_native": 2.138496367608861
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-1",
+      "d_median_ns": 23583.594,
+      "native_median_ns": 9798.459,
+      "d_over_native": 2.406867651331704
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-16",
+      "d_median_ns": 43840.625,
+      "native_median_ns": 15368.324,
+      "d_over_native": 2.852661422286516
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-4",
+      "d_median_ns": 27266.406,
+      "native_median_ns": 11936.641,
+      "d_over_native": 2.2842612088275085
+    },
+    {
+      "compiler": "/tmp/geo-reference-ldc/ldc2-1.41.0-linux-x86_64/bin/ldc2",
+      "block": 1,
+      "order": [
+        "native",
+        "d"
+      ],
+      "scalar": "long",
+      "case": "sparse-64",
+      "d_median_ns": 120257.812,
+      "native_median_ns": 33187.18,
+      "d_over_native": 3.623622495192421
+    }
+  ]
+}

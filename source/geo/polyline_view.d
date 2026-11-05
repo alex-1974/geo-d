@@ -317,22 +317,4 @@ alias PolylineView = Polyline2View;
     assert(immutableView.segmentCount == 1);
     assert(immutableView[0] == P(-1.0, 2.0));
     assert(immutableView[1] == P(3.0, -4.0));
-
-
-    /*
-     * DIP1000 must reject a view escaping stack-owned backing storage.
-     */
-    static assert(
-        !__traits(
-            compiles,
-            {
-                @safe V invalidEscape()
-                {
-                    P[2] local;
-
-                    return V(local[]);
-                }
-            }
-        )
-    );
 }

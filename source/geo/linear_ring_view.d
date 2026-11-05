@@ -407,22 +407,4 @@ alias LinearRingView = LinearRing2View;
     assert(immutableRing.length == 3);
     assert(immutableRing.segmentCount == 3);
     assert(immutableRing[0] == P(-1.0, 0.0));
-
-
-    /*
-     * DIP1000 must reject a view escaping stack-owned backing storage.
-     */
-    static assert(
-        !__traits(
-            compiles,
-            {
-                @safe R invalidEscape()
-                {
-                    P[3] local;
-
-                    return R(local[]);
-                }
-            }
-        )
-    );
 }

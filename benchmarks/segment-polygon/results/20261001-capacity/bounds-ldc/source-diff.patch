@@ -1,0 +1,181 @@
+diff --git a/source/geo/internal/segment_polygon_clip_p1.d b/source/geo/internal/segment_polygon_clip_p1.d
+index d8eb1b2..fde2f6a 100644
+--- a/source/geo/internal/segment_polygon_clip_p1.d
++++ b/source/geo/internal/segment_polygon_clip_p1.d
+@@ -3,6 +3,9 @@ module geo.internal.segment_polygon_clip_p1;
+ import core.exception :
+     onOutOfMemoryError;
+ 
++import geo.bounding_box : tryBounds;
++import geo.bounds : Bounds2;
++
+ import geo.intersection :
+     SegmentContactKind,
+     segmentContactKind,
+@@ -128,6 +131,79 @@ if (isSegmentPolygonClipScalar!T)
+ }
+ 
+ 
++/*
++ * Conservative candidate test using only finite represented comparisons.
++ *
++ * Strict separation of either closed coordinate interval proves that the
++ * segments cannot meet. Equality is retained, including shared endpoints,
++ * collinear overlap, subnormals and signed zero. No subtraction, rounding,
++ * epsilon or exact-coordinate construction is involved. Overlapping bounds
++ * do not establish contact; the existing exact writer still decides that.
++ */
++private bool edgeBoundsMayMeetQuery(T)(
++    Bounds2!T queryBounds,
++    Segment2!T edge
++)
++    pure nothrow @safe @nogc
++if (isSegmentPolygonClipScalar!T)
++{
++    const lower = queryBounds.min;
++    const upper = queryBounds.max;
++
++    return !(
++        (edge.a.x < lower.x && edge.b.x < lower.x) ||
++        (edge.a.x > upper.x && edge.b.x > upper.x) ||
++        (edge.a.y < lower.y && edge.b.y < lower.y) ||
++        (edge.a.y > upper.y && edge.b.y > upper.y)
++    );
++}
++
++
++/*
++ * Reserves two seeds plus two raw events per possible boundary-edge contact.
++ *
++ * Each candidate may append at most two events (overlap), including duplicate
++ * contacts at shared vertices/query endpoints. Strictly separated bounds
++ * prove zero insertions. Thus the writer remains covered and the global
++ * 2n + 2 bound remains valid. False-positive candidates only over-reserve.
++ *
++ * This adds one O(n), allocation-free comparison pass instead of repeating
++ * the robust contact predicates. Event generation, ordering, labeling and
++ * materialization below remain unchanged.
++ */
++private size_t queryBoundaryEventCapacity(T)(
++    Segment2!T query,
++    scope Polygon2View!T polygon
++)
++    @safe
++if (isSegmentPolygonClipScalar!T)
++{
++    Bounds2!T queryBounds;
++    const bool bounded = tryBounds(query, queryBounds);
++    assert(bounded && !queryBounds.empty);
++
++    size_t capacity = 2;
++
++    foreach (ringIndex; 0 .. polygon.length)
++    {
++        const auto ring = polygon[ringIndex];
++
++        foreach (edgeIndex; 0 .. ring.segmentCount)
++        {
++            if (!edgeBoundsMayMeetQuery(queryBounds, ring.segment(edgeIndex)))
++                continue;
++
++            if (capacity > size_t.max - 2)
++                onOutOfMemoryError();
++
++            capacity += 2;
++        }
++    }
++
++    return capacity;
++}
++
++
+ /*
+  * Finds one exact event in an already sorted unique query event list.
+  */
+@@ -471,16 +547,11 @@ if (isSegmentPolygonClipScalar!T)
+     }
+ 
+ 
+-    if (
+-        edgeCount >
+-        (size_t.max - 2) / 2
+-    )
+-    {
+-        onOutOfMemoryError();
+-    }
+-
+     const size_t eventCapacity =
+-        edgeCount * 2 + 2;
++        queryBoundaryEventCapacity(query, polygon);
++
++    if (eventCapacity > size_t.max / ExactOverlayPoint.sizeof)
++        onOutOfMemoryError();
+ 
+     auto events =
+         new ExactOverlayPoint[
+@@ -523,7 +594,8 @@ if (isSegmentPolygonClipScalar!T)
+                 );
+ 
+             /*
+-             * 2n + 2 is the proved hard query-event capacity bound.
++             * The conservative bounds pass covers every raw insertion, including
++             * duplicates. The global 2n + 2 bound remains valid.
+              */
+             assert(appended);
+         }
+@@ -1083,3 +1155,55 @@ if (isSegmentPolygonClipScalar!T)
+     return
+         SegmentPolygonClipInternalStatus.success;
+ }
++
++
++@safe unittest
++{
++    import geo.linear_ring_view : LinearRing2View;
++    import std.meta : AliasSeq;
++
++    static foreach (T; AliasSeq!(int, long, float, double))
++    {{
++        alias P = Point2!T;
++        alias S = Segment2!T;
++        P[4] points = [P(0, 0), P(10, 0), P(10, 10), P(0, 10)];
++        LinearRing2View!T[1] rings = [LinearRing2View!T(points[])];
++        auto polygon = Polygon2View!T(rings[]);
++        S[8] queries = [
++            S(P(-2, 2), P(-1, 8)), // no contacts
++            S(P(1, 1), P(9, 1)),   // interior, no contacts
++            S(P(-1, 5), P(11, 5)), // two proper crossings
++            S(P(-2, 2), P(2, -2)), // one vertex, two raw touches
++            S(P(-1, 0), P(11, 0)), // overlap plus two endpoint touches
++            S(P(0, 0), P(10, 0)),  // seeded endpoints still duplicated
++            S(P(0, 5), P(5, 5)),   // one seeded endpoint contact
++            S(P(-2, 1), P(1, -2)), // overlapping bounds, no actual contacts
++        ];
++        size_t[8] expectedCapacity = [2, 2, 6, 6, 8, 8, 4, 6];
++        size_t[8] expectedRawCount = [2, 2, 4, 4, 6, 6, 3, 2];
++
++        foreach (i, original; queries)
++        {
++            foreach (query; [original, S(original.b, original.a)])
++            {
++                const capacity = queryBoundaryEventCapacity(query, polygon);
++                assert(capacity == expectedCapacity[i]);
++
++                // Exercise the existing writer at exactly that capacity.
++                auto events = new ExactOverlayPoint[capacity];
++                size_t count;
++                assert(seedExactEdgeEvents(query, events, count));
++                foreach (edgeIndex; 0 .. rings[0].segmentCount)
++                {
++                    ExactOverlayPoint[2] ignored;
++                    size_t ignoredCount;
++                    assert(appendSegmentPairNodingEvents(query,
++                        rings[0].segment(edgeIndex), events, count,
++                        ignored[], ignoredCount));
++                }
++                assert(count == expectedRawCount[i]);
++                assert(count <= capacity);
++            }
++        }
++    }}
++}

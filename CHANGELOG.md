@@ -6,6 +6,26 @@ The project follows Semantic Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Added `classifySegmentPolygonRelationship` and
+  `SegmentPolygonRelationship` for exact, allocation-free exterior, boundary,
+  interior, and boundary-overlap facts on finite segments against
+  prevalidated valid polygons.
+- Added `clipSegmentToPolygon`, `SegmentPolygonClipResult`, and
+  `SegmentPolygonClipStatus` for regularized segment/polygon intersection,
+  retaining positive-length interior and boundary portions with exact topology,
+  all-or-nothing binary64 materialization, and immutable owning storage.
+  Isolated point contacts are omitted; empty polygons and degenerate segments
+  yield successful empty results.
+- Added robust regularized polygon union for `int`, `long`, `float`, and
+  `double` polygon inputs through `polygonUnion`, with exact overlay topology,
+  topology-preserving binary64 materialization, explicit checked failure
+  semantics, and immutable owning `PolygonUnionResult` storage.
+- Added `PolygonUnionStatus` to distinguish default/not-computed state,
+  successful construction, invalid operands, and unrepresentable construction
+  without treating runtime allocation failure as geometry status.
+
 ### Changed
 
 - Standardised the Linux x86-64 DMD/LDC compiler matrix across frontend
@@ -67,6 +87,17 @@ The project follows Semantic Versioning for published releases.
 - Refreshed benchmark documentation to reflect the completed v1 coverage.
 
 ### Verification
+
+- Added the v3 release-baseline public API inventory for the frozen
+  `release/3.0` source pin: 67 package exports, 216 audited declarations, and
+  zero unresolved public members.
+- Extended the external consumer gate to compile and execute representative
+  `Line2`, polygon-relationship, segment/polygon relationship, and
+  segment/polygon clipping contracts, including v3 scalar-domain rejection
+  and checked-result states.
+- Verified the complete controlled six-compiler matrix (DMD 2.111.0,
+  2.112.1, 2.113.0 and LDC 1.41.0, 1.42.0, 1.43.0): all 30 unit-test,
+  lifetime, external-consumer, family-consumer, and release-build checks pass.
 
 - Completed declaration-by-declaration disposition of all 146 frozen v1
   public audit declarations.

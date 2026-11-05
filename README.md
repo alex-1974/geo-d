@@ -16,13 +16,21 @@ The first public release of `geo-d` was `v0.1.0`.
 
 `v2.0.0` is the current stable API release.
 
+The `release/3.0` line is the v3 feature-frozen release candidate. Its
+additional geometry capabilities are integrated and undergoing final release
+qualification; `v3.0.0` has not yet been tagged or published.
+
 It aligns `geo-d` with the independent `geo3-d` sibling library while
 `geo-d` remains exclusively a coordinate-system-agnostic 2D Euclidean
 geometry library.
 
-The frozen v2 package surface contains 45 package exports and 151 audited
-public declarations. Supported v1 source forms remain available in v2 as
-deprecated compatibility aliases or forwarding overloads where documented.
+The frozen `v2.0.0` release surface contains 45 package exports and 151
+audited public declarations. The v3 release baseline contains 67 package
+exports and 216 audited declarations, including polygon union,
+polygon-relationship queries, segment/polygon relationship queries, and
+segment/polygon clipping. Supported v1 source forms remain available in v2
+and the v3 candidate as deprecated compatibility aliases or forwarding
+overloads where documented.
 
 `v1.0.0` remains the historical stable v1 API baseline with 41 package-level
 names exported through `import geo;`.
@@ -31,9 +39,10 @@ The API is intentionally small. New functionality is added only when concrete
 consumer requirements and research justify extending the geometry model.
 
 The shared declaration contracts required by both dimensional siblings are
-provided by the independently versioned `euclid-core-d` package. The current
-v2 integration state resolves released `euclid-core-d 0.1.0` through the
-public DUB registry rather than through a workspace-relative dependency.
+provided by the independently versioned `euclid-core-d` package. The
+`v2.0.0` release uses `~>0.1.0`; current `develop` uses `~>0.1.2`. Both
+resolve released Core packages through the public DUB registry rather than
+through a workspace-relative dependency.
 
 The migration focuses on dimensional naming, shared operation families, UFCS
 and argument consistency, common declaration identity where required, and
@@ -203,6 +212,58 @@ rejecting it. Callers can explicitly validate topology through:
 Validation covers ring simplicity and polygon relationships including ring
 contact and hole containment rules.
 
+### Polygon union (unreleased, integrated on develop)
+
+`polygonUnion(first, second)` constructs the regularized two-dimensional
+union of valid polygons for `int`, `long`, `float`, and `double` input
+coordinates.
+
+The operation returns an immutable owning `PolygonUnionResult`. Successful
+components are exposed as read-only `Polygon2View!double` descriptors under
+the existing `IntersectionScalar!T` construction policy. Checked status
+distinguishes invalid operands and exact unions that cannot be materialized in
+binary64 without changing required topology.
+
+Polygon union allocates variable-size exact-overlay workspace and result
+storage. Runtime allocation failure is not reinterpreted as a geometry status.
+
+### Segment/polygon relationships (unreleased, integrated on develop)
+
+`classifySegmentPolygonRelationship(segment, polygon)` returns a
+`SegmentPolygonRelationship` with four existential facts: `hasExterior`,
+`hasBoundary`, `hasInterior`, and `hasBoundaryOverlap`. These describe whether
+any part of the closed segment lies in each region, including whether a
+positive-length part lies on the boundary; they do not provide event counts,
+ordering, or constructed geometry.
+
+The query accepts finite `Segment2!T` inputs and prevalidated valid
+`Polygon2View!T` inputs for `int`, `long`, `float`, and `double`. Topological
+decisions are exact. The operation is `pure nothrow @safe @nogc`, takes O(n)
+time for n polygon boundary edges, and uses O(1) auxiliary space.
+
+### Segment/polygon clipping (unreleased, integrated on develop)
+
+`clipSegmentToPolygon(segment, polygon)` constructs the positive-length
+components of the closed-set segment/polygon intersection. It retains
+interior and boundary portions and omits isolated point contacts. An empty
+polygon or degenerate finite segment yields a successful empty result.
+
+Inputs must be finite and the polygon must already satisfy
+`validatePolygon(polygon).valid`. Supported input scalars are `int`, `long`,
+`float`, and `double`. Exact topology determines components and their query
+traversal order before coordinates are materialized as `Segment2!double`.
+
+The immutable owning `SegmentPolygonClipResult` exposes checked
+`SegmentPolygonClipStatus` values: `notComputed`, `success`, and
+`unrepresentableConstruction`. Check `succeeded` before reading geometry.
+Materialization is all-or-nothing: an unrepresentable result exposes no
+partial geometry. Invalid input violates the preconditions; runtime resource
+failure is outside the geometry status domain.
+
+Clipping allocates private exact-event workspace and result storage and does
+not promise `@nogc`. Use the relationship query when only contact facts are
+needed.
+
 ### Polyline simplification
 
 Douglas-Peucker simplification is available for `Polyline2View` through:
@@ -329,8 +390,9 @@ The library follows these principles:
 - views before copies;
 - no hidden deep copies;
 - no hidden allocation in low-level numerical operations;
-- caller-owned output and workspace where variable temporary storage is
-  required.
+- caller-owned output and workspace where practical for low-level algorithms;
+- explicit owning immutable results where data-dependent constructed output
+  makes caller-buffer-only presentation impractical.
 
 Most low-level operations are designed to satisfy:
 
@@ -414,7 +476,9 @@ Build the release configuration with LDC:
 dub build --build=release --compiler=ldc2 --force
 ~~~
 
-The package currently builds with DIP1000 enabled.
+The published package does not impose a preview language mode on consumers.
+Borrowed-view lifetime contracts are verified separately under
+`-preview=dip1000` with DMD and LDC.
 
 DMD and LDC are the required compiler families.
 
@@ -466,11 +530,14 @@ Release verification includes a clean post-tag consumer test against the
 published DUB package after the release tag has been indexed. Repository path
 dependencies are not a substitute for that registry verification.
 
-The shared declaration dependency is independently published and resolved as:
+The shared declaration dependency for the stable `v2.0.0` release is
+independently published and resolved as:
 
 ~~~text
 euclid-core-d ~>0.1.0
 ~~~
+
+The current `develop` manifest instead requires `euclid-core-d ~>0.1.2`.
 
 ## Documentation
 
@@ -487,7 +554,7 @@ https://alex-1974.github.io/geo-d/v1.0.0/
 ~~~
 
 The root documentation is built from the current stable release tag rather
-than from the development state of `main`. Available documentation versions
+than from the development state of `develop`. Available documentation versions
 are listed at:
 
 https://alex-1974.github.io/geo-d/versions.html

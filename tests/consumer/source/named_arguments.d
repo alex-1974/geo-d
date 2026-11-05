@@ -342,6 +342,22 @@ static assert(__traits(compiles, {
 
 
 /*
+ * Polygon union.
+ */
+static assert(__traits(compiles,
+    polygonUnion(
+        first: Polygon2View!double.init,
+        second: Polygon2View!double.init
+    )));
+
+static assert(__traits(compiles, {
+    PolygonUnionResult result;
+    auto component =
+        result.opIndex(index: 0);
+}));
+
+
+/*
  * Point2 public parameter-bearing members.
  */
 static assert(__traits(compiles, {

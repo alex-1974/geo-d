@@ -1,0 +1,25 @@
+{
+  "purpose": "untimed semantic qualification; tracked working benchmark changes explicitly included",
+  "geo_source_base": "1ed69cb77ad55fcb89bfbbabc38360fbcdb6431f",
+  "core_version": "v0.1.2",
+  "core_commit": "e727c58d7e6bea35de1cf6eeb2c806480c631e28",
+  "benchmark_sha256": "6c31643f37eceedec684d7de739b922bc7e9b33f66bccb660c912d05d0ba9b69",
+  "corpus_sha256": "9ef4d07386d10440bcbdf5b79ca4a5dd451ecdc3fec34392679de93d353feba3",
+  "probe_sha256": "5797ee0bf75ef2ed080c8c735c6bddc932d2db5f906283efc65f91c2606fa13b",
+  "dmd": "2.111.0",
+  "ldc": "1.41.0",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "build_commands": [
+    "dmd -i -Isource -Ibuild/reference-core/source -O -inline -release -boundscheck=safeonly benchmarks/segment_polygon_bench.d -of=build/reference-corpus-dmd",
+    "dmd -i -Isource -Ibuild/reference-core/source benchmarks/segment_polygon_bench.d -of=build/reference-corpus-debug",
+    "ldc2 -i -Isource -Ibuild/reference-core/source -O -release -boundscheck=safeonly benchmarks/segment_polygon_bench.d -of=build/reference-corpus-ldc",
+    "ldc2 -i -Isource -Ibuild/reference-core/source benchmarks/segment_polygon_bench.d -of=build/reference-corpus-ldc-debug"
+  ],
+  "checks": {
+    "debug_release_dmd_ldc_export_parsed_equality": true,
+    "fixtures": 92,
+    "directed_preflight_per_binary": 184,
+    "normal_release_check_and_two_iteration_one_round_smoke_both_compilers": true
+  },
+  "timing_claim": false
+}

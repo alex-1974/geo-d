@@ -1,0 +1,15 @@
+    Starting Performing "debug" build using ldc2 for x86_64.
+    Building euclid-core-d 0.1.2: building configuration [library]
+    Building geo-d 2.0.0+commit.100.g03f345a: building configuration [library]
+    Building clipping-bounds-oracle-ldc ~master: building configuration [application]
+     Linking clipping-bounds-oracle-ldc
+     Running build/clipping-bounds-oracle-ldc/clipping-bounds-oracle-ldc 
+square: cumulative checked 14641
+square-reversed: cumulative checked 29282
+concave-u: cumulative checked 43923
+concave-l: cumulative checked 53923
+with-hole: cumulative checked 82484
+with-hole-reversed: cumulative checked 111045
+redundant-collinear: cumulative checked 125686
+TOTAL 125686
+SEGMENT POLYGON PUBLIC CLIP DIFFERENTIAL PASS

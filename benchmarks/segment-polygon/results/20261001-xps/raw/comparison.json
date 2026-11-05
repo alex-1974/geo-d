@@ -1,0 +1,127 @@
+{
+  "format": 1,
+  "purpose": "comparison",
+  "status": "passed",
+  "revisions": {
+    "base": "03f345acb6b922719108fd00b72bf105d20a8a21",
+    "candidate": "e86461ca2419f3ecc8b963d31de6c45ae0f22615"
+  },
+  "cpu": 0,
+  "notes": "",
+  "runs": [
+    {
+      "name": "dmd-block0-base",
+      "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/base/benchmarks/run_segment_polygon.py",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/dmd-block0-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "dmd-block0-candidate",
+      "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/candidate/benchmarks/run_segment_polygon.py",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/dmd-block0-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "dmd-block1-candidate",
+      "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/candidate/benchmarks/run_segment_polygon.py",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/dmd-block1-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "dmd-block1-base",
+      "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/base/benchmarks/run_segment_polygon.py",
+        "--compiler=dmd",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/dmd-block1-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ldc2-block0-base",
+      "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/base/benchmarks/run_segment_polygon.py",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/ldc2-block0-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ldc2-block0-candidate",
+      "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/candidate/benchmarks/run_segment_polygon.py",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/ldc2-block0-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ldc2-block1-candidate",
+      "revision": "e86461ca2419f3ecc8b963d31de6c45ae0f22615",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/candidate/benchmarks/run_segment_polygon.py",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/ldc2-block1-candidate",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ldc2-block1-base",
+      "revision": "03f345acb6b922719108fd00b72bf105d20a8a21",
+      "command": [
+        "python3",
+        "/tmp/geo-d-segment-polygon-1lbeautq/base/benchmarks/run_segment_polygon.py",
+        "--compiler=ldc2",
+        "--cpu=0",
+        "--output=/home/alexander/Downloads/geo-clipping-xps-20261001-202539/ldc2-block1-base",
+        "--rounds=7",
+        "--target-ms=20"
+      ],
+      "returncode": 0
+    }
+  ],
+  "started_utc": "20261001T182539869281Z",
+  "finished_utc": "2026-10-01T18:32:40.821244+00:00"
+}

@@ -72,16 +72,36 @@ A different controlled DUB executable can be supplied explicitly with
 
 ## CI policy
 
-The Linux x86-64 compiler gate uses the six exact baseline compiler versions
-above with DUB `1.40.0`.
+Daily integration uses `develop`.
 
-`dmd-latest` and `ldc-latest` are additional rolling forward-compatibility
-canaries. They do not change the declared minimum frontend or replace the
-exact baseline.
+The required Fast CI compiler checks are:
 
-Cross-platform jobs remain a separate portability layer. They use current LDC
-on Linux ARM64, Windows x86-64, macOS x86-64, and macOS ARM64 rather than
-forming a Cartesian product of every compiler and platform.
+- `Fast / dmd-2.111.0`;
+- `Fast / ldc-1.41.0`.
+
+Each Fast compiler runs the five established `geo-d` gates:
+
+1. library unit tests;
+2. DIP1000 lifetime compile-positive and compile-negative probes;
+3. external consumer test;
+4. `geo-d` / `geo3-d` family consumer test;
+5. release build.
+
+The DMD Fast job additionally builds and verifies the current public API
+documentation.
+
+`dmd-latest` and `ldc-latest` run on `develop` as rolling
+forward-compatibility canaries. They do not change the declared minimum
+frontend or replace the reproducible release matrix.
+
+Release qualification targets `main` and uses the six exact Linux x86-64
+baseline compiler versions above with DUB `1.40.0`. Each compiler runs the
+same five established gates. The DMD `2.111.0` Release job additionally
+builds and verifies the public API documentation.
+
+Cross-platform Release jobs remain a separate portability layer. They use
+current LDC on Linux ARM64, Windows x86-64, macOS x86-64, and macOS ARM64
+rather than forming a Cartesian product of every compiler and platform.
 
 The controlled Linux x86-64 compiler comparison fixes DUB to `1.40.0`.
 Portability jobs use the DUB available with the selected toolchain and record

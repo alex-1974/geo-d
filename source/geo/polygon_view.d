@@ -379,23 +379,4 @@ alias PolygonView = Polygon2View;
             }
         )
     );
-
-    /*
-     * DIP1000 must reject a polygon view escaping stack-owned
-     * ring-descriptor storage.
-     */
-    static assert(
-        !__traits(
-            compiles,
-            {
-                @safe V invalidEscape()
-                {
-                    R[1] local;
-
-                    return V(local[]);
-                }
-            }
-        )
-    );
-
 }

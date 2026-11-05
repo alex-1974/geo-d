@@ -34,3 +34,18 @@ static assert(
     PolygonValidationIssue.init ==
     PolygonValidationIssue.none
 );
+
+
+static assert(
+    PolygonUnionStatus.init ==
+    PolygonUnionStatus.notComputed
+);
+
+static assert(
+    PolygonUnionResult.init.status ==
+    PolygonUnionStatus.notComputed
+);
+
+static assert(
+    !PolygonUnionResult.init.succeeded
+);

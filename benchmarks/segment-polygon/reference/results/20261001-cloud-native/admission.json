@@ -1,0 +1,499 @@
+{
+  "admitted": [
+    [
+      "double",
+      "boundary-only"
+    ],
+    [
+      "double",
+      "boundary-overlap"
+    ],
+    [
+      "double",
+      "concave-u"
+    ],
+    [
+      "double",
+      "crossing"
+    ],
+    [
+      "double",
+      "degenerate-boundary"
+    ],
+    [
+      "double",
+      "degenerate-interior"
+    ],
+    [
+      "double",
+      "dense-1"
+    ],
+    [
+      "double",
+      "dense-16"
+    ],
+    [
+      "double",
+      "dense-4"
+    ],
+    [
+      "double",
+      "dense-64"
+    ],
+    [
+      "double",
+      "empty"
+    ],
+    [
+      "double",
+      "exterior"
+    ],
+    [
+      "double",
+      "hole"
+    ],
+    [
+      "double",
+      "hole-reversed"
+    ],
+    [
+      "double",
+      "interior"
+    ],
+    [
+      "double",
+      "isolated-tangent"
+    ],
+    [
+      "double",
+      "rational-crossing"
+    ],
+    [
+      "double",
+      "sparse-1"
+    ],
+    [
+      "double",
+      "sparse-16"
+    ],
+    [
+      "double",
+      "sparse-4"
+    ],
+    [
+      "double",
+      "sparse-64"
+    ],
+    [
+      "float",
+      "boundary-only"
+    ],
+    [
+      "float",
+      "boundary-overlap"
+    ],
+    [
+      "float",
+      "concave-u"
+    ],
+    [
+      "float",
+      "crossing"
+    ],
+    [
+      "float",
+      "degenerate-boundary"
+    ],
+    [
+      "float",
+      "degenerate-interior"
+    ],
+    [
+      "float",
+      "dense-1"
+    ],
+    [
+      "float",
+      "dense-16"
+    ],
+    [
+      "float",
+      "dense-4"
+    ],
+    [
+      "float",
+      "dense-64"
+    ],
+    [
+      "float",
+      "empty"
+    ],
+    [
+      "float",
+      "exterior"
+    ],
+    [
+      "float",
+      "hole"
+    ],
+    [
+      "float",
+      "hole-reversed"
+    ],
+    [
+      "float",
+      "interior"
+    ],
+    [
+      "float",
+      "isolated-tangent"
+    ],
+    [
+      "float",
+      "large-finite"
+    ],
+    [
+      "float",
+      "rational-crossing"
+    ],
+    [
+      "float",
+      "sparse-1"
+    ],
+    [
+      "float",
+      "sparse-16"
+    ],
+    [
+      "float",
+      "sparse-4"
+    ],
+    [
+      "float",
+      "sparse-64"
+    ],
+    [
+      "float",
+      "subnormal"
+    ],
+    [
+      "int",
+      "boundary-only"
+    ],
+    [
+      "int",
+      "boundary-overlap"
+    ],
+    [
+      "int",
+      "concave-u"
+    ],
+    [
+      "int",
+      "crossing"
+    ],
+    [
+      "int",
+      "degenerate-boundary"
+    ],
+    [
+      "int",
+      "degenerate-interior"
+    ],
+    [
+      "int",
+      "dense-1"
+    ],
+    [
+      "int",
+      "dense-16"
+    ],
+    [
+      "int",
+      "dense-4"
+    ],
+    [
+      "int",
+      "dense-64"
+    ],
+    [
+      "int",
+      "empty"
+    ],
+    [
+      "int",
+      "exterior"
+    ],
+    [
+      "int",
+      "hole"
+    ],
+    [
+      "int",
+      "hole-reversed"
+    ],
+    [
+      "int",
+      "interior"
+    ],
+    [
+      "int",
+      "isolated-tangent"
+    ],
+    [
+      "int",
+      "rational-crossing"
+    ],
+    [
+      "int",
+      "sparse-1"
+    ],
+    [
+      "int",
+      "sparse-16"
+    ],
+    [
+      "int",
+      "sparse-4"
+    ],
+    [
+      "int",
+      "sparse-64"
+    ],
+    [
+      "int",
+      "wide-integral"
+    ],
+    [
+      "long",
+      "boundary-only"
+    ],
+    [
+      "long",
+      "boundary-overlap"
+    ],
+    [
+      "long",
+      "concave-u"
+    ],
+    [
+      "long",
+      "crossing"
+    ],
+    [
+      "long",
+      "degenerate-boundary"
+    ],
+    [
+      "long",
+      "degenerate-interior"
+    ],
+    [
+      "long",
+      "dense-1"
+    ],
+    [
+      "long",
+      "dense-16"
+    ],
+    [
+      "long",
+      "dense-4"
+    ],
+    [
+      "long",
+      "dense-64"
+    ],
+    [
+      "long",
+      "empty"
+    ],
+    [
+      "long",
+      "exterior"
+    ],
+    [
+      "long",
+      "hole"
+    ],
+    [
+      "long",
+      "hole-reversed"
+    ],
+    [
+      "long",
+      "interior"
+    ],
+    [
+      "long",
+      "isolated-tangent"
+    ],
+    [
+      "long",
+      "rational-crossing"
+    ],
+    [
+      "long",
+      "sparse-1"
+    ],
+    [
+      "long",
+      "sparse-16"
+    ],
+    [
+      "long",
+      "sparse-4"
+    ],
+    [
+      "long",
+      "sparse-64"
+    ]
+  ],
+  "excluded_records": [
+    {
+      "scalar": "long",
+      "case": "wide-integral",
+      "reverse": false,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "long",
+      "case": "wide-integral",
+      "reverse": true,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "long",
+      "case": "endpoint-collapse",
+      "reverse": false,
+      "expected_geo_status": "unrepresentableConstruction",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": false,
+      "native_query_valid": false,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "long",
+      "case": "endpoint-collapse",
+      "reverse": true,
+      "expected_geo_status": "unrepresentableConstruction",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": false,
+      "native_query_valid": false,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "long",
+      "case": "gap-collapse",
+      "reverse": false,
+      "expected_geo_status": "unrepresentableConstruction",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": false,
+      "native_query_valid": true,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "long",
+      "case": "gap-collapse",
+      "reverse": true,
+      "expected_geo_status": "unrepresentableConstruction",
+      "integer_to_binary64_input_loss": true,
+      "native_polygon_valid": false,
+      "native_query_valid": true,
+      "assessment": "excluded_input_domain"
+    },
+    {
+      "scalar": "double",
+      "case": "subnormal",
+      "reverse": false,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": false,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "native_warnings": [],
+      "native_type": "LineString",
+      "omitted_point_components": 0,
+      "normalized_segments_binary64_bits": [],
+      "assessment": "output_mismatch"
+    },
+    {
+      "scalar": "double",
+      "case": "subnormal",
+      "reverse": true,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": false,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "native_warnings": [],
+      "native_type": "LineString",
+      "omitted_point_components": 0,
+      "normalized_segments_binary64_bits": [],
+      "assessment": "output_mismatch"
+    },
+    {
+      "scalar": "double",
+      "case": "large-finite",
+      "reverse": false,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": false,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "native_warnings": [
+        "overflow encountered in intersection",
+        "invalid value encountered in intersection"
+      ],
+      "native_type": "MultiLineString",
+      "omitted_point_components": 0,
+      "normalized_segments_binary64_bits": [
+        [
+          [
+            18424226075572699135,
+            9205357638345293823
+          ],
+          [
+            9210987137879506943,
+            9205357638345293823
+          ]
+        ]
+      ],
+      "assessment": "output_mismatch"
+    },
+    {
+      "scalar": "double",
+      "case": "large-finite",
+      "reverse": true,
+      "expected_geo_status": "success",
+      "integer_to_binary64_input_loss": false,
+      "native_polygon_valid": true,
+      "native_query_valid": true,
+      "native_warnings": [
+        "overflow encountered in intersection",
+        "invalid value encountered in intersection"
+      ],
+      "native_type": "LineString",
+      "omitted_point_components": 0,
+      "normalized_segments_binary64_bits": [
+        [
+          [
+            9210987137879506943,
+            9205357638345293823
+          ],
+          [
+            0,
+            9209861237972664319
+          ]
+        ]
+      ],
+      "assessment": "output_mismatch"
+    }
+  ],
+  "policy": "both directions match pinned untimed assessment; native preflight still required"
+}

@@ -1,0 +1,7 @@
+{
+  "baseline": "03f345acb6b922719108fd00b72bf105d20a8a21",
+  "candidate_source": "source/geo/internal/segment_polygon_clip_p1.d",
+  "candidate_source_sha256": "daaf0c7d761f19a4b9fca7b87aca93db700c583c2a4d4ea1e5654e582dd04ec9",
+  "verifier_sha256": "ca012d85cc70e0fc56f914678a36971a25657a970a9a45a239df0bfa75f6ab3d",
+  "exact_event_bytes_dmd_ldc": 2120
+}

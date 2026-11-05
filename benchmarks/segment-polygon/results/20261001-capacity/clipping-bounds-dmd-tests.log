@@ -1,0 +1,7 @@
+             Generating test runner configuration 'geo-d-test-library' for 'library' (library).
+    Starting Performing "unittest" build using dmd for x86_64.
+    Building euclid-core-d 0.1.2: building configuration [library]
+    Building geo-d 2.0.0+commit.100.g03f345a: building configuration [geo-d-test-library]
+     Linking geo-d-test-library
+     Running geo-d-test-library 
+54 modules passed unittests

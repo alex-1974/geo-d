@@ -413,6 +413,74 @@ auto polygonValidation =
 Validation reports topology rather than silently modifying the represented
 geometry.
 
+## Polygon union
+
+Polygon union returns an immutable owning result because output size depends on
+the exact overlay topology.
+
+```d
+import geo;
+
+alias P = Point2!int;
+alias R = LinearRing2View!int;
+alias G = Polygon2View!int;
+
+P[4] firstPoints = [
+    P(0, 0),
+    P(4, 0),
+    P(4, 4),
+    P(0, 4)
+];
+
+P[4] secondPoints = [
+    P(2, 0),
+    P(6, 0),
+    P(6, 4),
+    P(2, 4)
+];
+
+R[1] firstRings = [
+    R(firstPoints[])
+];
+
+R[1] secondRings = [
+    R(secondPoints[])
+];
+
+auto result =
+    polygonUnion(
+        first: G(firstRings[]),
+        second: G(secondRings[])
+    );
+
+assert(result.succeeded);
+assert(result.status == PolygonUnionStatus.success);
+assert(result.length == 1);
+
+auto merged =
+    result[0];
+
+static assert(
+    is(
+        typeof(merged) ==
+        Polygon2View!double
+    )
+);
+```
+
+Supported polygon-union inputs are `int`, `long`, `float`, and `double`.
+Constructed result coordinates follow `IntersectionScalar!T`, which currently
+means `double` for all four domains.
+
+Check `result.succeeded` or `result.status` before accessing components.
+Invalid input is reported as `invalidFirstInput` or `invalidSecondInput`.
+`unrepresentableConstruction` means the exact union exists but cannot be
+materialized in binary64 without changing the required topology.
+
+The result owns immutable backing storage. Copying the result does not deep-copy
+the geometry. The operation allocates; allocation/resource exhaustion remains
+normal D runtime failure rather than a polygon-union status.
+
 ## Douglas-Peucker simplification
 
 Douglas-Peucker simplification uses caller-provided destination and workspace

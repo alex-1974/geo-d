@@ -52,12 +52,6 @@ for version in "${versions[@]}"; do
     cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
     cp "$root/tools/dub-import-paths.py" "$source_dir/tools/dub-import-paths.py"
     cp "$root/tools/verify-public-api-examples.py" "$source_dir/tools/verify-public-api-examples.py"
-    if [[ "$version" == "$latest_version" ]] &&
-        git cat-file -e "$version:docs/public-api-example-audit.md" 2>/dev/null; then
-        mkdir -p "$source_dir/docs"
-        git show "$version:docs/public-api-example-audit.md" > \
-            "$source_dir/docs/public-api-example-audit.md"
-    fi
 
     (
         cd "$source_dir"

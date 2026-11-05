@@ -52,6 +52,9 @@ for version in "${versions[@]}"; do
     cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
     cp "$root/tools/dub-import-paths.py" "$source_dir/tools/dub-import-paths.py"
     cp "$root/tools/verify-public-api-examples.py" "$source_dir/tools/verify-public-api-examples.py"
+    mkdir -p "$source_dir/docs"
+    git show "$version:docs/public-api-example-audit.md" > \
+        "$source_dir/docs/public-api-example-audit.md"
 
     (
         cd "$source_dir"

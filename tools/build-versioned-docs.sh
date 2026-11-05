@@ -50,6 +50,7 @@ for version in "${versions[@]}"; do
     # each historical source tree can still be rendered.
     mkdir -p "$source_dir/tools"
     cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
+    cp "$root/tools/dub-import-paths.py" "$source_dir/tools/dub-import-paths.py"
 
     (
         cd "$source_dir"

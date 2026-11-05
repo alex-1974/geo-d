@@ -8,11 +8,12 @@ root="$(
 
 cd "$root"
 
-latest_version='v2.0.0'
+latest_version='v3.0.0'
 
 versions=(
     'v1.0.0'
     'v2.0.0'
+    'v3.0.0'
 )
 
 work_dir="$root/build/versioned-docs"

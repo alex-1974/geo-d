@@ -181,12 +181,16 @@ fi
 echo "PASS: public-only ddox documentation"
 
 echo
-echo "Verifying public API example audit..."
+if [[ -f "$root/docs/public-api-example-audit.md" ]]; then
+    echo "Verifying public API example audit..."
 
-python3 \
-    "$root/tools/verify-public-api-examples.py" \
-    "$root/docs/public-api-example-audit.md" \
-    "$site_dir"
+    python3 \
+        "$root/tools/verify-public-api-examples.py" \
+        "$root/docs/public-api-example-audit.md" \
+        "$site_dir"
+else
+    echo "Skipping public API example audit (not present in this historical release)."
+fi
 
 echo
 echo "Documentation generated:"

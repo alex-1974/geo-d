@@ -63,6 +63,11 @@ jobs:
         shell: bash
         run: bash tests/consumer-archive/run.sh "$DC"
 
+      - name: Verify frozen v3 public API inventory
+        if: matrix.compiler == 'dmd-2.111.0'
+        shell: bash
+        run: python3 tools/verify-v3-public-api.py
+
       - name: Run 2D/3D family coexistence test
         shell: bash
         run: bash tests/family-consumer/run.sh "$DC"

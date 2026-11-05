@@ -127,6 +127,36 @@ static foreach (name; polygonUnionPublicNames)
 
 
 /*
+ * v3 aggregate and line surface.  These names are intentionally checked from
+ * outside the package so the release audit cannot pass while the new v3
+ * declarations are only covered by in-package unittests.
+ */
+enum string[] v3PublicNames = [
+    "Line2",
+    "LineIntersectionKind",
+    "lineIntersectionKind",
+    "tryLineIntersectionPoint",
+    "PolygonRelationship",
+    "PolygonRelationshipResult",
+    "PolygonRelationshipStatus",
+    "classifyPolygonRelationship",
+    "SegmentPolygonRelationship",
+    "classifySegmentPolygonRelationship",
+    "SegmentPolygonClipResult",
+    "SegmentPolygonClipStatus",
+    "clipSegmentToPolygon",
+];
+
+static foreach (name; v3PublicNames)
+{
+    static assert(
+        __traits(hasMember, geo, name),
+        "v3 public name missing from import geo: " ~ name
+    );
+}
+
+
+/*
  * Representative type and policy instantiation through import geo.
  */
 static assert(isGeoScalar!int);
@@ -147,6 +177,9 @@ static assert(is(typeof(PolylineView!double.init) == PolylineView!double));
 static assert(is(typeof(LinearRingView!double.init) == LinearRingView!double));
 static assert(is(typeof(PolygonView!double.init) == PolygonView!double));
 static assert(is(typeof(PolygonUnionResult.init) == PolygonUnionResult));
+static assert(is(typeof(Line2!double.init) == Line2!double));
+static assert(is(typeof(PolygonRelationshipResult.init) == PolygonRelationshipResult));
+static assert(is(typeof(SegmentPolygonClipResult.init) == SegmentPolygonClipResult));
 
 
 /*
@@ -396,6 +429,44 @@ static assert(
     )
 );
 
+static assert(__traits(compiles,
+    classifyPolygonRelationship(
+        Polygon2View!int.init,
+        Polygon2View!int.init
+    )));
+
+static assert(__traits(compiles,
+    classifySegmentPolygonRelationship(
+        Segment2!int.init,
+        Polygon2View!int.init
+    )));
+
+static assert(__traits(compiles,
+    clipSegmentToPolygon(
+        Segment2!int.init,
+        Polygon2View!int.init
+    )));
+
+static assert(
+    !__traits(
+        compiles,
+        classifySegmentPolygonRelationship(
+            Segment2!real.init,
+            Polygon2View!real.init
+        )
+    )
+);
+
+static assert(
+    !__traits(
+        compiles,
+        clipSegmentToPolygon(
+            Segment2!real.init,
+            Polygon2View!real.init
+        )
+    )
+);
+
 
 @safe void main()
 {
@@ -540,6 +611,42 @@ static assert(
     assert(unionResult.length == 1);
     assert(!unionResult.empty);
     assert(unionResult[0].exterior.length == 4);
+
+
+    /*
+     * v3 relationship and clipping operations.  These are deliberately
+     * exercised through the package root and with valid, caller-owned input.
+     */
+    const segmentRelationship =
+        classifySegmentPolygonRelationship(
+            S(P(-2.0, 5.0), P(12.0, 5.0)),
+            polygon
+        );
+
+    assert(segmentRelationship.hasExterior);
+    assert(segmentRelationship.hasInterior);
+    assert(!segmentRelationship.hasBoundaryOverlap);
+
+    const polygonRelationship =
+        classifyPolygonRelationship(
+            polygon,
+            polygon
+        );
+
+    assert(polygonRelationship.succeeded);
+    assert(polygonRelationship.status == PolygonRelationshipStatus.success);
+    assert(polygonRelationship.relationship.hasSharedInterior);
+
+    const clipResult =
+        clipSegmentToPolygon(
+            S(P(-2.0, 5.0), P(12.0, 5.0)),
+            polygon
+        );
+
+    assert(clipResult.succeeded);
+    assert(clipResult.status == SegmentPolygonClipStatus.success);
+    assert(clipResult.length == 1);
+    assert(clipResult[0] == S(P(0.0, 5.0), P(10.0, 5.0)));
 
 
     /*

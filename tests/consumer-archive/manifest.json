@@ -20,6 +20,6 @@
     "docs/api-freeze-v1.0.0.md", "docs/api-freeze-v2.0.0.md",
     "docs/ddoc-style.md", "docs/osm-editor-workflow-requirements.md",
     "docs/performance.md", "docs/v1-contract-audit.md",
-    "docs/v2-public-api-audit.md", "docs/public-api-example-audit.md"
+    "docs/v2-public-api-audit.md", "docs/v3-public-api-audit.md", "docs/public-api-example-audit.md"
   ]
 }

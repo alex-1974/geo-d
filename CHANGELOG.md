@@ -88,6 +88,17 @@ The project follows Semantic Versioning for published releases.
 
 ### Verification
 
+- Added the v3 release-baseline public API inventory for the frozen
+  `release/3.0` source pin: 67 package exports, 216 audited declarations, and
+  zero unresolved public members.
+- Extended the external consumer gate to compile and execute representative
+  `Line2`, polygon-relationship, segment/polygon relationship, and
+  segment/polygon clipping contracts, including v3 scalar-domain rejection
+  and checked-result states.
+- Verified the complete controlled six-compiler matrix (DMD 2.111.0,
+  2.112.1, 2.113.0 and LDC 1.41.0, 1.42.0, 1.43.0): all 30 unit-test,
+  lifetime, external-consumer, family-consumer, and release-build checks pass.
+
 - Completed declaration-by-declaration disposition of all 146 frozen v1
   public audit declarations.
 - Reproduced the implemented v2 surface at 45 package exports and 151 public

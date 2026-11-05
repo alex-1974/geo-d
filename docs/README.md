@@ -72,6 +72,7 @@ The current v2 API-family conventions and migration audit are recorded in:
 ~~~text
 docs/v2-api-conventions.md
 docs/v2-public-api-audit.md
+docs/v3-public-api-audit.md
 ~~~
 
 Canonical current documentation uses the dimension-explicit v2 names.

@@ -45,6 +45,12 @@ for version in "${versions[@]}"; do
     git archive "$version" |
         tar -x -C "$source_dir"
 
+    # Release archives intentionally omit the tools directory.  Restore the
+    # stable documentation helper from the checked-out release tooling so
+    # each historical source tree can still be rendered.
+    mkdir -p "$source_dir/tools"
+    cp "$root/tools/build-docs.sh" "$source_dir/tools/build-docs.sh"
+
     (
         cd "$source_dir"
         bash tools/build-docs.sh

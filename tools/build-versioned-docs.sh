@@ -45,6 +45,11 @@ for version in "${versions[@]}"; do
     git archive "$version" |
         tar -x -C "$source_dir"
 
+    # Historical audits describe older DDox inventories and are not a
+    # versioned-site input; the release gate verifies the current API
+    # separately.
+    rm -f "$source_dir/docs/public-api-example-audit.md"
+
     # Release archives intentionally omit the tools directory.  Restore the
     # stable documentation helper from the checked-out release tooling so
     # each historical source tree can still be rendered.

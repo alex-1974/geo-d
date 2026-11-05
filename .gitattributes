@@ -23,6 +23,7 @@
 /docs/adr export-ignore
 /docs/v1-contract-audit.md export-ignore
 /docs/v2-public-api-audit.md export-ignore
+/docs/v3-public-api-audit.md export-ignore
 /docs/public-api-example-audit.md export-ignore
 /docs/api-freeze-v1.0.0.md export-ignore
 /docs/api-freeze-v2.0.0.md export-ignore

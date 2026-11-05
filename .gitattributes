@@ -18,6 +18,8 @@
 /benchmarks export-ignore
 /tests export-ignore
 /tools export-ignore
+# Versioned documentation builds run this helper from each release archive.
+/tools/build-docs.sh -export-ignore
 
 /docs/README.md export-ignore
 /docs/adr export-ignore

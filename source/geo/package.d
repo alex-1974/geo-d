@@ -13,6 +13,7 @@
  * The public API includes:
  *
  * - points, vectors, segments, unbounded lines, and bounds;
+ * - analytic circles with checked construction and direct operations;
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
@@ -60,6 +61,7 @@ public import geo.area :
 
 public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;
+public import geo.circle : Circle2;
 public import geo.convert :
     ceiled,
     floored,

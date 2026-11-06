@@ -40,15 +40,18 @@ families without rewriting the frozen v2.0.0 API record:
 - segment/polygon clipping adds eight pages:
   `SegmentPolygonClipStatus`, `SegmentPolygonClipResult`, its five
   documented result members, and `clipSegmentToPolygon`.
+- structured shapes add fifteen pages, family-covered by the `Circle2`,
+  `Rect2`, and `Triangle2` usage examples; polygonization is covered by the
+  `Circle2` lowering example.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 51 |
+| Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 94 |
-| **Total public symbol pages** | **145** |
+| Deliberately family-covered declarations | 108 |
+| **Total public symbol pages** | **160** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -414,6 +417,36 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Vector2.opBinaryRight` | **family** | Vector2 |
 | `Vector2.opOpAssign` | **family** | Vector2 |
 
+## `geo.circle`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Circle2` | **family** | Structured-shape usage example |
+| `Circle2.valid` | **family** | Circle2 |
+| `Circle2.center` | **family** | Circle2 |
+| `Circle2.radius` | **family** | Circle2 |
+| `Circle2.isFinite` | **family** | Circle2 |
+| `Circle2.tryFromCenterRadius` | **family** | Circle2 |
+| `Circle2.contains` | **family** | Circle2 |
+| `Circle2.tryBounds` | **family** | Circle2 |
+| `Circle2.diameter` | **family** | Circle2 |
+| `Circle2.area` | **family** | Circle2 |
+| `Circle2.circumference` | **family** | Circle2 |
+| `tryPolygonizeCircleInto` | **existing** | Circle2 lowering example |
+
+## `geo.rect`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Rect2` | **family** | Structured-shape usage example |
+| `Rect2.tryCornersInto` | **family** | Rect2 |
+
+## `geo.triangle`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Triangle2` | **family** | Structured-shape usage example |
+
 ## Completed implementation batches
 
 The example work was completed in small reviewable groups:
@@ -449,7 +482,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-145 public symbol pages: 51 with rendered examples, 94 family-covered, and
+160 public symbol pages: 52 with rendered examples, 108 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

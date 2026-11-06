@@ -151,6 +151,46 @@ assert(segmentLength(segment) == 5.0);
 
 `MetricScalar!T` exposes the computation type used by metric operations.
 
+## Structured shapes
+
+The v4 structured-shape API keeps natural invariants in compact value types.
+Construction is checked and analytic operations do not allocate.
+
+```d
+import geo;
+
+alias P = Point2!double;
+
+Circle2!double circle;
+assert(Circle2!double.tryFromCenterRadius(P(2.0, 3.0), 2.0, circle));
+assert(circle.contains(P(4.0, 3.0)));
+
+Rect2!double rectangle;
+assert(Rect2!double.tryFromMinMax(P(0.0, 0.0), P(4.0, 2.0), rectangle));
+assert(rectangle.area == 8.0);
+
+Triangle2!double triangle;
+assert(Triangle2!double.tryFromPoints(
+    P(0.0, 0.0), P(4.0, 0.0), P(0.0, 3.0), triangle));
+assert(triangle.area == 6.0);
+```
+
+`Bounds2` remains the axis-aligned envelope/query type. `Rect2` adds
+rectangle-specific semantics such as width, height, centre, area, perimeter
+and ordered corners.
+
+Circle polygonization is explicit and caller-owned:
+
+```d
+P[32] points;
+assert(tryPolygonizeCircleInto(circle, points[]));
+auto ring = LinearRing2View!double(points[]);
+```
+
+The generated ring is an inscribed, counter-clockwise regular polygon with
+the destination length as its segment count. It is an approximation, not an
+exact circle conversion; `geo-d` performs no hidden tolerance selection.
+
 ## Orientation
 
 Topology-sensitive orientation is explicit and does not use a global epsilon.

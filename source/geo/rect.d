@@ -1,3 +1,18 @@
+/**
+ * Axis-aligned rectangular shapes.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 6, 2026
+ */
 module geo.rect;
 
 import geo.bounds : Bounds2;

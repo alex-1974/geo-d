@@ -1,6 +1,6 @@
 # Structured 2D shapes — v4 design slice
 
-Status: design proposal; no public API is admitted by this document alone.
+Status: accepted v4 first slice; Dunia consumer validation remains deferred.
 
 ## Goal
 
@@ -26,9 +26,8 @@ struct Circle2(T)
 }
 ```
 
-The final field visibility, constructor spelling, and result types remain API
-design decisions. The representation must be a compact value type with no
-allocation and no hidden polygon storage.
+The representation is a compact value type with no allocation and no hidden
+polygon storage. The accepted public spelling is documented by ADR-0025.
 
 ### Required contract
 

@@ -1,3 +1,18 @@
+/**
+ * Fixed-cardinality triangular shapes.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 6, 2026
+ */
 module geo.triangle;
 
 import geo.bounds : Bounds2;

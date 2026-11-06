@@ -9,6 +9,12 @@ operations, polyline length, orientation, segment intersection, area,
 point-in-polygon classification, ring and polygon validation, and
 Douglas-Peucker simplification.
 
+`shape_bench.d` measures the v4 structured-shape slices separately: direct
+`Circle2`, `Rect2`, and `Triangle2` operations are not combined with the
+caller-owned 64-vertex circle polygonization path. The benchmark consumes a
+result sink and reports median nanoseconds per operation; absolute values are
+machine- and compiler-dependent.
+
 They are intended primarily for:
 
 - detecting performance regressions;

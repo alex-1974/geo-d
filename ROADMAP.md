@@ -55,13 +55,13 @@ evidence, and documentation are complete.
 2. **Research promotion maintenance (P1).** Keep #175 as the coordination
    record. Promote only evidence-backed results; close, defer, or explicitly
    reject stale experiments rather than carrying them into v4 implicitly.
-3. **Structured 2D shapes (candidate P1 design track).** Treat #164 as a
-   consumer-backed design track for Dunia, the workspace's OpenStreetMap
-   editor application. Dunia is currently validating its first integration
-   slice, so the v4 commitment is to derive and freeze the smallest useful
-   shape/construction contract, not to admit the full candidate family at
-   once. The first vertical slice must identify an actual Dunia workflow,
-   ownership model, numerical contract, and API boundary.
+3. **Structured 2D shapes (v4 main feature track).** Treat #164 as a
+   consumer-backed design and implementation track for Dunia, the workspace's
+   OpenStreetMap editor application. The first vertical slice is `Circle2`;
+   its contract, explicit polygonization, Dunia workflow, tests, benchmarks,
+   and documentation are the main v4 feature work. Axis-aligned rectangles
+   must first be resolved against `Bounds2`/#172. The remaining family is not
+   admitted wholesale.
 4. **Clipping micro-optimisations (research only).** #160, #131, #133 and #134
    remain non-committed experiments. They require new mechanism evidence and
    must not be promoted by benchmark ratios alone.

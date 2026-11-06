@@ -13,12 +13,15 @@
 module geo.circle;
 
 import geo.bounds : Bounds2;
+import geo.linear_ring_view : LinearRing2View;
 import geo.metric : MetricScalar;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
 import mathTraits = std.math.traits;
 import std.traits : isFloatingPoint, Unqual;
+import std.math.constants : PI;
+import std.math.trigonometry : cos, sin;
 
 
 private bool isFiniteScalar(T)(T value)
@@ -200,6 +203,67 @@ public:
 }
 
 
+/**
+ * Polygonize a circle into caller-owned point storage.
+ *
+ * The destination length is the requested number of stored vertices and must
+ * be at least three. Vertices start at angle zero and proceed
+ * counter-clockwise. The ring is implicitly closed by `LinearRing2View`.
+ *
+ * The output is an inscribed regular polygon: every generated vertex lies on
+ * the circle, while the straight edges lie inside the disk. This is an
+ * approximation, not an exact circle conversion. The caller owns the output
+ * storage and must construct a view while that storage remains alive.
+ *
+ * Returns false when the circle is invalid, the destination is too small, or
+ * a generated coordinate is not finite in the metric output scalar. On
+ * failure the destination is not modified.
+ */
+bool tryPolygonizeCircleInto(T, R)(
+    Circle2!T circle,
+    scope Point2!R[] destination
+)
+    pure nothrow @safe @nogc
+if (isGeoScalar!T && is(R == MetricScalar!T))
+{
+    if (!circle.valid || destination.length < 3)
+        return false;
+
+    const R centreX = R(circle.center.x);
+    const R centreY = R(circle.center.y);
+    const R radius = R(circle.radius);
+    const R step = R(2) * R(PI) / R(destination.length);
+
+    if (!mathTraits.isFinite(centreX) ||
+        !mathTraits.isFinite(centreY) ||
+        !mathTraits.isFinite(radius) ||
+        !mathTraits.isFinite(step))
+        return false;
+
+    // Preflight all coordinates so failure leaves caller-owned output intact.
+    foreach (index; 0 .. destination.length)
+    {
+        const R angle = R(index) * step;
+        const R x = centreX + radius * cos(angle);
+        const R y = centreY + radius * sin(angle);
+
+        if (!mathTraits.isFinite(x) || !mathTraits.isFinite(y))
+            return false;
+    }
+
+    foreach (index; 0 .. destination.length)
+    {
+        const R angle = R(index) * step;
+        destination[index] = Point2!R(
+            centreX + radius * cos(angle),
+            centreY + radius * sin(angle)
+        );
+    }
+
+    return true;
+}
+
+
 /// Basic construction, invariant, bounds and closed-containment coverage.
 @safe unittest
 {
@@ -264,4 +328,49 @@ public:
         assert(circle.contains(P(T(0), T(0))));
         assert(circle.diameter == MetricScalar!T(2));
     }
+}
+
+
+/// Explicit inscribed polygonization writes deterministic counter-clockwise vertices.
+@safe unittest
+{
+    import geo;
+
+    alias C = Circle2!double;
+    alias P = Point2!double;
+    alias R = LinearRing2View!double;
+
+    C circle;
+    assert(C.tryFromCenterRadius(P(0.0, 0.0), 2.0, circle));
+
+    P[4] points;
+    assert(tryPolygonizeCircleInto(circle, points[]));
+
+    auto ring = R(points[]);
+    assert(ring.length == 4);
+    assert(ring[0] == P(2.0, 0.0));
+    assert(ring[1].x < 0.000000000000001);
+    assert(ring[1].y > 1.9);
+    assert(ring[2].x < -1.9);
+    assert(ring[2].y < 0.000000000000001);
+    assert(ring[3].x < 0.000000000000001);
+    assert(ring[3].y < -1.9);
+}
+
+
+/// Polygonization rejects invalid requests without modifying output storage.
+@safe unittest
+{
+    import geo;
+
+    alias C = Circle2!double;
+    alias P = Point2!double;
+
+    C circle;
+    assert(C.tryFromCenterRadius(P(0.0, 0.0), 1.0, circle));
+
+    P[2] tooSmall = [P(7.0, 7.0), P(8.0, 8.0)];
+    assert(!tryPolygonizeCircleInto(circle, tooSmall[]));
+    assert(tooSmall[0] == P(7.0, 7.0));
+    assert(tooSmall[1] == P(8.0, 8.0));
 }

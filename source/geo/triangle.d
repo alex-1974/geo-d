@@ -2,6 +2,7 @@ module geo.triangle;
 
 import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
+import geo.metric : distance;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -47,6 +48,22 @@ public:
         return twice < 0 ? -twice / 2 : twice / 2;
     }
 
+    MetricScalar!T perimeter() const pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return distance(_a, _b) + distance(_b, _c) + distance(_c, _a);
+    }
+
+    Point2!(MetricScalar!T) centroid() const pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        alias R = MetricScalar!T;
+        return Point2!R(
+            (R(_a.x) + R(_b.x) + R(_c.x)) / 3,
+            (R(_a.y) + R(_b.y) + R(_c.y)) / 3
+        );
+    }
+
     bool tryBounds(out Bounds2!T result) const pure nothrow @safe @nogc
     {
         result = Bounds2!T.init;
@@ -86,6 +103,8 @@ public:
     T triangle;
     assert(T.tryFromPoints(P(0, 0), P(4, 0), P(0, 3), triangle));
     assert(triangle.area == 6);
+    assert(triangle.perimeter > 11.9 && triangle.perimeter < 12.1);
+    assert(triangle.centroid == Point2!double(4.0 / 3.0, 1.0));
     P[3] points;
     assert(triangle.tryPointsInto(points[]));
     assert(points[1] == P(4, 0));

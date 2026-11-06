@@ -5,18 +5,6 @@ import geo.metric : MetricScalar;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
-import mathTraits = std.math.traits;
-import std.traits : isFloatingPoint, Unqual;
-
-private bool finiteScalar(T)(T value) pure nothrow @safe @nogc
-if (isGeoScalar!(Unqual!T))
-{
-    static if (isFloatingPoint!(Unqual!T))
-        return mathTraits.isFinite(value);
-    else
-        return true;
-}
-
 /** Axis-aligned rectangle with explicit rectangular semantics. */
 struct Rect2(T)
 if (isGeoScalar!T)
@@ -93,6 +81,21 @@ public:
         destination[2] = Point2!T(_max.x, _max.y);
         destination[3] = Point2!T(_min.x, _max.y);
         return true;
+    }
+}
+
+@safe unittest
+{
+    import geo;
+    import std.meta : AliasSeq;
+
+    foreach (T; AliasSeq!(int, long, float, double, real))
+    {
+        Rect2!T rect;
+        assert(Rect2!T.tryFromMinMax(
+            Point2!T(T(-1), T(-2)), Point2!T(T(3), T(4)), rect));
+        assert(rect.valid);
+        assert(rect.contains(Point2!T(T(0), T(0))));
     }
 }
 

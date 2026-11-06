@@ -109,3 +109,20 @@ public:
     assert(triangle.tryPointsInto(points[]));
     assert(points[1] == P(4, 0));
 }
+
+@safe unittest
+{
+    import geo;
+    import std.meta : AliasSeq;
+
+    foreach (T; AliasSeq!(int, long, float, double, real))
+    {
+        Triangle2!T triangle;
+        assert(Triangle2!T.tryFromPoints(
+            Point2!T(T(0), T(0)),
+            Point2!T(T(1), T(0)),
+            Point2!T(T(0), T(1)),
+            triangle));
+        assert(triangle.valid);
+    }
+}

@@ -16,6 +16,7 @@
 module geo.bounds;
 
 import geo.point : Point2;
+import geo.metric : MetricScalar;
 import geo.scalar : isGeoScalar;
 
 import std.traits : isFloatingPoint;
@@ -353,6 +354,126 @@ public:
             && p.x <= _max.x
             && p.y >= _min.y
             && p.y <= _max.y;
+    }
+
+
+    /**
+     * Computes the arithmetic centre in the promoted metric scalar domain.
+     *
+     * Returns false for an empty bounds or when the result is not
+     * representable (for example, `-real.infinity` to `real.infinity`).
+     * The output is `Point2!(MetricScalar!T)` and remains unchanged on
+     * failure.
+     */
+    bool tryCenter(out Point2!(MetricScalar!T) result) const
+        pure nothrow @safe @nogc
+    {
+        if (!_hasValue)
+            return false;
+
+        alias R = MetricScalar!T;
+        const R x = R(_min.x) / 2 + R(_max.x) / 2;
+        const R y = R(_min.y) / 2 + R(_max.y) / 2;
+
+        static if (isFloatingPoint!R)
+        {
+            if (x != x || y != y)
+                return false;
+        }
+
+        result = Point2!R(x, y);
+        return true;
+    }
+
+
+    /**
+     * True when this closed bounds contains every point of `other`.
+     *
+     * Empty bounds are contained by every bounds, including an empty one.
+     * An empty bounds contains no non-empty bounds.
+     */
+    bool contains(Bounds2 other) const
+        pure nothrow @safe @nogc
+    {
+        if (!other._hasValue)
+            return true;
+
+        return _hasValue
+            && other._min.x >= _min.x
+            && other._min.y >= _min.y
+            && other._max.x <= _max.x
+            && other._max.y <= _max.y;
+    }
+
+
+    /**
+     * Computes the closed intersection with `other`.
+     *
+     * Returns false when the intersection is empty; in that case `result` is
+     * `Bounds2.init`. Edge and point contact are non-empty intersections.
+     * The output is transactional and the operation is commutative.
+     */
+    bool tryIntersection(
+        Bounds2 other,
+        out Bounds2 result
+    ) const
+        pure nothrow @safe @nogc
+    {
+        if (!_hasValue || !other._hasValue)
+            return false;
+
+        const auto minimum = Point2!T(
+            _min.x > other._min.x ? _min.x : other._min.x,
+            _min.y > other._min.y ? _min.y : other._min.y
+        );
+        const auto maximum = Point2!T(
+            _max.x < other._max.x ? _max.x : other._max.x,
+            _max.y < other._max.y ? _max.y : other._max.y
+        );
+
+        if (minimum.x > maximum.x || minimum.y > maximum.y)
+            return false;
+
+        result._min = minimum;
+        result._max = maximum;
+        result._hasValue = true;
+        return true;
+    }
+
+
+    /// Example covering centre promotion, empty containment and intersection.
+    @safe unittest
+    {
+        import geo;
+
+        alias P = Point2!long;
+        alias B = Bounds2!long;
+
+        B outer;
+        B inner;
+        B touching;
+        B overlap;
+        assert(B.tryFromMinMax(P(long.min, -3), P(long.max, 5), outer));
+        assert(B.tryFromMinMax(P(-2, -1), P(4, 3), inner));
+        assert(B.tryFromMinMax(P(4, 3), P(9, 7), touching));
+        assert(B.tryFromMinMax(P(2, 1), P(9, 7), overlap));
+
+        Point2!double centre;
+        assert(outer.tryCenter(centre));
+        assert(centre == Point2!double(0, 1));
+        assert(outer.contains(inner));
+        assert(!inner.contains(outer));
+        assert(B.init.contains(B.init));
+        assert(outer.contains(B.init));
+
+        B result;
+        assert(outer.tryIntersection(inner, result));
+        assert(result == inner);
+        assert(touching.tryIntersection(overlap, result));
+        assert(result.min == P(4, 3));
+        assert(overlap.tryIntersection(touching, result));
+        assert(result.min == P(4, 3));
+        assert(result.max == P(9, 7));
     }
 
 

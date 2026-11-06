@@ -51,7 +51,7 @@ The current development documentation surface is:
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
 | Deliberately family-covered declarations | 108 |
-| **Total public symbol pages** | **160** |
+| **Total public symbol pages** | **162** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -129,6 +129,8 @@ The eleven Batch 3 examples are:
 - `Bounds2.tryFromMinMax`;
 - `Bounds2.tryExtend`;
 - `Bounds2.contains`;
+- `Bounds2.tryCenter`;
+- `Bounds2.tryIntersection`;
 - `Bounds2.intersects`;
 - `squaredDistance`;
 - `segmentLength`;
@@ -192,7 +194,9 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Bounds2.tryFromPoint` | **family** | Bounds2 |
 | `Bounds2.tryExtend` | **existing** | Batch 3 rendered Example |
 | `Bounds2.extend` | **family** | Bounds2 / Bounds2.tryExtend |
-| `Bounds2.contains` | **existing** | Batch 3 rendered Example |
+| `Bounds2.contains` | **family** | Bounds2 |
+| `Bounds2.tryCenter` | **family** | Bounds2 |
+| `Bounds2.tryIntersection` | **existing** | Bounds2 rendered Example |
 | `Bounds2.intersects` | **existing** | Batch 3 rendered Example |
 | `Bounds2.isFinite` | **family** | Bounds2 |
 | `Bounds2.opEquals` | **family** | Bounds2 |
@@ -482,7 +486,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-160 public symbol pages: 52 with rendered examples, 108 family-covered, and
+162 public symbol pages: 52 with rendered examples, 110 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

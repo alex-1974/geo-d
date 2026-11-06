@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prebuild immutable targeted binaries, then run tightly interleaved ABBA measurements."""
 
-import argparse, hashlib, json, os, shutil, subprocess, tempfile
+import argparse, hashlib, json, os, shutil, subprocess, tempfile, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -110,6 +110,40 @@ def run_one(binary,outdir,scalar,case,rounds,target_ms):
         raise RuntimeError("measurement failed: "+str(outdir))
     return cmd
 
+def thermal_snapshot(cpu):
+    base = Path(f"/sys/devices/system/cpu/cpu{cpu}/thermal_throttle")
+    def read(name):
+        path = base / name
+        try:
+            return int(path.read_text().strip())
+        except (FileNotFoundError, ValueError):
+            return None
+    temps = []
+    for path in sorted(Path("/sys/class/thermal").glob("thermal_zone*/temp")):
+        try:
+            temps.append(int(path.read_text().strip()))
+        except (FileNotFoundError, ValueError):
+            pass
+    return {
+        "utc": datetime.now(timezone.utc).isoformat(),
+        "cpu": cpu,
+        "thermal_zone_temps": temps,
+        "core_throttle_count": read("core_throttle_count"),
+        "package_throttle_count": read("package_throttle_count"),
+    }
+
+def thermal_delta(before, after):
+    deltas = {}
+    for key in ("core_throttle_count", "package_throttle_count"):
+        if before.get(key) is not None and after.get(key) is not None:
+            deltas[key] = after[key] - before[key]
+    return deltas
+
+def cooldown(seconds):
+    if seconds > 0:
+        print(f"[cooldown] {seconds}s", flush=True)
+        time.sleep(seconds)
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base",default="4828889625ff2dd25b44dc545a5e9addb27310ef")
@@ -119,6 +153,10 @@ def main():
     ap.add_argument("--rounds",type=int,default=7)
     ap.add_argument("--target-ms",type=int,default=50)
     ap.add_argument("--output",type=Path)
+    ap.add_argument("--cooldown-seconds",type=int,default=0)
+    ap.add_argument("--scalars",default="int,long,float,double")
+    ap.add_argument("--cases",default="exterior,crossing,sparse-4,sparse-16,sparse-64,dense-64,degenerate-interior,empty")
+    ap.add_argument("--compilers",default="dmd,ldc2")
     a=ap.parse_args()
 
     if a.cpu not in os.sched_getaffinity(0):
@@ -135,6 +173,8 @@ def main():
     record={"format":2,"status":"incomplete","purpose":"prebuilt-targeted-abba",
             "revisions":rev,"cpu":a.cpu,"cycles":a.cycles,"rounds":a.rounds,
             "target_ms":a.target_ms,"runs":[],"builds":[],
+            "cooldown_seconds":a.cooldown_seconds,
+            "thermal_gate":"pending","thermal_blocks":[],
             "limitations":["No frequency/turbo control imposed.",
                            "Binaries are built once before timing; compilation heat is excluded from ABBA interleaving.",
                            "relationship is retained as a same-binary control."]}
@@ -149,7 +189,10 @@ def main():
                 git("worktree","add","--detach",str(p),sha)
                 wt[label]=p
 
-            for compiler in ["dmd","ldc2"]:
+            compilers=[x for x in a.compilers.split(",") if x]
+            scalars=[x for x in a.scalars.split(",") if x]
+            cases=[x for x in a.cases.split(",") if x]
+            for compiler in compilers:
                 for label in ["base","candidate"]:
                     print(f"[build] {compiler} {label}", flush=True)
                     bd=out/"build"/compiler/label
@@ -162,13 +205,9 @@ def main():
                         "binary_sha256":hashlib.sha256(binary.read_bytes()).hexdigest()
                     })
 
-            targets=[(s,c) for s in ["int","long","float","double"]
-                     for c in ["exterior","crossing",
-                               "sparse-4","sparse-16","sparse-64",
-                               "dense-64",
-                               "degenerate-interior","empty"]]
+            targets=[(s,c) for s in scalars for c in cases]
 
-            for compiler in ["dmd","ldc2"]:
+            for compiler in compilers:
                 # Warm both immutable binaries before any recorded pair.
                 for label in ["base","candidate"]:
                     print(f"[warmup] {compiler} {label}", flush=True)
@@ -177,6 +216,8 @@ def main():
 
                 for scalar,case in targets:
                     for cycle in range(a.cycles):
+                        cooldown(a.cooldown_seconds)
+                        thermal_before = thermal_snapshot(a.cpu)
                         order=["base","candidate","candidate","base"] if cycle%2==0 else ["candidate","base","base","candidate"]
                         for pos,label in enumerate(order):
                             name=f"{compiler}-{scalar}-{case}-c{cycle}-p{pos}-{label}"
@@ -192,7 +233,22 @@ def main():
                                 "label":label,"revision":rev[label],"command":cmd
                             })
                             (out/"comparison.json").write_text(json.dumps(record,indent=2)+"\n")
-            record["status"]="passed"
+                        thermal_after = thermal_snapshot(a.cpu)
+                        deltas = thermal_delta(thermal_before, thermal_after)
+                        record["thermal_blocks"].append({
+                            "compiler":compiler,"scalar":scalar,"case":case,
+                            "cycle":cycle,"before":thermal_before,
+                            "after":thermal_after,"deltas":deltas,
+                            "valid":all(value == 0 for value in deltas.values())
+                        })
+                        if any(value > 0 for value in deltas.values()):
+                            record["thermal_gate"]="failed"
+                        (out/"comparison.json").write_text(json.dumps(record,indent=2)+"\n")
+            if record["thermal_gate"] == "failed":
+                record["status"]="invalid-thermal"
+            else:
+                record["thermal_gate"]="passed"
+                record["status"]="passed"
         finally:
             for p in wt.values():
                 git("worktree","remove","--force",str(p))

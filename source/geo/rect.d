@@ -1,0 +1,114 @@
+module geo.rect;
+
+import geo.bounds : Bounds2;
+import geo.metric : MetricScalar;
+import geo.point : Point2;
+import geo.scalar : isGeoScalar;
+
+import mathTraits = std.math.traits;
+import std.traits : isFloatingPoint, Unqual;
+
+private bool finiteScalar(T)(T value) pure nothrow @safe @nogc
+if (isGeoScalar!(Unqual!T))
+{
+    static if (isFloatingPoint!(Unqual!T))
+        return mathTraits.isFinite(value);
+    else
+        return true;
+}
+
+/** Axis-aligned rectangle with explicit rectangular semantics. */
+struct Rect2(T)
+if (isGeoScalar!T)
+{
+private:
+    Point2!T _min;
+    Point2!T _max;
+    bool _hasValue;
+
+public:
+    @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
+    @property Point2!T min() const pure nothrow @safe @nogc
+    { assert(_hasValue); return _min; }
+    @property Point2!T max() const pure nothrow @safe @nogc
+    { assert(_hasValue); return _max; }
+
+    static bool tryFromMinMax(Point2!T minimum, Point2!T maximum, out Rect2 result)
+        pure nothrow @safe @nogc
+    {
+        result = Rect2.init;
+        if (!minimum.isFinite || !maximum.isFinite ||
+            minimum.x > maximum.x || minimum.y > maximum.y)
+            return false;
+        result._min = minimum;
+        result._max = maximum;
+        result._hasValue = true;
+        return true;
+    }
+
+    @property bool isFinite() const pure nothrow @safe @nogc
+    { return _hasValue && _min.isFinite && _max.isFinite; }
+
+    MetricScalar!T width() const pure nothrow @safe @nogc
+    { assert(_hasValue); return MetricScalar!T(_max.x) - MetricScalar!T(_min.x); }
+
+    MetricScalar!T height() const pure nothrow @safe @nogc
+    { assert(_hasValue); return MetricScalar!T(_max.y) - MetricScalar!T(_min.y); }
+
+    Point2!(MetricScalar!T) center() const pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        alias R = MetricScalar!T;
+        return Point2!R((R(_min.x) + R(_max.x)) / 2,
+                        (R(_min.y) + R(_max.y)) / 2);
+    }
+
+    MetricScalar!T area() const pure nothrow @safe @nogc
+    { return width() * height(); }
+
+    MetricScalar!T perimeter() const pure nothrow @safe @nogc
+    { return (width() + height()) * 2; }
+
+    bool contains(Point2!T point) const pure nothrow @safe @nogc
+    {
+        return _hasValue && point.isFinite &&
+            point.x >= _min.x && point.x <= _max.x &&
+            point.y >= _min.y && point.y <= _max.y;
+    }
+
+    bool tryBounds(out Bounds2!T result) const pure nothrow @safe @nogc
+    {
+        result = Bounds2!T.init;
+        return _hasValue && Bounds2!T.tryFromMinMax(_min, _max, result);
+    }
+
+    /** Write four counter-clockwise corners into caller-owned storage. */
+    bool tryCornersInto(scope Point2!T[] destination) const
+        pure nothrow @safe @nogc
+    {
+        if (!_hasValue || destination.length < 4)
+            return false;
+        destination[0] = Point2!T(_min.x, _min.y);
+        destination[1] = Point2!T(_max.x, _min.y);
+        destination[2] = Point2!T(_max.x, _max.y);
+        destination[3] = Point2!T(_min.x, _max.y);
+        return true;
+    }
+}
+
+@safe unittest
+{
+    import geo;
+    alias R = Rect2!double;
+    alias P = Point2!double;
+    R rect;
+    assert(R.tryFromMinMax(P(-1, -2), P(3, 4), rect));
+    assert(rect.width == 4 && rect.height == 6);
+    assert(rect.area == 24 && rect.perimeter == 20);
+    assert(rect.center == Point2!double(1, 1));
+    assert(rect.contains(P(0, 0)));
+    P[4] corners;
+    assert(rect.tryCornersInto(corners[]));
+    assert(corners[0] == P(-1, -2));
+    assert(corners[2] == P(3, 4));
+}

@@ -9,9 +9,10 @@ Make structured Euclidean shapes a first-class v4 design direction for
 its natural invariants and is lowered to a ring or polygon only when a
 consumer needs discrete boundary geometry.
 
-The first vertical slice is `Circle2`. The family is deliberately staged:
-`Rect2`/oriented rectangles, `Triangle2`, `Ellipse2`, `Arc2`, and persistent
-regular polygons require separate evidence and contracts.
+The first vertical slice is `Circle2`; the second slice now adds axis-aligned
+`Rect2` and fixed-cardinality `Triangle2`. The family remains deliberately
+staged: oriented rectangles, `Ellipse2`, `Arc2`, and persistent regular
+polygons require separate evidence and contracts.
 
 ## First slice: `Circle2`
 
@@ -93,8 +94,22 @@ The design gate should compare:
 - `Bounds2` as an envelope/query primitive;
 - oriented rectangle as a distinct candidate if Dunia needs rotation.
 
-No rectangle implementation is admitted before this comparison and #172 are
-resolved.
+The axis-aligned slice does not resolve the separate oriented-rectangle
+question or replace the #172 contract review.
+
+The current `Rect2` slice is intentionally axis-aligned and constructed from
+finite minimum/maximum corners. It adds rectangle semantics—width, height,
+centre, area, perimeter, containment, bounds and ordered corners—without
+replacing `Bounds2` as the envelope primitive. Oriented rectangles remain a
+separate future contract.
+
+## Triangle2 slice
+
+`Triangle2!T` stores exactly three finite points and keeps degenerate
+collinear input representable. It provides point access, absolute area,
+axis-aligned bounds and caller-owned point export. Non-degenerate triangle
+predicates, centres and construction families require a later numerical
+decision rather than being implied by the value type.
 
 ## Dunia vertical slice
 
@@ -128,9 +143,9 @@ Euclidean value, operations, and explicit lowering.
 | Candidate | v4 decision |
 |---|---|
 | `Circle2` | first implementation slice |
-| axis-aligned `Rect2` | resolve against `Bounds2`/#172 |
+| axis-aligned `Rect2` | implemented second slice; refine against `Bounds2`/#172 |
 | oriented rectangle | admit only with Dunia need |
-| `Triangle2` | follow-up design slice |
+| `Triangle2` | implemented minimal value slice; derived centres/constructions deferred |
 | `Ellipse2` | research/deferred |
 | `Arc2` | research/deferred |
 | persistent `RegularPolygon2` | construction family first, type deferred |

@@ -50,8 +50,8 @@ The current development documentation surface is:
 | --- | ---: |
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 131 |
-| **Total public symbol pages** | **183** |
+| Deliberately family-covered declarations | 133 |
+| **Total public symbol pages** | **185** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -481,6 +481,13 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Size2` | **family** | Typed measures |
 | `Size3` | **family** | Typed measures |
 
+## `geo.placement`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Placement2` | **family** | Placement2 |
+| `Placement2.map` | **family** | Placement2 |
+
 ## `geo.triangle` additions
 
 | Public declaration | Classification | Coverage |
@@ -522,7 +529,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-183 public symbol pages: 52 with rendered examples, 131 family-covered, and
+185 public symbol pages: 52 with rendered examples, 133 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

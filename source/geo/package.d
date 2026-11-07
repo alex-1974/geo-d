@@ -97,6 +97,7 @@ public import geo.point : Point2;
 public import geo.line : Line2;
 public import geo.polygon_view :
     Polygon2View;
+public import geo.polygon : Polygon2;
 
 /**
  * Deprecated v1 spelling of `Polygon2View`.

@@ -50,8 +50,8 @@ The current development documentation surface is:
 | --- | ---: |
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 135 |
-| **Total public symbol pages** | **187** |
+| Deliberately family-covered declarations | 139 |
+| **Total public symbol pages** | **191** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -432,6 +432,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Circle2.isFinite` | **family** | Circle2 |
 | `Circle2.tryFromCenterRadius` | **family** | Circle2 |
 | `Circle2.tryFromRadius` | **family** | Circle2 |
+| `Circle2.toPolygon` | **family** | Circle2 |
 | `Circle2.contains` | **family** | Circle2 |
 | `Circle2.tryBounds` | **family** | Circle2 |
 | `Circle2.diameter` | **family** | Circle2 |
@@ -480,6 +481,14 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Angle` | **family** | Typed measures |
 | `Size2` | **family** | Typed measures |
 | `Size3` | **family** | Typed measures |
+
+## `geo.polygon`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Polygon2` | **family** | Polygon2 |
+| `Polygon2.this` | **family** | Polygon2 |
+| `Polygon2.view` | **family** | Polygon2 |
 
 ## `geo.placement`
 
@@ -531,7 +540,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-187 public symbol pages: 52 with rendered examples, 135 family-covered, and
+191 public symbol pages: 52 with rendered examples, 139 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

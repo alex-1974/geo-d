@@ -20,6 +20,7 @@ import geo.linear_ring_view : LinearRing2View;
 import geo.metric : MetricScalar;
 import geo.measure : Length;
 import geo.point : Point2;
+import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
 import mathTraits = std.math.traits;
@@ -216,6 +217,19 @@ public:
 
         assert(_hasValue, "Circle2.circumference is undefined for an invalid circle");
         return MetricScalar!T(PI) * diameter();
+    }
+
+    /** Materializes an owning inscribed polygon approximation. */
+    Polygon2!(MetricScalar!T) toPolygon(size_t segmentCount) const
+    {
+        alias R = MetricScalar!T;
+        if (segmentCount < 3)
+            return Polygon2!R.init;
+
+        Point2!R[] points = new Point2!R[segmentCount];
+        if (!tryPolygonizeCircleInto(this, points[]))
+            return Polygon2!R.init;
+        return Polygon2!R(points[]);
     }
 }
 

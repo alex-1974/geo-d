@@ -166,9 +166,11 @@ public import geo.measure :
     Size3;
 public import geo.placement :
     CircleAnchor,
+    EdgeAngle2,
     Placement2,
     RectAnchor,
-    TriangleAnchor;
+    TriangleAnchor,
+    VertexPlacement2;
 
 public import geo.orientation :
     Orientation2,

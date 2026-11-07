@@ -16,6 +16,7 @@
 module geo.placement;
 
 import geo.measure : Angle;
+import geo.measure : Length;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -45,6 +46,36 @@ if (isGeoScalar!T)
             origin.x + local.x * c - local.y * s,
             origin.y + local.x * s + local.y * c
         );
+    }
+}
+
+/** A vertex bound to a world-space coordinate. */
+struct VertexPlacement2(T)
+if (isGeoScalar!T)
+{
+    size_t vertex;
+    Point2!T coordinate;
+
+    this(size_t vertex, Point2!T coordinate)
+        pure nothrow @safe @nogc
+    {
+        this.vertex = vertex;
+        this.coordinate = coordinate;
+    }
+}
+
+/** A local shape length and its world-space direction. */
+struct EdgeAngle2(T)
+if (isGeoScalar!T)
+{
+    Length!T length;
+    Angle!T angle;
+
+    this(Length!T length, Angle!T angle)
+        pure nothrow @safe @nogc
+    {
+        this.length = length;
+        this.angle = angle;
     }
 }
 
@@ -80,4 +111,13 @@ enum CircleAnchor : ubyte
     );
 
     assert(placement.map(P(1, 0)) == P(10, 21));
+
+    auto vertex = VertexPlacement2!double(1, P(2, 6));
+    auto edge = EdgeAngle2!double(
+        Length!double(2),
+        Angle!double.fromDegrees(75)
+    );
+    assert(vertex.vertex == 1);
+    assert(vertex.coordinate == P(2, 6));
+    assert(edge.length == 2);
 }

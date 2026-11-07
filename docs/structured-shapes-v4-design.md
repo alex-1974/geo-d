@@ -14,6 +14,43 @@ The first vertical slice is `Circle2`; the second slice adds axis-aligned
 admitted as the fixed-cardinality regular-shape slice. Oriented rectangles,
 `Ellipse2`, and `Arc2` remain deliberately staged.
 
+## Canonical local vertices and placement
+
+Shapes are defined without world coordinates or world orientation. Whenever a
+shape has discrete vertices, it nevertheless has a canonical local frame so
+that construction, vertex access, placement and polygonization use the same
+nomenclature.
+
+The library does not require alphabetic vertex names in the API. The normative
+form is `vertex(0)`, `vertex(1)`, `vertex(2)`, and so on. If a mathematical
+description uses `A`, `B`, `C`, those names mean `vertex(0)`, `vertex(1)`,
+`vertex(2)` respectively.
+
+For 2D shapes, the canonical order is counter-clockwise in the local frame.
+The first vertex and local axes are shape-specific and are part of the public
+contract:
+
+- `Rect2`: `vertex(0)` is the local `(-x, -y)` corner; the following vertices
+  are `(+x, -y)`, `(+x, +y)`, and `(-x, +y)`;
+- `Triangle2`: the local origin is the first vertex, the second vertex lies on
+  the positive local X axis, and the third lies on the positive local side of
+  that directed edge;
+- `RegularPolygon2`: `vertex(0)` lies on the local positive X axis and the
+  remaining vertices advance counter-clockwise by `2π / N`;
+- `Circle2`: the only intrinsic anchor is its centre; a polygonization segment
+  count determines the discrete approximation and its first vertex follows
+  the documented local positive-X convention.
+
+Placement maps this canonical local frame to a target coordinate system. It
+does not change the intrinsic shape parameters. A screen coordinate system
+with a downward Y axis must therefore apply an explicit reflection or
+orientation transform; it must not silently reinterpret the canonical order.
+
+The future 3D contract follows the same principle. Vertices remain indexed in
+the local frame, while axis-extreme names such as local min/max X, Y and Z
+are used to explain box vertices; view-dependent names such as
+`topLeftFront` are not normative.
+
 ## First slice: `Circle2`
 
 Conceptual representation:

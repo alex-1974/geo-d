@@ -27,6 +27,13 @@ radians, and are not repeated at the end. Direct side length, perimeter and
 area use `MetricScalar!T`. Construction rejects non-finite centre, radius or
 rotation values and negative radii; zero radius is valid.
 
+The intrinsic vertex convention is independent of alphabetic naming: the
+first vertex is `vertex(0)`, corresponding to mathematical `A` when letters
+are used, and subsequent vertices advance counter-clockwise in the local
+frame. For the unrotated canonical frame, `vertex(0)` lies on the positive X
+axis. Placement changes the frame in the target coordinate system but does
+not redefine vertex order.
+
 The common aliases are:
 
 ```d

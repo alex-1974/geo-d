@@ -18,6 +18,7 @@ module geo.circle;
 import geo.bounds : Bounds2;
 import geo.linear_ring_view : LinearRing2View;
 import geo.metric : MetricScalar;
+import geo.measure : Length;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -117,6 +118,19 @@ public:
         result._radius = radius;
         result._hasValue = true;
         return true;
+    }
+
+    /** Construct a local, unplaced circle from its intrinsic radius. */
+    static bool tryFromRadius(
+        Length!T radius,
+        out Circle2 result
+    ) pure nothrow @safe @nogc
+    {
+        return tryFromCenterRadius(
+            Point2!T.init,
+            radius.value,
+            result
+        );
     }
 
     /**

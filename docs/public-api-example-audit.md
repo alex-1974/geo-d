@@ -50,8 +50,8 @@ The current development documentation surface is:
 | --- | ---: |
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 128 |
-| **Total public symbol pages** | **180** |
+| Deliberately family-covered declarations | 131 |
+| **Total public symbol pages** | **183** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -431,6 +431,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Circle2.radius` | **family** | Circle2 |
 | `Circle2.isFinite` | **family** | Circle2 |
 | `Circle2.tryFromCenterRadius` | **family** | Circle2 |
+| `Circle2.tryFromRadius` | **family** | Circle2 |
 | `Circle2.contains` | **family** | Circle2 |
 | `Circle2.tryBounds` | **family** | Circle2 |
 | `Circle2.diameter` | **family** | Circle2 |
@@ -444,6 +445,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `Rect2` | **family** | Structured-shape usage example |
 | `Rect2.tryCornersInto` | **family** | Rect2 |
+| `Rect2.tryFromSize` | **family** | Rect2 |
 
 ## `geo.triangle`
 
@@ -468,6 +470,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `RegularPolygon2.tryPointsInto` | **family** | RegularPolygon2 |
 | `RegularPolygon2.tryBounds` | **family** | RegularPolygon2 |
 | `Pentagon2` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryFromCircumradius` | **family** | RegularPolygon2 |
 
 ## `geo.measure`
 
@@ -519,7 +522,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-180 public symbol pages: 52 with rendered examples, 128 family-covered, and
+183 public symbol pages: 52 with rendered examples, 131 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

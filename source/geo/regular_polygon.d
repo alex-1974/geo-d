@@ -17,6 +17,7 @@ module geo.regular_polygon;
 
 import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
+import geo.measure : Length;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -124,6 +125,20 @@ public:
         result._rotation = rotation;
         result._hasValue = true;
         return true;
+    }
+
+    /** Construct a local, unplaced regular polygon from its circumradius. */
+    static bool tryFromCircumradius(
+        Length!T radius,
+        out RegularPolygon2 result
+    ) pure nothrow @safe @nogc
+    {
+        return tryFromCenterRadius(
+            Point2!T.init,
+            radius.value,
+            R(0),
+            result
+        );
     }
 
     /// Number of vertices, available at compile time.

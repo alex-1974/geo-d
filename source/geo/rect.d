@@ -17,6 +17,7 @@ module geo.rect;
 
 import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
+import geo.measure : Length, Size2;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -47,6 +48,26 @@ public:
         result._max = maximum;
         result._hasValue = true;
         return true;
+    }
+
+    /** Construct a local, unplaced rectangle from intrinsic dimensions. */
+    static bool tryFromSize(Size2!T size, out Rect2 result)
+        pure nothrow @safe @nogc
+    {
+        return tryFromMinMax(
+            Point2!T.init,
+            Point2!T(size.x.value, size.y.value),
+            result
+        );
+    }
+
+    @property Size2!T size() const pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return Size2!T(
+            Length!T(_max.x - _min.x),
+            Length!T(_max.y - _min.y)
+        );
     }
 
     @property bool isFinite() const pure nothrow @safe @nogc

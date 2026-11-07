@@ -20,6 +20,37 @@ import geo.metric : MetricScalar;
 import geo.metric : distance;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
+import std.math.constants : PI;
+import std.math : sqrt;
+import std.math.trigonometry : cos, sin;
+
+/// Typed scalar length used by intrinsic shape constructors.
+struct Length(T)
+if (isGeoScalar!T)
+{
+    T value;
+    alias value this;
+    this(T value) pure nothrow @safe @nogc { this.value = value; }
+}
+
+/// Typed angle stored in radians.
+struct Angle(T)
+if (isGeoScalar!T)
+{
+    T radians;
+    alias radians this;
+    this(T radians) pure nothrow @safe @nogc { this.radians = radians; }
+    static Angle fromDegrees(T degrees) pure nothrow @safe @nogc
+    { return Angle(cast(T)(degrees * PI / 180)); }
+}
+
+struct TriangleSideLengths(T)
+if (isGeoScalar!T)
+{
+    Length!T ab;
+    Length!T bc;
+    Length!T ca;
+}
 
 /** Fixed-cardinality three-point Euclidean shape. Degenerate triangles remain representable. */
 struct Triangle2(T)
@@ -36,6 +67,68 @@ public:
     @property Point2!T a() const pure nothrow @safe @nogc { assert(_hasValue); return _a; }
     @property Point2!T b() const pure nothrow @safe @nogc { assert(_hasValue); return _b; }
     @property Point2!T c() const pure nothrow @safe @nogc { assert(_hasValue); return _c; }
+
+    @property TriangleSideLengths!T length() const
+        pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return TriangleSideLengths!T(
+            Length!T(cast(T) distance(_a, _b)),
+            Length!T(cast(T) distance(_b, _c)),
+            Length!T(cast(T) distance(_c, _a))
+        );
+    }
+
+    /** Construct SSS: AB, BC and CA. */
+    static bool tryFrom(Length!T ab, Length!T bc, Length!T ca,
+                        out Triangle2 result)
+        pure nothrow @safe @nogc
+    {
+        result = Triangle2.init;
+        alias R = MetricScalar!T;
+        const R x = R(ab.value), y = R(bc.value), z = R(ca.value);
+        if (x <= 0 || y <= 0 || z <= 0 ||
+            x + y <= z || x + z <= y || y + z <= x)
+            return false;
+        const R px = (x * x + z * z - y * y) / (R(2) * x);
+        const R py2 = z * z - px * px;
+        if (py2 <= 0)
+            return false;
+        const R py = sqrt(py2);
+        return tryFromPoints(
+            Point2!T(cast(T) 0, cast(T) 0),
+            Point2!T(ab.value, cast(T) 0),
+            Point2!T(cast(T) px, cast(T) py), result);
+    }
+
+    /** Construct SAS: AB, included angle B, BC. */
+    static bool tryFrom(Length!T ab, Angle!T angleB, Length!T bc,
+                        out Triangle2 result)
+        pure nothrow @safe @nogc
+    {
+        alias R = MetricScalar!T;
+        const R a = R(ab.value), b = R(bc.value), angle = R(angleB.radians);
+        if (a <= 0 || b <= 0 || angle <= 0 || angle >= R(PI))
+        { result = Triangle2.init; return false; }
+        const R c = sqrt(a * a + b * b - R(2) * a * b * cos(angle));
+        return tryFrom(ab, Length!T(cast(T) c), bc, result);
+    }
+
+    /** Construct ASA: angle A, side AB, angle B. */
+    static bool tryFrom(Angle!T angleA, Length!T ab, Angle!T angleB,
+                        out Triangle2 result)
+        pure nothrow @safe @nogc
+    {
+        alias R = MetricScalar!T;
+        const R a = R(angleA.radians), b = R(angleB.radians);
+        const R c = R(PI) - a - b;
+        if (R(ab.value) <= 0 || a <= 0 || b <= 0 || c <= 0)
+        { result = Triangle2.init; return false; }
+        const R sideAB = R(ab.value);
+        const R sideBC = sideAB * sin(b) / sin(c);
+        const R sideCA = sideAB * sin(a) / sin(c);
+        return tryFrom(ab, Length!T(cast(T) sideBC), Length!T(cast(T) sideCA), result);
+    }
 
     static bool tryFromPoints(Point2!T first, Point2!T second, Point2!T third,
                               out Triangle2 result)
@@ -123,6 +216,35 @@ public:
     P[3] points;
     assert(triangle.tryPointsInto(points[]));
     assert(points[1] == P(4, 0));
+
+    T sss;
+    assert(T.tryFrom(
+        Length!double(4),
+        Length!double(5),
+        Length!double(3),
+        sss
+    ));
+    assert(sss.length.ab == Length!double(4));
+    assert(sss.length.bc == Length!double(5));
+    assert(sss.length.ca == Length!double(3));
+
+    T sas;
+    assert(T.tryFrom(
+        Length!double(4),
+        Angle!double.fromDegrees(90),
+        Length!double(3),
+        sas
+    ));
+    assert(sas.perimeter > 11.9 && sas.perimeter < 12.1);
+
+    T asa;
+    assert(T.tryFrom(
+        Angle!double.fromDegrees(45),
+        Length!double(4),
+        Angle!double.fromDegrees(45),
+        asa
+    ));
+    assert(asa.length.ab == Length!double(4));
 }
 
 @safe unittest

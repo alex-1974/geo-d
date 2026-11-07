@@ -50,8 +50,8 @@ The current development documentation surface is:
 | --- | ---: |
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 123 |
-| **Total public symbol pages** | **175** |
+| Deliberately family-covered declarations | 126 |
+| **Total public symbol pages** | **178** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -469,6 +469,14 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `RegularPolygon2.tryBounds` | **family** | RegularPolygon2 |
 | `Pentagon2` | **family** | RegularPolygon2 |
 
+## `geo.triangle` additions
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Length` | **family** | Triangle2 |
+| `Angle` | **family** | Triangle2 |
+| `Triangle2.tryFrom` | **family** | Triangle2 |
+
 ## Completed implementation batches
 
 The example work was completed in small reviewable groups:
@@ -504,7 +512,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-175 public symbol pages: 52 with rendered examples, 123 family-covered, and
+178 public symbol pages: 52 with rendered examples, 126 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

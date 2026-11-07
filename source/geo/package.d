@@ -67,7 +67,11 @@ public import geo.bounds : Bounds2;
 public import geo.circle : Circle2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;
-public import geo.triangle : Triangle2;
+public import geo.triangle :
+    Angle,
+    Length,
+    Triangle2,
+    TriangleSideLengths;
 public import geo.regular_polygon :
     Hexagon2,
     Heptagon2,

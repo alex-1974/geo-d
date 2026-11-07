@@ -26,6 +26,20 @@ form is `vertex(0)`, `vertex(1)`, `vertex(2)`, and so on. If a mathematical
 description uses `A`, `B`, `C`, those names mean `vertex(0)`, `vertex(1)`,
 `vertex(2)` respectively.
 
+The documentation follows the established mathematical notation convention:
+vertices are written with upper-case Latin letters (`A`, `B`, `C`, ...), while
+edges or triangle sides are written with lower-case letters or endpoint pairs
+(`a`, `b`, `c`, `AB`, `BC`, ...). In a triangle, the lower-case side name is
+opposite the corresponding upper-case vertex when that notation is used.
+These are documentation labels; the code-level API remains explicit through
+`vertex(index)` and names such as `length.ab`.
+
+This follows the usual school and engineering geometry notation and the
+lettering/typography principles of DIN 1338. DIN 1338 governs mathematical
+formula notation and typesetting; it does not by itself prescribe one universal
+vertex ordering for every geometric software model. geo-d therefore makes the
+local start vertex and traversal direction explicit for each shape family.
+
 For 2D shapes, the canonical order is counter-clockwise in the local frame.
 The first vertex and local axes are shape-specific and are part of the public
 contract:
@@ -50,6 +64,14 @@ The future 3D contract follows the same principle. Vertices remain indexed in
 the local frame, while axis-extreme names such as local min/max X, Y and Z
 are used to explain box vertices; view-dependent names such as
 `topLeftFront` are not normative.
+
+For layered 3D bodies such as prisms and boxes, the documentation may use the
+standard mathematical layering convention: the base layer is labelled first
+(`A`, `B`, `C`, `D`, ...), the corresponding parallel layer follows in the
+same order (`E`, `F`, `G`, `H`, ...), and corresponding vertices are connected
+(`A-E`, `B-F`, ...). A distinguished apex is documented as `S` when a shape
+family has one. This convention does not replace the indexed API and is not
+applied to arbitrary polyhedra without a shape-specific contract.
 
 ## First slice: `Circle2`
 

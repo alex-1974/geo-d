@@ -50,8 +50,8 @@ The current development documentation surface is:
 | --- | ---: |
 | Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 108 |
-| **Total public symbol pages** | **162** |
+| Deliberately family-covered declarations | 123 |
+| **Total public symbol pages** | **175** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -451,6 +451,24 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | --- | --- | --- |
 | `Triangle2` | **family** | Structured-shape usage example |
 
+## `geo.regular_polygon`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `RegularPolygon2` | **family** | RegularPolygon2 |
+| `RegularPolygon2.valid` | **family** | RegularPolygon2 |
+| `RegularPolygon2.center` | **family** | RegularPolygon2 |
+| `RegularPolygon2.radius` | **family** | RegularPolygon2 |
+| `RegularPolygon2.rotation` | **family** | RegularPolygon2 |
+| `RegularPolygon2.vertexCount` | **family** | RegularPolygon2 |
+| `RegularPolygon2.sideLength` | **family** | RegularPolygon2 |
+| `RegularPolygon2.perimeter` | **family** | RegularPolygon2 |
+| `RegularPolygon2.area` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryFromCenterRadius` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryPointsInto` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryBounds` | **family** | RegularPolygon2 |
+| `Pentagon2` | **family** | RegularPolygon2 |
+
 ## Completed implementation batches
 
 The example work was completed in small reviewable groups:
@@ -486,7 +504,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-162 public symbol pages: 52 with rendered examples, 110 family-covered, and
+175 public symbol pages: 52 with rendered examples, 123 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

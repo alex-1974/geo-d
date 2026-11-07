@@ -173,11 +173,20 @@ Triangle2!double triangle;
 assert(Triangle2!double.tryFromPoints(
     P(0.0, 0.0), P(4.0, 0.0), P(0.0, 3.0), triangle));
 assert(triangle.area == 6.0);
+
+RegularPolygon2!(double, 5) pentagon;
+assert(RegularPolygon2!(double, 5).tryFromCenterRadius(
+    P(0.0, 0.0), 2.0, 0.0, pentagon));
+assert(pentagon.vertexCount == 5);
 ```
 
 `Bounds2` remains the axis-aligned envelope/query type. `Rect2` adds
 rectangle-specific semantics such as width, height, centre, area, perimeter
 and ordered corners.
+
+`RegularPolygon2!(T, N)` is a regular geometric shape with compile-time
+cardinality. It is distinct from the general `Polygon2View`; use `Pentagon2`,
+`Hexagon2`, `Heptagon2` or `Octagon2` for common cardinalities.
 
 Circle polygonization is explicit and caller-owned:
 

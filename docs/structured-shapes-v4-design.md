@@ -9,10 +9,10 @@ Make structured Euclidean shapes a first-class v4 design direction for
 its natural invariants and is lowered to a ring or polygon only when a
 consumer needs discrete boundary geometry.
 
-The first vertical slice is `Circle2`; the second slice now adds axis-aligned
-`Rect2` and fixed-cardinality `Triangle2`. The family remains deliberately
-staged: oriented rectangles, `Ellipse2`, `Arc2`, and persistent regular
-polygons require separate evidence and contracts.
+The first vertical slice is `Circle2`; the second slice adds axis-aligned
+`Rect2` and fixed-cardinality `Triangle2`. `RegularPolygon2!(T, N)` is now
+admitted as the fixed-cardinality regular-shape slice. Oriented rectangles,
+`Ellipse2`, and `Arc2` remain deliberately staged.
 
 ## First slice: `Circle2`
 
@@ -110,6 +110,18 @@ axis-aligned bounds and caller-owned point export. Non-degenerate triangle
 predicates, centres and construction families require a later numerical
 decision rather than being implied by the value type.
 
+## RegularPolygon2 slice
+
+`RegularPolygon2!(T, N)` is an analytic regular polygon with compile-time
+cardinality. It stores only centre, circumradius and starting rotation; it
+does not store a polygonal ring. Vertices are emitted explicitly into
+caller-owned `Point2!(MetricScalar!T)[]` storage in counter-clockwise order.
+`N` must be at least three.
+
+The general type is supplemented by `Pentagon2`, `Hexagon2`, `Heptagon2` and
+`Octagon2` aliases. This type is distinct from `Polygon2View`: the latter is
+the general variable-size polygon representation and does not imply regularity.
+
 ## Dunia vertical slice
 
 Dunia must provide one concrete workflow before production promotion, such as
@@ -147,4 +159,4 @@ Euclidean value, operations, and explicit lowering.
 | `Triangle2` | implemented minimal value slice; derived centres/constructions deferred |
 | `Ellipse2` | research/deferred |
 | `Arc2` | research/deferred |
-| persistent `RegularPolygon2` | construction family first, type deferred |
+| `RegularPolygon2!(T, N)` | implemented fixed-cardinality regular shape |

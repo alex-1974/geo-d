@@ -15,7 +15,8 @@
  * - points, vectors, segments, unbounded lines, and bounds;
  * - analytic circles with checked construction and direct operations;
  * - explicit caller-owned circle polygonization;
- * - axis-aligned rectangles and fixed-cardinality triangles;
+ * - axis-aligned rectangles, fixed-cardinality triangles, and regular
+ *   compile-time-cardinality polygons;
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
@@ -67,6 +68,12 @@ public import geo.circle : Circle2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;
 public import geo.triangle : Triangle2;
+public import geo.regular_polygon :
+    Hexagon2,
+    Heptagon2,
+    Octagon2,
+    Pentagon2,
+    RegularPolygon2;
 public import geo.convert :
     ceiled,
     floored,

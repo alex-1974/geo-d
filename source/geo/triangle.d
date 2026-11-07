@@ -18,31 +18,12 @@ module geo.triangle;
 import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
 import geo.metric : distance;
+import geo.measure : Angle, Length;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 import std.math.constants : PI;
 import std.math : sqrt;
 import std.math.trigonometry : cos, sin;
-
-/// Typed scalar length used by intrinsic shape constructors.
-struct Length(T)
-if (isGeoScalar!T)
-{
-    T value;
-    alias value this;
-    this(T value) pure nothrow @safe @nogc { this.value = value; }
-}
-
-/// Typed angle stored in radians.
-struct Angle(T)
-if (isGeoScalar!T)
-{
-    T radians;
-    alias radians this;
-    this(T radians) pure nothrow @safe @nogc { this.radians = radians; }
-    static Angle fromDegrees(T degrees) pure nothrow @safe @nogc
-    { return Angle(cast(T)(degrees * PI / 180)); }
-}
 
 struct TriangleSideLengths(T)
 if (isGeoScalar!T)

@@ -68,8 +68,6 @@ public import geo.circle : Circle2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;
 public import geo.triangle :
-    Angle,
-    Length,
     Triangle2,
     TriangleSideLengths;
 public import geo.regular_polygon :
@@ -161,6 +159,11 @@ public import geo.metric :
     tryNormalize,
     tryPointSegmentDistance,
     trySignedAngle;
+public import geo.measure :
+    Angle,
+    Length,
+    Size2,
+    Size3;
 
 public import geo.orientation :
     Orientation2,

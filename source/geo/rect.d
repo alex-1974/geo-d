@@ -20,6 +20,7 @@ import geo.metric : MetricScalar;
 import geo.measure : Length, Size2;
 import geo.point : Point2;
 import geo.placement : Placement2;
+import geo.placement : VertexPlacement2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
@@ -135,6 +136,29 @@ public:
                 placement.map(Point2!T(_min.x, _max.y))
             ]
         );
+    }
+
+    /** Derive a rigid placement from two canonical rectangle vertices. */
+    bool tryPlacement(VertexPlacement2!T first,
+                             VertexPlacement2!T second,
+                             out Placement2!T result) const
+        pure nothrow @safe
+    {
+        if (!_hasValue || first.vertex > 3 || second.vertex > 3 ||
+            first.vertex == second.vertex)
+        {
+            result = Placement2!T.init;
+            return false;
+        }
+        Point2!T[4] local;
+        if (!tryCornersInto(local[]))
+        {
+            result = Placement2!T.init;
+            return false;
+        }
+        return Placement2!T.tryFromVertices(
+            local[first.vertex], first.coordinate,
+            local[second.vertex], second.coordinate, result);
     }
 }
 

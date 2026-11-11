@@ -46,6 +46,27 @@ private:
     bool _hasValue;
 
 public:
+    EdgeAngle2!T edgeAB(Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return EdgeAngle2!T(1, 2, length.ab, angle);
+    }
+
+    EdgeAngle2!T edgeBC(Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return EdgeAngle2!T(2, 3, length.bc, angle);
+    }
+
+    EdgeAngle2!T edgeCA(Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        return EdgeAngle2!T(3, 1, length.ca, angle);
+    }
+
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Point2!T a() const pure nothrow @safe @nogc { assert(_hasValue); return _a; }
     @property Point2!T b() const pure nothrow @safe @nogc { assert(_hasValue); return _b; }
@@ -233,6 +254,12 @@ public:
             return false;
         }
         Point2!T[3] local = [_a, _b, _c];
+        if (edge.length.value != cast(T) distance(
+                local[edge.startVertex - 1], local[edge.endVertex - 1]))
+        {
+            result = Placement2!T.init;
+            return false;
+        }
         return Placement2!T.tryFromVertexAndEdge(
             local[anchor.vertex - 1], anchor.coordinate,
             local[edge.startVertex - 1], local[edge.endVertex - 1],

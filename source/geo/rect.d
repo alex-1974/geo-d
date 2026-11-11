@@ -17,7 +17,8 @@ module geo.rect;
 
 import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
-import geo.measure : Length, Size2;
+import geo.metric : distance;
+import geo.measure : Angle, Length, Size2;
 import geo.point : Point2;
 import geo.placement : EdgeAngle2, Placement2, VertexPlacement2;
 import geo.polygon : Polygon2;
@@ -70,6 +71,18 @@ public:
             Length!T(_max.x - _min.x),
             Length!T(_max.y - _min.y)
         );
+    }
+
+    EdgeAngle2!T edgeAB(Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        return EdgeAngle2!T(1, 2, Length!T(_max.x - _min.x), angle);
+    }
+
+    EdgeAngle2!T edgeBC(Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        return EdgeAngle2!T(2, 3, Length!T(_max.y - _min.y), angle);
     }
 
     @property bool isFinite() const pure nothrow @safe @nogc
@@ -175,6 +188,12 @@ public:
         }
         Point2!T[4] local;
         if (!tryCornersInto(local[]))
+        {
+            result = Placement2!T.init;
+            return false;
+        }
+        if (edge.length.value != cast(T) distance(
+                local[edge.startVertex - 1], local[edge.endVertex - 1]))
         {
             result = Placement2!T.init;
             return false;

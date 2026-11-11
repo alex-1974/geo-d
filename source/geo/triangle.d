@@ -235,6 +235,28 @@ public:
             local[edge.startVertex], local[edge.endVertex],
             edge.angle, result);
     }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        VertexPlacement2!T first,
+        VertexPlacement2!T second) const
+        pure @safe
+    {
+        Placement2!T placement;
+        if (!tryPlacement(first, second, placement))
+            return Polygon2!(MetricScalar!T).init;
+        return toPolygon(placement);
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        VertexPlacement2!T anchor,
+        EdgeAngle2!T edge) const
+        pure @safe
+    {
+        Placement2!T placement;
+        if (!tryPlacement(anchor, edge, placement))
+            return Polygon2!(MetricScalar!T).init;
+        return toPolygon(placement);
+    }
 }
 
 @safe unittest

@@ -139,8 +139,8 @@ if (isGeoScalar!T)
     this(Length!T length, Angle!T angle)
         pure nothrow @safe @nogc
     {
-        this.startVertex = 0;
-        this.endVertex = 1;
+        this.startVertex = 1;
+        this.endVertex = 2;
         this.length = length;
         this.angle = angle;
     }

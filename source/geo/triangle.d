@@ -206,7 +206,8 @@ public:
                              out Placement2!T result) const
         pure nothrow @safe
     {
-        if (!_hasValue || first.vertex > 2 || second.vertex > 2 ||
+        if (!_hasValue || first.vertex < 1 || first.vertex > 3 ||
+            second.vertex < 1 || second.vertex > 3 ||
             first.vertex == second.vertex)
         {
             result = Placement2!T.init;
@@ -215,24 +216,26 @@ public:
         Point2!T[3] local;
         local[] = [_a, _b, _c];
         return Placement2!T.tryFromVertices(
-            local[first.vertex], first.coordinate,
-            local[second.vertex], second.coordinate, result);
+            local[first.vertex - 1], first.coordinate,
+            local[second.vertex - 1], second.coordinate, result);
     }
     bool tryPlacement(VertexPlacement2!T anchor,
                       EdgeAngle2!T edge,
                       out Placement2!T result) const
         pure nothrow @safe
     {
-        if (!_hasValue || anchor.vertex > 2 || edge.startVertex > 2 ||
-            edge.endVertex > 2 || edge.startVertex == edge.endVertex)
+        if (!_hasValue || anchor.vertex < 1 || anchor.vertex > 3 ||
+            edge.startVertex < 1 || edge.startVertex > 3 ||
+            edge.endVertex < 1 || edge.endVertex > 3 ||
+            edge.startVertex == edge.endVertex)
         {
             result = Placement2!T.init;
             return false;
         }
         Point2!T[3] local = [_a, _b, _c];
         return Placement2!T.tryFromVertexAndEdge(
-            local[anchor.vertex], anchor.coordinate,
-            local[edge.startVertex], local[edge.endVertex],
+            local[anchor.vertex - 1], anchor.coordinate,
+            local[edge.startVertex - 1], local[edge.endVertex - 1],
             edge.angle, result);
     }
 

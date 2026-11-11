@@ -22,9 +22,9 @@ that construction, vertex access, placement and polygonization use the same
 nomenclature.
 
 The library does not require alphabetic vertex names in the API. The normative
-form is `vertex(0)`, `vertex(1)`, `vertex(2)`, and so on. If a mathematical
-description uses `A`, `B`, `C`, those names mean `vertex(0)`, `vertex(1)`,
-`vertex(2)` respectively.
+form is `vertex(1)`, `vertex(2)`, `vertex(3)`, and so on. If a mathematical
+description uses `A`, `B`, `C`, those names mean `vertex(1)`, `vertex(2)`,
+`vertex(3)` respectively. Internal arrays may remain zero-based.
 
 The documentation follows the established mathematical notation convention:
 vertices are written with upper-case Latin letters (`A`, `B`, `C`, ...), while
@@ -44,12 +44,12 @@ For 2D shapes, the canonical order is counter-clockwise in the local frame.
 The first vertex and local axes are shape-specific and are part of the public
 contract:
 
-- `Rect2`: `vertex(0)` is the local `(-x, -y)` corner; the following vertices
+- `Rect2`: `vertex(1)` is the local `(-x, -y)` corner; the following vertices
   are `(+x, -y)`, `(+x, +y)`, and `(-x, +y)`;
 - `Triangle2`: the local origin is the first vertex, the second vertex lies on
   the positive local X axis, and the third lies on the positive local side of
   that directed edge;
-- `RegularPolygon2`: `vertex(0)` lies on the local positive X axis and the
+- `RegularPolygon2`: `vertex(1)` lies on the local positive X axis and the
   remaining vertices advance counter-clockwise by `2π / N`;
 - `Circle2`: the only intrinsic anchor is its centre; a polygonization segment
   count determines the discrete approximation and its first vertex follows

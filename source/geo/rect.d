@@ -19,6 +19,8 @@ import geo.bounds : Bounds2;
 import geo.metric : MetricScalar;
 import geo.measure : Length, Size2;
 import geo.point : Point2;
+import geo.placement : Placement2;
+import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
 /** Axis-aligned rectangle with explicit rectangular semantics. */
@@ -117,6 +119,22 @@ public:
         destination[2] = Point2!T(_max.x, _max.y);
         destination[3] = Point2!T(_min.x, _max.y);
         return true;
+    }
+
+    /** Materialize the canonical rectangle in a placed coordinate frame. */
+    Polygon2!(MetricScalar!T) toPolygon(Placement2!T placement) const
+        pure @safe
+    {
+        if (!_hasValue)
+            return Polygon2!(MetricScalar!T).init;
+        return Polygon2!(MetricScalar!T)(
+            [
+                placement.map(Point2!T(_min.x, _min.y)),
+                placement.map(Point2!T(_max.x, _min.y)),
+                placement.map(Point2!T(_max.x, _max.y)),
+                placement.map(Point2!T(_min.x, _max.y))
+            ]
+        );
     }
 }
 

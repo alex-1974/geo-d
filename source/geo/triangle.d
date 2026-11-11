@@ -20,6 +20,8 @@ import geo.metric : MetricScalar;
 import geo.metric : distance;
 import geo.measure : Angle, Length;
 import geo.point : Point2;
+import geo.placement : Placement2;
+import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 import std.math.constants : PI;
 import std.math : sqrt;
@@ -181,6 +183,21 @@ public:
         destination[1] = _b;
         destination[2] = _c;
         return true;
+    }
+
+    /** Materialize the canonical triangle in a placed coordinate frame. */
+    Polygon2!(MetricScalar!T) toPolygon(Placement2!T placement) const
+        pure @safe
+    {
+        if (!_hasValue)
+            return Polygon2!(MetricScalar!T).init;
+        return Polygon2!(MetricScalar!T)(
+            [
+                placement.map(_a),
+                placement.map(_b),
+                placement.map(_c)
+            ]
+        );
     }
 }
 

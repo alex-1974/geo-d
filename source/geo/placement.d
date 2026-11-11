@@ -17,6 +17,7 @@ module geo.placement;
 
 import geo.measure : Angle;
 import geo.measure : Length;
+import geo.metric : MetricScalar;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -37,14 +38,15 @@ if (isGeoScalar!T)
     }
 
     /** Maps a local point into the placed coordinate system. */
-    Point2!T map(Point2!T local) const
+    Point2!(MetricScalar!T) map(Point2!T local) const
         pure nothrow @safe @nogc
     {
-        const T c = cos(rotation.radians);
-        const T s = sin(rotation.radians);
-        return Point2!T(
-            origin.x + local.x * c - local.y * s,
-            origin.y + local.x * s + local.y * c
+        alias R = MetricScalar!T;
+        const R c = cos(R(rotation.radians));
+        const R s = sin(R(rotation.radians));
+        return Point2!R(
+            R(origin.x) + R(local.x) * c - R(local.y) * s,
+            R(origin.y) + R(local.x) * s + R(local.y) * c
         );
     }
 }

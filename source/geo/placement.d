@@ -22,6 +22,7 @@ import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
 import std.math.trigonometry : cos, sin;
+import std.math : atan2;
 
 /** Common placement frame for a two-dimensional intrinsic shape. */
 struct Placement2(T)
@@ -35,6 +36,66 @@ if (isGeoScalar!T)
     {
         this.origin = origin;
         this.rotation = rotation;
+    }
+
+    /** Derive a rigid placement from two local/world vertex correspondences. */
+    static bool tryFromVertices(
+        Point2!T localFirst, Point2!T worldFirst,
+        Point2!T localSecond, Point2!T worldSecond,
+        out Placement2 result)
+        pure nothrow @safe
+    {
+        alias R = MetricScalar!T;
+        const R localDx = R(localSecond.x) - R(localFirst.x);
+        const R localDy = R(localSecond.y) - R(localFirst.y);
+        const R worldDx = R(worldSecond.x) - R(worldFirst.x);
+        const R worldDy = R(worldSecond.y) - R(worldFirst.y);
+        if ((localDx == 0 && localDy == 0) ||
+            (worldDx == 0 && worldDy == 0))
+        {
+            result = Placement2.init;
+            return false;
+        }
+        const R rotation = atan2(worldDy, worldDx) - atan2(localDy, localDx);
+        const R c = cos(rotation);
+        const R s = sin(rotation);
+        const R mappedX = R(localFirst.x) * c - R(localFirst.y) * s;
+        const R mappedY = R(localFirst.x) * s + R(localFirst.y) * c;
+        result = Placement2(
+            Point2!T(cast(T)(R(worldFirst.x) - mappedX),
+                     cast(T)(R(worldFirst.y) - mappedY)),
+            Angle!T(cast(T) rotation)
+        );
+        return true;
+    }
+
+    /** Derive a rigid placement from one vertex and one directed edge angle. */
+    static bool tryFromVertexAndEdge(
+        Point2!T localVertex, Point2!T worldVertex,
+        Point2!T localEdgeStart, Point2!T localEdgeEnd,
+        Angle!T worldAngle,
+        out Placement2 result)
+        pure nothrow @safe
+    {
+        alias R = MetricScalar!T;
+        const R dx = R(localEdgeEnd.x) - R(localEdgeStart.x);
+        const R dy = R(localEdgeEnd.y) - R(localEdgeStart.y);
+        if (dx == 0 && dy == 0)
+        {
+            result = Placement2.init;
+            return false;
+        }
+        const R rotation = R(worldAngle.radians) - atan2(dy, dx);
+        const R c = cos(rotation);
+        const R s = sin(rotation);
+        const R mappedX = R(localVertex.x) * c - R(localVertex.y) * s;
+        const R mappedY = R(localVertex.x) * s + R(localVertex.y) * c;
+        result = Placement2(
+            Point2!T(cast(T)(R(worldVertex.x) - mappedX),
+                     cast(T)(R(worldVertex.y) - mappedY)),
+            Angle!T(cast(T) rotation)
+        );
+        return true;
     }
 
     /** Maps a local point into the placed coordinate system. */

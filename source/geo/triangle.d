@@ -20,8 +20,7 @@ import geo.metric : MetricScalar;
 import geo.metric : distance;
 import geo.measure : Angle, Length;
 import geo.point : Point2;
-import geo.placement : Placement2;
-import geo.placement : VertexPlacement2;
+import geo.placement : EdgeAngle2, Placement2, VertexPlacement2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 import std.math.constants : PI;
@@ -218,6 +217,23 @@ public:
         return Placement2!T.tryFromVertices(
             local[first.vertex], first.coordinate,
             local[second.vertex], second.coordinate, result);
+    }
+    bool tryPlacement(VertexPlacement2!T anchor,
+                      EdgeAngle2!T edge,
+                      out Placement2!T result) const
+        pure nothrow @safe
+    {
+        if (!_hasValue || anchor.vertex > 2 || edge.startVertex > 2 ||
+            edge.endVertex > 2 || edge.startVertex == edge.endVertex)
+        {
+            result = Placement2!T.init;
+            return false;
+        }
+        Point2!T[3] local = [_a, _b, _c];
+        return Placement2!T.tryFromVertexAndEdge(
+            local[anchor.vertex], anchor.coordinate,
+            local[edge.startVertex], local[edge.endVertex],
+            edge.angle, result);
     }
 }
 

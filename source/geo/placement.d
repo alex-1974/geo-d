@@ -131,12 +131,26 @@ if (isGeoScalar!T)
 struct EdgeAngle2(T)
 if (isGeoScalar!T)
 {
+    size_t startVertex;
+    size_t endVertex;
     Length!T length;
     Angle!T angle;
 
     this(Length!T length, Angle!T angle)
         pure nothrow @safe @nogc
     {
+        this.startVertex = 0;
+        this.endVertex = 1;
+        this.length = length;
+        this.angle = angle;
+    }
+
+    this(size_t startVertex, size_t endVertex,
+         Length!T length, Angle!T angle)
+        pure nothrow @safe @nogc
+    {
+        this.startVertex = startVertex;
+        this.endVertex = endVertex;
         this.length = length;
         this.angle = angle;
     }

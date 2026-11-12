@@ -1,0 +1,168 @@
+name: StaticVector Orientation Performance Probe
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - dub.sdl
+      - source/geo/internal/expansion.d
+      - source/geo/internal/orientation_exact.d
+      - source/geo/internal/orientation_robust.d
+      - benchmarks/static-vector-orientation/**
+      - .github/workflows/perf-static-vector-orientation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Orientation fallback / ${{ matrix.compiler }}
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - dmd-2.111.0
+          - ldc-1.41.0
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Install D compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          dub: 1.40.0
+
+      - name: Install Callgrind
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+
+      - name: Prepare pinned develop baseline
+        shell: bash
+        run: |
+          BASE_SHA=adc99ed3e42714f2a6b5a774a111be9ff9055770
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          rm -rf /tmp/geo-d-static-vector-baseline
+          git worktree add --detach /tmp/geo-d-static-vector-baseline "$BASE_SHA"
+          mkdir -p /tmp/geo-d-static-vector-baseline/benchmarks
+          cp -a benchmarks/static-vector-orientation /tmp/geo-d-static-vector-baseline/benchmarks/
+
+      - name: Build candidate and baseline
+        shell: bash
+        run: |
+          mkdir -p build/perf-static-vector-orientation
+
+          dub build \
+            --root=benchmarks/static-vector-orientation \
+            --compiler="$DC" \
+            --build=release \
+            --force
+
+          cp benchmarks/static-vector-orientation/bin/probe \
+            build/perf-static-vector-orientation/candidate
+
+          (
+            cd /tmp/geo-d-static-vector-baseline
+            dub build \
+              --root=benchmarks/static-vector-orientation \
+              --compiler="$DC" \
+              --build=release \
+              --force
+          )
+
+          cp /tmp/geo-d-static-vector-baseline/benchmarks/static-vector-orientation/bin/probe \
+            build/perf-static-vector-orientation/baseline
+
+          "$DC" --version
+          dub --version
+
+      - name: Verify semantic equivalence
+        shell: bash
+        run: |
+          ROUNDS=16
+          BASE=build/perf-static-vector-orientation/baseline
+          CAND=build/perf-static-vector-orientation/candidate
+
+          baseline=$("$BASE" "$ROUNDS")
+          candidate=$("$CAND" "$ROUNDS")
+
+          echo "baseline=$baseline candidate=$candidate"
+          test "$baseline" = "$candidate"
+          test "$baseline" != "0"
+
+      - name: Measure retired instructions
+        shell: bash
+        run: |
+          ROUNDS=256
+          DIR=build/perf-static-vector-orientation
+          RESULTS="$DIR/results.tsv"
+
+          printf 'compiler\tvariant\trounds\tIr\tchecksum\n' > "$RESULTS"
+
+          measure() {
+            variant="$1"
+            bin="$DIR/$variant"
+            out="$DIR/callgrind-$variant.out"
+
+            checksum=$("$bin" "$ROUNDS")
+
+            valgrind \
+              --tool=callgrind \
+              --collect-atstart=no \
+              --toggle-collect=bench_fallback \
+              --callgrind-out-file="$out" \
+              "$bin" "$ROUNDS" \
+              >/dev/null 2>&1
+
+            ir=$(awk '/^summary:/ {print $2}' "$out")
+
+            printf '%s\t%s\t%s\t%s\t%s\n' \
+              "${{ matrix.compiler }}" \
+              "$variant" \
+              "$ROUNDS" \
+              "$ir" \
+              "$checksum" \
+              >> "$RESULTS"
+          }
+
+          measure baseline
+          measure candidate
+
+          cat "$RESULTS"
+
+          baseline_ir=$(awk -F '\t' '$2 == "baseline" {print $4}' "$RESULTS")
+          candidate_ir=$(awk -F '\t' '$2 == "candidate" {print $4}' "$RESULTS")
+
+          awk -v b="$baseline_ir" -v c="$candidate_ir" 'BEGIN {
+            delta = c - b;
+            pct = b == 0 ? 0 : delta * 100.0 / b;
+            printf "baseline Ir=%d candidate Ir=%d delta=%d (%+.6f%%)\n", b, c, delta, pct;
+          }'
+
+          {
+            echo '### ${{ matrix.compiler }} — real geo-d orientation fallback'
+            echo
+            echo '| Variant | Rounds | Ir | Checksum |'
+            echo '|---|---:|---:|---:|'
+            awk -F '\t' 'NR > 1 {
+              printf "| %s | %s | %s | %s |\n", $2, $3, $4, $5
+            }' "$RESULTS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: geo-static-vector-orientation-${{ matrix.compiler }}
+          path: |
+            build/perf-static-vector-orientation/results.tsv
+            build/perf-static-vector-orientation/callgrind-*.out
+          if-no-files-found: error

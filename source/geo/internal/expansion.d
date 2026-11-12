@@ -1,5 +1,7 @@
 module geo.internal.expansion;
 
+import containers.research.static_vector : StaticVector;
+
 import geo.internal.binary64_rounding :
     roundedAdd,
     roundedMul,
@@ -297,8 +299,7 @@ struct ExpansionBuffer(size_t Capacity)
 if (Capacity > 0)
 {
 private:
-    double[Capacity] _data;
-    size_t _length;
+    StaticVector!(double, Capacity) _data;
 
 public:
     enum size_t capacity = Capacity;
@@ -308,7 +309,7 @@ public:
     @property size_t length() const
         pure nothrow @safe @nogc
     {
-        return _length;
+        return _data.length;
     }
 
 
@@ -316,7 +317,7 @@ public:
     @property bool empty() const
         pure nothrow @safe @nogc
     {
-        return _length == 0;
+        return _data.empty;
     }
 
 
@@ -329,7 +330,7 @@ public:
     void clear()
         pure nothrow @safe @nogc
     {
-        _length = 0;
+        _data.clear();
     }
 
 
@@ -345,10 +346,9 @@ public:
         pure nothrow @safe @nogc
     {
         assert(isFinite(value));
-        assert(_length < Capacity);
+        assert(_data.length < Capacity);
 
-        _data[_length] = value;
-        ++_length;
+        _data.pushBack(value);
     }
 
 
@@ -358,7 +358,7 @@ public:
     double opIndex(size_t index) const
         pure nothrow @safe @nogc
     {
-        assert(index < _length);
+        assert(index < _data.length);
         return _data[index];
     }
 }

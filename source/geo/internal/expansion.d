@@ -1,5 +1,7 @@
 module geo.internal.expansion;
 
+import containers.research.static_vector :
+    ScalarStaticVectorOps;
 import geo.internal.binary64_rounding :
     roundedAdd,
     roundedMul,
@@ -296,41 +298,15 @@ TwoComponent twoProduct(double a, double b)
 struct ExpansionBuffer(size_t Capacity)
 if (Capacity > 0)
 {
-private:
-    double[Capacity] _data;
-    size_t _length;
-
-public:
-    enum size_t capacity = Capacity;
-
-
-    /// Number of active expansion components.
-    @property size_t length() const
-        pure nothrow @safe @nogc
-    {
-        return _length;
-    }
-
-
-    /// True when the expansion contains no active components.
-    @property bool empty() const
-        pure nothrow @safe @nogc
-    {
-        return _length == 0;
-    }
-
-
-    /**
-     * Removes all active components.
+    /*
+     * Consumer-specialized containers-d family composition:
      *
-     * Stored bytes need not be cleared because values beyond `length`
-     * are not part of the expansion.
+     * - state and ordinary fixed-vector operations are injected directly;
+     * - no nested owning wrapper is introduced;
+     * - geo-d retains the ExpansionBuffer domain type;
+     * - only the finite-component invariant remains geo-specific.
      */
-    void clear()
-        pure nothrow @safe @nogc
-    {
-        _length = 0;
-    }
+    mixin ScalarStaticVectorOps!(double, Capacity);
 
 
     /**
@@ -341,25 +317,12 @@ public:
      * - value is finite;
      * - spare capacity is available.
      */
+    pragma(inline, true)
     void append(double value)
         pure nothrow @safe @nogc
     {
         assert(isFinite(value));
-        assert(_length < Capacity);
-
-        _data[_length] = value;
-        ++_length;
-    }
-
-
-    /**
-     * Indexed access to active components.
-     */
-    double opIndex(size_t index) const
-        pure nothrow @safe @nogc
-    {
-        assert(index < _length);
-        return _data[index];
+        pushBack(value);
     }
 }
 

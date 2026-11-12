@@ -12,3 +12,6 @@ sourcePaths "source"
 
 # Shared declaration identity for neutral geo-d / geo3-d contracts.
 dependency "euclid-core-d" version="~>0.1.2"
+
+# M4.3 research dependency: exact containers-d candidate commit.
+dependency "containers-d" repository="git+https://github.com/alex-1974/containers-d.git" version="f853f6cb2c77b2a5afeebfb9bb2be30768422f80"

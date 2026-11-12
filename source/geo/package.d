@@ -170,6 +170,8 @@ public import geo.placement :
     EdgeAngle2,
     Placement2,
     ScalePolicy2,
+    vertex,
+    edge,
     RectAnchor,
     TriangleAnchor,
     VertexPlacement2;

@@ -30,6 +30,19 @@ enum ScalePolicy2 : ubyte
     uniform
 }
 
+VertexPlacement2!T vertex(T)(size_t index, Point2!T coordinate)
+    if (isGeoScalar!T)
+{
+    return VertexPlacement2!T(index, coordinate);
+}
+
+EdgeAngle2!T edge(T)(size_t startVertex, size_t endVertex,
+                     Length!T length, Angle!T angle)
+    if (isGeoScalar!T)
+{
+    return EdgeAngle2!T(startVertex, endVertex, length, angle);
+}
+
 /** Common placement frame for a two-dimensional intrinsic shape. */
 struct Placement2(T)
 if (isGeoScalar!T)

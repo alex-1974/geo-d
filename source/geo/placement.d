@@ -22,7 +22,7 @@ import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
 import std.math.trigonometry : cos, sin;
-import std.math : atan2;
+import std.math : atan2, sqrt;
 
 /** Common placement frame for a two-dimensional intrinsic shape. */
 struct Placement2(T)
@@ -30,12 +30,21 @@ if (isGeoScalar!T)
 {
     Point2!T origin;
     Angle!T rotation;
+    T scale = 1;
 
     this(Point2!T origin, Angle!T rotation)
         pure nothrow @safe @nogc
     {
         this.origin = origin;
         this.rotation = rotation;
+    }
+
+    this(Point2!T origin, Angle!T rotation, T scale)
+        pure nothrow @safe @nogc
+    {
+        this.origin = origin;
+        this.rotation = rotation;
+        this.scale = scale;
     }
 
     /** Derive a rigid placement from two local/world vertex correspondences. */
@@ -66,6 +75,38 @@ if (isGeoScalar!T)
                      cast(T)(R(worldFirst.y) - mappedY)),
             Angle!T(cast(T) rotation)
         );
+        return true;
+    }
+
+    /** Derive a placement and infer one uniform scale factor. */
+    static bool tryFromVerticesScaled(
+        Point2!T localFirst, Point2!T worldFirst,
+        Point2!T localSecond, Point2!T worldSecond,
+        out Placement2 result)
+        pure nothrow @safe
+    {
+        alias R = MetricScalar!T;
+        const R ldx = R(localSecond.x) - R(localFirst.x);
+        const R ldy = R(localSecond.y) - R(localFirst.y);
+        const R wdx = R(worldSecond.x) - R(worldFirst.x);
+        const R wdy = R(worldSecond.y) - R(worldFirst.y);
+        const R localLength = sqrt(ldx * ldx + ldy * ldy);
+        const R worldLength = sqrt(wdx * wdx + wdy * wdy);
+        if (localLength == 0 || worldLength == 0)
+        {
+            result = Placement2.init;
+            return false;
+        }
+        const R rotation = atan2(wdy, wdx) - atan2(ldy, ldx);
+        const R scale = worldLength / localLength;
+        const R c = cos(rotation);
+        const R s = sin(rotation);
+        const R mx = R(localFirst.x) * scale * c - R(localFirst.y) * scale * s;
+        const R my = R(localFirst.x) * scale * s + R(localFirst.y) * scale * c;
+        result = Placement2(
+            Point2!T(cast(T)(R(worldFirst.x) - mx),
+                     cast(T)(R(worldFirst.y) - my)),
+            Angle!T(cast(T) rotation), cast(T) scale);
         return true;
     }
 
@@ -106,8 +147,8 @@ if (isGeoScalar!T)
         const R c = cos(R(rotation.radians));
         const R s = sin(R(rotation.radians));
         return Point2!R(
-            R(origin.x) + R(local.x) * c - R(local.y) * s,
-            R(origin.y) + R(local.x) * s + R(local.y) * c
+            R(origin.x) + R(local.x) * R(scale) * c - R(local.y) * R(scale) * s,
+            R(origin.y) + R(local.x) * R(scale) * s + R(local.y) * R(scale) * c
         );
     }
 }

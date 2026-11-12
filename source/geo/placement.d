@@ -24,6 +24,12 @@ import geo.scalar : isGeoScalar;
 import std.math.trigonometry : cos, sin;
 import std.math : atan2, sqrt;
 
+enum ScalePolicy2 : ubyte
+{
+    exact,
+    uniform
+}
+
 /** Common placement frame for a two-dimensional intrinsic shape. */
 struct Placement2(T)
 if (isGeoScalar!T)

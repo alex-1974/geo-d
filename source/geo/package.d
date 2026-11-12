@@ -169,6 +169,7 @@ public import geo.placement :
     CircleAnchor,
     EdgeAngle2,
     Placement2,
+    ScalePolicy2,
     RectAnchor,
     TriangleAnchor,
     VertexPlacement2;

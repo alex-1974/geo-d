@@ -20,7 +20,7 @@ import geo.metric : MetricScalar;
 import geo.metric : distance;
 import geo.measure : Angle, Length, Size2;
 import geo.point : Point2;
-import geo.placement : EdgeAngle2, Placement2, VertexPlacement2;
+import geo.placement : EdgeAngle2, Placement2, ScalePolicy2, VertexPlacement2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
@@ -213,6 +213,27 @@ public:
         if (!tryPlacement(first, second, placement))
             return Polygon2!(MetricScalar!T).init;
         return toPolygon(placement);
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        VertexPlacement2!T first,
+        VertexPlacement2!T second,
+        ScalePolicy2 policy) const
+        pure @safe
+    {
+        Placement2!T placement;
+        if (!_hasValue || first.vertex < 1 || first.vertex > 4 ||
+            second.vertex < 1 || second.vertex > 4 ||
+            first.vertex == second.vertex)
+            return Polygon2!(MetricScalar!T).init;
+        Point2!T[4] local;
+        if (!tryCornersInto(local[])) return Polygon2!(MetricScalar!T).init;
+        const bool ok = policy == ScalePolicy2.uniform
+            ? Placement2!T.tryFromVerticesScaled(
+                local[first.vertex - 1], first.coordinate,
+                local[second.vertex - 1], second.coordinate, placement)
+            : tryPlacement(first, second, placement);
+        return ok ? toPolygon(placement) : Polygon2!(MetricScalar!T).init;
     }
 
     Polygon2!(MetricScalar!T) toPolygon(

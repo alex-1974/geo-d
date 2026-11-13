@@ -16,6 +16,8 @@
 module geo.polygon;
 
 import geo.anchor_binding : Anchor2, AnchorBinding2, tryResolve;
+import geo.metric : MetricScalar, distance;
+import geo.measure : Angle, Length;
 import geo.placement : Placement2;
 
 import geo.linear_ring_view : LinearRing2View;
@@ -105,4 +107,39 @@ Anchor2!T targetVertex(T)(Polygon2!T polygon, size_t index)
     if (isGeoScalar!T)
 {
     return Anchor2!T.vertex(index, polygon.vertex(index));
+}
+
+private Anchor2!T polygonEdgeAnchor(T)(Polygon2!T polygon,
+                                       size_t startVertex)
+    if (isGeoScalar!T)
+{
+    assert(startVertex >= 1 && startVertex <= polygon.vertexCount);
+    const size_t endVertex = startVertex == polygon.vertexCount
+        ? 1 : startVertex + 1;
+    const auto start = polygon.vertex(startVertex);
+    const auto end = polygon.vertex(endVertex);
+    alias R = MetricScalar!T;
+    const R dx = R(end.x) - R(start.x);
+    const R dy = R(end.y) - R(start.y);
+    import std.math : atan2;
+    auto result = Anchor2!T.edge(
+        startVertex,
+        endVertex,
+        Length!T(cast(T) distance(start, end)),
+        Angle!T(cast(T) atan2(dy, dx))
+    );
+    result.point = start;
+    return result;
+}
+
+Anchor2!T sourceEdge(T)(Polygon2!T polygon, size_t startVertex)
+    if (isGeoScalar!T)
+{
+    return polygonEdgeAnchor(polygon, startVertex);
+}
+
+Anchor2!T targetEdge(T)(Polygon2!T polygon, size_t startVertex)
+    if (isGeoScalar!T)
+{
+    return polygonEdgeAnchor(polygon, startVertex);
 }

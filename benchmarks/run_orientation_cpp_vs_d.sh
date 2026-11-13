@@ -14,13 +14,21 @@ ldc2 --version | head -n 3
 g++ --version | head -n 1
 
 printf '\n=== build D/LDC current tree ===\n'
+mapfile -t DUB_IMPORT_PATHS < <(
+    python3 tools/dub-import-paths.py --compiler=ldc2
+)
+IMPORT_FLAGS=("-Isource")
+for import_path in "${DUB_IMPORT_PATHS[@]}"; do
+    IMPORT_FLAGS+=("-I${import_path}")
+done
+
 ldc2 \
     -O3 \
     -release \
     -boundscheck=off \
     -mcpu=native \
     -i \
-    -Isource \
+    "${IMPORT_FLAGS[@]}" \
     benchmarks/orientation_bench.d \
     -of="$D_BIN"
 

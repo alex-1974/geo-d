@@ -22,6 +22,7 @@ import geo.measure : Length;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 
 import mathTraits = std.math.traits;
 import std.traits : isFloatingPoint, Unqual;
@@ -59,6 +60,19 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Circle2) fromRadius(Length!T radius)
+        pure nothrow @safe @nogc
+    {
+        Circle2 result;
+        if (radius.value < 0)
+            return ShapeConstructionResult!(Circle2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromRadius(radius, result)
+            ? ShapeConstructionResult!(Circle2).success(result)
+            : ShapeConstructionResult!(Circle2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     /// True when this circle was successfully constructed.
     @property bool valid() const
         pure nothrow @safe @nogc

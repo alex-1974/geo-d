@@ -7,6 +7,7 @@ import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math : sqrt;
 
 struct QuadrilateralSideLengths(T) if (isGeoScalar!T)
@@ -30,6 +31,22 @@ private:
     { return x > 0 && y > 0 && z > 0 && x + y > z && x + z > y && y + z > x; }
 
 public:
+    static ShapeConstructionResult!(Quadrilateral2) fromSidesAndDiagonal(
+        Length!T ab, Length!T bc, Length!T cd,
+        Length!T da, Length!T ac)
+        pure nothrow @safe @nogc
+    {
+        Quadrilateral2 result;
+        if (ab.value <= 0 || bc.value <= 0 || cd.value <= 0 ||
+            da.value <= 0 || ac.value <= 0)
+            return ShapeConstructionResult!(Quadrilateral2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSidesAndDiagonal(ab, bc, cd, da, ac, result)
+            ? ShapeConstructionResult!(Quadrilateral2).success(result)
+            : ShapeConstructionResult!(Quadrilateral2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property auto length() const pure nothrow @safe @nogc
     { assert(_hasValue); return _length; }

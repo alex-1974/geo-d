@@ -7,6 +7,7 @@ import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math.constants : PI;
 import std.math.trigonometry : cos, sin;
 
@@ -19,6 +20,20 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Ellipse2) fromSemiAxes(
+        Length!T a, Length!T b)
+        pure nothrow @safe @nogc
+    {
+        Ellipse2 result;
+        if (a.value <= 0 || b.value <= 0)
+            return ShapeConstructionResult!(Ellipse2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSemiAxes(a, b, result)
+            ? ShapeConstructionResult!(Ellipse2).success(result)
+            : ShapeConstructionResult!(Ellipse2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Length!T semiAxisA() const pure nothrow @safe @nogc
     { assert(_hasValue); return _a; }

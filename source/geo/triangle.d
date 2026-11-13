@@ -24,6 +24,7 @@ import geo.placement : EdgeAngle2, Placement2, ScalePolicy2, VertexPlacement2;
 import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math.constants : PI;
 import std.math : sqrt;
 import std.math.trigonometry : cos, sin;
@@ -47,6 +48,20 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Triangle2) fromSSS(
+        Length!T ab, Length!T bc, Length!T ca)
+        pure nothrow @safe @nogc
+    {
+        if (ab.value <= 0 || bc.value <= 0 || ca.value <= 0)
+            return ShapeConstructionResult!(Triangle2).failure(
+                ShapeConstructionStatus.nonPositive);
+        Triangle2 result;
+        return tryFrom(ab, bc, ca, result)
+            ? ShapeConstructionResult!(Triangle2).success(result)
+            : ShapeConstructionResult!(Triangle2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     EdgeAngle2!T edgeAB(Angle!T angle) const
         pure nothrow @safe @nogc
     {

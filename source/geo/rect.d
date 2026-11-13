@@ -24,6 +24,7 @@ import geo.placement : EdgeAngle2, Placement2, ScalePolicy2, VertexPlacement2;
 import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 
 struct RectLengths(T) if (isGeoScalar!T)
 {
@@ -41,6 +42,20 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Rect2) fromLengths(
+        Length!T ab, Length!T bc)
+        pure nothrow @safe @nogc
+    {
+        Rect2 result;
+        if (ab.value <= 0 || bc.value <= 0)
+            return ShapeConstructionResult!(Rect2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromLengths(ab, bc, result)
+            ? ShapeConstructionResult!(Rect2).success(result)
+            : ShapeConstructionResult!(Rect2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     static bool tryFromLengths(Length!T ab, Length!T bc, out Rect2 result)
         pure nothrow @safe @nogc
     {

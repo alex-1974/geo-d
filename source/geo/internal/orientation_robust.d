@@ -1,7 +1,9 @@
 module geo.internal.orientation_robust;
 
 import geo.internal.orientation_dyadic :
-    orientationDyadicExact;
+    orientationDyadicExact,
+    orientationSubnormalExact,
+    tryOrientationNarrowExact;
 
 import geo.internal.orientation_exact :
     tryOrientationExactExpansion;
@@ -11,6 +13,7 @@ import geo.internal.orientation_filter :
     orientationFilter;
 
 import std.math.traits : isFinite;
+import std.bitmanip : DoubleRep;
 
 
 /*
@@ -48,6 +51,26 @@ private bool allFinite(
            isFinite(by) &&
            isFinite(cx) &&
            isFinite(cy);
+}
+
+private bool allSubnormalOrZero(
+    double ax, double ay, double bx, double by, double cx, double cy
+)
+    pure nothrow @safe @nogc
+{
+    DoubleRep[6] representations;
+    representations[0].value = ax;
+    representations[1].value = ay;
+    representations[2].value = bx;
+    representations[3].value = by;
+    representations[4].value = cx;
+    representations[5].value = cy;
+    foreach (ref representation; representations)
+    {
+        if (representation.exponent != 0)
+            return false;
+    }
+    return true;
 }
 
 
@@ -163,6 +186,19 @@ bool tryOrientationRobustDoubleFallback(
         ))
     {
         return false;
+    }
+
+    if (allSubnormalOrZero(ax, ay, bx, by, cx, cy))
+    {
+        sign = orientationSubnormalExact(ax, ay, bx, by, cx, cy);
+        return true;
+    }
+
+    if (tryOrientationNarrowExact(
+            ax, ay, bx, by, cx, cy, sign
+        ))
+    {
+        return true;
     }
 
     sign =

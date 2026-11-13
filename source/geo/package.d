@@ -76,6 +76,7 @@ public import geo.anchor_binding :
 public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;
 public import geo.circle : Circle2;
+public import geo.ellipse : Ellipse2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;
 public import geo.triangle :

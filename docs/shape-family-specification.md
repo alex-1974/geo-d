@@ -60,7 +60,7 @@ Shape-spezifische Aliase sind zulässig. Beim Rechteck sind `length.x` und `leng
 | `Parallelogram2` | `AB`, `BC`, `angle.b` | SAS, Seite+Höhe, Diagonalen | zwei Seiten + eingeschlossener Winkel |
 | `Rhombus2` | Seitenlänge + Winkel oder Diagonalen | Seite+Winkel, Diagonalen | Seite + Winkel |
 | `Kite2` | zwei Paare gleicher Nachbarkanten plus Winkel/Diagonale | Seitenpaare+Winkel, Diagonalen | zwei Seitenlängen + Winkel/Diagonalrelation |
-| `Rectangle2` | `length.ab`, `length.bc`, rechte Winkel | zwei Seiten, Diagonale+Seite, Fläche+Seite | zwei Seitenlängen |
+| `Rect2` | `length.ab`, `length.bc`, rechte Winkel | zwei Seiten, Diagonale+Seite, Fläche+Seite | zwei Seitenlängen |
 | `Square2` | eine Seitenlänge | Seite, Diagonale, Fläche, Umfang | eine Seitenlänge |
 | `RegularPolygon2` | Seitenanzahl `n` + eine Größe | Seitenlänge, Umkreisradius, Inkreisradius, Fläche | `sideCount` + kanonische Größe |
 | `Polygon2` | geordnete Vertices | Punktfolge | Punktfolge/Ringstruktur |

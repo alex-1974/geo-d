@@ -144,8 +144,9 @@ conversion.
 
 ## Rectangle relationship
 
-`Bounds2` already represents axis-aligned closed bounds and must not be
-duplicated as a nominal `Rect2` without additional invariants or operations.
+`Bounds2` represents an axis-aligned closed envelope. `Rect2` is the
+intrinsic rectangle shape and must not be treated as a replacement for the
+envelope primitive.
 The design gate should compare:
 
 - axis-aligned rectangle as a semantic shape;
@@ -155,11 +156,12 @@ The design gate should compare:
 The axis-aligned slice does not resolve the separate oriented-rectangle
 question or replace the #172 contract review.
 
-The current `Rect2` slice is intentionally axis-aligned and constructed from
-finite minimum/maximum corners. It adds rectangle semantics—width, height,
-centre, area, perimeter, containment, bounds and ordered corners—without
-replacing `Bounds2` as the envelope primitive. Oriented rectangles remain a
-separate future contract.
+The current `Rect2` slice is intentionally axis-aligned and supports both
+intrinsic side lengths and compatibility construction from finite
+minimum/maximum corners. It adds rectangle semantics—width, height, centre,
+area, perimeter, containment, bounds and ordered corners—without replacing
+`Bounds2` as the envelope primitive. Oriented rectangles remain a separate
+future contract. `Rectangle2` is only a compatibility alias.
 
 ## Triangle2 slice
 

@@ -29,7 +29,7 @@ AnchorBinding2 oder toPolygon.
 | Parallelogram2 | AB, BC, Winkel B | AB parallel CD und BC parallel DA |
 | Rhombus2 | Seitenlänge, Winkel | alle vier Seiten gleich |
 | Kite2 | AB, BC, Winkel A | AB = AD und BC = CD |
-| Rectangle2 | AB, BC | vier rechte Winkel |
+| Rect2 | AB, BC | vier rechte Winkel |
 | Square2 | Seitenlänge | Rechteck und alle Seiten gleich |
 
 ## Öffentliche Konstruktoren
@@ -40,7 +40,7 @@ Trapezoid2!T.tryFromBasesLegsAndHeight(ab, bc, cd, da, height, result);
 Parallelogram2!T.tryFromSidesAndAngle(ab, bc, angleB, result);
 Rhombus2!T.tryFromSideAndAngle(side, angle, result);
 Kite2!T.tryFromSidesAndAngle(ab, bc, angleA, result);
-Rectangle2!T.tryFromLengths(ab, bc, result);
+Rect2!T.tryFromLengths(ab, bc, result);
 Square2!T.tryFromSide(side, result);
 ~~~
 
@@ -62,19 +62,17 @@ einem Shape und einem Polygon aus einer Punktfolge.
 
 ## Namensabgrenzung
 
-Rect2 ist der bestehende axis-aligned Bereichs-/Bounds-nahe Typ mit
-Minimum- und Maximum-Koordinaten.
-
-Rectangle2 ist das neue intrinsische mathematische Shape mit den
-seitenbezogenen Parametern:
+Rect2 ist das intrinsische mathematische Rechteck-Shape. Es bleibt aus
+Kompatibilitätsgründen auch aus Minimum-/Maximum-Koordinaten konstruierbar.
+Die normative Shape-API verwendet jedoch die seitenbezogenen Parameter:
 
 ~~~d
-rectangle.length.ab
-rectangle.length.bc
+rect.length.ab
+rect.length.bc
 ~~~
 
-Diese Typen werden nicht implizit zusammengelegt. Eine spätere Migration
-kann Alias- oder Konvertierungsfunktionen anbieten.
+Rectangle2 ist vorläufig nur noch ein Kompatibilitätsalias für Rect2.
+Bounds2 bleibt der eigenständige koordinatengebundene Envelope-Typ.
 
 ## Validierungsprinzip
 

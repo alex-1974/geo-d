@@ -10,6 +10,13 @@ import geo.internal.dyadic :
     subtractDyadicCoordinates,
     subtractDyadicProducts;
 
+import geo.internal.fixed_uint :
+    UIntFixed,
+    compareUnsigned,
+    multiplyUnsigned;
+
+import std.bitmanip : DoubleRep;
+
 import std.math.traits : isFinite;
 
 
@@ -275,6 +282,68 @@ int orientationDyadicExact(
         );
 
     return determinant.sign;
+}
+
+
+/* Exact sign path for coordinates that are all zero or subnormal. */
+package(geo) int orientationSubnormalExact(
+    double ax, double ay, double bx, double by, double cx, double cy
+)
+    pure nothrow @safe @nogc
+{
+    DoubleRep[6] representations;
+    representations[0].value = ax;
+    representations[1].value = ay;
+    representations[2].value = bx;
+    representations[3].value = by;
+    representations[4].value = cx;
+    representations[5].value = cy;
+
+    long[6] values;
+    foreach (i, ref representation; representations)
+    {
+        assert(representation.exponent == 0);
+        const long magnitude = cast(long) representation.fraction;
+        values[i] = representation.sign ? -magnitude : magnitude;
+    }
+
+    alias Word = UIntFixed!2;
+    alias Product = UIntFixed!4;
+
+    Product product(long lhs, long rhs)
+        pure nothrow @safe @nogc
+    {
+        if (lhs == 0 || rhs == 0)
+            return Product.init;
+
+        const ulong lhsMagnitude = cast(ulong)(lhs < 0 ? -lhs : lhs);
+        const ulong rhsMagnitude = cast(ulong)(rhs < 0 ? -rhs : rhs);
+        Word lhsWord;
+        Word rhsWord;
+        lhsWord.limb[0] = cast(uint) lhsMagnitude;
+        lhsWord.limb[1] = cast(uint)(lhsMagnitude >> 32);
+        rhsWord.limb[0] = cast(uint) rhsMagnitude;
+        rhsWord.limb[1] = cast(uint)(rhsMagnitude >> 32);
+        return multiplyUnsigned(lhsWord, rhsWord);
+    }
+
+    const long bAx = values[2] - values[0];
+    const long bAy = values[3] - values[1];
+    const long cAx = values[4] - values[0];
+    const long cAy = values[5] - values[1];
+    const Product p = product(bAx, cAy);
+    const Product q = product(bAy, cAx);
+    const bool pNegative = (bAx < 0) != (cAy < 0);
+    const bool qNegative = (bAy < 0) != (cAx < 0);
+
+    if (pNegative != qNegative)
+        return pNegative ? -1 : 1;
+
+    const int comparison = compareUnsigned(p, q);
+    if (comparison == 0)
+        return 0;
+
+    return pNegative ? -comparison : comparison;
 }
 
 

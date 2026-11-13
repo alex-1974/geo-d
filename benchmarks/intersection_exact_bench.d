@@ -4,8 +4,8 @@ import geo.internal.intersection_exact :
     ExactProperIntersection,
     tryProperIntersectionExact;
 
-import geo.internal.intersection_round :
-    roundIntersectionCoordinate;
+import geo.internal.exact_coordinate_round :
+    roundExactCoordinateBinary64;
 
 import geo.internal.orientation_dyadic :
     orientationDeterminantDyadic;
@@ -170,7 +170,7 @@ private ulong roundOnly(size_t i)
         i & 1;
 
     return bits(
-        roundIntersectionCoordinate(
+        roundExactCoordinateBinary64(
             roundingCases[index].xNumerator,
             roundingCases[index].denominator
         )

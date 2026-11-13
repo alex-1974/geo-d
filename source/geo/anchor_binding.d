@@ -3,6 +3,8 @@ module geo.anchor_binding;
 
 import geo.measure : Angle, Length;
 import geo.placement : ScalePolicy2;
+import geo.placement : Placement2;
+import geo.metric : MetricScalar;
 import geo.point : Point2;
 import geo.scalar : isGeoScalar;
 
@@ -61,5 +63,58 @@ if (isGeoScalar!T)
         this.target = target;
         this.scalePolicy = scalePolicy;
     }
+}
+
+/** Resolve a binding into a coordinate placement when enough anchors exist. */
+bool tryResolve(T)(AnchorBinding2!T binding, out Placement2!T placement)
+    pure nothrow @safe
+    if (isGeoScalar!T)
+{
+    // One vertex correspondence contains no direction information.
+    if (binding.source.kind == AnchorKind2.vertex &&
+        binding.target.kind == AnchorKind2.vertex)
+    {
+        placement = Placement2!T.init;
+        return false;
+    }
+
+    if (binding.source.kind == AnchorKind2.edge &&
+        binding.target.kind == AnchorKind2.edge)
+    {
+        if (binding.source.length.value == 0 ||
+            binding.target.length.value == 0)
+        {
+            placement = Placement2!T.init;
+            return false;
+        }
+        const bool scaled = binding.scalePolicy == ScalePolicy2.uniform;
+        if (scaled)
+            return Placement2!T.tryFromVerticesScaled(
+                binding.source.point, binding.target.point,
+                Point2!T(binding.source.point.x + binding.source.length.value,
+                         binding.source.point.y),
+                Point2!T(binding.target.point.x + binding.target.length.value,
+                         binding.target.point.y),
+                placement);
+        if (binding.source.length.value != binding.target.length.value)
+        {
+            placement = Placement2!T.init;
+            return false;
+        }
+        import std.math.trigonometry : cos, sin;
+        const T lx = cast(T)(binding.source.length.value *
+            cos(binding.source.angle.radians));
+        const T ly = cast(T)(binding.source.length.value *
+            sin(binding.source.angle.radians));
+        return Placement2!T.tryFromVertexAndEdge(
+            binding.source.point, binding.target.point,
+            binding.source.point,
+            Point2!T(binding.source.point.x + lx,
+                     binding.source.point.y + ly),
+            binding.target.angle, placement);
+    }
+
+    placement = Placement2!T.init;
+    return false;
 }
 

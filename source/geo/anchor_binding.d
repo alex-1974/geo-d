@@ -68,6 +68,8 @@ if (isGeoScalar!T)
 @safe unittest
 {
     import geo;
+    import geo.polygon : polygonSourceEdge = sourceEdge,
+                         polygonTargetEdge = targetEdge;
     alias T = double;
     auto first = bind(
         sourceVertex(1, Point2!T(0, 0)),
@@ -89,6 +91,28 @@ if (isGeoScalar!T)
         ScalePolicy2.uniform);
     assert(tryResolve(scaled, scaledSecond, placement));
     assert(placement.scale == 2);
+}
+
+@safe unittest
+{
+    import geo;
+    import geo.polygon : polygonSourceEdge = sourceEdge,
+                         polygonTargetEdge = targetEdge;
+    alias T = double;
+    alias P = Point2!T;
+    auto source = Polygon2!T([P(0, 0), P(2, 0), P(2, 2), P(0, 2)]);
+    auto target = Polygon2!T([P(10, 20), P(10, 23), P(7, 23), P(7, 20)]);
+
+    auto binding = bind(
+        polygonSourceEdge(source, 1),
+        polygonTargetEdge(target, 1),
+        ScalePolicy2.uniform
+    );
+    auto attached = source.attachTo(binding);
+    assert(!attached.empty);
+    assert(attached.vertexCount == 4);
+    assert(attached.vertex(1) == P(10, 20));
+    assert(attached.vertex(2) == P(10, 23));
 }
 
 Anchor2!T sourceVertex(T)(size_t index, Point2!T point)
@@ -154,13 +178,25 @@ bool tryResolve(T)(AnchorBinding2!T binding, out Placement2!T placement)
         }
         const bool scaled = binding.scalePolicy == ScalePolicy2.uniform;
         if (scaled)
+        {
+            import std.math.trigonometry : cos, sin;
+            alias R = MetricScalar!T;
+            const T sourceDx = cast(T)(R(binding.source.length.value) *
+                cos(R(binding.source.angle.radians)));
+            const T sourceDy = cast(T)(R(binding.source.length.value) *
+                sin(R(binding.source.angle.radians)));
+            const T targetDx = cast(T)(R(binding.target.length.value) *
+                cos(R(binding.target.angle.radians)));
+            const T targetDy = cast(T)(R(binding.target.length.value) *
+                sin(R(binding.target.angle.radians)));
             return Placement2!T.tryFromVerticesScaled(
                 binding.source.point, binding.target.point,
-                Point2!T(binding.source.point.x + binding.source.length.value,
-                         binding.source.point.y),
-                Point2!T(binding.target.point.x + binding.target.length.value,
-                         binding.target.point.y),
+                Point2!T(binding.source.point.x + sourceDx,
+                         binding.source.point.y + sourceDy),
+                Point2!T(binding.target.point.x + targetDx,
+                         binding.target.point.y + targetDy),
                 placement);
+        }
         if (binding.source.length.value != binding.target.length.value)
         {
             placement = Placement2!T.init;

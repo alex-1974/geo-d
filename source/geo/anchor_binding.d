@@ -118,3 +118,28 @@ bool tryResolve(T)(AnchorBinding2!T binding, out Placement2!T placement)
     return false;
 }
 
+/** Resolve two vertex-to-vertex bindings into one placement. */
+bool tryResolve(T)(AnchorBinding2!T first,
+                   AnchorBinding2!T second,
+                   out Placement2!T placement)
+    pure nothrow @safe
+    if (isGeoScalar!T)
+{
+    if (first.source.kind != AnchorKind2.vertex ||
+        first.target.kind != AnchorKind2.vertex ||
+        second.source.kind != AnchorKind2.vertex ||
+        second.target.kind != AnchorKind2.vertex)
+    {
+        placement = Placement2!T.init;
+        return false;
+    }
+    if (first.scalePolicy == ScalePolicy2.uniform ||
+        second.scalePolicy == ScalePolicy2.uniform)
+        return Placement2!T.tryFromVerticesScaled(
+            first.source.point, first.target.point,
+            second.source.point, second.target.point, placement);
+    return Placement2!T.tryFromVertices(
+        first.source.point, first.target.point,
+        second.source.point, second.target.point, placement);
+}
+

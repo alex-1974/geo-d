@@ -19,6 +19,7 @@ import geo.anchor_binding : Anchor2, AnchorBinding2, tryResolve;
 import geo.metric : MetricScalar, distance;
 import geo.measure : Angle, Length;
 import geo.placement : Placement2;
+import geo.transform : Transform2;
 
 import geo.linear_ring_view : LinearRing2View;
 import geo.point : Point2;
@@ -93,6 +94,15 @@ public:
         Point2!T[] mapped = new Point2!T[_points.length];
         foreach (i, point; _points)
             mapped[i] = placement.map(point);
+        return Polygon2(mapped[]);
+    }
+
+    Polygon2 transform(Transform2!T transform) const pure @safe
+    {
+        if (_points.length == 0) return Polygon2.init;
+        Point2!T[] mapped = new Point2!T[_points.length];
+        foreach (i, point; _points)
+            mapped[i] = transform.apply(point);
         return Polygon2(mapped[]);
     }
 }

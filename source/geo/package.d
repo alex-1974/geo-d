@@ -177,6 +177,11 @@ public import geo.measure :
     Length,
     Size2,
     Size3;
+public import geo.transform :
+    Rotation2,
+    Scale2,
+    Transform2,
+    Translation2;
 public import geo.placement :
     CircleAnchor,
     EdgeAngle2,

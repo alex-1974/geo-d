@@ -79,6 +79,7 @@ public import geo.circle : Circle2;
 public import geo.ellipse : Ellipse2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;
+public import geo.quadrilateral : Quadrilateral2, QuadrilateralSideLengths;
 public import geo.triangle :
     Triangle2,
     TriangleSideLengths;

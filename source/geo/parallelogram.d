@@ -7,6 +7,7 @@ import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math : cos, sin;
 
 struct Parallelogram2(T) if (isGeoScalar!T)
@@ -18,6 +19,19 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Parallelogram2) fromSidesAndAngle(
+        Length!T ab, Length!T bc, Angle!T angleB)
+        pure nothrow @safe @nogc
+    {
+        Parallelogram2 result;
+        if (ab.value <= 0 || bc.value <= 0 || angleB.radians <= 0)
+            return ShapeConstructionResult!(Parallelogram2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSidesAndAngle(ab, bc, angleB, result)
+            ? ShapeConstructionResult!(Parallelogram2).success(result)
+            : ShapeConstructionResult!(Parallelogram2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Length!T sideAB() const pure nothrow @safe @nogc { assert(_hasValue); return _ab; }
     @property Length!T sideBC() const pure nothrow @safe @nogc { assert(_hasValue); return _bc; }

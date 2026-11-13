@@ -7,6 +7,7 @@ import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math : sqrt;
 
 /** Convex trapezoid with AB parallel to CD. */
@@ -22,6 +23,21 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Trapezoid2) fromBasesLegsAndHeight(
+        Length!T ab, Length!T bc, Length!T cd,
+        Length!T da, Length!T height)
+        pure nothrow @safe @nogc
+    {
+        Trapezoid2 result;
+        if (ab.value <= 0 || bc.value <= 0 || cd.value <= 0 ||
+            da.value <= 0 || height.value <= 0)
+            return ShapeConstructionResult!(Trapezoid2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromBasesLegsAndHeight(ab, bc, cd, da, height, result)
+            ? ShapeConstructionResult!(Trapezoid2).success(result)
+            : ShapeConstructionResult!(Trapezoid2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
 
     static bool tryFromBasesLegsAndHeight(

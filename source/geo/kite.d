@@ -7,6 +7,7 @@ import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math : cos, sin;
 
 /** Intrinsic kite with AB=AD and BC=CD. */
@@ -19,6 +20,19 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Kite2) fromSidesAndAngle(
+        Length!T ab, Length!T bc, Angle!T angleA)
+        pure nothrow @safe @nogc
+    {
+        Kite2 result;
+        if (ab.value <= 0 || bc.value <= 0 || angleA.radians <= 0)
+            return ShapeConstructionResult!(Kite2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSidesAndAngle(ab, bc, angleA, result)
+            ? ShapeConstructionResult!(Kite2).success(result)
+            : ShapeConstructionResult!(Kite2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Length!T sideAB() const pure nothrow @safe @nogc { assert(_hasValue); return _ab; }
     @property Length!T sideBC() const pure nothrow @safe @nogc { assert(_hasValue); return _bc; }

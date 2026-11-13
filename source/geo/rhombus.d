@@ -7,6 +7,7 @@ import geo.parallelogram : Parallelogram2;
 import geo.placement : Placement2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 
 /** Intrinsic rhombus defined by side length and included angle. */
 struct Rhombus2(T) if (isGeoScalar!T)
@@ -17,6 +18,19 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Rhombus2) fromSideAndAngle(
+        Length!T side, Angle!T angle)
+        pure nothrow @safe @nogc
+    {
+        Rhombus2 result;
+        if (side.value <= 0 || angle.radians <= 0)
+            return ShapeConstructionResult!(Rhombus2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSideAndAngle(side, angle, result)
+            ? ShapeConstructionResult!(Rhombus2).success(result)
+            : ShapeConstructionResult!(Rhombus2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Length!T side() const pure nothrow @safe @nogc { assert(_hasValue); return _side; }
     @property Angle!T angle() const pure nothrow @safe @nogc { assert(_hasValue); return _angle; }

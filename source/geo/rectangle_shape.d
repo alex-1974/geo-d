@@ -8,6 +8,7 @@ import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.rect : Rect2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 
 alias RectangleLengths(T) = RectLengths!T;
 
@@ -22,6 +23,19 @@ private:
     bool _hasValue;
 
 public:
+    static ShapeConstructionResult!(Square2) fromSide(Length!T side)
+        pure nothrow @safe @nogc
+    {
+        Square2 result;
+        if (side.value <= 0)
+            return ShapeConstructionResult!(Square2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromSide(side, result)
+            ? ShapeConstructionResult!(Square2).success(result)
+            : ShapeConstructionResult!(Square2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Length!T side() const pure nothrow @safe @nogc
     { assert(_hasValue); return _side; }

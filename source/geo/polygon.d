@@ -15,6 +15,9 @@
  */
 module geo.polygon;
 
+import geo.anchor_binding : AnchorBinding2, tryResolve;
+import geo.placement : Placement2;
+
 import geo.linear_ring_view : LinearRing2View;
 import geo.point : Point2;
 import geo.polygon_view : Polygon2View;
@@ -58,5 +61,29 @@ public:
     Polygon2View!T view() const pure nothrow @safe @nogc
     {
         return Polygon2View!T(_rings[]);
+    }
+
+    Polygon2 attachTo(AnchorBinding2!T binding) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(binding, placement) ? transform(placement) : Polygon2.init;
+    }
+
+    Polygon2 attachTo(AnchorBinding2!T first,
+                      AnchorBinding2!T second) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(first, second, placement) ? transform(placement) : Polygon2.init;
+    }
+
+    Polygon2 transform(Placement2!T placement) const pure @safe
+    {
+        if (_points.length == 0) return Polygon2.init;
+        Point2!T[] mapped = new Point2!T[_points.length];
+        foreach (i, point; _points)
+            mapped[i] = placement.map(point);
+        return Polygon2(mapped[]);
     }
 }

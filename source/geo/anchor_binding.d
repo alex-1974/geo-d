@@ -102,10 +102,11 @@ bool tryResolve(T)(AnchorBinding2!T binding, out Placement2!T placement)
             return false;
         }
         import std.math.trigonometry : cos, sin;
-        const T lx = cast(T)(binding.source.length.value *
-            cos(binding.source.angle.radians));
-        const T ly = cast(T)(binding.source.length.value *
-            sin(binding.source.angle.radians));
+        alias R = MetricScalar!T;
+        const T lx = cast(T)(R(binding.source.length.value) *
+            cos(R(binding.source.angle.radians)));
+        const T ly = cast(T)(R(binding.source.length.value) *
+            sin(R(binding.source.angle.radians)));
         return Placement2!T.tryFromVertexAndEdge(
             binding.source.point, binding.target.point,
             binding.source.point,

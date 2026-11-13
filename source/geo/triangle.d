@@ -21,6 +21,7 @@ import geo.metric : distance;
 import geo.measure : Angle, Length;
 import geo.point : Point2;
 import geo.placement : EdgeAngle2, Placement2, ScalePolicy2, VertexPlacement2;
+import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 import std.math.constants : PI;
@@ -219,6 +220,23 @@ public:
                 placement.map(_c)
             ]
         );
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(AnchorBinding2!T binding) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(binding, placement) ? toPolygon(placement)
+            : Polygon2!(MetricScalar!T).init;
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        AnchorBinding2!T first, AnchorBinding2!T second) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(first, second, placement) ? toPolygon(placement)
+            : Polygon2!(MetricScalar!T).init;
     }
 
     /** Derive a rigid placement from two canonical triangle vertices. */

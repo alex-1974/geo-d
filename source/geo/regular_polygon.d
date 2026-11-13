@@ -16,9 +16,12 @@
 module geo.regular_polygon;
 
 import geo.bounds : Bounds2;
+import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.metric : MetricScalar;
-import geo.measure : Length;
+import geo.measure : Angle, Length;
+import geo.placement : EdgeAngle2, Placement2;
 import geo.point : Point2;
+import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
 import mathTraits = std.math.traits;
@@ -184,6 +187,48 @@ public:
         foreach (i; 0 .. N)
             destination[i] = vertex(i);
         return true;
+    }
+
+    EdgeAngle2!T edge(size_t startVertex, Angle!T angle) const
+        pure nothrow @safe @nogc
+    {
+        assert(_hasValue);
+        assert(startVertex >= 1 && startVertex <= N);
+        const size_t endVertex = startVertex == N ? 1 : startVertex + 1;
+        return EdgeAngle2!T(
+            startVertex, endVertex,
+            Length!T(cast(T) sideLength()), angle);
+    }
+
+    Polygon2!R toPolygon(Placement2!T placement) const
+        pure @safe
+    {
+        if (!_hasValue)
+            return Polygon2!R.init;
+        Point2!R[N] points;
+        if (!tryPointsInto(points[]))
+            return Polygon2!R.init;
+        Point2!R[N] mapped;
+        foreach (i, point; points[])
+            mapped[i] = placement.map(Point2!T(cast(T) point.x, cast(T) point.y));
+        return Polygon2!R(mapped[]);
+    }
+
+    Polygon2!R toPolygon(AnchorBinding2!T binding) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(binding, placement) ? toPolygon(placement)
+            : Polygon2!R.init;
+    }
+
+    Polygon2!R toPolygon(AnchorBinding2!T first,
+                          AnchorBinding2!T second) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(first, second, placement) ? toPolygon(placement)
+            : Polygon2!R.init;
     }
 
     /// Computes the finite axis-aligned bounds of the generated vertices.

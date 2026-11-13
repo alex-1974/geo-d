@@ -61,6 +61,10 @@ public import geo.area :
     AreaScalar,
     polygonArea,
     signedArea;
+public import geo.anchor_binding :
+    Anchor2,
+    AnchorBinding2,
+    AnchorKind2;
 
 public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;

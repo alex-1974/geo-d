@@ -15,7 +15,7 @@
  */
 module geo.polygon;
 
-import geo.anchor_binding : AnchorBinding2, tryResolve;
+import geo.anchor_binding : Anchor2, AnchorBinding2, tryResolve;
 import geo.placement : Placement2;
 
 import geo.linear_ring_view : LinearRing2View;
@@ -93,4 +93,16 @@ public:
             mapped[i] = placement.map(point);
         return Polygon2(mapped[]);
     }
+}
+
+Anchor2!T sourceVertex(T)(Polygon2!T polygon, size_t index)
+    if (isGeoScalar!T)
+{
+    return Anchor2!T.vertex(index, polygon.vertex(index));
+}
+
+Anchor2!T targetVertex(T)(Polygon2!T polygon, size_t index)
+    if (isGeoScalar!T)
+{
+    return Anchor2!T.vertex(index, polygon.vertex(index));
 }

@@ -18,6 +18,7 @@ private:
     Length!T _cd;
     Length!T _da;
     Length!T _height;
+    bool _cdLonger;
     bool _hasValue;
 
 public:
@@ -40,14 +41,17 @@ public:
         const R offsetA = sqrt(legA * legA - h * h);
         const R offsetB = sqrt(legB * legB - h * h);
         const R expectedBaseDifference = offsetA + offsetB;
-        if (R(ab.value) - R(cd.value) != expectedBaseDifference &&
-            R(cd.value) - R(ab.value) != expectedBaseDifference)
+        const R abValue = R(ab.value);
+        const R cdValue = R(cd.value);
+        if (abValue - cdValue != expectedBaseDifference &&
+            cdValue - abValue != expectedBaseDifference)
             return false;
         result._ab = ab;
         result._bc = bc;
         result._cd = cd;
         result._da = da;
         result._height = height;
+        result._cdLonger = cdValue > abValue;
         result._hasValue = true;
         return true;
     }
@@ -59,7 +63,7 @@ public:
         alias R = MetricScalar!T;
         const R h = R(_height.value);
         const R offsetA = sqrt(R(_da.value) * R(_da.value) - h * h);
-        const R xD = offsetA;
+        const R xD = _cdLonger ? -offsetA : offsetA;
         const R xC = xD + R(_cd.value);
         Point2!T[4] local = [
             Point2!T(0, 0),
@@ -89,4 +93,15 @@ public:
         Length!double(10), Length!double(5), Length!double(4),
         Length!double(5), Length!double(4), shape));
     assert(shape.toPolygon(Placement2!double.init).vertexCount == 4);
+
+    Trapezoid2!double reversed;
+    assert(Trapezoid2!double.tryFromBasesLegsAndHeight(
+        Length!double(4), Length!double(5), Length!double(10),
+        Length!double(5), Length!double(4), reversed));
+    assert(reversed.toPolygon(Placement2!double.init).vertexCount == 4);
+
+    Trapezoid2!double invalid;
+    assert(!Trapezoid2!double.tryFromBasesLegsAndHeight(
+        Length!double(6), Length!double(2), Length!double(4),
+        Length!double(2), Length!double(4), invalid));
 }

@@ -2,6 +2,7 @@ module geo.ellipse;
 
 import geo.measure : Length;
 import geo.metric : MetricScalar;
+import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.placement : Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
@@ -62,6 +63,27 @@ public:
             points[i] = placement.map(local);
         }
         return Polygon2!R(points[]);
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        AnchorBinding2!T binding, size_t segmentCount = 64) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(binding, placement)
+            ? toPolygon(placement, segmentCount)
+            : Polygon2!(MetricScalar!T).init;
+    }
+
+    Polygon2!(MetricScalar!T) toPolygon(
+        AnchorBinding2!T first, AnchorBinding2!T second,
+        size_t segmentCount = 64) const
+        pure @safe
+    {
+        Placement2!T placement;
+        return tryResolve(first, second, placement)
+            ? toPolygon(placement, segmentCount)
+            : Polygon2!(MetricScalar!T).init;
     }
 }
 

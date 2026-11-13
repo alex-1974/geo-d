@@ -4,6 +4,11 @@ import geo.internal.intersection_exact :
     ExactProperIntersection,
     tryProperIntersectionExact;
 
+import geo.internal.intersection_bench_adapter :
+    PreparedIntersectionBenchInput,
+    prepareIntersectionBenchInput,
+    runPreparedIntersectionBench;
+
 import geo.internal.exact_coordinate_round :
     roundExactCoordinateBinary64;
 
@@ -24,6 +29,7 @@ enum size_t roundingIterations = 200_000;
 __gshared ulong sink;
 
 __gshared ExactProperIntersection[2] roundingCases;
+__gshared PreparedIntersectionBenchInput prepared;
 
 
 private ulong bits(double value)
@@ -129,6 +135,21 @@ private ulong exactConstruction(size_t i)
 }
 
 
+pragma(inline, false)
+private ulong preparedExactConstruction(size_t i)
+{
+    ExactProperIntersection exact;
+
+    runPreparedIntersectionBench(prepared, exact);
+
+    return
+        exact.denominator.limb[0] +
+        exact.xNumerator.magnitude.limb[0] +
+        exact.yNumerator.magnitude.limb[0] +
+        i;
+}
+
+
 private void prepareRoundingCases()
 {
     alias P = Point2!double;
@@ -180,6 +201,13 @@ private ulong roundOnly(size_t i)
 
 void main()
 {
+    alias P = Point2!double;
+    alias S = Segment2!double;
+
+    prepared = prepareIntersectionBenchInput(
+        S(P(0.0, 0.0), P(10.0, 10.0))
+    );
+
     prepareRoundingCases();
 
     bench!determinant(
@@ -189,6 +217,11 @@ void main()
 
     bench!exactConstruction(
         "proper exact construction",
+        exactIterations
+    );
+
+    bench!preparedExactConstruction(
+        "prepared exact construction",
         exactIterations
     );
 

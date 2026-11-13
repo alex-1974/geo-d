@@ -23,6 +23,7 @@ import geo.placement : EdgeAngle2, Placement2;
 import geo.point : Point2;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
+import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 
 import mathTraits = std.math.traits;
 import std.math.constants : PI;
@@ -78,6 +79,20 @@ private:
     }
 
 public:
+    static ShapeConstructionResult!(RegularPolygon2) fromCircumradius(
+        Length!T radius)
+        pure nothrow @safe @nogc
+    {
+        RegularPolygon2 result;
+        if (radius.value <= 0)
+            return ShapeConstructionResult!(RegularPolygon2).failure(
+                ShapeConstructionStatus.nonPositive);
+        return tryFromCircumradius(radius, result)
+            ? ShapeConstructionResult!(RegularPolygon2).success(result)
+            : ShapeConstructionResult!(RegularPolygon2).failure(
+                ShapeConstructionStatus.inconsistent);
+    }
+
     /// True when construction succeeded.
     @property bool valid() const pure nothrow @safe @nogc
     {

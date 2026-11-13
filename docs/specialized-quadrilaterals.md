@@ -88,3 +88,14 @@ Die Formvalidierung erfolgt beim Konstruktor:
 Die daraus erzeugten Polygone werden zusätzlich durch die bestehenden
 Polygon- und Ring-Validierungen geprüft.
 
+## Numerische Validierung
+
+Die Konstruktoren verwenden keine globale Toleranz und kein implizites
+Epsilon. Geometrische Beziehungen wie gleiche Seiten, parallele Basen oder
+eine aus Seitenlängen abgeleitete Höhe müssen im verwendeten Skalarbereich
+exakt erfüllbar sein.
+
+Konstruktion und Topologie bleiben dadurch deterministisch. Eine spätere
+tolerante Konstruktion erhält eine explizite Policy oder einen expliziten
+Parameter und verändert nicht die globale Semantik.
+

@@ -25,6 +25,12 @@ import geo.anchor_binding : AnchorBinding2, tryResolve;
 import geo.polygon : Polygon2;
 import geo.scalar : isGeoScalar;
 
+struct RectLengths(T) if (isGeoScalar!T)
+{
+    Length!T ab;
+    Length!T bc;
+}
+
 /** Axis-aligned rectangle with explicit rectangular semantics. */
 struct Rect2(T)
 if (isGeoScalar!T)
@@ -35,6 +41,18 @@ private:
     bool _hasValue;
 
 public:
+    static bool tryFromLengths(Length!T ab, Length!T bc, out Rect2 result)
+        pure nothrow @safe @nogc
+    {
+        return ab.value > 0 && bc.value > 0 &&
+            tryFromSize(Size2!T(ab, bc), result);
+    }
+
+    @property RectLengths!T length() const pure nothrow @safe @nogc
+    {
+        const auto s = size;
+        return RectLengths!T(s.x, s.y);
+    }
     @property bool valid() const pure nothrow @safe @nogc { return _hasValue; }
     @property Point2!T min() const pure nothrow @safe @nogc
     { assert(_hasValue); return _min; }

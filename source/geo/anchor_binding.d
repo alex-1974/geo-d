@@ -1,4 +1,18 @@
-/** Shared source/target anchor descriptors for geometry registration. */
+/**
+ * Shared source/target anchor descriptors for geometry registration.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.anchor_binding;
 
 import geo.measure : Angle, Length;

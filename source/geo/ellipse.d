@@ -1,3 +1,18 @@
+/**
+ * Intrinsic axis-aligned ellipse defined by its two semi-axes.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.ellipse;
 
 import geo.measure : Length;
@@ -11,7 +26,6 @@ import geo.shape_result : ShapeConstructionResult, ShapeConstructionStatus;
 import std.math.constants : PI;
 import std.math.trigonometry : cos, sin;
 
-/** Intrinsic axis-aligned ellipse defined by its two semi-axes. */
 struct Ellipse2(T) if (isGeoScalar!T)
 {
 private:

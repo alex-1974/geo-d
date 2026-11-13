@@ -1,3 +1,18 @@
+/**
+ * Intrinsic circular arc shape.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.circular_arc;
 
 import geo.anchor_binding : AnchorBinding2, tryResolve;

@@ -84,6 +84,7 @@ public import geo.quadrilateral : Quadrilateral2, QuadrilateralSideLengths;
 public import geo.parallelogram : Parallelogram2;
 public import geo.rhombus : Rhombus2;
 public import geo.kite : Kite2;
+public import geo.trapezoid : Trapezoid2;
 public import geo.triangle :
     Triangle2,
     TriangleSideLengths;

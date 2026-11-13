@@ -347,6 +347,133 @@ package(geo) int orientationSubnormalExact(
 }
 
 
+/*
+ * Exact narrow-scale path for finite values whose decoded exponents are
+ * close enough to share a compact integer scale. This covers near-dyadic
+ * cancellation without constructing the general 66/132-limb carriers.
+ */
+package(geo) bool tryOrientationNarrowExact(
+    double ax, double ay, double bx, double by, double cx, double cy,
+    out int sign
+)
+    pure nothrow @safe @nogc
+{
+    DoubleRep[6] representations;
+    representations[0].value = ax;
+    representations[1].value = ay;
+    representations[2].value = bx;
+    representations[3].value = by;
+    representations[4].value = cx;
+    representations[5].value = cy;
+
+    uint minimumShift = uint.max;
+    foreach (ref representation; representations)
+    {
+        if (representation.fraction == 0 && representation.exponent == 0)
+            continue;
+        const uint shift = representation.exponent == 0
+            ? 0
+            : representation.exponent - 1;
+        if (shift < minimumShift)
+            minimumShift = shift;
+    }
+
+    if (minimumShift == uint.max)
+    {
+        sign = 0;
+        return true;
+    }
+
+    long[6] values;
+    foreach (i, ref representation; representations)
+    {
+        if (representation.fraction == 0 && representation.exponent == 0)
+            continue;
+        const ulong mantissa = representation.exponent == 0
+            ? representation.fraction
+            : (1UL << 52) | representation.fraction;
+        const uint shift = representation.exponent == 0
+            ? 0
+            : representation.exponent - 1;
+        const uint relativeShift = shift - minimumShift;
+        if (relativeShift > 9)
+            return false;
+        const ulong magnitude = mantissa << relativeShift;
+        if (magnitude >= (1UL << 62))
+            return false;
+        values[i] = representation.sign
+            ? -cast(long) magnitude
+            : cast(long) magnitude;
+    }
+
+    alias Word = UIntFixed!2;
+    alias Product = UIntFixed!4;
+    Product product(long lhs, long rhs)
+        pure nothrow @safe @nogc
+    {
+        if (lhs == 0 || rhs == 0)
+            return Product.init;
+        const ulong lhsMagnitude = cast(ulong)(lhs < 0 ? -lhs : lhs);
+        const ulong rhsMagnitude = cast(ulong)(rhs < 0 ? -rhs : rhs);
+        Word lhsWord;
+        Word rhsWord;
+        lhsWord.limb[0] = cast(uint) lhsMagnitude;
+        lhsWord.limb[1] = cast(uint)(lhsMagnitude >> 32);
+        rhsWord.limb[0] = cast(uint) rhsMagnitude;
+        rhsWord.limb[1] = cast(uint)(rhsMagnitude >> 32);
+        return multiplyUnsigned(lhsWord, rhsWord);
+    }
+
+    const long bAx = values[2] - values[0];
+    const long bAy = values[3] - values[1];
+    const long cAx = values[4] - values[0];
+    const long cAy = values[5] - values[1];
+    const Product p = product(bAx, cAy);
+    const Product q = product(bAy, cAx);
+    const bool pNegative = (bAx < 0) != (cAy < 0);
+    const bool qNegative = (bAy < 0) != (cAx < 0);
+    if (pNegative != qNegative)
+    {
+        sign = pNegative ? -1 : 1;
+        return true;
+    }
+    const int comparison = compareUnsigned(p, q);
+    sign = comparison == 0 ? 0 : (pNegative ? -comparison : comparison);
+    return true;
+}
+
+
+@safe unittest
+{
+    int sign;
+    const double large = 0x1p+500;
+    const double half = 0x1p+499;
+
+    assert(tryOrientationNarrowExact(
+        0.0, 0.0,
+        large, large,
+        half, 0x1.0000000000001p+499,
+        sign
+    ));
+    assert(sign > 0);
+
+    assert(tryOrientationNarrowExact(
+        0.0, 0.0,
+        large, large,
+        half, 0x1.fffffffffffffp+498,
+        sign
+    ));
+    assert(sign < 0);
+
+    assert(!tryOrientationNarrowExact(
+        0.0, 0.0,
+        double.max, double.max,
+        0x0.0000000000001p-1022, 0.0,
+        sign
+    ));
+}
+
+
 @safe unittest
 {
     /*

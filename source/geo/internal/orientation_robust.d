@@ -2,7 +2,8 @@ module geo.internal.orientation_robust;
 
 import geo.internal.orientation_dyadic :
     orientationDyadicExact,
-    orientationSubnormalExact;
+    orientationSubnormalExact,
+    tryOrientationNarrowExact;
 
 import geo.internal.orientation_exact :
     tryOrientationExactExpansion;
@@ -190,6 +191,13 @@ bool tryOrientationRobustDoubleFallback(
     if (allSubnormalOrZero(ax, ay, bx, by, cx, cy))
     {
         sign = orientationSubnormalExact(ax, ay, bx, by, cx, cy);
+        return true;
+    }
+
+    if (tryOrientationNarrowExact(
+            ax, ay, bx, by, cx, cy, sign
+        ))
+    {
         return true;
     }
 

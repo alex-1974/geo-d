@@ -57,6 +57,13 @@ public:
         return _points.length;
     }
 
+    /** Return a polygon vertex using the public one-based index convention. */
+    Point2!T vertex(size_t index) const pure nothrow @safe @nogc
+    {
+        assert(index >= 1 && index <= _points.length);
+        return _points[index - 1];
+    }
+
     /// Returns a borrowed view while this owning value remains alive.
     Polygon2View!T view() const pure nothrow @safe @nogc
     {

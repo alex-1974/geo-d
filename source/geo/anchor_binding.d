@@ -65,6 +65,32 @@ if (isGeoScalar!T)
     }
 }
 
+@safe unittest
+{
+    import geo;
+    alias T = double;
+    auto first = bind(
+        sourceVertex(1, Point2!T(0, 0)),
+        targetVertex(3, Point2!T(10, 20)));
+    auto second = bind(
+        sourceVertex(2, Point2!T(2, 0)),
+        targetVertex(4, Point2!T(10, 23)));
+    Placement2!T placement;
+    assert(tryResolve(first, second, placement));
+    assert(placement.scale == 1);
+
+    auto scaled = bind(
+        sourceVertex(1, Point2!T(0, 0)),
+        targetVertex(3, Point2!T(10, 20)),
+        ScalePolicy2.uniform);
+    auto scaledSecond = bind(
+        sourceVertex(2, Point2!T(2, 0)),
+        targetVertex(4, Point2!T(10, 24)),
+        ScalePolicy2.uniform);
+    assert(tryResolve(scaled, scaledSecond, placement));
+    assert(placement.scale == 2);
+}
+
 Anchor2!T sourceVertex(T)(size_t index, Point2!T point)
     if (isGeoScalar!T)
 {

@@ -189,6 +189,9 @@ public import geo.transform :
     Scale2,
     Transform2,
     Translation2;
+public import geo.shape_result :
+    ShapeConstructionResult,
+    ShapeConstructionStatus;
 public import geo.placement :
     CircleAnchor,
     EdgeAngle2,

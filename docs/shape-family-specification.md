@@ -107,6 +107,17 @@ Beim Quader sind die Standardkanten daher `AB`, `BC` und `AE`.
 
 ## 5. Konstruktor- und API-Regeln
 
+Neue öffentliche Konstruktoren liefern strukturierte Resultate:
+
+~~~d
+auto result = Triangle2!double.fromSSS(ab, bc, ca);
+if (!result.valid)
+    // result.status beschreibt den Konstruktionsfehler
+~~~
+
+Die Bool-/Out-Varianten bleiben zunächst als Kompatibilitäts- und
+Low-Level-API erhalten.
+
 Konstruktoren werden nach der geometrischen Fallgruppe benannt. Das vermeidet Mehrdeutigkeiten bei gleichen Parametertypen:
 
 ```d

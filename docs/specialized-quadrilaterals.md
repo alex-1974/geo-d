@@ -35,17 +35,25 @@ AnchorBinding2 oder toPolygon.
 ## Öffentliche Konstruktoren
 
 ~~~d
-Quadrilateral2!T.tryFromSidesAndDiagonal(ab, bc, cd, da, ac, result);
-Trapezoid2!T.tryFromBasesLegsAndHeight(ab, bc, cd, da, height, result);
-Parallelogram2!T.tryFromSidesAndAngle(ab, bc, angleB, result);
-Rhombus2!T.tryFromSideAndAngle(side, angle, result);
-Kite2!T.tryFromSidesAndAngle(ab, bc, angleA, result);
-Rect2!T.tryFromLengths(ab, bc, result);
-Square2!T.tryFromSide(side, result);
+Quadrilateral2!T.fromSidesAndDiagonal(ab, bc, cd, da, ac);
+Trapezoid2!T.fromBasesLegsAndHeight(ab, bc, cd, da, height);
+Parallelogram2!T.fromSidesAndAngle(ab, bc, angleB);
+Rhombus2!T.fromSideAndAngle(side, angle);
+Kite2!T.fromSidesAndAngle(ab, bc, angleA);
+Rect2!T.fromLengths(ab, bc);
+Square2!T.fromSide(side);
 ~~~
 
-Alle Konstruktoren setzen das Ergebnis bei Fehlschlag auf init zurück und
-weisen nicht-positive oder geometrisch unmögliche Parameter zurück.
+Die Result-Factories liefern ein `ShapeConstructionResult!Shape`. Bei Erfolg
+steht das Shape in `value`; bei Fehlschlag beschreibt `status` den Grund.
+Die älteren `tryFrom(..., out result)`-Varianten bleiben als kompatible
+Low-Level-API verfügbar.
+
+~~~d
+auto result = Square2!double.fromSide(side);
+if (result.valid)
+    auto square = result.value;
+~~~
 
 ## Materialisierung
 

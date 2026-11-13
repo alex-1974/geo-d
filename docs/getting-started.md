@@ -659,3 +659,21 @@ constructed coordinate.
 
 For the detailed numerical contracts, see `README.md`, `docs/README.md`, and
 the ADRs under `docs/adr/`.
+
+## Checked shape construction
+
+New structured-shape factories return a result carrying either the shape or
+the construction status:
+
+```d
+auto result = Square2!double.fromSide(Length!double(3));
+if (result.valid)
+{
+    auto square = result.value;
+    auto polygon = square.toPolygon(Placement2!double.init);
+}
+```
+
+Use `result.status` to distinguish non-positive, degenerate, inconsistent or
+ambiguous input. The older `tryFrom(..., out result)` forms remain available
+for compatibility and low-level code.

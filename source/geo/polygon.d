@@ -27,7 +27,7 @@ import geo.polygon_view : Polygon2View;
 import geo.scalar : isGeoScalar;
 
 /**
- * Owning polygon with one exterior ring and no holes.
+ * Owning polygon with one exterior ring and optional interior rings.
  *
  * The point storage is owned by this value. `view` exposes the same geometry
  * through the established non-owning `Polygon2View` API and is valid only
@@ -48,6 +48,27 @@ public:
         _points[] = points[];
         _rings = new LinearRing2View!T[1];
         _rings[0] = LinearRing2View!T(_points[]);
+    }
+
+    /// Materializes an exterior ring and caller-provided interior rings.
+    this(scope const(Point2!T)[] exterior,
+         scope Point2!T[][] holes)
+    {
+        size_t total = exterior.length;
+        foreach (hole; holes) total += hole.length;
+        _points = new Point2!T[total];
+        _rings = new LinearRing2View!T[holes.length + 1];
+        size_t offset;
+        _points[0 .. exterior.length] = exterior[];
+        _rings[0] = LinearRing2View!T(_points[0 .. exterior.length]);
+        offset = exterior.length;
+        foreach (i, hole; holes)
+        {
+            _points[offset .. offset + hole.length] = hole[];
+            _rings[i + 1] = LinearRing2View!T(
+                _points[offset .. offset + hole.length]);
+            offset += hole.length;
+        }
     }
 
     @property bool empty() const pure nothrow @safe @nogc
@@ -73,6 +94,9 @@ public:
         return Polygon2View!T(_rings[]);
     }
 
+    @property size_t holeCount() const pure nothrow @safe @nogc
+    { return _rings.length > 0 ? _rings.length - 1 : 0; }
+
     Polygon2 attachTo(AnchorBinding2!T binding) const
         pure @safe
     {
@@ -93,8 +117,11 @@ public:
         if (_points.length == 0) return Polygon2.init;
         Point2!T[] mapped = new Point2!T[_points.length];
         foreach (i, point; _points)
-            mapped[i] = placement.map(point);
-        return Polygon2(mapped[]);
+        {
+            auto p = placement.map(point);
+            mapped[i] = Point2!T(cast(T) p.x, cast(T) p.y);
+        }
+        return withRings(mapped[]);
     }
 
     Polygon2 transform(Transform2!T transform) const pure @safe
@@ -102,8 +129,26 @@ public:
         if (_points.length == 0) return Polygon2.init;
         Point2!T[] mapped = new Point2!T[_points.length];
         foreach (i, point; _points)
-            mapped[i] = transform.apply(point);
-        return Polygon2(mapped[]);
+        {
+            auto p = transform.apply(point);
+            mapped[i] = Point2!T(cast(T) p.x, cast(T) p.y);
+        }
+        return withRings(mapped[]);
+    }
+
+private:
+    Polygon2 withRings(scope const(Point2!T)[] points) const
+    {
+        if (_rings.length <= 1) return Polygon2(points[]);
+        Point2!T[] exterior = points[0 .. _rings[0].length].dup;
+        Point2!T[][] holes = new Point2!T[][](_rings.length - 1);
+        size_t offset = _rings[0].length;
+        foreach (i; 1 .. _rings.length)
+        {
+            holes[i - 1] = points[offset .. offset + _rings[i].length].dup;
+            offset += _rings[i].length;
+        }
+        return Polygon2!T(exterior[], holes);
     }
 }
 

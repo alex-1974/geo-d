@@ -21,10 +21,20 @@ struct ShapeConstructionResult(Shape)
 
     static ShapeConstructionResult success(Shape value)
         pure nothrow @safe @nogc
-    { return ShapeConstructionResult(value, ShapeConstructionStatus.success); }
+    {
+        ShapeConstructionResult result;
+        result.value = value;
+        result.status = ShapeConstructionStatus.success;
+        return result;
+    }
 
     static ShapeConstructionResult failure(ShapeConstructionStatus status)
         pure nothrow @safe @nogc
-    { return ShapeConstructionResult(Shape.init, status); }
+    {
+        ShapeConstructionResult result;
+        result.value = Shape.init;
+        result.status = status;
+        return result;
+    }
 }
 

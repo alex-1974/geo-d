@@ -81,6 +81,7 @@ public import geo.circular_sector : CircularSector2;
 public import geo.circular_segment : CircularSegment2;
 public import geo.annulus : Annulus2;
 public import geo.capsule : Capsule2;
+public import geo.rounded_rectangle : RoundedRectangle2;
 public import geo.ellipse : Ellipse2;
 public import geo.circle : tryPolygonizeCircleInto;
 public import geo.rect : Rect2;

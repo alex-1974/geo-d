@@ -1,3 +1,18 @@
+/**
+ * Results and statuses for shape construction.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.shape_result;
 
 /** Stable categories for checked intrinsic-shape construction. */

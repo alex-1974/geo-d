@@ -1,3 +1,18 @@
+/**
+ * Explicit two-dimensional geometric transformations.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.transform;
 
 import geo.metric : MetricScalar;

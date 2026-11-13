@@ -447,12 +447,16 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Rect2` | **family** | Structured-shape usage example |
 | `Rect2.tryCornersInto` | **family** | Rect2 |
 | `Rect2.tryFromSize` | **family** | Rect2 |
+| `Rect2.toPolygon` | **family** | Rect2 polygonization |
+| `Rect2.tryPlacement` | **family** | Rect2 placement |
 
 ## `geo.triangle`
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
 | `Triangle2` | **family** | Structured-shape usage example |
+| `Triangle2.toPolygon` | **family** | Triangle2 polygonization |
+| `Triangle2.tryPlacement` | **family** | Triangle2 placement |
 
 ## `geo.regular_polygon`
 
@@ -489,6 +493,7 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Polygon2` | **family** | Polygon2 |
 | `Polygon2.this` | **family** | Polygon2 |
 | `Polygon2.view` | **family** | Polygon2 |
+| `Polygon2.vertex` | **family** | Polygon2 |
 
 ## `geo.placement`
 
@@ -498,12 +503,88 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Placement2.map` | **family** | Placement2 |
 | `VertexPlacement2` | **family** | Placement2 |
 | `EdgeAngle2` | **family** | Placement2 |
+| `Placement2.tryFromVertexAndEdge` | **family** | Placement2 |
+| `Placement2.tryFromVertices` | **family** | Placement2 |
+| `Placement2.tryFromVerticesScaled` | **family** | Placement2 |
 
 ## `geo.triangle` additions
 
 | Public declaration | Classification | Coverage |
 | --- | --- | --- |
 | `Triangle2.tryFrom` | **family** | Triangle2 |
+
+## `geo.anchor_binding`
+
+| Declaration | Classification |
+| --- | --- |
+| `tryResolve` | **family** |
+
+## `geo.annulus`
+
+| Declaration | Classification |
+| --- | --- |
+| `Annulus2` | **family** |
+
+## `geo.capsule`
+
+| Declaration | Classification |
+| --- | --- |
+| `Capsule2` | **family** |
+
+## `geo.circular_arc`
+
+| Declaration | Classification |
+| --- | --- |
+| `CircularArc2` | **family** |
+
+## `geo.circular_segment`
+
+| Declaration | Classification |
+| --- | --- |
+| `CircularSegment2` | **family** |
+
+## `geo.kite`
+
+| Declaration | Classification |
+| --- | --- |
+| `Kite2` | **family** |
+
+## `geo.quadrilateral`
+
+| Declaration | Classification |
+| --- | --- |
+| `Quadrilateral2` | **family** |
+
+## `geo.rectangle_shape`
+
+| Declaration | Classification |
+| --- | --- |
+| `Rectangle2` | **family** |
+| `Square2` | **family** |
+
+## `geo.rhombus`
+
+| Declaration | Classification |
+| --- | --- |
+| `Rhombus2` | **family** |
+
+## `geo.rounded_rectangle`
+
+| Declaration | Classification |
+| --- | --- |
+| `RoundedRectangle2` | **family** |
+
+## `geo.shape_result`
+
+| Declaration | Classification |
+| --- | --- |
+| `ShapeConstructionStatus` | **family** |
+
+## `geo.trapezoid`
+
+| Declaration | Classification |
+| --- | --- |
+| `Trapezoid2` | **family** |
 
 ## Completed implementation batches
 

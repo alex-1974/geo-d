@@ -1,3 +1,18 @@
+/**
+ * Intrinsic circular sector shape.
+ *
+ * Authors:
+ *     Alexander Bernardi
+ *
+ * Copyright:
+ *     Copyright © 2026 Alexander Bernardi
+ *
+ * License:
+ *     MIT
+ *
+ * Date:
+ *     November 13, 2026
+ */
 module geo.circular_sector;
 
 import geo.anchor_binding : AnchorBinding2, tryResolve;

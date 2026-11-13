@@ -65,6 +65,45 @@ if (isGeoScalar!T)
     }
 }
 
+Anchor2!T sourceVertex(T)(size_t index, Point2!T point)
+    if (isGeoScalar!T)
+{
+    return Anchor2!T.vertex(index, point);
+}
+
+Anchor2!T targetVertex(T)(size_t index, Point2!T point)
+    if (isGeoScalar!T)
+{
+    return Anchor2!T.vertex(index, point);
+}
+
+Anchor2!T sourceEdge(T)(size_t startVertex, size_t endVertex,
+                        Point2!T startPoint, Length!T length,
+                        Angle!T angle)
+    if (isGeoScalar!T)
+{
+    auto result = Anchor2!T.edge(startVertex, endVertex, length, angle);
+    result.point = startPoint;
+    return result;
+}
+
+Anchor2!T targetEdge(T)(size_t startVertex, size_t endVertex,
+                        Point2!T startPoint, Length!T length,
+                        Angle!T angle)
+    if (isGeoScalar!T)
+{
+    auto result = Anchor2!T.edge(startVertex, endVertex, length, angle);
+    result.point = startPoint;
+    return result;
+}
+
+AnchorBinding2!T bind(T)(Anchor2!T source, Anchor2!T target,
+                         ScalePolicy2 policy = ScalePolicy2.exact)
+    if (isGeoScalar!T)
+{
+    return AnchorBinding2!T(source, target, policy);
+}
+
 /** Resolve a binding into a coordinate placement when enough anchors exist. */
 bool tryResolve(T)(AnchorBinding2!T binding, out Placement2!T placement)
     pure nothrow @safe

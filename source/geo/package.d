@@ -66,6 +66,12 @@ public import geo.anchor_binding :
     AnchorBinding2,
     AnchorKind2;
 public import geo.anchor_binding : tryResolve;
+public import geo.anchor_binding :
+    bind,
+    sourceEdge,
+    sourceVertex,
+    targetEdge,
+    targetVertex;
 
 public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;

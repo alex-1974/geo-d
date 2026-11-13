@@ -40,15 +40,18 @@ families without rewriting the frozen v2.0.0 API record:
 - segment/polygon clipping adds eight pages:
   `SegmentPolygonClipStatus`, `SegmentPolygonClipResult`, its five
   documented result members, and `clipSegmentToPolygon`.
+- structured shapes add fifteen pages, family-covered by the `Circle2`,
+  `Rect2`, and `Triangle2` usage examples; polygonization is covered by the
+  `Circle2` lowering example.
 
 The current development documentation surface is:
 
 | Classification | Count |
 | --- | ---: |
-| Existing rendered examples | 51 |
+| Existing rendered examples | 52 |
 | Dedicated examples still to add | 0 |
-| Deliberately family-covered declarations | 94 |
-| **Total public symbol pages** | **145** |
+| Deliberately family-covered declarations | 139 |
+| **Total public symbol pages** | **191** |
 
 The 103-page counts below remain the frozen v2.0.0 documentation baseline.
 
@@ -126,6 +129,8 @@ The eleven Batch 3 examples are:
 - `Bounds2.tryFromMinMax`;
 - `Bounds2.tryExtend`;
 - `Bounds2.contains`;
+- `Bounds2.tryCenter`;
+- `Bounds2.tryIntersection`;
 - `Bounds2.intersects`;
 - `squaredDistance`;
 - `segmentLength`;
@@ -189,7 +194,9 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Bounds2.tryFromPoint` | **family** | Bounds2 |
 | `Bounds2.tryExtend` | **existing** | Batch 3 rendered Example |
 | `Bounds2.extend` | **family** | Bounds2 / Bounds2.tryExtend |
-| `Bounds2.contains` | **existing** | Batch 3 rendered Example |
+| `Bounds2.contains` | **family** | Bounds2 |
+| `Bounds2.tryCenter` | **family** | Bounds2 |
+| `Bounds2.tryIntersection` | **existing** | Bounds2 rendered Example |
 | `Bounds2.intersects` | **existing** | Batch 3 rendered Example |
 | `Bounds2.isFinite` | **family** | Bounds2 |
 | `Bounds2.opEquals` | **family** | Bounds2 |
@@ -414,6 +421,171 @@ package surface with `import geo;` and render as `Example` sections in DDox.
 | `Vector2.opBinaryRight` | **family** | Vector2 |
 | `Vector2.opOpAssign` | **family** | Vector2 |
 
+## `geo.circle`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Circle2` | **family** | Structured-shape usage example |
+| `Circle2.valid` | **family** | Circle2 |
+| `Circle2.center` | **family** | Circle2 |
+| `Circle2.radius` | **family** | Circle2 |
+| `Circle2.isFinite` | **family** | Circle2 |
+| `Circle2.tryFromCenterRadius` | **family** | Circle2 |
+| `Circle2.tryFromRadius` | **family** | Circle2 |
+| `Circle2.toPolygon` | **family** | Circle2 |
+| `Circle2.contains` | **family** | Circle2 |
+| `Circle2.tryBounds` | **family** | Circle2 |
+| `Circle2.diameter` | **family** | Circle2 |
+| `Circle2.area` | **family** | Circle2 |
+| `Circle2.circumference` | **family** | Circle2 |
+| `tryPolygonizeCircleInto` | **existing** | Circle2 lowering example |
+
+## `geo.rect`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Rect2` | **family** | Structured-shape usage example |
+| `Rect2.tryCornersInto` | **family** | Rect2 |
+| `Rect2.tryFromSize` | **family** | Rect2 |
+| `Rect2.toPolygon` | **family** | Rect2 polygonization |
+| `Rect2.tryPlacement` | **family** | Rect2 placement |
+
+## `geo.triangle`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Triangle2` | **family** | Structured-shape usage example |
+| `Triangle2.toPolygon` | **family** | Triangle2 polygonization |
+| `Triangle2.tryPlacement` | **family** | Triangle2 placement |
+
+## `geo.regular_polygon`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `RegularPolygon2` | **family** | RegularPolygon2 |
+| `RegularPolygon2.valid` | **family** | RegularPolygon2 |
+| `RegularPolygon2.center` | **family** | RegularPolygon2 |
+| `RegularPolygon2.radius` | **family** | RegularPolygon2 |
+| `RegularPolygon2.rotation` | **family** | RegularPolygon2 |
+| `RegularPolygon2.vertexCount` | **family** | RegularPolygon2 |
+| `RegularPolygon2.sideLength` | **family** | RegularPolygon2 |
+| `RegularPolygon2.perimeter` | **family** | RegularPolygon2 |
+| `RegularPolygon2.area` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryFromCenterRadius` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryPointsInto` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryBounds` | **family** | RegularPolygon2 |
+| `Pentagon2` | **family** | RegularPolygon2 |
+| `RegularPolygon2.tryFromCircumradius` | **family** | RegularPolygon2 |
+
+## `geo.measure`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Length` | **family** | Typed measures |
+| `Angle` | **family** | Typed measures |
+| `Size2` | **family** | Typed measures |
+| `Size3` | **family** | Typed measures |
+
+## `geo.polygon`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Polygon2` | **family** | Polygon2 |
+| `Polygon2.this` | **family** | Polygon2 |
+| `Polygon2.view` | **family** | Polygon2 |
+| `Polygon2.vertex` | **family** | Polygon2 |
+
+## `geo.placement`
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Placement2` | **family** | Placement2 |
+| `Placement2.map` | **family** | Placement2 |
+| `VertexPlacement2` | **family** | Placement2 |
+| `EdgeAngle2` | **family** | Placement2 |
+| `Placement2.tryFromVertexAndEdge` | **family** | Placement2 |
+| `Placement2.tryFromVertices` | **family** | Placement2 |
+| `Placement2.tryFromVerticesScaled` | **family** | Placement2 |
+
+## `geo.triangle` additions
+
+| Public declaration | Classification | Coverage |
+| --- | --- | --- |
+| `Triangle2.tryFrom` | **family** | Triangle2 |
+
+## `geo.anchor_binding`
+
+| Declaration | Classification |
+| --- | --- |
+| `tryResolve` | **family** |
+
+## `geo.annulus`
+
+| Declaration | Classification |
+| --- | --- |
+| `Annulus2` | **family** |
+
+## `geo.capsule`
+
+| Declaration | Classification |
+| --- | --- |
+| `Capsule2` | **family** |
+
+## `geo.circular_arc`
+
+| Declaration | Classification |
+| --- | --- |
+| `CircularArc2` | **family** |
+
+## `geo.circular_segment`
+
+| Declaration | Classification |
+| --- | --- |
+| `CircularSegment2` | **family** |
+
+## `geo.kite`
+
+| Declaration | Classification |
+| --- | --- |
+| `Kite2` | **family** |
+
+## `geo.quadrilateral`
+
+| Declaration | Classification |
+| --- | --- |
+| `Quadrilateral2` | **family** |
+
+## `geo.rectangle_shape`
+
+| Declaration | Classification |
+| --- | --- |
+| `Rectangle2` | **family** |
+| `Square2` | **family** |
+
+## `geo.rhombus`
+
+| Declaration | Classification |
+| --- | --- |
+| `Rhombus2` | **family** |
+
+## `geo.rounded_rectangle`
+
+| Declaration | Classification |
+| --- | --- |
+| `RoundedRectangle2` | **family** |
+
+## `geo.shape_result`
+
+| Declaration | Classification |
+| --- | --- |
+| `ShapeConstructionStatus` | **family** |
+
+## `geo.trapezoid`
+
+| Declaration | Classification |
+| --- | --- |
+| `Trapezoid2` | **family** |
+
 ## Completed implementation batches
 
 The example work was completed in small reviewable groups:
@@ -449,7 +621,7 @@ page disappears, an **existing** page loses its rendered `Example`, a
 **add** entry remains.
 
 For the current post-v2 development surface, the same verifier now enforces
-145 public symbol pages: 51 with rendered examples, 94 family-covered, and
+191 public symbol pages: 52 with rendered examples, 139 family-covered, and
 zero entries requiring an example.
 
 Adding a public symbol in a future compatible release therefore requires

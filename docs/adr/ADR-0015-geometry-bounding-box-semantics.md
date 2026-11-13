@@ -276,6 +276,34 @@ For floating-point input, signed zero follows the ordinary scalar comparison and
 
 The operation makes no claim that geometrically equivalent inputs with different signed-zero representations produce bit-identical corner representations beyond the guarantees already provided by `Bounds2`.
 
+## v4 Bounds2 query slice (#172)
+
+The v4 design review adopts the three narrow operations proposed in #172:
+
+```d
+bool tryCenter(out Point2!(MetricScalar!T) result) const;
+bool contains(Bounds2!T other) const;
+bool tryIntersection(Bounds2!T other, out Bounds2!T result) const;
+```
+
+`tryCenter` promotes to `MetricScalar!T` and computes each coordinate as
+`min / 2 + max / 2`, avoiding integral addition overflow. It fails for empty
+bounds and for a non-representable floating result such as `-infinity` to
+`infinity`; the output is unchanged on failure. Infinite but representable
+centres remain valid.
+
+Bounds containment is inclusive. The empty bounds is contained by every
+bounds, including itself; an empty bounds contains no non-empty bounds.
+
+`tryIntersection` returns the closed constructed intersection. Empty input or
+disjoint input returns `false` and `Bounds2.init`; edge and point contact are
+successful degenerate intersections. The operation is allocation-free,
+commutative, and transactional. The existing boolean `intersects` remains the
+cheap predicate; it is not replaced.
+
+This is an ADOPT decision for the minimal API cost. Width, height, area and
+perimeter remain deferred, as do higher-level geometry and CRS policies.
+
 ## Complexity
 
 ### `Segment2`

@@ -151,6 +151,55 @@ assert(segmentLength(segment) == 5.0);
 
 `MetricScalar!T` exposes the computation type used by metric operations.
 
+## Structured shapes
+
+The v4 structured-shape API keeps natural invariants in compact value types.
+Construction is checked and analytic operations do not allocate.
+
+```d
+import geo;
+
+alias P = Point2!double;
+
+Circle2!double circle;
+assert(Circle2!double.tryFromCenterRadius(P(2.0, 3.0), 2.0, circle));
+assert(circle.contains(P(4.0, 3.0)));
+
+Rect2!double rectangle;
+assert(Rect2!double.tryFromMinMax(P(0.0, 0.0), P(4.0, 2.0), rectangle));
+assert(rectangle.area == 8.0);
+
+Triangle2!double triangle;
+assert(Triangle2!double.tryFromPoints(
+    P(0.0, 0.0), P(4.0, 0.0), P(0.0, 3.0), triangle));
+assert(triangle.area == 6.0);
+
+RegularPolygon2!(double, 5) pentagon;
+assert(RegularPolygon2!(double, 5).tryFromCenterRadius(
+    P(0.0, 0.0), 2.0, 0.0, pentagon));
+assert(pentagon.vertexCount == 5);
+```
+
+`Bounds2` remains the axis-aligned envelope/query type. `Rect2` adds
+rectangle-specific semantics such as width, height, centre, area, perimeter
+and ordered corners.
+
+`RegularPolygon2!(T, N)` is a regular geometric shape with compile-time
+cardinality. It is distinct from the general `Polygon2View`; use `Pentagon2`,
+`Hexagon2`, `Heptagon2` or `Octagon2` for common cardinalities.
+
+Circle polygonization is explicit and caller-owned:
+
+```d
+P[32] points;
+assert(tryPolygonizeCircleInto(circle, points[]));
+auto ring = LinearRing2View!double(points[]);
+```
+
+The generated ring is an inscribed, counter-clockwise regular polygon with
+the destination length as its segment count. It is an approximation, not an
+exact circle conversion; `geo-d` performs no hidden tolerance selection.
+
 ## Orientation
 
 Topology-sensitive orientation is explicit and does not use a global epsilon.
@@ -610,3 +659,21 @@ constructed coordinate.
 
 For the detailed numerical contracts, see `README.md`, `docs/README.md`, and
 the ADRs under `docs/adr/`.
+
+## Checked shape construction
+
+New structured-shape factories return a result carrying either the shape or
+the construction status:
+
+```d
+auto result = Square2!double.fromSide(Length!double(3));
+if (result.valid)
+{
+    auto square = result.value;
+    auto polygon = square.toPolygon(Placement2!double.init);
+}
+```
+
+Use `result.status` to distinguish non-positive, degenerate, inconsistent or
+ambiguous input. The older `tryFrom(..., out result)` forms remain available
+for compatibility and low-level code.

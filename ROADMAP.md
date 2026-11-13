@@ -21,6 +21,70 @@ packaging, and formal API freeze are complete.
 policy is defined in ADR-0018; supported v1 source forms retained by v2 follow
 the migration policy in ADR-0019.
 
+## v4.0.0 — Post-v3 contract and focused geometry evolution
+
+Status: roadmap defined; no v4 public feature is admitted yet.
+
+The v3 release closes the currently accepted clipping and overlay surface.
+The v4 track begins with contract clarification and promotion discipline, not
+with broad API expansion. Research remains separate from production until an
+explicit design decision, implementation, correctness evidence, performance
+evidence, and documentation are complete.
+
+### v4 entry gates
+
+- [ ] maintain v3 compatibility and keep the release branch free of speculative
+  research code;
+- [ ] keep research evidence and negative results reproducible in
+  `geo-d-research`, including compiler, platform, thermal, and archive
+  provenance;
+- [ ] require an accepted ADR before any new public geometry contract;
+- [ ] require public-API, numerical, ownership, safety, and cross-compiler
+  tests for every admitted change;
+- [ ] require a consumer-representative benchmark and explicit regression
+  decision for performance-sensitive changes;
+- [ ] complete release documentation and a dedicated v4 release gate before
+  tagging `v4.0.0`.
+
+### v4 priority order
+
+1. **Bounds2 contract (candidate P0).** Resolve the minimal semantics for
+   center, containment, empty bounds, intersection, non-finite values, scalar
+   conversion, and checked construction in #172. No implementation is admitted
+   until the contract is accepted and independently tested.
+2. **Research promotion maintenance (P1).** Keep #175 as the coordination
+   record. Promote only evidence-backed results; close, defer, or explicitly
+   reject stale experiments rather than carrying them into v4 implicitly.
+3. **Structured 2D shapes (v4 main feature track).** Treat #164 as a
+   consumer-backed design and implementation track for Dunia, the workspace's
+   OpenStreetMap editor application. The first vertical slice is `Circle2`;
+   its contract, explicit polygonization, Dunia workflow, tests, benchmarks,
+   and documentation are the main v4 feature work. Axis-aligned rectangles
+   must first be resolved against `Bounds2`/#172. The remaining family is not
+   admitted wholesale.
+4. **Clipping micro-optimisations (research only).** #160, #131, #133 and #134
+   remain non-committed experiments. They require new mechanism evidence and
+   must not be promoted by benchmark ratios alone.
+5. **Alternative modes (deferred).** #136 remains outside the v4 public
+   contract unless a concrete consumer requires an explicit fixed-precision
+   mode with separately defined semantics.
+
+### Explicitly outside v4 by default
+
+- new owning aggregate geometry types;
+- CRS, projection, geodesy, raster, spatial-index, or file-format concerns;
+- robust `real` support without a platform-aware arithmetic contract;
+- compiler-specific fast paths without a portable semantic and safety gate;
+- a performance parity promise against GEOS or another reference library.
+
+### v4 release shape
+
+The v4 milestone should contain only accepted contract/design work, its
+implementation, independent verification, documentation, and the release
+gate. Research issues remain unmilestoned until their outcome is required for
+the release. A v4 candidate release is appropriate only when the committed
+surface is coherent and all non-committed research is visibly separated.
+
 This v2 migration is not a blanket feature-expansion milestone. New geometry
 capabilities remain driven by concrete consumers and research evidence.
 

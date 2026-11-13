@@ -13,6 +13,10 @@
  * The public API includes:
  *
  * - points, vectors, segments, unbounded lines, and bounds;
+ * - analytic circles with checked construction and direct operations;
+ * - explicit caller-owned circle polygonization;
+ * - axis-aligned rectangles, fixed-cardinality triangles, and regular
+ *   compile-time-cardinality polygons;
  * - non-owning polyline, linear-ring, and polygon views;
  * - scalar conversion and explicit floating-point quantization;
  * - axis-aligned geometry bounds;
@@ -57,9 +61,45 @@ public import geo.area :
     AreaScalar,
     polygonArea,
     signedArea;
+public import geo.anchor_binding :
+    Anchor2,
+    AnchorBinding2,
+    AnchorKind2;
+public import geo.anchor_binding : tryResolve;
+public import geo.anchor_binding :
+    bind,
+    sourceEdge,
+    sourceVertex,
+    targetEdge,
+    targetVertex;
 
 public import geo.bounding_box : tryBounds;
 public import geo.bounds : Bounds2;
+public import geo.circle : Circle2;
+public import geo.circular_arc : CircularArc2;
+public import geo.circular_sector : CircularSector2;
+public import geo.circular_segment : CircularSegment2;
+public import geo.annulus : Annulus2;
+public import geo.capsule : Capsule2;
+public import geo.rounded_rectangle : RoundedRectangle2;
+public import geo.ellipse : Ellipse2;
+public import geo.circle : tryPolygonizeCircleInto;
+public import geo.rect : Rect2;
+public import geo.rectangle_shape : Rectangle2, RectangleLengths, Square2;
+public import geo.quadrilateral : Quadrilateral2, QuadrilateralSideLengths;
+public import geo.parallelogram : Parallelogram2;
+public import geo.rhombus : Rhombus2;
+public import geo.kite : Kite2;
+public import geo.trapezoid : Trapezoid2;
+public import geo.triangle :
+    Triangle2,
+    TriangleSideLengths;
+public import geo.regular_polygon :
+    Hexagon2,
+    Heptagon2,
+    Octagon2,
+    Pentagon2,
+    RegularPolygon2;
 public import geo.convert :
     ceiled,
     floored,
@@ -81,6 +121,8 @@ public import geo.point : Point2;
 public import geo.line : Line2;
 public import geo.polygon_view :
     Polygon2View;
+public import geo.polygon : Polygon2;
+public import geo.polygon : sourceEdge, sourceVertex, targetEdge, targetVertex;
 
 /**
  * Deprecated v1 spelling of `Polygon2View`.
@@ -143,6 +185,29 @@ public import geo.metric :
     tryNormalize,
     tryPointSegmentDistance,
     trySignedAngle;
+public import geo.measure :
+    Angle,
+    Length,
+    Size2,
+    Size3;
+public import geo.transform :
+    Rotation2,
+    Scale2,
+    Transform2,
+    Translation2;
+public import geo.shape_result :
+    ShapeConstructionResult,
+    ShapeConstructionStatus;
+public import geo.placement :
+    CircleAnchor,
+    EdgeAngle2,
+    Placement2,
+    ScalePolicy2,
+    vertex,
+    edge,
+    RectAnchor,
+    TriangleAnchor,
+    VertexPlacement2;
 
 public import geo.orientation :
     Orientation2,

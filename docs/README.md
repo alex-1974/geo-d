@@ -40,6 +40,8 @@ The ADRs define stable semantic contracts for:
 - polyline simplification;
 - polygon-union exact-overlay and result semantics in
   `ADR-0023-polygon-union-exact-overlay-and-result-contract.md`.
+- analytic `Circle2` representation and explicit polygonization in
+  `ADR-0025-circle2-analytic-shape-and-polygonization.md`.
 
 ADR status is authoritative. ADR-0023 is Accepted and defines the semantic,
 numerical, ownership, allocation, and failure contract implemented by the

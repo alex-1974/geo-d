@@ -5,6 +5,11 @@
     "CHANGELOG.md",
     "dub.sdl",
     "docs/getting-started.md",
+    "docs/shape-family-specification.md",
+    "docs/specialized-quadrilaterals.md",
+    "docs/transform-and-binding.md",
+    "docs/shape-family-3d.md",
+    "docs/structured-shapes-v4-design.md",
     "docs/v2-api-conventions.md",
     "docs/compiler-matrix.md",
     "examples/basic_usage.d"
